@@ -4,6 +4,26 @@ A free community for WordPress, as simple as Skool and as familiar as Facebook. 
 
 **[Try the live demo →](https://demo-community.membuild.com)**
 
+![The community feed: stories, a pinned welcome post, reactions and comments](docs/screenshots/feed.jpg)
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/classroom.jpg" alt="Classroom: courses with progress, one unlocked by level and one for a member group"></td>
+    <td width="50%"><img src="docs/screenshots/lesson.jpg" alt="A lesson with the course outline and progress"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/leaderboard.jpg" alt="Leaderboard with nine named levels"></td>
+    <td><img src="docs/screenshots/messages.jpg" alt="A group chat between members"></td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td width="32%" valign="top"><img src="docs/screenshots/phone.jpg" alt="The community on a phone"></td>
+    <td valign="top"><img src="docs/screenshots/admin.jpg" alt="The Community overview in wp-admin: members, activity and the last 30 days"><br><sub>Left: the community on a phone, installable as an app. Right: the overview in wp-admin.</sub></td>
+  </tr>
+</table>
+
 ## What's inside
 
 - **Feed:** posts with photos, video and links; reactions, comments and replies; pinned posts.
