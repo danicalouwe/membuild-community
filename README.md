@@ -35,7 +35,7 @@ A free community for WordPress, as simple as Skool and as familiar as Facebook. 
 - **Your login and sign-up pages,** in the community's colors.
 - **Installable as an app** on phones, with your logo as the icon.
 
-Everything is stored in your own WordPress database. No accounts with us, no tracking, no ads.
+Everything is stored in your own WordPress database. No accounts with us and no ads. Once a week the plugin tells us it's installed (a random ID and version numbers, nothing about your site or members), and you can choose to share anonymous usage, like which features you use, to help us decide what to build. See `readme.txt` → External services.
 
 ## Install
 
@@ -47,7 +47,7 @@ Requires WordPress 6.4 or newer and PHP 8.1 or newer, with "pretty" permalinks (
 
 ## Updates
 
-New versions are published here as releases. Your site checks for them twice a day, and they appear in **Dashboard → Updates** like any other plugin update. Nothing about your site is sent; see `readme.txt` → External services.
+New versions are published here as releases. Your site checks for them twice a day, and they appear in **Dashboard → Updates** like any other plugin update. The update check sends nothing about your site.
 
 ## For developers
 

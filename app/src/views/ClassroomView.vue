@@ -70,7 +70,7 @@ const percentDone = (pct) => t.sprintf(/* translators: %d: percent of the course
           <span v-else class="cover-title">{{ c.title }}</span>
           <span v-if="c.status === 'draft'" class="draft">{{ t._x('Draft', 'course status', 'membuild-community') }}</span>
           <span v-if="c.lock" class="lock">
-            <Icon name="lock" :size="22" />
+            <Icon name="lock" :size="13" />
             {{ lockLabel(c.lock) }}
           </span>
           <span v-else-if="canManage && accessTag(c)" class="draft level-tag"><Icon name="lock" :size="12" /> {{ accessTag(c) }}<template v-if="c.hide_locked"> · {{ t.__('hidden', 'membuild-community') }}</template></span>
@@ -169,18 +169,25 @@ const percentDone = (pct) => t.sprintf(/* translators: %d: percent of the course
   filter: grayscale(0.6) brightness(0.55);
 }
 
+/* A badge in the corner, not over the middle: covers often carry their own title. */
 .lock {
   position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
+  gap: 5px;
+  max-width: calc(100% - 20px);
+  padding: 4px 10px 4px 8px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 70%);
   color: #fff;
-  font-weight: 750;
-  font-size: 15px;
-  text-shadow: 0 1px 3px rgb(0 0 0 / 40%);
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  backdrop-filter: blur(6px);
 }
 
 .level-tag {

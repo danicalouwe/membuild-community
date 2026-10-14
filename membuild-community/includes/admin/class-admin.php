@@ -152,6 +152,8 @@ class Admin {
 		printf( '<h1 class="wp-heading-inline">%s</h1> <a class="page-title-action" href="%s">%s</a>', esc_html( Settings::name() ), esc_url( self::app_url() ), esc_html__( 'Open community', 'membuild-community' ) );
 		echo '<hr class="wp-header-end">';
 
+		Usage::setup_card(); // two questions, once, until answered or skipped
+
 		echo '<div class="mbcom-cards mbcom-stats">';
 		foreach ( $cards as list( $label, $value, $sub, $link ) ) {
 			printf(
@@ -622,6 +624,19 @@ class Admin {
 .mbcom-admin .mbcom-checks ul{list-style:disc;margin:12px 0 0 20px;max-width:820px}
 .mbcom-admin .mbcom-checks li{margin-bottom:6px}
 .mbcom-admin .mbcom-note{margin-top:20px;color:var(--mbcom-muted);max-width:760px}
+
+/* Tell us about your community (Usage::setup_card) */
+.mbcom-admin .mbcom-setup{margin:20px 0 0;max-width:900px;border-color:var(--mbcom-accent)}
+.mbcom-admin .mbcom-setup h2{margin-bottom:4px}
+.mbcom-admin .mbcom-setup>p{margin:0 0 14px}
+.mbcom-admin .mbcom-setup-fields{display:flex;flex-wrap:wrap;gap:12px 20px}
+.mbcom-admin .mbcom-setup-fields label{display:flex;flex-direction:column;gap:4px;font-weight:600}
+.mbcom-admin .mbcom-setup-fields select,.mbcom-admin .mbcom-setup-fields input{min-width:240px;font-weight:400}
+.mbcom-admin .mbcom-setup:not(:has(option[value="other"]:checked)) .mbcom-setup-other{display:none}
+.mbcom-admin .mbcom-setup-share{display:flex;gap:8px;align-items:flex-start;margin:16px 0 0;max-width:720px;color:var(--mbcom-muted)}
+.mbcom-admin .mbcom-setup-share input{margin-top:2px}
+.mbcom-admin .mbcom-setup-share strong{color:#1d2327}
+.mbcom-admin .mbcom-setup-actions{display:flex;align-items:center;gap:16px;margin:16px 0 4px}
 
 /* Export */
 .mbcom-admin .mbcom-exports{grid-template-columns:repeat(3,minmax(0,1fr));max-width:1100px}

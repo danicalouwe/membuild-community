@@ -723,6 +723,69 @@ remove_filter( 'pre_http_request', $stand_in, 10 );
 delete_site_transient( \MemBuild\Community\Updater::CACHE );
 
 /* ---------------------------------------------------------------- */
+mbcom_section( 'Anonymous usage reports (with a stand-in for MemBuild)' );
+delete_option( \MemBuild\Community\Usage::OPTION );
+$sent        = array();
+$forget_code = 200;
+$stand_in    = function ( $pre, $args, $url ) use ( &$sent, &$forget_code ) {
+	if ( ! str_starts_with( $url, \MemBuild\Community\Usage::ENDPOINT ) ) {
+		return $pre;
+	}
+	$sent[] = array( 'url' => $url, 'body' => (string) $args['body'] );
+	$code   = str_contains( $url, 'community_forget' ) ? $forget_code : 200;
+	return array( 'response' => array( 'code' => $code ), 'body' => '{"ok":true}', 'headers' => array() );
+};
+add_filter( 'pre_http_request', $stand_in, 10, 3 );
+add_filter( 'membuild_community/usage_reports', '__return_true' );
+
+$id = \MemBuild\Community\Usage::state()['id'];
+mbcom_check( 'each site gets a random install ID, kept between visits', wp_is_uuid( $id, 4 ) && \MemBuild\Community\Usage::state()['id'] === $id );
+mbcom_check( 'counts are sent as ranges, never exact', '0' === \MemBuild\Community\Usage::range( 0 ) && '1-10' === \MemBuild\Community\Usage::range( 7 ) && '51-200' === \MemBuild\Community\Usage::range( 51 ) && '201-1000' === \MemBuild\Community\Usage::range( 1000 ) && '5001+' === \MemBuild\Community\Usage::range( 6000 ) );
+$report = \MemBuild\Community\Usage::report();
+mbcom_check( 'without sharing, the report is only the ID and versions', array( 'install_id', 'plugin', 'wp', 'php', 'locale', 'multisite', 'shared' ) === array_keys( $report ) && false === $report['shared'] );
+list( $code ) = mbcom_call( $ana, 'GET', '/settings/usage' );
+mbcom_check( 'members can’t see or change sharing', 403 === $code, (string) $code );
+list( $code, $got ) = mbcom_call( $admin, 'PUT', '/settings/usage', array( 'share' => true, 'niche' => 'courses', 'niche_other' => 'ignored', 'size' => 'huge' ) );
+mbcom_check( 'an admin turns sharing on; unknown answers are dropped', 200 === $code && true === $got['share'] && 'courses' === $got['niche'] && '' === $got['niche_other'] && '' === $got['size'] );
+mbcom_call( $admin, 'PUT', '/settings/usage', array( 'niche' => 'other', 'niche_other' => '  Quilting <b>circle</b> and much more text than forty characters allows ' ) );
+$report = \MemBuild\Community\Usage::report();
+mbcom_check( '…“Something else” keeps a short description', 'other' === $report['niche'] && mb_strlen( $report['niche_other'] ) <= 40 && ! str_contains( $report['niche_other'], '<' ) );
+mbcom_check( 'shared reports add features and rough counts', isset( $report['features']['classroom'], $report['members'], $report['posts'] ) && in_array( $report['members'], array( '0', '1-10', '11-50', '51-200', '201-1000', '1001-5000', '5001+' ), true ) );
+$sent = array();
+mbcom_check( 'the weekly report goes to MemBuild', \MemBuild\Community\Usage::send() && 1 === count( $sent ) && str_contains( $sent[0]['url'], 'action=community_report' ) );
+$host  = wp_parse_url( home_url(), PHP_URL_HOST );
+$email = get_userdata( $admin )->user_email;
+mbcom_check( '…and never carries the site address, emails or names', ! str_contains( $sent[0]['body'], $host ) && ! str_contains( $sent[0]['body'], $email ) && ! str_contains( $sent[0]['body'], 'mbct_' ) && ! str_contains( $sent[0]['body'], get_bloginfo( 'name' ) ) );
+mbcom_check( 'Settings shows exactly what’s sent', mbcom_call( $admin, 'GET', '/settings/usage' )[1]['report'] == json_decode( $sent[0]['body'], true ) );
+
+$forget_code = 500;
+list( $code ) = mbcom_call( $admin, 'POST', '/settings/usage/forget' );
+mbcom_check( 'if MemBuild can’t be reached, “delete my data” says so and changes nothing', 502 === $code && \MemBuild\Community\Usage::state()['id'] === $id && \MemBuild\Community\Usage::state()['share'] );
+$forget_code = 200;
+list( $code, $got ) = mbcom_call( $admin, 'POST', '/settings/usage/forget' );
+mbcom_check( '…otherwise sharing stops and the site gets a new ID', 200 === $code && false === $got['share'] && $got['id'] !== $id && str_contains( end( $sent )['body'], $id ) );
+
+delete_option( \MemBuild\Community\Usage::OPTION );
+wp_set_current_user( $admin );
+ob_start();
+\MemBuild\Community\Usage::setup_card();
+$card = ob_get_clean();
+mbcom_check( 'the overview asks about the community once', str_contains( $card, 'name="niche"' ) && str_contains( $card, 'name="share"' ) && ! str_contains( $card, 'name="share" value="1" checked' ) );
+\MemBuild\Community\Usage::update( array( 'asked' => true ) );
+ob_start();
+\MemBuild\Community\Usage::setup_card();
+mbcom_check( '…and not again after it’s answered or skipped', '' === ob_get_clean() );
+
+remove_filter( 'membuild_community/usage_reports', '__return_true' );
+add_filter( 'membuild_community/usage_reports', '__return_false' );
+$sent = array();
+mbcom_check( 'the filter turns reports off entirely', false === \MemBuild\Community\Usage::send() && ! $sent );
+remove_filter( 'membuild_community/usage_reports', '__return_false' );
+remove_filter( 'pre_http_request', $stand_in, 10 );
+delete_option( \MemBuild\Community\Usage::OPTION );
+wp_clear_scheduled_hook( \MemBuild\Community\Usage::HOOK . '_now' );
+
+/* ---------------------------------------------------------------- */
 echo "\n{$GLOBALS['mbcom_passed']} passed, {$GLOBALS['mbcom_failed']} failed\n";
 if ( $GLOBALS['mbcom_failed'] ) {
 	exit( 1 );

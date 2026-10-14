@@ -18,13 +18,13 @@ defined( 'ABSPATH' ) || exit;
 final class Plugin {
 
 	/** Registered as soon as the plugin loads. */
-	const HOOKS = array( Media::class, Files::class, Blocks::class, Bunny::class, Health::class, Privacy::class, Menu::class, Login::class, Access::class, Email::class, Updater::class );
+	const HOOKS = array( Media::class, Files::class, Blocks::class, Bunny::class, Health::class, Privacy::class, Menu::class, Login::class, Access::class, Email::class, Updater::class, Usage::class );
 
 	/** Registered on init, once translations, roles and post types exist. */
 	const INIT = array( Portal::class, Rest_Members::class, Notifications::class, Points::class );
 
 	/** Classes with REST routes. */
-	const REST = array( Rest_Feed::class, Rest_Media::class, Rest_Comments::class, Rest_Stories::class, Rest_Courses::class, Access::class, Rest_Gamification::class, Rest_Messages::class, Notifications::class, Settings::class, Rest_Members::class, Moderation::class, Email::class, App::class, Bunny::class, Blocks::class );
+	const REST = array( Rest_Feed::class, Rest_Media::class, Rest_Comments::class, Rest_Stories::class, Rest_Courses::class, Access::class, Rest_Gamification::class, Rest_Messages::class, Notifications::class, Settings::class, Rest_Members::class, Moderation::class, Email::class, App::class, Bunny::class, Blocks::class, Usage::class );
 
 	/** Hourly maintenance, each bounded so a late or doubled cron run stays cheap. */
 	const MAINTENANCE = array(

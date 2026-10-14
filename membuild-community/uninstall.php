@@ -19,9 +19,11 @@ require_once __DIR__ . '/includes/class-install.php';
 function mbcom_uninstall_site() {
 	global $wpdb;
 
-	foreach ( array( MemBuild\Community\Install::CRON_HOOK, 'mbcom_send_emails', 'mbcom_migrate_private_files', 'mbcom_encrypt_messages' ) as $mbcom_hook ) {
+	foreach ( array( MemBuild\Community\Install::CRON_HOOK, 'mbcom_send_emails', 'mbcom_migrate_private_files', 'mbcom_encrypt_messages', 'mbcom_usage_report' ) as $mbcom_hook ) {
 		wp_clear_scheduled_hook( $mbcom_hook );
 	}
+
+	delete_option( 'mbcom_usage' ); // the anonymous report's ID and answers; a reinstall starts fresh
 
 	$mbcom_settings = get_option( 'mbcom_settings', array() );
 	if ( empty( $mbcom_settings['delete_data'] ) ) {

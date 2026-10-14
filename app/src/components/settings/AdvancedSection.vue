@@ -1,6 +1,7 @@
 <script setup>
 import { useSettings } from './context.js'
 import EncryptionKey from './EncryptionKey.vue'
+import UsageSharing from './UsageSharing.vue'
 import { t } from '../../lib/i18n.js'
 
 // Settings most communities never need to change, kept at the end on purpose.
@@ -19,6 +20,8 @@ const { form, meta, savedForm } = useSettings()
     </label>
 
     <EncryptionKey />
+
+    <UsageSharing />
 
     <label class="toggle-row danger-zone">
       <span>

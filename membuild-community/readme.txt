@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -170,7 +170,13 @@ The plugin works without any outside service. These are only contacted when you 
 * Terms: https://docs.github.com/site-policy/github-terms/github-terms-of-service
 * Privacy: https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement
 
-The plugin does not track usage, show ads or send any data to the plugin's authors.
+**MemBuild** (the plugin's authors: a weekly anonymous report)
+* Always, once a week: a random ID made on your site (not its address), the plugin, WordPress and PHP versions, the site's language and whether it's a multisite, sent to `https://tools.membuild.com/api.php`. Our server also notes the country the request comes from (two letters) and keeps no IP address. This is how we count active installs.
+* Only if an admin turns on "Share anonymous usage" (asked once on the Community overview, and in Community settings → Advanced): what the community is about and how big it expects to be, which features are on, how sign-up and video are set up, and rough counts in ranges ("51-200 members", "11-50 posts"). Never names, email addresses, the site's address, posts, comments or messages.
+* Settings → Advanced shows exactly what is sent, and "Delete this site's data at MemBuild" removes it from our server. Nothing is sent from sites whose environment type is local or development. Turn it off entirely with the `membuild_community/usage_reports` filter.
+* Privacy: https://membuild.com/privacy
+
+The plugin shows no ads and sends nothing else to the plugin's authors.
 
 == Developers ==
 
@@ -178,7 +184,7 @@ Each part of the plugin is a class in `includes/` that registers its own hooks; 
 
 **Actions** (all prefixed `membuild_community/`): `post_created`, `post_deleted`, `comment_created`, `comment_deleted`, `reaction_changed`, `reported`, `member_restricted`, `level_up`, `message_sent`, `lesson_completed`, `lesson_uncompleted`, `course_completed`, `story_created`, `story_reacted`, `notification_created`, `access_group_added`, `access_group_removed`, `member_blocked`, `login_after` (under the login form, for other ways to sign in), `app_footer` (the end of the community page, which has no theme or wp_footer). Points and notifications are themselves built on these actions.
 
-**Filters**: `membuild_community/points_rules` (points per action and daily caps), `membuild_community/level_thresholds` (points needed per level), `membuild_community/in_access_group` (decide access-group membership your own way, e.g. from a membership plugin), `membuild_community/send_protected_file` (let your server send protected files, e.g. with X-Accel-Redirect), `membuild_community/daily_upload_bytes` (how much a member may upload per day; 2 GB by default, no limit for admins and moderators).
+**Filters**: `membuild_community/points_rules` (points per action and daily caps), `membuild_community/level_thresholds` (points needed per level), `membuild_community/in_access_group` (decide access-group membership your own way, e.g. from a membership plugin), `membuild_community/send_protected_file` (let your server send protected files, e.g. with X-Accel-Redirect), `membuild_community/daily_upload_bytes` (how much a member may upload per day; 2 GB by default, no limit for admins and moderators), `membuild_community/github_updates` (return false to stop checking GitHub for updates), `membuild_community/usage_reports` (return false to send no reports to MemBuild).
 
 **WP-CLI**: `wp mbcom recount-points` (recount totals and levels from the points ledger), `wp mbcom rebuild-points` (replay all activity into points), and `wp mbcom seed` for demo content.
 
@@ -199,6 +205,11 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.1.0 =
+* New: a one-time question on the Community overview (what your community is about, and how big you expect it to be), with an optional "Share anonymous usage with MemBuild".
+* New: a weekly anonymous report to MemBuild, so we can count active installs: a random ID and version numbers, nothing about your site or members. Sharing usage adds features and rough counts. See External services, and Community settings → Advanced to see exactly what's sent or delete it.
+* Fix: the lock on a course cover now sits in the corner instead of over the title.
 
 = 1.0.0 =
 * First release: feed, reels, stories, courses, levels and leaderboard, private messages (encrypted at rest), moderation, the community's own login and sign-up pages, and updates from GitHub releases.

@@ -43,6 +43,8 @@ class Install {
 		wp_clear_scheduled_hook( 'mbcom_send_emails' );
 		wp_clear_scheduled_hook( Files::MIGRATE_HOOK );
 		wp_clear_scheduled_hook( Vault::MIGRATE_HOOK );
+		wp_clear_scheduled_hook( Usage::HOOK );
+		wp_clear_scheduled_hook( Usage::HOOK . '_now' );
 		flush_rewrite_rules();
 	}
 
