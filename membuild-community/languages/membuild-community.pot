@@ -1,0 +1,5514 @@
+# Copyright (C) 2026 MemBuild
+# This file is distributed under the GPL-2.0-or-later.
+msgid ""
+msgstr ""
+"Project-Id-Version: MemBuild - Community 1.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/membuild-community\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-10-14T16:38:54+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.12.0\n"
+"X-Domain: membuild-community\n"
+
+#. Plugin Name of the plugin
+#: membuild-community.php
+#: includes/class-privacy.php:187
+msgid "MemBuild - Community"
+msgstr ""
+
+#. Plugin URI of the plugin
+#: membuild-community.php
+msgid "https://github.com/danicalouwe/membuild-community"
+msgstr ""
+
+#. Description of the plugin
+#: membuild-community.php
+msgid "A simple, free community for WordPress: feed, reels, courses and gamification."
+msgstr ""
+
+#. Author of the plugin
+#: membuild-community.php
+msgid "MemBuild"
+msgstr ""
+
+#: includes/admin/class-admin.php:32
+#: includes/class-health.php:45
+#: includes/class-privacy.php:27
+#: includes/class-privacy.php:35
+msgid "Community"
+msgstr ""
+
+#: includes/admin/class-admin.php:33
+msgid "Community overview"
+msgstr ""
+
+#: includes/admin/class-admin.php:33
+msgid "Overview"
+msgstr ""
+
+#: includes/admin/class-admin.php:35
+#: includes/admin/class-admin.php:145
+#: includes/admin/class-admin.php:526
+#: assets/build/assets/index-Dj268KlO.js:40
+#: assets/build/assets/MembersView-o7cXF76R.js:1
+msgid "Members"
+msgstr ""
+
+#: includes/admin/class-admin.php:36
+#: includes/admin/class-admin.php:147
+#: includes/admin/class-admin.php:294
+#: assets/build/assets/MemberView-B95zRlWC.js:31
+msgid "Posts"
+msgstr ""
+
+#: includes/admin/class-admin.php:37
+#: includes/admin/class-admin.php:148
+#: includes/admin/class-admin.php:295
+#: includes/admin/class-admin.php:528
+#: includes/admin/class-list-tables.php:386
+#: includes/admin/class-list-tables.php:499
+#: assets/build/assets/ReelsView-BguWmOKZ.js:1
+msgid "Comments"
+msgstr ""
+
+#: includes/admin/class-admin.php:38
+#: includes/admin/class-admin.php:531
+#: includes/admin/class-list-tables.php:584
+msgid "Files"
+msgstr ""
+
+#. translators: %s: course title
+#: includes/admin/class-admin.php:39
+#: includes/admin/class-list-tables.php:756
+msgid "Courses"
+msgstr ""
+
+#: includes/admin/class-admin.php:45
+#: includes/admin/class-admin.php:537
+msgid "Export community data"
+msgstr ""
+
+#: includes/admin/class-admin.php:45
+msgid "Export"
+msgstr ""
+
+#: includes/admin/class-admin.php:46
+#: assets/build/assets/index-Dj268KlO.js:40
+msgid "Community settings"
+msgstr ""
+
+#: includes/admin/class-admin.php:46
+#: includes/class-settings.php:411
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Settings"
+msgstr ""
+
+#: includes/admin/class-admin.php:47
+#: includes/admin/class-admin.php:152
+msgid "Open community"
+msgstr ""
+
+#: includes/admin/class-admin.php:47
+msgid "Open community ↗"
+msgstr ""
+
+#. translators: %s: a number
+#: includes/admin/class-admin.php:138
+#, php-format
+msgid "+%s this week"
+msgstr ""
+
+#. translators: %s: a number
+#: includes/admin/class-admin.php:138
+msgid "None this week"
+msgstr ""
+
+#. translators: %s: share of all members who were active this week, e.g. "38"
+#: includes/admin/class-admin.php:141
+#, php-format
+msgid "%s%% of all members"
+msgstr ""
+
+#. translators: %s: number of reels
+#: includes/admin/class-admin.php:143
+#, php-format
+msgid "%s reel"
+msgid_plural "%s reels"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/admin/class-admin.php:146
+msgid "Active this week"
+msgstr ""
+
+#. translators: %s: number of reports
+#: includes/admin/class-admin.php:173
+#, php-format
+msgid "%s report waiting"
+msgid_plural "%s reports waiting"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of reports
+#: includes/admin/class-admin.php:173
+msgid "No reports waiting"
+msgstr ""
+
+#: includes/admin/class-admin.php:174
+msgid "Review"
+msgstr ""
+
+#. translators: %s: number of private messages
+#: includes/admin/class-admin.php:177
+#, php-format
+msgid "%s private message"
+msgid_plural "%s private messages"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: storage size, e.g. "68 MB"
+#: includes/admin/class-admin.php:179
+#, php-format
+msgid "%s of files"
+msgstr ""
+
+#: includes/admin/class-admin.php:187
+msgid "Latest activity"
+msgstr ""
+
+#: includes/admin/class-admin.php:193
+msgid "All of this is stored in your own WordPress database, in tables that start with “mbcom_”. Private messages are counted here but never shown; reported messages and posts reach moderators in the community’s Moderation page."
+msgstr ""
+
+#. translators: %s: number of things to check
+#: includes/admin/class-admin.php:218
+#, php-format
+msgid "%s thing to check on your hosting"
+msgid_plural "%s things to check on your hosting"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/admin/class-admin.php:223
+msgid "Open Site Health"
+msgstr ""
+
+#: includes/admin/class-admin.php:250
+msgid "Last 30 days"
+msgstr ""
+
+#. translators: 1: date, 2: posts, 3: comments, 4: new members
+#: includes/admin/class-admin.php:274
+#, php-format
+msgid "%1$s: %2$d posts, %3$d comments, %4$d new members"
+msgstr ""
+
+#: includes/admin/class-admin.php:286
+msgid "Posts and comments per day for the last 30 days"
+msgstr ""
+
+#: includes/admin/class-admin.php:290
+#: includes/admin/class-list-tables.php:323
+msgid "Today"
+msgstr ""
+
+#: includes/admin/class-admin.php:296
+msgid "New members"
+msgstr ""
+
+#: includes/admin/class-admin.php:317
+msgid "Nothing yet."
+msgstr ""
+
+#: includes/admin/class-admin.php:324
+#: includes/class-email.php:437
+#: includes/class-email.php:498
+#: assets/build/assets/MessagesView-ajAzzRso.js:3
+#: assets/build/assets/MessengerPanel-BKrPwBvj.js:3
+#: assets/build/assets/NotificationsPanel-DM9XswZS.js:1
+msgid "Someone"
+msgstr ""
+
+#. translators: %s: member name
+#: includes/admin/class-admin.php:327
+#, php-format
+msgid "%s joined"
+msgstr ""
+
+#: includes/admin/class-admin.php:329
+msgid "a photo or video"
+msgstr ""
+
+#. translators: 1: member name, 2: start of what they wrote, as a link
+#: includes/admin/class-admin.php:332
+#, php-format
+msgid "%1$s posted %2$s"
+msgstr ""
+
+#. translators: 1: member name, 2: start of what they wrote, as a link
+#: includes/admin/class-admin.php:332
+#, php-format
+msgid "%1$s commented %2$s"
+msgstr ""
+
+#. translators: %s: time, e.g. "5 mins"
+#: includes/admin/class-admin.php:342
+#: includes/admin/class-list-tables.php:121
+#, php-format
+msgid "%s ago"
+msgstr ""
+
+#. translators: %d: how many
+#: includes/admin/class-admin.php:414
+#, php-format
+msgid "%d post hidden from the community."
+msgid_plural "%d posts hidden from the community."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: how many
+#: includes/admin/class-admin.php:416
+#, php-format
+msgid "%d post is live again."
+msgid_plural "%d posts are live again."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: how many
+#: includes/admin/class-admin.php:418
+#, php-format
+msgid "%d item deleted."
+msgid_plural "%d items deleted."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: how many
+#: includes/admin/class-admin.php:420
+#, php-format
+msgid "%d post pinned."
+msgid_plural "%d posts pinned."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: how many
+#: includes/admin/class-admin.php:422
+#, php-format
+msgid "%d post unpinned."
+msgid_plural "%d posts unpinned."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: how many
+#: includes/admin/class-admin.php:424
+#, php-format
+msgid "%d member muted for 7 days."
+msgid_plural "%d members muted for 7 days."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: how many
+#: includes/admin/class-admin.php:426
+#, php-format
+msgid "%d member banned."
+msgid_plural "%d members banned."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: how many
+#: includes/admin/class-admin.php:428
+#, php-format
+msgid "%d member can take part again."
+msgid_plural "%d members can take part again."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: how many
+#: includes/admin/class-admin.php:430
+#, php-format
+msgid "%d member added to the group."
+msgid_plural "%d members added to the group."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: how many
+#: includes/admin/class-admin.php:432
+#, php-format
+msgid "%d member removed from the group."
+msgid_plural "%d members removed from the group."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/admin/class-admin.php:433
+msgid "That didn’t work. Admins and moderators can’t be muted or banned, pinning allows up to 3 posts, and members already in a group aren’t added twice."
+msgstr ""
+
+#: includes/admin/class-admin.php:490
+#: includes/admin/class-admin.php:560
+msgid "You don’t have permission to do that."
+msgstr ""
+
+#: includes/admin/class-admin.php:526
+msgid "Name, email, join date, level, points, streak, posts, comments, message and chat counts, and status."
+msgstr ""
+
+#: includes/admin/class-admin.php:527
+#: includes/admin/class-list-tables.php:372
+msgid "Posts and reels"
+msgstr ""
+
+#: includes/admin/class-admin.php:527
+msgid "Every post with its author, text, reactions, comments, status and date."
+msgstr ""
+
+#: includes/admin/class-admin.php:528
+msgid "Every comment with its author, the post it’s on, and date."
+msgstr ""
+
+#: includes/admin/class-admin.php:529
+msgid "Course progress"
+msgstr ""
+
+#: includes/admin/class-admin.php:529
+msgid "Which member finished which lesson, and when."
+msgstr ""
+
+#: includes/admin/class-admin.php:530
+msgid "Points history"
+msgstr ""
+
+#: includes/admin/class-admin.php:530
+msgid "Every point earned or taken back, and why."
+msgstr ""
+
+#: includes/admin/class-admin.php:531
+msgid "Every uploaded file, its size, who uploaded it and its address."
+msgstr ""
+
+#: includes/admin/class-admin.php:538
+msgid "Download your community’s data as spreadsheets (CSV files open in Excel, Numbers and Google Sheets). Private message text is never exported; message counts are included with members."
+msgstr ""
+
+#: includes/admin/class-admin.php:542
+msgid "Download CSV"
+msgstr ""
+
+#: includes/admin/class-admin.php:547
+msgid "A member asked for their data?"
+msgstr ""
+
+#: includes/admin/class-admin.php:548
+msgid "The community is part of WordPress’s privacy tools. Exporting a member’s personal data includes their profile, posts, comments, points and course progress. Erasing it removes their posts, comments, messages, stories, reactions and uploads."
+msgstr ""
+
+#: includes/admin/class-admin.php:550
+msgid "Export personal data"
+msgstr ""
+
+#: includes/admin/class-admin.php:552
+msgid "Erase personal data"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:46
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:9
+msgid "Search"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:98
+msgid "Select bulk action"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:99
+msgid "Bulk actions"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:104
+msgid "Apply"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:127
+msgid "Deleted user"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:156
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:7
+msgid "Community members"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:160
+#: assets/build/assets/MembersView-o7cXF76R.js:1
+#: assets/build/assets/NewChatDialog-C9i7CrEb.js:5
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Search members"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:164
+msgid "Everyone with an account on this site is a community member. Messages are counted, never shown: admins can’t read members’ private chats."
+msgstr ""
+
+#: includes/admin/class-list-tables.php:170
+#: includes/admin/class-list-tables.php:778
+msgid "Member"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:171
+#: includes/class-privacy.php:62
+msgid "Level"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:172
+msgid "Activity"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:173
+#: assets/build/assets/index-Dj268KlO.js:40
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Messages"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:174
+msgid "Last active"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:175
+msgid "Joined"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:181
+#: assets/build/assets/MemberView-B95zRlWC.js:25
+msgid "Mute for 7 days"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:182
+#: assets/build/assets/MemberView-B95zRlWC.js:25
+msgid "Ban from the community"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:183
+msgid "Unmute or unban"
+msgstr ""
+
+#. translators: %s: access group name
+#: includes/admin/class-list-tables.php:188
+#, php-format
+msgid "Add to member group: %s"
+msgstr ""
+
+#. translators: %s: access group name
+#: includes/admin/class-list-tables.php:192
+#, php-format
+msgid "Remove from member group: %s"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:208
+#: includes/admin/class-list-tables.php:621
+#: assets/build/assets/MessengerPanel-BKrPwBvj.js:1
+#: assets/build/assets/NotificationsPanel-DM9XswZS.js:10
+#: assets/build/assets/ReactionsDialog-D4MAyFyz.js:1
+msgid "All"
+msgstr ""
+
+#. translators: %s: date and time the mute ends
+#: includes/admin/class-list-tables.php:209
+#: includes/admin/class-list-tables.php:308
+#: assets/build/assets/MemberView-B95zRlWC.js:2
+#: assets/build/assets/ModerationView-VjmYxKDy.js:15
+#: assets/build/assets/ModerationView-VjmYxKDy.js:22
+msgid "Muted"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:210
+#: includes/admin/class-list-tables.php:306
+#: assets/build/assets/MemberView-B95zRlWC.js:2
+#: assets/build/assets/ModerationView-VjmYxKDy.js:15
+#: assets/build/assets/ModerationView-VjmYxKDy.js:20
+msgid "Banned"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:275
+#: assets/build/assets/ChatView-BYvp0tOB.js:5
+#: assets/build/assets/ChatView-BYvp0tOB.js:7
+#: assets/build/assets/ModerationView-VjmYxKDy.js:22
+msgid "View profile"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:279
+#: assets/build/assets/ModerationView-VjmYxKDy.js:18
+msgid "Lift"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:281
+#: assets/build/assets/ModerationView-VjmYxKDy.js:22
+msgid "Mute 7 days"
+msgstr ""
+
+#. translators: %s: member name
+#: includes/admin/class-list-tables.php:283
+#: assets/build/assets/ModerationView-VjmYxKDy.js:22
+msgid "Ban"
+msgstr ""
+
+#. translators: %s: member name
+#: includes/admin/class-list-tables.php:283
+#, php-format
+msgid "Ban %s from the community?"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:286
+msgid "Edit account"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:295
+#: assets/build/assets/MembersView-o7cXF76R.js:1
+#: assets/build/assets/MemberView-B95zRlWC.js:23
+msgid "Admin"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:298
+#: assets/build/assets/MembersView-o7cXF76R.js:1
+#: assets/build/assets/MemberView-B95zRlWC.js:23
+msgid "Moderator"
+msgstr ""
+
+#. translators: %s: date and time the mute ends
+#: includes/admin/class-list-tables.php:308
+#: assets/build/assets/MemberView-B95zRlWC.js:4
+#: assets/build/assets/ModerationView-VjmYxKDy.js:22
+#, php-format,js-format
+msgid "Muted until %s"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:319
+msgid "Not yet"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:324
+msgid "Yesterday"
+msgstr ""
+
+#. translators: %d: level number
+#: includes/admin/class-list-tables.php:332
+#: assets/build/assets/ChatView-BYvp0tOB.js:7
+#: assets/build/assets/index-Dj268KlO.js:4
+#: assets/build/assets/index-Dj268KlO.js:9
+#: assets/build/assets/SettingsView-DgIyW9fX.js:19
+#, php-format,js-format
+msgid "Level %d"
+msgstr ""
+
+#. translators: %s: number of points
+#: includes/admin/class-list-tables.php:334
+#: assets/build/assets/LeaderboardView-QKcDB5g2.js:3
+#: assets/build/assets/MemberView-B95zRlWC.js:11
+#, php-format,js-format
+msgid "%s point"
+msgid_plural "%s points"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of posts
+#: includes/admin/class-list-tables.php:341
+#, php-format
+msgid "%s post"
+msgid_plural "%s posts"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of comments, e.g. "12" or "1.2K"
+#: includes/admin/class-list-tables.php:343
+#: assets/build/assets/index-Dj268KlO.js:30
+#, php-format,js-format
+msgid "%s comment"
+msgid_plural "%s comments"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: number of chats
+#: includes/admin/class-list-tables.php:355
+#, php-format
+msgid "in %s chat"
+msgid_plural "in %s chats"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/admin/class-list-tables.php:376
+msgid "Search posts"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:382
+#: includes/admin/class-list-tables.php:470
+#: assets/build/assets/ModerationView-VjmYxKDy.js:1
+msgid "Post"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:383
+#: includes/admin/class-list-tables.php:510
+msgid "Author"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:384
+#: includes/admin/class-list-tables.php:604
+#: includes/class-privacy.php:94
+msgid "Type"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:385
+#: includes/admin/class-list-tables.php:512
+#: assets/build/assets/index-Dj268KlO.js:26
+#: assets/build/assets/ReactionsDialog-D4MAyFyz.js:1
+msgid "Reactions"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:387
+#: includes/class-privacy.php:97
+msgid "Posted"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:393
+msgid "Hide from the community"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:394
+#: includes/admin/class-list-tables.php:455
+msgid "Show again"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:395
+#: includes/admin/class-list-tables.php:458
+#: includes/admin/class-list-tables.php:518
+#: includes/admin/class-list-tables.php:548
+#: includes/admin/class-list-tables.php:613
+#: includes/admin/class-list-tables.php:703
+#: assets/build/assets/CourseView-eN5XUUkI.js:15
+#: assets/build/assets/index-Dj268KlO.js:32
+msgid "Delete"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:404
+msgid "Live"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:405
+msgid "Hidden"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:406
+msgid "Deleted"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:451
+msgid "View"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:452
+msgid "Unpin"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:452
+#: assets/build/assets/index-Dj268KlO.js:34
+msgid "Pin to top"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:453
+msgid "Hide"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:458
+msgid "Delete this post for everyone?"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:460
+#: includes/admin/class-list-tables.php:560
+msgid "(photo or video)"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:460
+msgid "(no text)"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:461
+#: assets/build/assets/index-Dj268KlO.js:34
+msgid "Pinned"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:470
+#: assets/build/assets/index-Dj268KlO.js:11
+#: assets/build/assets/index-Dj268KlO.js:21
+msgid "Reel"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:503
+msgid "Search comments"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:509
+#: assets/build/assets/ModerationView-VjmYxKDy.js:1
+msgid "Comment"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:511
+#: includes/class-privacy.php:107
+msgid "On post"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:513
+#: includes/class-privacy.php:110
+msgid "Written"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:547
+#: assets/build/assets/ModerationView-VjmYxKDy.js:22
+msgid "View in post"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:548
+msgid "Delete this comment and its replies?"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:550
+#: assets/build/assets/ChatView-BYvp0tOB.js:7
+msgid "Reply"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:551
+#: includes/admin/class-list-tables.php:710
+#: includes/class-privacy.php:109
+#: assets/build/assets/ChatView-BYvp0tOB.js:13
+#: assets/build/assets/CommentThread-Cj5Yz0tC.js:7
+#: assets/build/assets/index-Dj268KlO.js:23
+msgid "Photo"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:561
+msgid "Post not live"
+msgstr ""
+
+#. translators: %s: total size, e.g. "120 MB"
+#: includes/admin/class-list-tables.php:589
+#, php-format
+msgid "%s in total"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:593
+msgid "Photos, videos and documents uploaded to the community. They’re kept out of WordPress’s Media Library so members’ private photos stay private. Uploads that are never used are removed automatically after a day."
+msgstr ""
+
+#: includes/admin/class-list-tables.php:603
+msgid "File"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:605
+msgid "Size"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:606
+msgid "Uploaded by"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:607
+msgid "Used in"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:608
+msgid "Uploaded"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:622
+msgid "Photos"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:623
+msgid "Videos"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:624
+msgid "Documents"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:625
+msgid "Video links"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:670
+msgid "A profile photo"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:671
+msgid "A comment"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:672
+msgid "A story"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:673
+msgid "A course cover"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:683
+msgid "The community logo"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:684
+msgid "The app icon"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:689
+msgid "A lesson"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:702
+msgid "Open"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:703
+msgid "Delete this file? It disappears from wherever it’s used."
+msgstr ""
+
+#: includes/admin/class-list-tables.php:705
+msgid "(file)"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:711
+msgid "Video (Bunny Stream)"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:711
+#: assets/build/assets/CourseView-eN5XUUkI.js:5
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+#: assets/build/assets/VideoDock-B4w8GSwj.js:1
+msgid "Video"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:712
+msgid "Document"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:713
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+msgid "Video link"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:729
+msgid "Not posted"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:729
+msgid "Deleted automatically within a day"
+msgstr ""
+
+#. translators: %d: post number
+#: includes/admin/class-list-tables.php:733
+#, php-format
+msgid "Post #%d"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:737
+msgid "Not found in use"
+msgstr ""
+
+#. translators: %s: course title
+#: includes/admin/class-list-tables.php:756
+#, php-format
+msgid "Progress in “%s”"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:761
+msgid "All courses"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:762
+msgid "Edit courses in the community"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:779
+msgid "Progress"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:780
+msgid "Last lesson finished"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:784
+#: includes/class-privacy.php:75
+msgid "Course"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:785
+msgid "Status"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:786
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+msgid "Who can open it"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:787
+msgid "Lessons"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:788
+msgid "Members started"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:789
+#: includes/class-privacy.php:77
+msgid "Finished"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:820
+msgid "See progress"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:821
+msgid "Open in the community"
+msgstr ""
+
+#. translators: %d: level number
+#: includes/admin/class-list-tables.php:831
+#: assets/build/assets/CourseView-eN5XUUkI.js:9
+#, php-format,js-format
+msgid "Level %d and up"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:836
+#: includes/class-privacy.php:66
+#: assets/build/assets/MemberGroupsDialog-6VXFtBtK.js:1
+#: assets/build/assets/SettingsView-DgIyW9fX.js:15
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Member groups"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:838
+msgid "Everyone"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:842
+msgid "Published"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:842
+msgid "Draft"
+msgstr ""
+
+#. translators: 1: lessons done, 2: lessons in the course
+#: includes/admin/class-list-tables.php:864
+#, php-format
+msgid "%1$d of %2$d lessons"
+msgstr ""
+
+#: includes/admin/class-list-tables.php:872
+msgid "Nobody has started this course yet."
+msgstr ""
+
+#: includes/admin/class-list-tables.php:872
+msgid "No courses yet. Create one in the community’s Classroom."
+msgstr ""
+
+#: includes/class-access.php:226
+#: includes/class-access.php:246
+msgid "Give the group a name."
+msgstr ""
+
+#: includes/class-access.php:240
+#: includes/class-access.php:282
+msgid "Group not found."
+msgstr ""
+
+#: includes/class-access.php:337
+#: includes/class-access.php:363
+#: includes/class-blocks.php:91
+msgid "Member not found."
+msgstr ""
+
+#: includes/class-app.php:140
+msgid "Upload the icon again."
+msgstr ""
+
+#: includes/class-blocks.php:94
+msgid "Admins and moderators can’t be blocked, because they need to reach every member. If one of them is bothering you, report it to the site owner."
+msgstr ""
+
+#: includes/class-blocks.php:97
+msgid "Admins and moderators mute or ban members instead of blocking them."
+msgstr ""
+
+#: includes/class-bunny.php:77
+msgid "The CDN hostname should look like vz-12345678-910.b-cdn.net."
+msgstr ""
+
+#: includes/class-bunny.php:90
+msgid "Bunny Stream needs the library ID, API key and CDN hostname."
+msgstr ""
+
+#: includes/class-bunny.php:124
+msgid "Bunny didn’t accept the API key. Use the library’s Stream API key, not your account key."
+msgstr ""
+
+#: includes/class-bunny.php:125
+msgid "Bunny couldn’t find that video library. Check the library ID."
+msgstr ""
+
+#. translators: %d: HTTP status code
+#: includes/class-bunny.php:127
+#, php-format
+msgid "Bunny returned an error (%d)."
+msgstr ""
+
+#: includes/class-bunny.php:154
+msgid "Save the Bunny Stream settings first."
+msgstr ""
+
+#: includes/class-bunny.php:171
+msgid "Bunny Stream is not set up."
+msgstr ""
+
+#: includes/class-bunny.php:178
+msgid "That’s a lot of videos. Please wait a while before uploading more."
+msgstr ""
+
+#: includes/class-bunny.php:183
+msgid "Videos can be up to 2 GB."
+msgstr ""
+
+#: includes/class-bunny.php:192
+msgid "Bunny didn’t create the video."
+msgstr ""
+
+#: includes/class-bunny.php:233
+msgid "Video not found."
+msgstr ""
+
+#: includes/class-bunny.php:296
+msgid "Bad token."
+msgstr ""
+
+#: includes/class-email.php:86
+msgid "The “from” address isn’t a valid email."
+msgstr ""
+
+#: includes/class-email.php:100
+msgid "Add your SMTP server’s address."
+msgstr ""
+
+#: includes/class-email.php:152
+msgid "The email could not be sent."
+msgstr ""
+
+#: includes/class-email.php:225
+msgid "Test email"
+msgstr ""
+
+#. translators: %s: community name
+#: includes/class-email.php:226
+#: includes/class-email.php:233
+msgid "If you can read this, community emails are working."
+msgstr ""
+
+#: includes/class-email.php:229
+msgid "Back to settings"
+msgstr ""
+
+#. translators: %s: community name
+#: includes/class-email.php:233
+#, php-format
+msgid "Test email from %s"
+msgstr ""
+
+#: includes/class-email.php:407
+msgid "replied to your comment"
+msgstr ""
+
+#: includes/class-email.php:407
+msgid "commented on your post"
+msgstr ""
+
+#. translators: %s: who sent it
+#: includes/class-email.php:440
+#, php-format
+msgid "%s sent you a message"
+msgstr ""
+
+#. translators: 1: who sent it, 2: number of messages
+#: includes/class-email.php:443
+#, php-format
+msgid "%1$s sent you %2$d message"
+msgid_plural "%1$s sent you %2$d messages"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: 1: number of updates, 2: community name
+#: includes/class-email.php:463
+#, php-format
+msgid "%1$d new updates in %2$s"
+msgstr ""
+
+#. translators: %s: member's first name
+#: includes/class-email.php:477
+#, php-format
+msgid "Hi %s, here’s what you missed"
+msgstr ""
+
+#. translators: %s: community name
+#: includes/class-email.php:481
+#, php-format
+msgid "Open %s"
+msgstr ""
+
+#: includes/class-email.php:484
+msgid "Stop these emails:"
+msgstr ""
+
+#. translators: 1: a name, 2: how many more people
+#: includes/class-email.php:508
+#: assets/build/assets/NotificationsPanel-DM9XswZS.js:5
+#, php-format,js-format
+msgid "%1$s and %2$d other"
+msgid_plural "%1$s and %2$d others"
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/class-email.php:522
+msgid "Unsubscribe from these emails"
+msgstr ""
+
+#: includes/class-email.php:557
+msgid "This unsubscribe link isn’t valid."
+msgstr ""
+
+#: includes/class-email.php:560
+msgid "Stop getting community emails?"
+msgstr ""
+
+#: includes/class-email.php:561
+#: includes/class-email.php:562
+msgid "Unsubscribe"
+msgstr ""
+
+#: includes/class-email.php:568
+msgid "You won’t get community emails any more. You can turn them back on from Edit profile."
+msgstr ""
+
+#: includes/class-email.php:569
+msgid "Unsubscribed"
+msgstr ""
+
+#: includes/class-email.php:570
+msgid "Open the community"
+msgstr ""
+
+#: includes/class-embeds.php:57
+msgid "Paste a YouTube or Vimeo link."
+msgstr ""
+
+#: includes/class-embeds.php:95
+msgid "This video's owner doesn't allow it to be embedded."
+msgstr ""
+
+#: includes/class-embeds.php:96
+msgid "That video couldn't be found. Check the link and try again."
+msgstr ""
+
+#: includes/class-embeds.php:118
+msgid "That Vimeo video couldn't be found, or its privacy settings don't allow embedding."
+msgstr ""
+
+#: includes/class-health.php:22
+msgid "Community address works"
+msgstr ""
+
+#: includes/class-health.php:23
+msgid "Community emails can be sent on schedule"
+msgstr ""
+
+#: includes/class-health.php:24
+msgid "Community app can be installed on phones"
+msgstr ""
+
+#: includes/class-health.php:25
+msgid "Community images can be resized"
+msgstr ""
+
+#: includes/class-health.php:26
+msgid "Community uploads fit the server’s limits"
+msgstr ""
+
+#: includes/class-health.php:27
+msgid "Community email delivery"
+msgstr ""
+
+#: includes/class-health.php:28
+msgid "Protected community files are private"
+msgstr ""
+
+#: includes/class-health.php:29
+msgid "Private messages are encrypted"
+msgstr ""
+
+#: includes/class-health.php:60
+#: includes/class-health.php:180
+msgid "Restore the key"
+msgstr ""
+
+#: includes/class-health.php:67
+msgid "Private messages are encrypted with a key kept on this server. Nobody has confirmed keeping a copy of it yet. If the site is moved or restored without it, members’ messages can’t be read."
+msgstr ""
+
+#: includes/class-health.php:68
+msgid "Save a copy of the key"
+msgstr ""
+
+#: includes/class-health.php:74
+msgid "Private messages are encrypted, but the key is stored in the database because wp-content isn’t writable, so a copy of the database alone could be decrypted. Ask your host to let WordPress write to wp-content, or add the key to wp-config.php as MEMBUILD_COMMUNITY_KEY (64 hexadecimal characters)."
+msgstr ""
+
+#: includes/class-health.php:78
+msgid "in wp-config.php"
+msgstr ""
+
+#. translators: %s: where the key is kept, e.g. "in wp-config.php" or a file name
+#: includes/class-health.php:82
+#, php-format
+msgid "Private messages and stored passwords are encrypted, with the key kept outside the database (%s). Keep the key in your backups and move it with the site: without it, messages can’t be read."
+msgstr ""
+
+#: includes/class-health.php:93
+msgid "Lesson files and photos in private messages can be opened by anyone who knows their address, because your web server ignores the folder’s block rules (common on nginx). Add this to your site’s nginx configuration:"
+msgstr ""
+
+#: includes/class-health.php:98
+msgid "Your site couldn’t check its own protected files folder (loopback requests are blocked). Ask your host to confirm wp-content/uploads/mbcom-private/ isn’t reachable from the web."
+msgstr ""
+
+#: includes/class-health.php:100
+msgid "Lesson files and photos in private messages can only be opened through the community, by people allowed to see them."
+msgstr ""
+
+#: includes/class-health.php:103
+msgid "Pretty permalinks are on, so the community opens at its own address."
+msgstr ""
+
+#: includes/class-health.php:107
+msgid "Permalinks are set to “Plain”, so the community’s address doesn’t open. Choose any other permalink setting."
+msgstr ""
+
+#: includes/class-health.php:108
+msgid "Change permalinks"
+msgstr ""
+
+#: includes/class-health.php:113
+msgid "WordPress’s built-in scheduler is turned off (DISABLE_WP_CRON). Make sure your host runs wp-cron.php on a schedule, every 5–15 minutes, or community emails and clean-ups won’t run."
+msgstr ""
+
+#: includes/class-health.php:117
+msgid "Scheduled tasks are running late. WordPress only runs them when someone visits the site, so on quiet sites emails go out late. Ask your host to run wp-cron.php every 5–15 minutes."
+msgstr ""
+
+#: includes/class-health.php:119
+msgid "Scheduled tasks are running, so email summaries and clean-ups go out on time."
+msgstr ""
+
+#: includes/class-health.php:123
+msgid "The site uses HTTPS, so members can add the community to their home screen."
+msgstr ""
+
+#: includes/class-health.php:125
+msgid "The site isn’t using HTTPS. Phones only let people install the community as an app on secure (https://) sites, and browsers flag the sign-in as not secure."
+msgstr ""
+
+#: includes/class-health.php:129
+msgid "The server can resize images, so the app’s home-screen icons are created."
+msgstr ""
+
+#: includes/class-health.php:131
+msgid "The server has neither GD nor Imagick, so home-screen icons can’t be made from your logo. Ask your host to enable the GD extension for PHP."
+msgstr ""
+
+#: includes/class-health.php:136
+msgid "Uploads are sent in 1 MB pieces, well within the server’s limit."
+msgstr ""
+
+#. translators: %s: upload limit, e.g. "1 MB"
+#: includes/class-health.php:139
+#, php-format
+msgid "The server only accepts uploads up to %s, smaller than the 1 MB pieces the community sends. Ask your host to raise upload_max_filesize and post_max_size to at least 8 MB."
+msgstr ""
+
+#: includes/class-health.php:144
+msgid "Community emails go through a dedicated email service."
+msgstr ""
+
+#: includes/class-health.php:148
+msgid "Community emails are sent by your web host’s mail, which is often slow, rate-limited or lands in spam. Connect Resend or another SMTP service for reliable delivery."
+msgstr ""
+
+#: includes/class-health.php:149
+msgid "Email settings"
+msgstr ""
+
+#: includes/class-health.php:161
+msgid "The encryption key on this server isn’t the one private messages were locked with (for example after moving the site). Messages can’t be read or sent until you restore the right key."
+msgstr ""
+
+#: includes/class-health.php:162
+msgid "The encryption key for private messages is missing (for example after moving or restoring the site without wp-content/mbcom-key.php). Messages can’t be read or sent until you restore it."
+msgstr ""
+
+#: includes/class-health.php:177
+msgid "Community messages are paused."
+msgstr ""
+
+#: includes/class-health.php:189
+msgid "Save a copy of your community’s encryption key."
+msgstr ""
+
+#: includes/class-health.php:190
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Private messages are encrypted with a key kept on your server. Keep a copy somewhere safe, like a password manager. If the site is ever moved or restored without it, members’ messages can’t be read."
+msgstr ""
+
+#: includes/class-health.php:192
+msgid "Save the key"
+msgstr ""
+
+#: includes/class-health.php:203
+msgid "MemBuild - Community needs pretty permalinks."
+msgstr ""
+
+#: includes/class-health.php:204
+msgid "With “Plain” permalinks the community’s address doesn’t open."
+msgstr ""
+
+#: includes/class-health.php:206
+msgid "Choose another permalink setting"
+msgstr ""
+
+#: includes/class-helpers.php:89
+msgid "You’re doing that a lot. Please wait a few minutes and try again."
+msgstr ""
+
+#. translators: %s: community name
+#: includes/class-login.php:90
+#, php-format
+msgid "Reset your password for %s"
+msgstr ""
+
+#. translators: %s: community name
+#: includes/class-login.php:99
+#, php-format
+msgid "Someone asked to reset the password for your account on %s."
+msgstr ""
+
+#: includes/class-login.php:100
+msgid "If this was you, choose a new password here:"
+msgstr ""
+
+#: includes/class-login.php:101
+msgid "The link works for 24 hours. If you didn’t ask for this, ignore this email and your password stays the same."
+msgstr ""
+
+#: includes/class-login.php:149
+msgid "You’ve logged out."
+msgstr ""
+
+#: includes/class-login.php:151
+msgid "Your password was changed. Log in with your new password."
+msgstr ""
+
+#: includes/class-login.php:158
+#: includes/class-login.php:216
+#: includes/class-login.php:352
+#: includes/class-login.php:385
+msgid "The page timed out. Please try again."
+msgstr ""
+
+#: includes/class-login.php:160
+msgid "Too many tries. Wait a few minutes, then try again."
+msgstr ""
+
+#: includes/class-login.php:176
+msgid "Enter your email or username and your password."
+msgstr ""
+
+#: includes/class-login.php:177
+msgid "The email, username or password you entered isn’t right."
+msgstr ""
+
+#: includes/class-login.php:260
+#: includes/class-login.php:356
+msgid "Too many tries. Wait a while, then try again."
+msgstr ""
+
+#: includes/class-login.php:263
+msgid "Enter your first name."
+msgstr ""
+
+#: includes/class-login.php:266
+msgid "Enter a valid email address."
+msgstr ""
+
+#: includes/class-login.php:269
+msgid "There’s already an account with this email. Log in, or reset your password if you’ve forgotten it."
+msgstr ""
+
+#. translators: %d: minimum number of characters
+#: includes/class-login.php:273
+#, php-format
+msgid "Use at least %d characters for your password."
+msgstr ""
+
+#: includes/class-login.php:278
+msgid "Choose the month and year you were born."
+msgstr ""
+
+#: includes/class-login.php:283
+#: templates/login.php:169
+msgid "Sorry, you can’t create an account right now."
+msgstr ""
+
+#: includes/class-login.php:308
+msgid "Your account couldn’t be created. Please try again."
+msgstr ""
+
+#: includes/class-login.php:354
+#: templates/login.php:130
+msgid "Enter your email or username."
+msgstr ""
+
+#. translators: %d: minimum number of characters
+#: includes/class-login.php:405
+#, php-format
+msgid "Use at least %d characters."
+msgstr ""
+
+#: includes/class-login.php:408
+msgid "Choose a password that doesn’t include your username."
+msgstr ""
+
+#: includes/class-media.php:64
+#: includes/class-media.php:69
+#: includes/class-media.php:200
+#: includes/class-media.php:207
+msgid "This file type is not supported."
+msgstr ""
+
+#: includes/class-media.php:76
+msgid "That’s a lot of uploads. Please wait a few minutes."
+msgstr ""
+
+#: includes/class-media.php:80
+msgid "This file is empty."
+msgstr ""
+
+#. translators: %d: maximum file size in megabytes
+#: includes/class-media.php:84
+#, php-format
+msgid "Files must be under %d MB."
+msgstr ""
+
+#: includes/class-media.php:88
+msgid "You’ve uploaded a lot today. Please try again tomorrow."
+msgstr ""
+
+#: includes/class-media.php:143
+msgid "Chunks must arrive in order."
+msgstr ""
+
+#: includes/class-media.php:148
+msgid "Part of the upload arrived damaged. Please try again."
+msgstr ""
+
+#: includes/class-media.php:155
+msgid "Part of the upload arrived out of order. Please try again."
+msgstr ""
+
+#: includes/class-media.php:159
+msgid "Could not store the upload."
+msgstr ""
+
+#: includes/class-media.php:184
+msgid "The upload didn’t finish. Please try again."
+msgstr ""
+
+#. translators: %s: maximum width or height in pixels, such as "8,000"
+#: includes/class-media.php:212
+#, php-format
+msgid "This image is too large. Please use one under %s pixels wide and tall."
+msgstr ""
+
+#: includes/class-media.php:218
+msgid "Could not save the file."
+msgstr ""
+
+#: includes/class-media.php:380
+msgid "Upload not found."
+msgstr ""
+
+#: includes/class-media.php:480
+msgid "File not found."
+msgstr ""
+
+#: includes/class-menu.php:21
+msgid "Community shortcuts (grid menu)"
+msgstr ""
+
+#: includes/class-moderation.php:26
+#: assets/build/assets/ReportDialog-BPJNqaRs.js:1
+msgid "Spam"
+msgstr ""
+
+#: includes/class-moderation.php:27
+msgid "Harassment or bullying"
+msgstr ""
+
+#: includes/class-moderation.php:28
+msgid "Hate speech"
+msgstr ""
+
+#: includes/class-moderation.php:29
+msgid "Nudity or sexual content"
+msgstr ""
+
+#: includes/class-moderation.php:30
+msgid "Violence or threats"
+msgstr ""
+
+#: includes/class-moderation.php:31
+msgid "False information"
+msgstr ""
+
+#: includes/class-moderation.php:32
+#: assets/build/assets/ReportDialog-BPJNqaRs.js:1
+msgid "Something else"
+msgstr ""
+
+#: includes/class-moderation.php:70
+#: includes/class-portal.php:114
+msgid "You no longer have access to this community."
+msgstr ""
+
+#. translators: %s: date and time the mute ends
+#: includes/class-moderation.php:73
+#, php-format
+msgid "You’re muted until %s, so you can read and react but not post."
+msgstr ""
+
+#: includes/class-moderation.php:74
+msgid "You’re muted, so you can read and react but not post."
+msgstr ""
+
+#: includes/class-moderation.php:143
+msgid "This was already removed."
+msgstr ""
+
+#: includes/class-moderation.php:150
+msgid "Pick a reason."
+msgstr ""
+
+#: includes/class-moderation.php:153
+msgid "You can’t report yourself or your own posts."
+msgstr ""
+
+#: includes/class-moderation.php:342
+#: includes/class-rest-members.php:141
+msgid "This member was not found."
+msgstr ""
+
+#: includes/class-moderation.php:345
+msgid "Admins and moderators can’t be muted or banned."
+msgstr ""
+
+#: includes/class-moderation.php:407
+#: includes/class-rest-comments.php:89
+#: includes/class-rest-comments.php:143
+#: includes/class-rest-feed.php:329
+#: includes/class-rest-feed.php:341
+#: includes/class-rest-feed.php:369
+#: includes/class-rest-feed.php:415
+#: includes/class-rest-feed.php:454
+#: includes/class-rest-feed.php:473
+msgid "Post not found."
+msgstr ""
+
+#. translators: %d: how many posts can be pinned
+#: includes/class-moderation.php:412
+#, php-format
+msgid "Up to %d posts can be pinned. Unpin one first."
+msgstr ""
+
+#: includes/class-portal.php:116
+msgid "Back to the site"
+msgstr ""
+
+#: includes/class-privacy.php:57
+msgid "Community profile"
+msgstr ""
+
+#: includes/class-privacy.php:60
+#: assets/build/assets/EditProfileDialog-A-Ri_xB3.js:1
+msgid "Bio"
+msgstr ""
+
+#: includes/class-privacy.php:61
+msgid "Profile photo"
+msgstr ""
+
+#: includes/class-privacy.php:63
+#: assets/build/assets/SettingsView-DgIyW9fX.js:21
+msgid "Points"
+msgstr ""
+
+#: includes/class-privacy.php:64
+msgid "Private messages sent"
+msgstr ""
+
+#: includes/class-privacy.php:65
+msgid "Email preferences"
+msgstr ""
+
+#: includes/class-privacy.php:72
+msgid "Community course progress"
+msgstr ""
+
+#: includes/class-privacy.php:76
+msgid "Lesson"
+msgstr ""
+
+#: includes/class-privacy.php:91
+msgid "Community posts"
+msgstr ""
+
+#: includes/class-privacy.php:95
+#: includes/class-privacy.php:108
+msgid "Text"
+msgstr ""
+
+#: includes/class-privacy.php:96
+msgid "Photos and videos"
+msgstr ""
+
+#: includes/class-privacy.php:104
+msgid "Community comments"
+msgstr ""
+
+#: includes/class-privacy.php:139
+msgid "(comment removed)"
+msgstr ""
+
+#: includes/class-privacy.php:172
+msgid "Community: the member’s posts, comments, uploads, stories, reactions, points and profile were removed. Their messages were replaced with “Message unsent” so the other people’s side of each chat still makes sense."
+msgstr ""
+
+#: includes/class-privacy.php:183
+msgid "Suggested text for the community. Edit it to match how you run your community."
+msgstr ""
+
+#: includes/class-privacy.php:184
+msgid "Suggested text:"
+msgstr ""
+
+#: includes/class-privacy.php:185
+msgid "When you take part in our community we store what you share there: your profile, posts, comments, reactions, stories, messages, course progress and points. Messages are private between the people in a chat and are stored encrypted; site admins can see how many messages there are, but not what they say, and message text is never included in emails. If you report a post or comment, moderators see your report and note. You can ask us for a copy of your data or ask us to erase it."
+msgstr ""
+
+#: includes/class-privacy.php:186
+msgid "If a member posts a YouTube or Vimeo link, the site fetches the video’s public details from that service and the video plays in their player. If email notifications are on, your email address and the notification are sent through the site’s email service. If Bunny Stream is turned on, videos you upload are stored with Bunny.net. Members without their own profile photo are shown with their Gravatar, which sends a hashed form of their email address to Gravatar.com."
+msgstr ""
+
+#: includes/class-rest-comments.php:119
+#: includes/class-rest-comments.php:123
+#: includes/class-rest-comments.php:215
+#: includes/class-rest-comments.php:246
+msgid "Comment not found."
+msgstr ""
+
+#: includes/class-rest-comments.php:151
+msgid "Add the photo again, please."
+msgstr ""
+
+#: includes/class-rest-comments.php:155
+msgid "Write a comment first."
+msgstr ""
+
+#: includes/class-rest-comments.php:163
+msgid "That comment no longer exists."
+msgstr ""
+
+#: includes/class-rest-comments.php:218
+msgid "You cannot delete this comment."
+msgstr ""
+
+#: includes/class-rest-courses.php:100
+#: includes/class-rest-courses.php:225
+#: includes/class-rest-courses.php:263
+#: includes/class-rest-courses.php:289
+msgid "Course not found."
+msgstr ""
+
+#: includes/class-rest-courses.php:109
+#: includes/class-rest-courses.php:178
+#: includes/class-rest-courses.php:355
+#: includes/class-rest-courses.php:395
+msgid "Lesson not found."
+msgstr ""
+
+#. translators: %d: level number
+#: includes/class-rest-courses.php:114
+#, php-format
+msgid "Reach Level %d to unlock this course."
+msgstr ""
+
+#: includes/class-rest-courses.php:117
+msgid "This course is for members of a group."
+msgstr ""
+
+#. translators: %s: date the lesson unlocks
+#: includes/class-rest-courses.php:124
+#, php-format
+msgid "This lesson unlocks on %s."
+msgstr ""
+
+#: includes/class-rest-courses.php:138
+msgid "This lesson is not available."
+msgstr ""
+
+#: includes/class-rest-courses.php:198
+#: assets/build/assets/ClassroomView-C5hgx6dX.js:1
+msgid "Untitled course"
+msgstr ""
+
+#: includes/class-rest-courses.php:215
+msgid "Module 1"
+msgstr ""
+
+#: includes/class-rest-courses.php:294
+#: assets/build/assets/CourseView-eN5XUUkI.js:13
+msgid "New module"
+msgstr ""
+
+#: includes/class-rest-courses.php:303
+#: includes/class-rest-courses.php:313
+#: includes/class-rest-courses.php:330
+msgid "Module not found."
+msgstr ""
+
+#: includes/class-rest-courses.php:339
+#: assets/build/assets/CourseView-eN5XUUkI.js:15
+msgid "New lesson"
+msgstr ""
+
+#: includes/class-rest-courses.php:474
+msgid "Get access"
+msgstr ""
+
+#: includes/class-rest-feed.php:127
+msgid "This part of the community is turned off."
+msgstr ""
+
+#: includes/class-rest-feed.php:260
+msgid "Only admins and moderators can post here."
+msgstr ""
+
+#: includes/class-rest-feed.php:267
+msgid "Reels are turned off."
+msgstr ""
+
+#: includes/class-rest-feed.php:285
+msgid "Write something or add a photo or video."
+msgstr ""
+
+#: includes/class-rest-feed.php:288
+#: includes/class-rest-feed.php:311
+msgid "A reel needs exactly one video."
+msgstr ""
+
+#: includes/class-rest-feed.php:344
+msgid "You can only edit your own posts."
+msgstr ""
+
+#: includes/class-rest-feed.php:350
+msgid "Write something or delete the post instead."
+msgstr ""
+
+#: includes/class-rest-feed.php:372
+msgid "You cannot delete this post."
+msgstr ""
+
+#: includes/class-rest-gamification.php:18
+msgid "Someone reacted to your post or comment"
+msgstr ""
+
+#: includes/class-rest-gamification.php:19
+msgid "You posted"
+msgstr ""
+
+#: includes/class-rest-gamification.php:20
+msgid "You commented"
+msgstr ""
+
+#: includes/class-rest-gamification.php:21
+msgid "You shared a story"
+msgstr ""
+
+#: includes/class-rest-gamification.php:22
+msgid "You finished a lesson"
+msgstr ""
+
+#: includes/class-rest-gamification.php:23
+msgid "You finished a course"
+msgstr ""
+
+#: includes/class-rest-gamification.php:24
+msgid "Daily visit"
+msgstr ""
+
+#: includes/class-rest-gamification.php:25
+msgid "7-day streak bonus"
+msgstr ""
+
+#: includes/class-rest-gamification.php:26
+msgid "30-day streak bonus"
+msgstr ""
+
+#: includes/class-rest-members.php:192
+msgid "Your name can’t be empty."
+msgstr ""
+
+#: includes/class-rest-members.php:211
+msgid "Upload the photo again, please."
+msgstr ""
+
+#: includes/class-rest-messages.php:107
+msgid "Choose who to message."
+msgstr ""
+
+#. translators: %d: maximum group size
+#: includes/class-rest-messages.php:115
+#, php-format
+msgid "Groups can have up to %d people."
+msgstr ""
+
+#: includes/class-rest-messages.php:122
+#: includes/class-rest-messages.php:195
+#: includes/class-rest-messages.php:410
+msgid "You can message admins and moderators here."
+msgstr ""
+
+#: includes/class-rest-messages.php:125
+#: includes/class-rest-messages.php:439
+msgid "You can’t message this person."
+msgstr ""
+
+#: includes/class-rest-messages.php:147
+msgid "Only group chats have a name."
+msgstr ""
+
+#: includes/class-rest-messages.php:160
+msgid "You can only leave group chats."
+msgstr ""
+
+#: includes/class-rest-messages.php:211
+msgid "You can only unsend your own messages."
+msgstr ""
+
+#: includes/class-rest-messages.php:404
+#: includes/class-rest-stories.php:192
+#: includes/class-rest-stories.php:217
+msgid "This story is no longer available."
+msgstr ""
+
+#: includes/class-rest-messages.php:407
+msgid "You cannot reply to your own story."
+msgstr ""
+
+#: includes/class-rest-messages.php:436
+msgid "You're sending messages very quickly. Please wait a moment."
+msgstr ""
+
+#: includes/class-rest-messages.php:442
+#: includes/class-rest-messages.php:451
+msgid "Write a message first."
+msgstr ""
+
+#: includes/class-rest-messages.php:555
+msgid "Conversation not found."
+msgstr ""
+
+#: includes/class-rest-messages.php:562
+msgid "Message not found."
+msgstr ""
+
+#: includes/class-rest-messages.php:679
+msgid "This message can’t be shown."
+msgstr ""
+
+#: includes/class-rest-messages.php:719
+#: assets/build/assets/ChatView-BYvp0tOB.js:7
+msgid "Message unsent"
+msgstr ""
+
+#: includes/class-rest-messages.php:725
+msgid "Replied to a story"
+msgstr ""
+
+#: includes/class-rest-messages.php:727
+msgid "Sent a photo"
+msgstr ""
+
+#: includes/class-rest-stories.php:141
+msgid "That upload is not available."
+msgstr ""
+
+#: includes/class-rest-stories.php:144
+msgid "Add a photo, a video or some text."
+msgstr ""
+
+#: includes/class-rest-stories.php:220
+msgid "You cannot react to your own story."
+msgstr ""
+
+#: includes/class-rest-stories.php:243
+#: includes/class-rest-stories.php:274
+msgid "Story not found."
+msgstr ""
+
+#: includes/class-rest-stories.php:246
+msgid "Only the author can see who viewed this."
+msgstr ""
+
+#: includes/class-rest-stories.php:277
+msgid "You cannot delete this story."
+msgstr ""
+
+#: includes/class-settings.php:28
+msgid "Someone reacts to your post or comment"
+msgstr ""
+
+#: includes/class-settings.php:29
+msgid "Write a post"
+msgstr ""
+
+#: includes/class-settings.php:30
+#: assets/build/assets/CommentThread-Cj5Yz0tC.js:7
+msgid "Write a comment"
+msgstr ""
+
+#: includes/class-settings.php:31
+msgid "Share a story"
+msgstr ""
+
+#: includes/class-settings.php:32
+msgid "Complete a lesson"
+msgstr ""
+
+#: includes/class-settings.php:33
+msgid "Finish a course"
+msgstr ""
+
+#: includes/class-settings.php:34
+msgid "Visit the community (once a day)"
+msgstr ""
+
+#: includes/class-settings.php:35
+msgid "7-day streak"
+msgstr ""
+
+#: includes/class-settings.php:36
+msgid "30-day streak"
+msgstr ""
+
+#: includes/class-settings.php:225
+msgid "Unknown action."
+msgstr ""
+
+#: includes/class-settings.php:270
+msgid "Pick a color like #3b5bfd."
+msgstr ""
+
+#: includes/class-settings.php:277
+msgid "The address needs at least one letter or number."
+msgstr ""
+
+#. translators: %s: the address the admin typed, e.g. /community
+#: includes/class-settings.php:282
+#, php-format
+msgid "%s is already used on this site. Try another address."
+msgstr ""
+
+#: includes/class-settings.php:387
+msgid "Upload the logo again, please."
+msgstr ""
+
+#: includes/class-updater.php:121
+msgid "Release on GitHub"
+msgstr ""
+
+#: includes/class-vault.php:67
+msgid "This can’t be saved until the site owner restores the community’s encryption key."
+msgstr ""
+
+#: includes/class-vault.php:90
+msgid "That isn’t a community key. It’s 64 letters and numbers, from your saved copy."
+msgstr ""
+
+#: includes/class-vault.php:94
+msgid "That key doesn’t match this community’s messages. Check you copied the key from this site."
+msgstr ""
+
+#: includes/class-vault.php:114
+msgid "The encryption key is working, so there’s nothing to start over."
+msgstr ""
+
+#: includes/class-vault.php:138
+msgid "The key is set in wp-config.php (MEMBUILD_COMMUNITY_KEY). Change it there."
+msgstr ""
+
+#. translators: %s: community name
+#: templates/login.php:15
+#, php-format
+msgid "Log into %s"
+msgstr ""
+
+#: templates/login.php:16
+msgid "Create a new account"
+msgstr ""
+
+#: templates/login.php:17
+msgid "Find your account"
+msgstr ""
+
+#: templates/login.php:18
+msgid "Choose a new password"
+msgstr ""
+
+#: templates/login.php:19
+msgid "This link has expired"
+msgstr ""
+
+#: templates/login.php:46
+msgid "Level up!"
+msgstr ""
+
+#. translators: the start of the login page headline; it continues with "together."
+#: templates/login.php:54
+msgid "Learn, share and grow"
+msgstr ""
+
+#. translators: the end of the login page headline, shown in the community's color
+#: templates/login.php:59
+msgid "together."
+msgstr ""
+
+#: templates/login.php:85
+#: templates/login.php:138
+msgid "Email or username"
+msgstr ""
+
+#: templates/login.php:89
+#: assets/build/assets/SettingsView-DgIyW9fX.js:29
+msgid "Password"
+msgstr ""
+
+#: templates/login.php:90
+#: templates/login.php:162
+#: templates/login.php:196
+msgid "Show password"
+msgstr ""
+
+#: templates/login.php:90
+#: templates/login.php:162
+#: templates/login.php:196
+msgid "Hide password"
+msgstr ""
+
+#: templates/login.php:93
+msgid "Log in"
+msgstr ""
+
+#: templates/login.php:95
+msgid "Forgot password?"
+msgstr ""
+
+#: templates/login.php:97
+msgid "Create new account"
+msgstr ""
+
+#: templates/login.php:115
+#: templates/login.php:126
+msgid "Back to log in"
+msgstr ""
+
+#: templates/login.php:118
+msgid "Check your email"
+msgstr ""
+
+#. translators: %s: the email or username the person typed
+#: templates/login.php:122
+#, php-format
+msgid "If an account matches %s, we’ve sent it a link to reset the password. The link works for 24 hours."
+msgstr ""
+
+#: templates/login.php:125
+msgid "Nothing arrived? Check your spam folder, or try again in a few minutes."
+msgstr ""
+
+#: templates/login.php:140
+msgid "Continue"
+msgstr ""
+
+#. translators: 1: the member's name, 2: minimum number of characters
+#: templates/login.php:148
+#, php-format
+msgid "Hi %1$s, pick a new password with at least %2$d characters."
+msgstr ""
+
+#: templates/login.php:161
+#: templates/login.php:195
+msgid "New password"
+msgstr ""
+
+#: templates/login.php:164
+msgid "Save and log in"
+msgstr ""
+
+#: templates/login.php:173
+msgid "It’s quick and easy."
+msgstr ""
+
+#: templates/login.php:182
+msgid "First name"
+msgstr ""
+
+#: templates/login.php:186
+msgid "Last name"
+msgstr ""
+
+#: templates/login.php:191
+#: assets/build/assets/SettingsView-DgIyW9fX.js:27
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Email"
+msgstr ""
+
+#: templates/login.php:200
+msgid "Birthday"
+msgstr ""
+
+#: templates/login.php:201
+#: templates/login.php:202
+msgid "Month"
+msgstr ""
+
+#: templates/login.php:207
+#: templates/login.php:208
+msgid "Year"
+msgstr ""
+
+#: templates/login.php:215
+msgid "Leave this empty"
+msgstr ""
+
+#: templates/login.php:222
+msgid "Terms"
+msgstr ""
+
+#: templates/login.php:223
+msgid "Privacy Policy"
+msgstr ""
+
+#. translators: %s: links to the Terms and/or Privacy Policy
+#: templates/login.php:227
+#, php-format
+msgid "By signing up, you agree to our %s."
+msgstr ""
+
+#: templates/login.php:231
+msgid "Sign up"
+msgstr ""
+
+#: templates/login.php:233
+msgid "Already have an account? Log in"
+msgstr ""
+
+#: templates/login.php:237
+msgid "Password links work once and for 24 hours. Ask for a new one and use the newest email."
+msgstr ""
+
+#: templates/login.php:238
+msgid "Send a new link"
+msgstr ""
+
+#: templates/portal.php:34
+msgid "The community’s files are missing. Please reinstall the plugin."
+msgstr ""
+
+#. translators: %d: level number
+#: assets/build/assets/access-ofprWew9.js:3
+#, js-format
+msgid "Reach Level %d to unlock"
+msgstr ""
+
+#. translators: %s: access group names, e.g. "VIP, Coaching clients"
+#: assets/build/assets/access-ofprWew9.js:5
+#, js-format
+msgid "For %s"
+msgstr ""
+
+#: assets/build/assets/access-ofprWew9.js:5
+msgid "Members with access only"
+msgstr ""
+
+#. translators: %d: points still needed
+#: assets/build/assets/access-ofprWew9.js:7
+#, js-format
+msgid "You're %d point away."
+msgid_plural "You're %d points away."
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/build/assets/access-ofprWew9.js:7
+msgid "Earn points by posting, commenting, reacting and finishing lessons."
+msgstr ""
+
+#: assets/build/assets/access-ofprWew9.js:7
+msgid "Ask an admin if you should have access to this course."
+msgstr ""
+
+#. translators: %d: level number
+#: assets/build/assets/access-ofprWew9.js:9
+#, js-format
+msgid "Level %d+"
+msgstr ""
+
+#: assets/build/assets/access-ofprWew9.js:9
+msgid "Hidden from members"
+msgstr ""
+
+#: assets/build/assets/attachments-BaaCgZ7f.js:2
+msgctxt "upload stage"
+msgid "Preparing"
+msgstr ""
+
+#: assets/build/assets/attachments-BaaCgZ7f.js:2
+msgctxt "upload stage"
+msgid "Uploading"
+msgstr ""
+
+#: assets/build/assets/attachments-BaaCgZ7f.js:2
+msgctxt "upload stage"
+msgid "Compressing"
+msgstr ""
+
+#: assets/build/assets/attachments-BaaCgZ7f.js:2
+msgctxt "upload stage"
+msgid "Ready"
+msgstr ""
+
+#: assets/build/assets/attachments-BaaCgZ7f.js:2
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:7
+#: assets/build/assets/ReelsView-BguWmOKZ.js:1
+#: assets/build/assets/StoryCreator-DJr714Rv.js:1
+msgid "Upload failed"
+msgstr ""
+
+#: assets/build/assets/BaseDialog-Be-ksRUv.js:1
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:7
+#: assets/build/assets/index-Dj268KlO.js:23
+#: assets/build/assets/InstallSheet-D6Op5ZT2.js:13
+#: assets/build/assets/ReactionsDialog-D4MAyFyz.js:1
+#: assets/build/assets/ReelsView-BguWmOKZ.js:3
+#: assets/build/assets/StoryCreator-DJr714Rv.js:1
+#: assets/build/assets/StoryViewer-Dt4fUwJq.js:5
+msgid "Close"
+msgstr ""
+
+#: assets/build/assets/bunny-BTX1rQCu.js:1
+msgid "Bunny refused the upload. Check the video settings."
+msgstr ""
+
+#. translators: %d: HTTP status code
+#: assets/build/assets/bunny-BTX1rQCu.js:3
+#, js-format
+msgid "Upload failed (%d)"
+msgstr ""
+
+#: assets/build/assets/ChatDock-0tVv-ejx.js:2
+#: assets/build/assets/NewChatDialog-C9i7CrEb.js:3
+msgid "Chat"
+msgstr ""
+
+#. translators: %s: the chat's name or the people in it
+#: assets/build/assets/ChatDock-0tVv-ejx.js:4
+#, js-format
+msgid "Open chat with %s"
+msgstr ""
+
+#. translators: %s: the chat's name or the people in it
+#: assets/build/assets/ChatDock-0tVv-ejx.js:6
+#, js-format
+msgid "Close chat with %s"
+msgstr ""
+
+#: assets/build/assets/ChatDock-0tVv-ejx.js:6
+#: assets/build/assets/MessagesView-ajAzzRso.js:5
+#: assets/build/assets/MessagesView-ajAzzRso.js:7
+#: assets/build/assets/MessengerPanel-BKrPwBvj.js:5
+#: assets/build/assets/NewChatDialog-C9i7CrEb.js:1
+msgid "New message"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:1
+#: assets/build/assets/MessagesView-ajAzzRso.js:1
+#: assets/build/assets/MessengerPanel-BKrPwBvj.js:1
+msgid "Just you"
+msgstr ""
+
+#. translators: %s: a time of day, e.g. 3:45 PM
+#: assets/build/assets/ChatView-BYvp0tOB.js:3
+#, js-format
+msgid "Today %s"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:3
+msgid "A photo failed to upload."
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:3
+#: assets/build/assets/NewChatDialog-C9i7CrEb.js:5
+#: assets/build/assets/SettingsView-DgIyW9fX.js:5
+msgid "Group name"
+msgstr ""
+
+#. translators: %s: member's name
+#: assets/build/assets/ChatView-BYvp0tOB.js:5
+#: assets/build/assets/MemberView-B95zRlWC.js:25
+#, js-format
+msgid "Block %s? You won’t see each other’s posts, comments or stories, and you can’t message each other. They aren’t told."
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:5
+msgid "Leave this group? You will stop getting its messages."
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:5
+msgid "Open in Messages"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:5
+#: assets/build/assets/ChatView-BYvp0tOB.js:7
+msgid "Rename group"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:5
+#: assets/build/assets/ChatView-BYvp0tOB.js:7
+msgid "Leave group"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:5
+#: assets/build/assets/ChatView-BYvp0tOB.js:7
+#: assets/build/assets/MemberView-B95zRlWC.js:25
+msgid "Block"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:5
+msgid "Minimize chat"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:5
+msgid "Close chat"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:5
+msgid "Back to chats"
+msgstr ""
+
+#. translators: %d: number of members
+#: assets/build/assets/ChatView-BYvp0tOB.js:7
+#: assets/build/assets/SettingsView-DgIyW9fX.js:7
+#, js-format
+msgid "%d member"
+msgid_plural "%d members"
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:7
+msgid "Chat options"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:7
+msgid "Group chat"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:7
+msgid "You’re both members of this community"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:7
+msgid "You"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:7
+msgid "You replied to their story"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:7
+msgid "Replied to your story"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:7
+msgid "You unsent a message"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:7
+msgid "React"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:7
+msgid "Unsend"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:7
+msgid "Unsend this message for everyone?"
+msgstr ""
+
+#. translators: %s: why the message wasn't sent
+#: assets/build/assets/ChatView-BYvp0tOB.js:9
+#, js-format
+msgid "Not sent · %s"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:9
+#: assets/build/assets/ReportDialog-BPJNqaRs.js:1
+#: assets/build/assets/SettingsView-DgIyW9fX.js:29
+msgid "Sending…"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:9
+msgid "Seen"
+msgstr ""
+
+#. translators: %s: the names of the people typing
+#: assets/build/assets/ChatView-BYvp0tOB.js:11
+#, js-format
+msgid "%s typing"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:11
+msgid "You're muted, so you can't send messages right now."
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:11
+msgid "You blocked this person. Unblock them from their profile to message again."
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:11
+msgid "Replying to yourself"
+msgstr ""
+
+#. translators: %s: the name of the person being replied to
+#: assets/build/assets/ChatView-BYvp0tOB.js:13
+#: assets/build/assets/CommentThread-Cj5Yz0tC.js:3
+#, js-format
+msgid "Replying to %s"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:13
+#: assets/build/assets/CommentThread-Cj5Yz0tC.js:7
+msgid "Cancel reply"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:13
+#: assets/build/assets/CommentThread-Cj5Yz0tC.js:7
+#: assets/build/assets/EditProfileDialog-A-Ri_xB3.js:1
+msgid "Remove photo"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:13
+#: assets/build/assets/EditProfileDialog-A-Ri_xB3.js:1
+msgid "Add photo"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:13
+msgid "Aa"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:13
+msgid "Write a message"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:13
+#: assets/build/assets/CommentThread-Cj5Yz0tC.js:7
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:7
+#: assets/build/assets/EmojiPicker-B-aBulA7.js:1
+msgid "Emoji"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:13
+#: assets/build/assets/CommentThread-Cj5Yz0tC.js:7
+msgid "Send"
+msgstr ""
+
+#: assets/build/assets/ChatView-BYvp0tOB.js:13
+msgid "Send a like"
+msgstr ""
+
+#: assets/build/assets/ClassroomView-C5hgx6dX.js:1
+#: assets/build/assets/CourseView-eN5XUUkI.js:13
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Classroom"
+msgstr ""
+
+#: assets/build/assets/ClassroomView-C5hgx6dX.js:1
+msgctxt "course status"
+msgid "Draft"
+msgstr ""
+
+#: assets/build/assets/ClassroomView-C5hgx6dX.js:1
+msgid "hidden"
+msgstr ""
+
+#. translators: %d: percent of the course completed
+#: assets/build/assets/ClassroomView-C5hgx6dX.js:3
+#, js-format
+msgid "%d%% complete"
+msgstr ""
+
+#: assets/build/assets/ClassroomView-C5hgx6dX.js:3
+msgid "Creating…"
+msgstr ""
+
+#: assets/build/assets/ClassroomView-C5hgx6dX.js:3
+msgid "New course"
+msgstr ""
+
+#: assets/build/assets/ClassroomView-C5hgx6dX.js:3
+msgid "Add modules, lessons, videos and files"
+msgstr ""
+
+#: assets/build/assets/ClassroomView-C5hgx6dX.js:3
+msgid "No courses yet. Check back soon."
+msgstr ""
+
+#: assets/build/assets/CommentThread-Cj5Yz0tC.js:1
+msgid "Most relevant"
+msgstr ""
+
+#: assets/build/assets/CommentThread-Cj5Yz0tC.js:1
+#: assets/build/assets/MembersView-o7cXF76R.js:1
+msgid "Newest"
+msgstr ""
+
+#. translators: %s: the name of the person being replied to
+#: assets/build/assets/CommentThread-Cj5Yz0tC.js:4
+#: assets/build/assets/StoryViewer-Dt4fUwJq.js:5
+#, js-format
+msgid "Reply to %s…"
+msgstr ""
+
+#. translators: %s: the name of the person writing the comment
+#: assets/build/assets/CommentThread-Cj5Yz0tC.js:5
+#, js-format
+msgid "Comment as %s"
+msgstr ""
+
+#: assets/build/assets/CommentThread-Cj5Yz0tC.js:5
+msgid "The photo failed to upload."
+msgstr ""
+
+#: assets/build/assets/CommentThread-Cj5Yz0tC.js:5
+msgid "Delete this comment?"
+msgstr ""
+
+#: assets/build/assets/CommentThread-Cj5Yz0tC.js:5
+#: assets/build/assets/index-Dj268KlO.js:40
+msgid "Try again"
+msgstr ""
+
+#: assets/build/assets/CommentThread-Cj5Yz0tC.js:5
+msgid "No comments yet. Be the first to comment."
+msgstr ""
+
+#: assets/build/assets/CommentThread-Cj5Yz0tC.js:5
+msgid "Hide replies"
+msgstr ""
+
+#. translators: %d: number of replies
+#: assets/build/assets/CommentThread-Cj5Yz0tC.js:7
+#, js-format
+msgid "View %d reply"
+msgid_plural "View %d replies"
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/build/assets/CommentThread-Cj5Yz0tC.js:7
+#: assets/build/assets/index-Dj268KlO.js:34
+msgid "View more comments"
+msgstr ""
+
+#: assets/build/assets/CommentThread-Cj5Yz0tC.js:7
+msgid "You're muted, so you can't comment right now."
+msgstr ""
+
+#: assets/build/assets/CommentThread-Cj5Yz0tC.js:7
+msgid "Insert an emoji"
+msgstr ""
+
+#: assets/build/assets/CommentThread-Cj5Yz0tC.js:7
+msgid "Attach a photo"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:1
+msgid "Lesson video"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:1
+msgid "This video is still processing. Check back in a few minutes."
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:1
+msgid "Video upload failed"
+msgstr ""
+
+#. translators: 1: sender's first name or file name, 2: the latest message or error message
+#: assets/build/assets/CourseView-eN5XUUkI.js:3
+#: assets/build/assets/MessagesView-ajAzzRso.js:5
+#: assets/build/assets/MessengerPanel-BKrPwBvj.js:5
+#, js-format
+msgid "%1$s: %2$s"
+msgstr ""
+
+#. translators: %s: lesson title
+#: assets/build/assets/CourseView-eN5XUUkI.js:5
+#, js-format
+msgid "Delete the lesson \"%s\"? Members' progress on it is removed too."
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:5
+msgid "Lesson title"
+msgstr ""
+
+#. translators: %d: percent uploaded
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+#, js-format
+msgid "uploading %d%%"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+msgid "ready, save to apply"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+msgid "Upload video"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+msgid "…or paste a YouTube / Vimeo link"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Checking…"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+#: assets/build/assets/InstallSheet-D6Op5ZT2.js:7
+#: assets/build/assets/SettingsView-DgIyW9fX.js:15
+msgid "Add"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:3
+#: assets/build/assets/ModerationView-VjmYxKDy.js:22
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Remove"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+msgid "Lesson text"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+msgid "Edit"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+msgid "Preview"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+msgid "Write the lesson. Use ## for headings, **bold**, - for lists, and paste links."
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+#: assets/build/assets/CourseView-eN5XUUkI.js:17
+msgid "Downloads"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+msgid "Remove file"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+msgid "Add file"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+msgctxt "lesson drip setting label"
+msgid "Opens"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+msgid "Days after someone joins"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+msgid "days after someone joins. Leave at 0 to open right away."
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+msgid "Delete lesson"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Uploading…"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:9
+#: assets/build/assets/EditProfileDialog-A-Ri_xB3.js:1
+#: assets/build/assets/MemberGroupsDialog-6VXFtBtK.js:5
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Saving…"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+msgid "Saved ✓"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+msgid "Save lesson"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+msgid "Everyone in the community"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+msgid "Members from a level up"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+msgid "Members of chosen groups"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:7
+msgid "Level needed"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:9
+msgid "Pick at least one group. Until then only admins and moderators can open this course."
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:9
+msgid "No member groups yet."
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:9
+msgid "Manage member groups"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:9
+msgid "Create a member group"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:9
+#: assets/build/assets/MemberGroupsDialog-6VXFtBtK.js:5
+#: assets/build/assets/MembersView-o7cXF76R.js:1
+#: assets/build/assets/MembersView-o7cXF76R.js:3
+#: assets/build/assets/MemberView-B95zRlWC.js:31
+#: assets/build/assets/MessengerPanel-BKrPwBvj.js:5
+#: assets/build/assets/NotificationsPanel-DM9XswZS.js:14
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+#: assets/build/assets/StoryViewer-Dt4fUwJq.js:5
+msgid "Loading…"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:9
+msgid "“How to get access” button (optional)"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:9
+msgid "e.g. Join the VIP plan"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:9
+msgid "Button link"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:9
+msgid "Shown to members who can’t open the course yet, for example a link to your checkout page."
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:9
+msgid "Hide it from members who can't open it"
+msgstr ""
+
+#. translators: %s: the "Edit course" button label, shown in bold
+#: assets/build/assets/CourseView-eN5XUUkI.js:11
+#, js-format
+msgid "Switch on %s and add your first lesson."
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:11
+msgid "This course isn’t available."
+msgstr ""
+
+#. translators: %s: course title
+#: assets/build/assets/CourseView-eN5XUUkI.js:13
+#, js-format
+msgid "Delete \"%s\" with all its lessons and members' progress?"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:13
+msgid "Back to Classroom"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:13
+msgid "Course title"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:13
+msgid "Short description"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:13
+msgid "Course description"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:13
+msgid "Cover"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:13
+msgid "Unpublish"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:13
+msgid "Publish"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:13
+msgid "Draft · only admins can see this"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:13
+msgid "Course contents"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:13
+msgid "Module title"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:13
+msgid "Move module up"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:13
+msgid "Move module down"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:13
+msgid "Delete module"
+msgstr ""
+
+#. translators: 1: module title, 2: number of lessons
+#: assets/build/assets/CourseView-eN5XUUkI.js:15
+#, js-format
+msgid "Delete the module \"%1$s\" and its %2$d lesson?"
+msgid_plural "Delete the module \"%1$s\" and its %2$d lessons?"
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:15
+msgid "Move lesson up"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:15
+msgid "Move lesson down"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:15
+#: assets/build/assets/CourseView-eN5XUUkI.js:17
+msgid "No lessons yet"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:15
+msgid "Add lesson"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:15
+msgid "Add module"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:15
+msgid "Done editing"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:15
+#: assets/build/assets/CourseView-eN5XUUkI.js:17
+msgid "Edit course"
+msgstr ""
+
+#. translators: 1: lessons completed, 2: total lessons
+#: assets/build/assets/CourseView-eN5XUUkI.js:17
+#, js-format
+msgid "Course contents · %1$d/%2$d"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:17
+msgid "Locked lesson"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:17
+msgid "See your progress"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:17
+#: assets/build/assets/index-Dj268KlO.js:38
+msgid "Previous"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:17
+msgctxt "lesson completed"
+msgid "Done"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:17
+msgid "Mark as done"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:17
+msgid "Next"
+msgstr ""
+
+#: assets/build/assets/CourseView-eN5XUUkI.js:17
+msgid "Lessons are on their way. Check back soon."
+msgstr ""
+
+#. translators: 1: upload stage, e.g. "Uploading", 2: percent done
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:3
+#, js-format
+msgid "%1$s %2$d%%"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:3
+msgctxt "post background"
+msgid "sunset"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:3
+msgctxt "post background"
+msgid "ocean"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:3
+msgctxt "post background"
+msgid "forest"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:3
+msgctxt "post background"
+msgid "grape"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:3
+msgctxt "post background"
+msgid "peach"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:3
+msgctxt "post background"
+msgid "night"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:3
+msgctxt "post background"
+msgid "candy"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:3
+msgctxt "post background"
+msgid "lime"
+msgstr ""
+
+#. translators: %s: the person's first name
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:5
+#: assets/build/assets/index-Dj268KlO.js:11
+#, js-format
+msgid "What's on your mind, %s?"
+msgstr ""
+
+#. translators: 1: the person's name, 2: an emoji, 3: a feeling, e.g. "happy"
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:7
+#: assets/build/assets/index-Dj268KlO.js:34
+#, js-format
+msgid "%1$s is feeling %2$s %3$s."
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:7
+msgid "A video has to be posted on its own."
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:7
+msgid "Up to 10 photos per post."
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:7
+#: assets/build/assets/EditProfileDialog-A-Ri_xB3.js:1
+msgid "Discard your changes?"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:7
+msgid "Discard this post? What you wrote will be lost."
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:7
+#: assets/build/assets/index-Dj268KlO.js:34
+msgid "Edit post"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:7
+msgid "Create post"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:7
+msgid "What's on your mind"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:7
+msgid "Background colors"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:7
+msgctxt "text style button"
+msgid "Aa"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:7
+#: assets/build/assets/StoryCreator-DJr714Rv.js:1
+msgid "Background"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:7
+msgid "No background"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:7
+msgid "Loading video preview…"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:7
+msgid "Remove video preview"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:7
+msgctxt "add more photos"
+msgid "Add"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:7
+msgid "The photo or video stays as it is."
+msgstr ""
+
+#. translators: %d: number of photos already on the post
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:9
+#, js-format
+msgid "The %d photo stays as it is."
+msgid_plural "The %d photos stay as they are."
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:9
+msgid "Add to your post"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:9
+#: assets/build/assets/index-Dj268KlO.js:11
+msgid "Photo or video"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:9
+#: assets/build/assets/index-Dj268KlO.js:11
+msgid "Photo/video"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:9
+#: assets/build/assets/index-Dj268KlO.js:11
+msgid "Feeling or activity"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:9
+#: assets/build/assets/index-Dj268KlO.js:11
+msgid "Feeling/activity"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:9
+#: assets/build/assets/EditProfileDialog-A-Ri_xB3.js:1
+#: assets/build/assets/MemberGroupsDialog-6VXFtBtK.js:5
+msgid "Save"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:9
+msgctxt "verb: publish"
+msgid "Post"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:9
+#: assets/build/assets/StoryCreator-DJr714Rv.js:1
+msgid "Back"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:9
+msgid "How are you feeling?"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:9
+msgid "Search feelings"
+msgstr ""
+
+#: assets/build/assets/CreatePostDialog-BJQoIiyv.js:9
+msgid "Drop photos or a video to add them"
+msgstr ""
+
+#: assets/build/assets/EditProfileDialog-A-Ri_xB3.js:1
+#: assets/build/assets/MemberView-B95zRlWC.js:23
+msgid "Edit profile"
+msgstr ""
+
+#: assets/build/assets/EditProfileDialog-A-Ri_xB3.js:1
+#: assets/build/assets/MemberGroupsDialog-6VXFtBtK.js:5
+#: assets/build/assets/ReportDialog-BPJNqaRs.js:1
+msgid "Cancel"
+msgstr ""
+
+#: assets/build/assets/EditProfileDialog-A-Ri_xB3.js:1
+msgid "Change photo"
+msgstr ""
+
+#: assets/build/assets/EditProfileDialog-A-Ri_xB3.js:1
+msgid "You're using your Gravatar."
+msgstr ""
+
+#: assets/build/assets/EditProfileDialog-A-Ri_xB3.js:1
+msgid "Name"
+msgstr ""
+
+#: assets/build/assets/EditProfileDialog-A-Ri_xB3.js:1
+msgid "A line or two about you"
+msgstr ""
+
+#: assets/build/assets/EditProfileDialog-A-Ri_xB3.js:1
+#: assets/build/assets/SettingsView-DgIyW9fX.js:31
+msgid "Email notifications"
+msgstr ""
+
+#. translators: %s: email address
+#: assets/build/assets/EditProfileDialog-A-Ri_xB3.js:3
+#, js-format
+msgid "to %s"
+msgstr ""
+
+#: assets/build/assets/EditProfileDialog-A-Ri_xB3.js:3
+msgid "How often"
+msgstr ""
+
+#: assets/build/assets/EditProfileDialog-A-Ri_xB3.js:3
+msgid "As it happens"
+msgstr ""
+
+#: assets/build/assets/EditProfileDialog-A-Ri_xB3.js:3
+msgid "Once a day"
+msgstr ""
+
+#: assets/build/assets/EditProfileDialog-A-Ri_xB3.js:3
+msgid "Off"
+msgstr ""
+
+#: assets/build/assets/EditProfileDialog-A-Ri_xB3.js:3
+msgid "New messages"
+msgstr ""
+
+#: assets/build/assets/EditProfileDialog-A-Ri_xB3.js:3
+msgid "Comments on my posts and replies to my comments"
+msgstr ""
+
+#: assets/build/assets/EditProfileDialog-A-Ri_xB3.js:3
+msgid "Blocked people"
+msgstr ""
+
+#: assets/build/assets/EditProfileDialog-A-Ri_xB3.js:3
+#: assets/build/assets/MemberView-B95zRlWC.js:25
+msgid "Unblock"
+msgstr ""
+
+#. translators: 1: level number, 2: the level's name, e.g. "Builder"
+#: assets/build/assets/index-Dj268KlO.js:3
+#, js-format
+msgid "Level %1$d · %2$s"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:4
+msgid "Your session expired. Reload the page to continue."
+msgstr ""
+
+#. translators: %d: HTTP status code, e.g. 500
+#: assets/build/assets/index-Dj268KlO.js:5
+#, js-format
+msgid "Something went wrong (error %d). Please try again."
+msgstr ""
+
+#. translators: %s: member's name
+#: assets/build/assets/index-Dj268KlO.js:7
+#, js-format
+msgid "%s's profile"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:11
+#: assets/build/assets/ReelsView-BguWmOKZ.js:1
+msgid "Create a reel"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:11
+msgctxt "time ago, short"
+msgid "now"
+msgstr ""
+
+#. translators: %d: minutes ago, short form
+#: assets/build/assets/index-Dj268KlO.js:13
+#, js-format
+msgctxt "minutes ago, short"
+msgid "%dm"
+msgstr ""
+
+#. translators: %d: hours ago, short form
+#: assets/build/assets/index-Dj268KlO.js:15
+#, js-format
+msgctxt "hours ago, short"
+msgid "%dh"
+msgstr ""
+
+#. translators: %d: days ago, short form
+#: assets/build/assets/index-Dj268KlO.js:17
+#, js-format
+msgctxt "days ago, short"
+msgid "%dd"
+msgstr ""
+
+#. translators: %s: a number in thousands, e.g. "1.2" for 1,200
+#: assets/build/assets/index-Dj268KlO.js:19
+#, js-format
+msgctxt "thousands, short"
+msgid "%sK"
+msgstr ""
+
+#. translators: %s: a number in millions, e.g. "1.5" for 1,500,000
+#: assets/build/assets/index-Dj268KlO.js:21
+#, js-format
+msgctxt "millions, short"
+msgid "%sM"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:21
+msgid "See more"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:21
+#: assets/build/assets/ReelsView-BguWmOKZ.js:1
+msgid "Processing video…"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:21
+#: assets/build/assets/ReelsView-BguWmOKZ.js:1
+#: assets/build/assets/StoryViewer-Dt4fUwJq.js:5
+msgid "Turn sound on"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:21
+#: assets/build/assets/ReelsView-BguWmOKZ.js:1
+#: assets/build/assets/StoryViewer-Dt4fUwJq.js:5
+msgid "Mute"
+msgstr ""
+
+#. translators: %s: video title
+#: assets/build/assets/index-Dj268KlO.js:23
+#, js-format
+msgid "Play %s"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:23
+msgid "Play video"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:23
+msgid "Playing in the corner · tap to watch here"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:23
+msgid "Watch video"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:23
+msgid "Open photo"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:23
+msgid "Previous photo"
+msgstr ""
+
+#. translators: 1: number of the photo shown, 2: total number of photos
+#: assets/build/assets/index-Dj268KlO.js:25
+#, js-format
+msgid "%1$d / %2$d"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:25
+msgid "Next photo"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:25
+#: assets/build/assets/index-Dj268KlO.js:26
+msgctxt "reaction"
+msgid "Like"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:25
+msgctxt "reaction"
+msgid "Love"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:25
+msgctxt "reaction"
+msgid "Care"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:25
+msgctxt "reaction"
+msgid "Haha"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:25
+msgctxt "reaction"
+msgid "Wow"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:25
+msgctxt "reaction"
+msgid "Sad"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:25
+msgctxt "reaction"
+msgid "Angry"
+msgstr ""
+
+#. translators: %s: the reaction you gave, e.g. "Love"
+#: assets/build/assets/index-Dj268KlO.js:26
+#, js-format
+msgid "%s (tap to remove)"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:26
+#: assets/build/assets/index-Dj268KlO.js:28
+msgid "See who reacted"
+msgstr ""
+
+#. translators: %s: number of shares, e.g. "12" or "1.2K"
+#: assets/build/assets/index-Dj268KlO.js:28
+#, js-format
+msgid "%s share"
+msgid_plural "%s shares"
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/build/assets/index-Dj268KlO.js:30
+msgctxt "verb: write a comment"
+msgid "Comment"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:30
+msgid "Link copied"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:30
+#: assets/build/assets/ReelsView-BguWmOKZ.js:1
+msgctxt "verb"
+msgid "Share"
+msgstr ""
+
+#. translators: %s: the reaction emoji the post's author gave this comment
+#: assets/build/assets/index-Dj268KlO.js:32
+#, js-format
+msgid "%s by author"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:32
+msgid "Not sent"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:32
+#: assets/build/assets/index-Dj268KlO.js:34
+#: assets/build/assets/ReelsView-BguWmOKZ.js:3
+msgid "Posting…"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:32
+msgid "Dislike"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:32
+msgctxt "verb: reply to a comment"
+msgid "Reply"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:32
+msgid "Comment options"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:32
+#: assets/build/assets/ReportDialog-BPJNqaRs.js:1
+msgid "Report comment"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:32
+msgid "Remove comment"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:32
+msgctxt "feeling"
+msgid "happy"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:32
+msgctxt "feeling"
+msgid "blessed"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:32
+msgctxt "feeling"
+msgid "loved"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:32
+msgctxt "feeling"
+msgid "excited"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:32
+msgctxt "feeling"
+msgid "grateful"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:32
+msgctxt "feeling"
+msgid "motivated"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:32
+msgctxt "feeling"
+msgid "proud"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:32
+msgctxt "feeling"
+msgid "relaxed"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:32
+msgctxt "feeling"
+msgid "inspired"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:32
+msgctxt "feeling"
+msgid "determined"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:32
+msgctxt "feeling"
+msgid "curious"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:32
+msgctxt "feeling"
+msgid "tired"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:32
+msgctxt "feeling"
+msgid "sad"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:32
+msgctxt "feeling"
+msgid "celebrating"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:34
+msgid "Delete this post?"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:34
+msgid "Edited"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:34
+msgid "Pinned by an admin"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:34
+msgid "Post options"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:34
+msgid "Unpin post"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:34
+msgid "Delete post"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:34
+#: assets/build/assets/ReportDialog-BPJNqaRs.js:1
+msgid "Report post"
+msgstr ""
+
+#. translators: %s: the name of the person who posted the reel
+#: assets/build/assets/index-Dj268KlO.js:36
+#, js-format
+msgid "Reel by %s"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:36
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Reels"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:36
+msgid "See all"
+msgstr ""
+
+#. translators: %s: the name of the person who posted the reel
+#: assets/build/assets/index-Dj268KlO.js:38
+#, js-format
+msgid "Options for reel by %s"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:38
+msgid "Copy this link"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:38
+msgid "Link copied ✓"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:38
+msgid "Copy link"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:38
+msgid "Report reel"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:38
+msgid "Delete this reel?"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:38
+msgid "Delete reel"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:38
+msgid "Previous reels"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:38
+msgid "More reels"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:38
+msgid "The story could not be deleted."
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:38
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Stories"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:38
+#: assets/build/assets/StoryCreator-DJr714Rv.js:1
+msgid "Create story"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:38
+#: assets/build/assets/StoryViewer-Dt4fUwJq.js:5
+msgid "Your story"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:38
+msgid "More stories"
+msgstr ""
+
+#. translators: %d: number of new posts waiting to be shown
+#: assets/build/assets/index-Dj268KlO.js:40
+#, js-format
+msgid "%d new post"
+msgid_plural "%d new posts"
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/build/assets/index-Dj268KlO.js:40
+msgid "Sort posts"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:40
+msgid "Latest"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:40
+msgid "Popular"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:40
+msgid "Couldn't load posts."
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:40
+msgid "No posts yet. Be the first to say hi 👋"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:40
+msgid "You're all caught up ✨"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:40
+msgctxt "tab"
+msgid "Home"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:40
+msgctxt "phone tab"
+msgid "Home"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:40
+msgctxt "tab"
+msgid "Classroom"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:40
+msgctxt "phone tab"
+msgid "Classroom"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:40
+msgctxt "tab"
+msgid "Members"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:40
+msgctxt "tab"
+msgid "Reels"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:40
+msgctxt "phone tab"
+msgid "Reels"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:40
+msgctxt "tab"
+msgid "Leaderboard"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:40
+msgctxt "tab"
+msgid "Notifications"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:40
+msgctxt "phone tab"
+msgid "Alerts"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:40
+msgctxt "tab"
+msgid "Profile"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:40
+msgctxt "phone tab"
+msgid "Me"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:40
+#: assets/build/assets/LeaderboardView-QKcDB5g2.js:7
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Leaderboard"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:40
+#: assets/build/assets/InstallSheet-D6Op5ZT2.js:11
+msgid "Install app"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:40
+#: assets/build/assets/ModerationView-VjmYxKDy.js:15
+msgid "Moderation"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:40
+msgid "WordPress dashboard"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:40
+msgid "Main website"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:40
+msgid "Log out"
+msgstr ""
+
+#. translators: 1: a button's name, e.g. "Messenger" or "Notifications", 2: how many unread items
+#: assets/build/assets/index-Dj268KlO.js:42
+#: assets/build/assets/index-Dj268KlO.js:55
+#, js-format
+msgid "%1$s (%2$d unread)"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:42
+msgid "Your account"
+msgstr ""
+
+#. translators: 1: "Your account", 2: e.g. "3 reports to review"
+#: assets/build/assets/index-Dj268KlO.js:44
+#, js-format
+msgid "%1$s, %2$s"
+msgstr ""
+
+#. translators: %d: number of reports waiting for a moderator
+#: assets/build/assets/index-Dj268KlO.js:46
+#, js-format
+msgid "%d report to review"
+msgid_plural "%d reports to review"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: the member's level, e.g. "Level 3 · Builder"
+#: assets/build/assets/index-Dj268KlO.js:48
+#, js-format
+msgid "%s · See your profile"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:48
+msgid "Menu"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:48
+msgid "Add links to pages on your site, and they show up here for every member."
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:48
+msgid "Edit this menu"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:48
+msgid "Set up this menu"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:48
+msgid "Messenger"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:48
+#: assets/build/assets/NotificationsPanel-DM9XswZS.js:10
+msgid "Notifications"
+msgstr ""
+
+#. translators: %s: the new level, e.g. "Level 3 · Builder"
+#: assets/build/assets/index-Dj268KlO.js:50
+#, js-format
+msgid "You reached %s! 🎉"
+msgstr ""
+
+#. translators: %s: course titles, comma-separated
+#: assets/build/assets/index-Dj268KlO.js:52
+#, js-format
+msgid "Unlocked: %s"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:52
+msgid "Keep posting, commenting and learning to level up."
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:52
+msgid "You're muted. You can read and react, but not post, comment or send messages."
+msgstr ""
+
+#. translators: %s: date and time the mute ends
+#: assets/build/assets/index-Dj268KlO.js:54
+#, js-format
+msgid "You're muted until %s. You can read and react, but not post, comment or send messages."
+msgstr ""
+
+#. translators: %s: the site's name
+#: assets/build/assets/index-Dj268KlO.js:57
+#, js-format
+msgid "%s home"
+msgstr ""
+
+#: assets/build/assets/index-Dj268KlO.js:57
+msgid "Sections"
+msgstr ""
+
+#. translators: 1: the Share button's name, in bold, 2: the Share icon
+#: assets/build/assets/InstallSheet-D6Op5ZT2.js:3
+#, js-format
+msgid "Tap the %1$s button %2$s in Safari's toolbar."
+msgstr ""
+
+#: assets/build/assets/InstallSheet-D6Op5ZT2.js:3
+msgid "Share"
+msgstr ""
+
+#. translators: %s: Safari's menu item, in bold
+#: assets/build/assets/InstallSheet-D6Op5ZT2.js:5
+#, js-format
+msgid "Scroll down and tap %s."
+msgstr ""
+
+#: assets/build/assets/InstallSheet-D6Op5ZT2.js:5
+msgid "Add to Home Screen"
+msgstr ""
+
+#. translators: %s: the button's name, in bold
+#: assets/build/assets/InstallSheet-D6Op5ZT2.js:7
+#, js-format
+msgid "Tap %s. The icon appears on your home screen."
+msgstr ""
+
+#. translators: %s: the menu symbol ⋮, in bold
+#: assets/build/assets/InstallSheet-D6Op5ZT2.js:9
+#, js-format
+msgid "Open your browser's menu %s (or the install icon in the address bar)."
+msgstr ""
+
+#. translators: 1: a browser menu item, in bold, 2: another browser menu item, in bold
+#: assets/build/assets/InstallSheet-D6Op5ZT2.js:11
+#, js-format
+msgid "Choose %1$s or %2$s."
+msgstr ""
+
+#: assets/build/assets/InstallSheet-D6Op5ZT2.js:11
+msgid "Add to Home screen"
+msgstr ""
+
+#: assets/build/assets/InstallSheet-D6Op5ZT2.js:11
+msgid "Confirm. The app opens in its own window."
+msgstr ""
+
+#. translators: %s: the site's name
+#: assets/build/assets/InstallSheet-D6Op5ZT2.js:13
+#, js-format
+msgid "Get the %s app"
+msgstr ""
+
+#: assets/build/assets/InstallSheet-D6Op5ZT2.js:13
+msgid "Install the app"
+msgstr ""
+
+#: assets/build/assets/InstallSheet-D6Op5ZT2.js:13
+msgid "Open the community from your home screen, full screen, like any other app."
+msgstr ""
+
+#: assets/build/assets/InstallSheet-D6Op5ZT2.js:13
+msgid "Share icon"
+msgstr ""
+
+#: assets/build/assets/InstallSheet-D6Op5ZT2.js:13
+msgid "Got it"
+msgstr ""
+
+#: assets/build/assets/LeaderboardView-QKcDB5g2.js:1
+msgctxt "leaderboard period"
+msgid "7-day"
+msgstr ""
+
+#: assets/build/assets/LeaderboardView-QKcDB5g2.js:1
+msgctxt "leaderboard period"
+msgid "30-day"
+msgstr ""
+
+#: assets/build/assets/LeaderboardView-QKcDB5g2.js:1
+msgctxt "leaderboard period"
+msgid "All-time"
+msgstr ""
+
+#: assets/build/assets/LeaderboardView-QKcDB5g2.js:3
+msgid "Levels"
+msgstr ""
+
+#. translators: %s: course titles, comma-separated
+#: assets/build/assets/LeaderboardView-QKcDB5g2.js:5
+#, js-format
+msgid "unlocks %s"
+msgstr ""
+
+#. translators: %s: percent of members at this level
+#: assets/build/assets/LeaderboardView-QKcDB5g2.js:7
+#, js-format
+msgid "%s%% of members"
+msgstr ""
+
+#: assets/build/assets/LeaderboardView-QKcDB5g2.js:7
+msgid "Period"
+msgstr ""
+
+#: assets/build/assets/LeaderboardView-QKcDB5g2.js:7
+msgid "No points earned in this period yet. Post something to get on the board!"
+msgstr ""
+
+#: assets/build/assets/LeaderboardView-QKcDB5g2.js:7
+msgid "Your rank"
+msgstr ""
+
+#. translators: %d: your position on the leaderboard
+#: assets/build/assets/LeaderboardView-QKcDB5g2.js:9
+#, js-format
+msgid "#%d"
+msgstr ""
+
+#. translators: %s: member's name
+#: assets/build/assets/MemberGroupsDialog-6VXFtBtK.js:3
+#, js-format
+msgid "Courses for these groups open for %s."
+msgstr ""
+
+#. translators: %s: WordPress role name
+#: assets/build/assets/MemberGroupsDialog-6VXFtBtK.js:5
+#, js-format
+msgid "through the %s role"
+msgstr ""
+
+#: assets/build/assets/MemberGroupsDialog-6VXFtBtK.js:5
+msgid "There are no member groups yet."
+msgstr ""
+
+#: assets/build/assets/MemberGroupsDialog-6VXFtBtK.js:5
+msgid "Create one in Settings"
+msgstr ""
+
+#: assets/build/assets/MembersView-o7cXF76R.js:1
+msgid "Most active"
+msgstr ""
+
+#: assets/build/assets/MembersView-o7cXF76R.js:1
+msgid "Top level"
+msgstr ""
+
+#. translators: %s: the search text
+#: assets/build/assets/MembersView-o7cXF76R.js:3
+#, js-format
+msgid "No members match “%s”."
+msgstr ""
+
+#: assets/build/assets/MembersView-o7cXF76R.js:3
+msgid "No members yet."
+msgstr ""
+
+#: assets/build/assets/MembersView-o7cXF76R.js:3
+msgid "Show more members"
+msgstr ""
+
+#. translators: %s: date and time the ban ends
+#: assets/build/assets/MemberView-B95zRlWC.js:3
+#, js-format
+msgid "Banned until %s"
+msgstr ""
+
+#. translators: 1: number of points still needed, 2: the next level, e.g. "Level 4"
+#: assets/build/assets/MemberView-B95zRlWC.js:5
+#, js-format
+msgid "%1$s point to %2$s"
+msgid_plural "%1$s points to %2$s"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: when the member joined, e.g. "March 2026"
+#: assets/build/assets/MemberView-B95zRlWC.js:7
+#, js-format
+msgid "Joined %s"
+msgstr ""
+
+#. translators: %d: number of posts
+#: assets/build/assets/MemberView-B95zRlWC.js:9
+#, js-format
+msgid "%d post"
+msgid_plural "%d posts"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: member's name
+#: assets/build/assets/MemberView-B95zRlWC.js:13
+#: assets/build/assets/ModerationView-VjmYxKDy.js:7
+#, js-format
+msgid "Ban %s? They won't be able to open the community."
+msgstr ""
+
+#. translators: %s: member's name
+#: assets/build/assets/MemberView-B95zRlWC.js:15
+#: assets/build/assets/ModerationView-VjmYxKDy.js:9
+#, js-format
+msgid "Mute %s for 24 hours?"
+msgstr ""
+
+#. translators: 1: member's name, 2: number of days
+#: assets/build/assets/MemberView-B95zRlWC.js:17
+#: assets/build/assets/ModerationView-VjmYxKDy.js:11
+#, js-format
+msgid "Mute %1$s for %2$d day?"
+msgid_plural "Mute %1$s for %2$d days?"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: member's name
+#: assets/build/assets/MemberView-B95zRlWC.js:19
+#, js-format
+msgid "Mute %s until you lift it?"
+msgstr ""
+
+#. translators: %s: member's name
+#: assets/build/assets/MemberView-B95zRlWC.js:21
+#: assets/build/assets/ModerationView-VjmYxKDy.js:15
+#, js-format
+msgid "Lift the restriction on %s?"
+msgstr ""
+
+#. translators: %d: the member's longest streak, in days
+#: assets/build/assets/MemberView-B95zRlWC.js:23
+#, js-format
+msgid "Best: %d days"
+msgstr ""
+
+#: assets/build/assets/MemberView-B95zRlWC.js:23
+msgid "Add a short bio so people know who you are."
+msgstr ""
+
+#: assets/build/assets/MemberView-B95zRlWC.js:23
+msgid "Message"
+msgstr ""
+
+#: assets/build/assets/MemberView-B95zRlWC.js:23
+#: assets/build/assets/MessengerPanel-BKrPwBvj.js:1
+msgid "Groups"
+msgstr ""
+
+#: assets/build/assets/MemberView-B95zRlWC.js:23
+msgid "More options"
+msgstr ""
+
+#: assets/build/assets/MemberView-B95zRlWC.js:25
+#: assets/build/assets/ReportDialog-BPJNqaRs.js:1
+msgid "Report profile"
+msgstr ""
+
+#: assets/build/assets/MemberView-B95zRlWC.js:25
+msgid "Moderation options"
+msgstr ""
+
+#: assets/build/assets/MemberView-B95zRlWC.js:25
+msgid "Moderate"
+msgstr ""
+
+#: assets/build/assets/MemberView-B95zRlWC.js:25
+#: assets/build/assets/ModerationView-VjmYxKDy.js:22
+msgid "Unban"
+msgstr ""
+
+#: assets/build/assets/MemberView-B95zRlWC.js:25
+#: assets/build/assets/ModerationView-VjmYxKDy.js:22
+msgid "Unmute"
+msgstr ""
+
+#: assets/build/assets/MemberView-B95zRlWC.js:25
+msgid "Mute for 24 hours"
+msgstr ""
+
+#: assets/build/assets/MemberView-B95zRlWC.js:25
+msgid "Mute for 30 days"
+msgstr ""
+
+#: assets/build/assets/MemberView-B95zRlWC.js:25
+msgid "Mute until I lift it"
+msgstr ""
+
+#: assets/build/assets/MemberView-B95zRlWC.js:25
+msgid "Top level reached. Legend! 🏆"
+msgstr ""
+
+#. translators: %d: number of days in a row the member visited
+#: assets/build/assets/MemberView-B95zRlWC.js:27
+#, js-format
+msgid "%d-day streak"
+msgid_plural "%d-day streak"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: the member's position on the leaderboard
+#: assets/build/assets/MemberView-B95zRlWC.js:29
+#, js-format
+msgctxt "leaderboard rank"
+msgid "#%d"
+msgstr ""
+
+#: assets/build/assets/MemberView-B95zRlWC.js:29
+msgid "rank this month"
+msgstr ""
+
+#: assets/build/assets/MemberView-B95zRlWC.js:29
+msgid "How to earn points"
+msgstr ""
+
+#. translators: %d: how many times a day this action earns points
+#: assets/build/assets/MemberView-B95zRlWC.js:31
+#, js-format
+msgid "up to %d× a day"
+msgstr ""
+
+#: assets/build/assets/MemberView-B95zRlWC.js:31
+msgid "Recent points"
+msgstr ""
+
+#: assets/build/assets/MemberView-B95zRlWC.js:31
+msgid "You haven't posted yet."
+msgstr ""
+
+#: assets/build/assets/MemberView-B95zRlWC.js:31
+msgid "No posts yet."
+msgstr ""
+
+#: assets/build/assets/MemberView-B95zRlWC.js:31
+msgid "See more posts"
+msgstr ""
+
+#: assets/build/assets/MessagesView-ajAzzRso.js:1
+#: assets/build/assets/MessengerPanel-BKrPwBvj.js:1
+msgid "No messages yet"
+msgstr ""
+
+#. translators: %s: the latest message
+#: assets/build/assets/MessagesView-ajAzzRso.js:3
+#: assets/build/assets/MessengerPanel-BKrPwBvj.js:3
+#, js-format
+msgid "You: %s"
+msgstr ""
+
+#: assets/build/assets/MessagesView-ajAzzRso.js:5
+#: assets/build/assets/MessengerPanel-BKrPwBvj.js:5
+msgid "Chats"
+msgstr ""
+
+#: assets/build/assets/MessagesView-ajAzzRso.js:5
+#: assets/build/assets/MessengerPanel-BKrPwBvj.js:5
+msgid "Search chats"
+msgstr ""
+
+#. translators: %d: number of unread messages
+#: assets/build/assets/MessagesView-ajAzzRso.js:7
+#, js-format
+msgid "%d unread"
+msgid_plural "%d unread"
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/build/assets/MessagesView-ajAzzRso.js:7
+#: assets/build/assets/MessengerPanel-BKrPwBvj.js:5
+msgid "No conversations yet."
+msgstr ""
+
+#: assets/build/assets/MessagesView-ajAzzRso.js:7
+msgid "Send a message"
+msgstr ""
+
+#: assets/build/assets/MessagesView-ajAzzRso.js:7
+msgid "Your messages"
+msgstr ""
+
+#: assets/build/assets/MessagesView-ajAzzRso.js:7
+msgid "Chat one-on-one or start a small group."
+msgstr ""
+
+#: assets/build/assets/MessengerPanel-BKrPwBvj.js:1
+#: assets/build/assets/MessengerPanel-BKrPwBvj.js:5
+#: assets/build/assets/NotificationsPanel-DM9XswZS.js:10
+#: assets/build/assets/NotificationsPanel-DM9XswZS.js:14
+msgid "Unread"
+msgstr ""
+
+#: assets/build/assets/MessengerPanel-BKrPwBvj.js:5
+msgid "See all in Messages"
+msgstr ""
+
+#: assets/build/assets/MessengerPanel-BKrPwBvj.js:5
+msgid "No chats found."
+msgstr ""
+
+#: assets/build/assets/MessengerPanel-BKrPwBvj.js:5
+msgid "No unread chats."
+msgstr ""
+
+#: assets/build/assets/MessengerPanel-BKrPwBvj.js:5
+msgid "No group chats yet."
+msgstr ""
+
+#: assets/build/assets/ModerationView-VjmYxKDy.js:1
+msgid "To review"
+msgstr ""
+
+#: assets/build/assets/ModerationView-VjmYxKDy.js:1
+msgid "Resolved"
+msgstr ""
+
+#: assets/build/assets/ModerationView-VjmYxKDy.js:1
+msgid "Muted & banned"
+msgstr ""
+
+#: assets/build/assets/ModerationView-VjmYxKDy.js:1
+msgid "Profile"
+msgstr ""
+
+#. translators: %s: name of the moderator
+#: assets/build/assets/ModerationView-VjmYxKDy.js:3
+#, js-format
+msgid "Removed by %s"
+msgstr ""
+
+#: assets/build/assets/ModerationView-VjmYxKDy.js:3
+msgid "Removed by a moderator"
+msgstr ""
+
+#. translators: %s: name of the moderator
+#: assets/build/assets/ModerationView-VjmYxKDy.js:5
+#, js-format
+msgid "Kept by %s"
+msgstr ""
+
+#: assets/build/assets/ModerationView-VjmYxKDy.js:5
+msgid "Kept by a moderator"
+msgstr ""
+
+#: assets/build/assets/ModerationView-VjmYxKDy.js:5
+msgid "Remove this post for everyone?"
+msgstr ""
+
+#: assets/build/assets/ModerationView-VjmYxKDy.js:5
+msgid "Remove this comment for everyone?"
+msgstr ""
+
+#. translators: %s: member's name
+#: assets/build/assets/ModerationView-VjmYxKDy.js:13
+#, js-format
+msgid "Mute %s?"
+msgstr ""
+
+#. translators: %s: date and time the restriction ends
+#: assets/build/assets/ModerationView-VjmYxKDy.js:16
+#, js-format
+msgid "until %s"
+msgstr ""
+
+#: assets/build/assets/ModerationView-VjmYxKDy.js:16
+msgid "until lifted"
+msgstr ""
+
+#. translators: %s: name of the moderator
+#: assets/build/assets/ModerationView-VjmYxKDy.js:18
+#, js-format
+msgid "by %s"
+msgstr ""
+
+#: assets/build/assets/ModerationView-VjmYxKDy.js:18
+msgid "Nobody is muted or banned."
+msgstr ""
+
+#: assets/build/assets/ModerationView-VjmYxKDy.js:18
+msgid "No reports to review."
+msgstr ""
+
+#: assets/build/assets/ModerationView-VjmYxKDy.js:18
+msgid "No decisions yet."
+msgstr ""
+
+#. translators: %d: number of reports
+#: assets/build/assets/ModerationView-VjmYxKDy.js:20
+#, js-format
+msgid "%d report"
+msgid_plural "%d reports"
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/build/assets/ModerationView-VjmYxKDy.js:20
+msgid "Hidden until reviewed"
+msgstr ""
+
+#: assets/build/assets/ModerationView-VjmYxKDy.js:20
+msgid "Already removed"
+msgstr ""
+
+#: assets/build/assets/ModerationView-VjmYxKDy.js:22
+msgid "View post"
+msgstr ""
+
+#: assets/build/assets/ModerationView-VjmYxKDy.js:22
+msgid "A member"
+msgstr ""
+
+#: assets/build/assets/ModerationView-VjmYxKDy.js:22
+msgid "Dismiss"
+msgstr ""
+
+#: assets/build/assets/ModerationView-VjmYxKDy.js:22
+msgid "Keep"
+msgstr ""
+
+#: assets/build/assets/ModerationView-VjmYxKDy.js:22
+msgid "Mute 24h"
+msgstr ""
+
+#: assets/build/assets/ModerationView-VjmYxKDy.js:22
+msgid "Show more"
+msgstr ""
+
+#: assets/build/assets/NewChatDialog-C9i7CrEb.js:1
+msgid "Opening…"
+msgstr ""
+
+#. translators: %d: number of people in the new group chat, including you
+#: assets/build/assets/NewChatDialog-C9i7CrEb.js:3
+#, js-format
+msgid "Start group (%d)"
+msgstr ""
+
+#: assets/build/assets/NewChatDialog-C9i7CrEb.js:3
+msgid "To:"
+msgstr ""
+
+#. translators: %s: member's name
+#: assets/build/assets/NewChatDialog-C9i7CrEb.js:5
+#: assets/build/assets/SettingsView-DgIyW9fX.js:5
+#, js-format
+msgid "Remove %s"
+msgstr ""
+
+#: assets/build/assets/NewChatDialog-C9i7CrEb.js:5
+msgid "Group name (optional)"
+msgstr ""
+
+#: assets/build/assets/NewChatDialog-C9i7CrEb.js:5
+msgid "No members found."
+msgstr ""
+
+#. translators: 1: a name, 2: another name
+#: assets/build/assets/NotificationsPanel-DM9XswZS.js:3
+#, js-format
+msgid "%1$s and %2$s"
+msgstr ""
+
+#. translators: 1: a name, 2: another name, 3: how many more people
+#: assets/build/assets/NotificationsPanel-DM9XswZS.js:4
+#, js-format
+msgid "%1$s, %2$s and %3$d other"
+msgid_plural "%1$s, %2$s and %3$d others"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: who reacted, e.g. "Maya and 2 others"
+#: assets/build/assets/NotificationsPanel-DM9XswZS.js:6
+#, js-format
+msgid "%s reacted to your post"
+msgstr ""
+
+#. translators: %s: who reacted
+#: assets/build/assets/NotificationsPanel-DM9XswZS.js:7
+#, js-format
+msgid "%s reacted to your comment"
+msgstr ""
+
+#. translators: %s: who commented
+#: assets/build/assets/NotificationsPanel-DM9XswZS.js:8
+#, js-format
+msgid "%s commented on your post"
+msgstr ""
+
+#. translators: %s: who replied
+#: assets/build/assets/NotificationsPanel-DM9XswZS.js:9
+#, js-format
+msgid "%s replied to your comment"
+msgstr ""
+
+#. translators: %s: who reacted
+#: assets/build/assets/NotificationsPanel-DM9XswZS.js:10
+#, js-format
+msgid "%s reacted to your story"
+msgstr ""
+
+#: assets/build/assets/NotificationsPanel-DM9XswZS.js:10
+msgid "Mark all as read"
+msgstr ""
+
+#. translators: %d: level number
+#: assets/build/assets/NotificationsPanel-DM9XswZS.js:12
+#, js-format
+msgid "You reached Level %d!"
+msgstr ""
+
+#. translators: %s: course titles, e.g. "Basics and Advanced"
+#: assets/build/assets/NotificationsPanel-DM9XswZS.js:14
+#, js-format
+msgid "You unlocked %s."
+msgstr ""
+
+#: assets/build/assets/NotificationsPanel-DM9XswZS.js:14
+msgid "Keep it up 🎉"
+msgstr ""
+
+#: assets/build/assets/NotificationsPanel-DM9XswZS.js:14
+msgid "You’re all caught up."
+msgstr ""
+
+#: assets/build/assets/NotificationsPanel-DM9XswZS.js:14
+msgid "No notifications yet."
+msgstr ""
+
+#: assets/build/assets/NotificationsPanel-DM9XswZS.js:14
+msgid "See previous notifications"
+msgstr ""
+
+#. translators: %s: the author's first name. The dialog's heading.
+#: assets/build/assets/PostDialog-mgzcW8vc.js:3
+#, js-format
+msgid "%s's Post"
+msgstr ""
+
+#. translators: %s: the author's name
+#: assets/build/assets/PostDialog-mgzcW8vc.js:5
+#, js-format
+msgid "%s's post"
+msgstr ""
+
+#: assets/build/assets/poster-5pfWxP8N.js:1
+msgid "This video could not be read."
+msgstr ""
+
+#: assets/build/assets/ReactionsDialog-D4MAyFyz.js:1
+msgid "No reactions yet."
+msgstr ""
+
+#: assets/build/assets/ReelsView-BguWmOKZ.js:1
+msgid "YouTube could not be reached."
+msgstr ""
+
+#: assets/build/assets/ReelsView-BguWmOKZ.js:1
+msgid "This video can't be played here."
+msgstr ""
+
+#: assets/build/assets/ReelsView-BguWmOKZ.js:1
+msgid "Watch on YouTube"
+msgstr ""
+
+#: assets/build/assets/ReelsView-BguWmOKZ.js:1
+msgid "Like"
+msgstr ""
+
+#: assets/build/assets/ReelsView-BguWmOKZ.js:1
+#: assets/build/assets/StoryViewer-Dt4fUwJq.js:5
+msgid "Loading"
+msgstr ""
+
+#: assets/build/assets/ReelsView-BguWmOKZ.js:1
+msgid "No reels yet"
+msgstr ""
+
+#: assets/build/assets/ReelsView-BguWmOKZ.js:1
+msgid "Share a short video, up to 60 seconds."
+msgstr ""
+
+#. translators: %d: number of comments
+#: assets/build/assets/ReelsView-BguWmOKZ.js:3
+#, js-format
+msgid "%d comment"
+msgid_plural "%d comments"
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/build/assets/ReelsView-BguWmOKZ.js:3
+msgid "New reel"
+msgstr ""
+
+#: assets/build/assets/ReelsView-BguWmOKZ.js:3
+msgid "Write a caption…"
+msgstr ""
+
+#: assets/build/assets/ReelsView-BguWmOKZ.js:3
+msgid "Caption"
+msgstr ""
+
+#: assets/build/assets/ReelsView-BguWmOKZ.js:3
+msgid "Ready to post ✓"
+msgstr ""
+
+#: assets/build/assets/ReelsView-BguWmOKZ.js:3
+#: assets/build/assets/StoryCreator-DJr714Rv.js:1
+msgid "Finishing upload…"
+msgstr ""
+
+#: assets/build/assets/ReelsView-BguWmOKZ.js:3
+msgid "Share reel"
+msgstr ""
+
+#: assets/build/assets/ReportDialog-BPJNqaRs.js:1
+msgid "Why are you reporting this post? Only admins and moderators will see your report."
+msgstr ""
+
+#: assets/build/assets/ReportDialog-BPJNqaRs.js:1
+msgid "Why are you reporting this comment? Only admins and moderators will see your report."
+msgstr ""
+
+#: assets/build/assets/ReportDialog-BPJNqaRs.js:1
+msgid "Why are you reporting this person? Only admins and moderators will see your report."
+msgstr ""
+
+#: assets/build/assets/ReportDialog-BPJNqaRs.js:1
+msgid "Thanks for letting us know"
+msgstr ""
+
+#: assets/build/assets/ReportDialog-BPJNqaRs.js:1
+msgid "An admin or moderator will take a look."
+msgstr ""
+
+#: assets/build/assets/ReportDialog-BPJNqaRs.js:1
+msgid "This post is hidden until they do."
+msgstr ""
+
+#: assets/build/assets/ReportDialog-BPJNqaRs.js:1
+msgid "Done"
+msgstr ""
+
+#: assets/build/assets/ReportDialog-BPJNqaRs.js:1
+msgid "Reason"
+msgstr ""
+
+#: assets/build/assets/ReportDialog-BPJNqaRs.js:1
+msgid "Anything else they should know? (optional)"
+msgstr ""
+
+#: assets/build/assets/ReportDialog-BPJNqaRs.js:1
+msgid "Note"
+msgstr ""
+
+#: assets/build/assets/ReportDialog-BPJNqaRs.js:1
+msgid "Report"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Your community"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Community name"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Shown in the top bar and the browser tab. Leave empty to use your site name."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Description"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "What this community is about, in a sentence or two."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Logo"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Change"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Upload"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "A square image works best."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Color"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Accent color"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Pick a custom color"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Custom"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Custom color as a hex code"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Used for buttons, links and highlights. Pick one, or paste your brand color’s hex code."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Use a hex code like #5b4bff."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Courses and lessons."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Private chats between members."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Photos and text that disappear after 24 hours, above the feed."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Short vertical videos, in their own tab and inside the feed."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "The ranking of members. Points and levels keep working when it is off."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Features"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Turn off what your community doesn't need. Nothing is deleted; turning a feature back on brings everything back."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Who can do what"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Moderators"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Moderators review reports, remove posts and comments, pin posts, and mute or ban members."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Admin or editor"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Add a moderator: search members"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Who can post in the feed"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "All members"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Only admins and moderators"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Members can still comment and react."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Who members can message"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Anyone in the community"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:1
+msgid "Admins and moderators can still message anyone."
+msgstr ""
+
+#. translators: %d: number of courses
+#: assets/build/assets/SettingsView-DgIyW9fX.js:3
+#, js-format
+msgid "Opens %d course"
+msgid_plural "Opens %d courses"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: group name
+#: assets/build/assets/SettingsView-DgIyW9fX.js:9
+#, js-format
+msgid "Delete %s"
+msgstr ""
+
+#. translators: %d: number of courses
+#: assets/build/assets/SettingsView-DgIyW9fX.js:11
+#, js-format
+msgid "It opens %d course; members who only had access through this group will lose it."
+msgid_plural "It opens %d courses; members who only had access through this group will lose it."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: group name
+#: assets/build/assets/SettingsView-DgIyW9fX.js:13
+#, js-format
+msgid "Delete the member group “%s”?"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:13
+msgid "Not used by any course yet"
+msgstr ""
+
+#. translators: %s: WordPress role names, e.g. "Subscriber, Customer"
+#: assets/build/assets/SettingsView-DgIyW9fX.js:15
+#, js-format
+msgid "Also everyone with the role: %s"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:15
+msgid "Link a WordPress role (optional)"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:15
+msgid "Members with a linked role are in this group automatically, and leave it when the role is removed. Membership and shop plugins usually give buyers a role, so linking it connects them to your classroom."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:15
+msgid "Add a member by name"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:15
+msgid "Nobody added by hand yet. Members with the linked role are in the group anyway."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:15
+msgid "Nobody in this group yet."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:15
+msgid "No member groups yet. Create one, add members, then pick it in a course’s “Who can open it”."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:15
+msgid "New group, e.g. VIP or October cohort"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:15
+msgid "New group name"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:15
+msgid "Create group"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:15
+msgid "Use groups to give some members access to certain courses, for example paying members. Add people by hand, or link a WordPress role so your membership plugin keeps the group up to date. Admins and moderators can open every course."
+msgstr ""
+
+#. translators: %s: the points a member needs to reach this level
+#: assets/build/assets/SettingsView-DgIyW9fX.js:17
+#, js-format
+msgid "%s+ points"
+msgstr ""
+
+#. translators: %s: an action that earns points, e.g. "Write a post"
+#: assets/build/assets/SettingsView-DgIyW9fX.js:19
+#, js-format
+msgid "Max per day: %s"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:19
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Points & levels"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:19
+msgid "Members earn points for taking part and level up as they go. Changes apply to new activity."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:19
+msgid "Level names"
+msgstr ""
+
+#. translators: %d: level number
+#: assets/build/assets/SettingsView-DgIyW9fX.js:21
+#, js-format
+msgid "Name for level %d"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:21
+msgid "Points for each action"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:21
+msgid "Action"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:21
+msgid "Max per day"
+msgstr ""
+
+#. translators: %s: an action that earns points, e.g. "Write a post"
+#: assets/build/assets/SettingsView-DgIyW9fX.js:23
+#, js-format
+msgid "Points: %s"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:23
+msgid "0 means no limit."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:23
+msgid "Your server"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:23
+msgid "Uses the mail your web host provides. Nothing to set up."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:23
+msgid "Reliable delivery with just an API key. Free for small communities."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:23
+msgid "Another email service (SMTP)"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:23
+msgid "Any email service: Brevo, Postmark, SendGrid, Mailgun, Gmail…"
+msgstr ""
+
+#. translators: %s: the link "resend.com/api-keys"
+#: assets/build/assets/SettingsView-DgIyW9fX.js:25
+#, js-format
+msgid "Create one at %s with “Sending access”."
+msgstr ""
+
+#. translators: %s: email address
+#: assets/build/assets/SettingsView-DgIyW9fX.js:27
+#, js-format
+msgid "Sent to %s. Check your inbox (and spam folder)."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:27
+msgid "Set this up before you invite members, so their password and sign-up emails arrive."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:27
+msgid "Sending email"
+msgstr ""
+
+#. translators: %s: name of the SMTP plugin, e.g. "WP Mail SMTP"
+#: assets/build/assets/SettingsView-DgIyW9fX.js:29
+#, js-format
+msgid "Emails will go through %s."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:29
+msgid "It's already installed on this site, so delivery follows its settings."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:29
+msgid "Delivery depends on your web host."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:29
+msgid "Many hosts send email slowly, limit how many go out per hour, or land in spam folders, especially on shared hosting."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:29
+msgid "For reliable delivery, connect Resend or another email service."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:29
+msgid "Resend API key"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:29
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "•••••••••• (saved, leave empty to keep it)"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:29
+msgid "Verify your domain in Resend first, then use an address on that domain below."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:29
+msgid "SMTP server"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:29
+msgid "Port"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:29
+msgid "Encryption"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:29
+msgid "TLS (usually port 587)"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:29
+msgid "SSL (usually port 465)"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:29
+msgid "None"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:29
+msgid "Username"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:29
+msgid "•••••••• (saved)"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:29
+msgid "From name"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:29
+msgid "From address"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:29
+msgid "Send test email"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:29
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Save your changes first."
+msgstr ""
+
+#. translators: %s: email address
+#: assets/build/assets/SettingsView-DgIyW9fX.js:31
+#, js-format
+msgid "Sends to %s."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:31
+msgid "Members get one short email about new messages, comments on their posts and replies to their comments. They can choose daily summaries or turn emails off in their profile."
+msgstr ""
+
+#. translators: %s: the menu path "Stream → your video library → API", shown in bold
+#: assets/build/assets/SettingsView-DgIyW9fX.js:33
+#, js-format
+msgid "In Bunny, open %s."
+msgstr ""
+
+#. translators: %s: the setting name "Webhook URL", shown in bold
+#: assets/build/assets/SettingsView-DgIyW9fX.js:35
+#, js-format
+msgid "Paste it in the library's %s setting so videos show up the moment Bunny finishes encoding."
+msgstr ""
+
+#. translators: %d: number of videos in the Bunny library
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+#, js-format
+msgid "Connected. Your library has %d video."
+msgid_plural "Connected. Your library has %d videos."
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Copy this webhook URL"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Where videos are stored"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "This site"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Videos are compressed in the browser and stored with your other uploads. Fine for small communities."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Videos upload straight to Bunny and stream smoothly at any size, without slowing your host."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Stream → your video library → API"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Copy the details from there. Stories always stay on this site."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Video library ID"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "CDN hostname"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "API key"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "The library’s API key"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Webhook URL"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "(optional, recommended)"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Copied ✓"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Copy"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Test connection"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "New videos will be stored on this site again. Videos already on Bunny keep playing from Bunny."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "No minimum age"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "13 or older"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "16 or older"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "18 or older"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Joining & signing in"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Let people create a free account"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "On a network of sites, only the network admin can change this (Network Admin → Settings → Registration)."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Adds “Create new account” to the login page. This is the same switch as WordPress’s “Anyone can register” (Settings → General), so the two always match."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Sign-up link (optional)"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Selling memberships with another plugin? Paste its sign-up or checkout page, and “Create new account” goes there instead."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Minimum age"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "New members choose their birth month and year when they sign up. Their birthday isn’t saved. In the US, communities open to children under 13 must follow COPPA, so 13 is the default."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Terms page (optional)"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Shown when people sign up, with your Privacy Policy."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Change the Privacy Policy page"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Choose a Privacy Policy page"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Community login pages"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Signing up, logging in and resetting a password happen on pages in your community’s colors. Turn this off if a security plugin needs WordPress’s standard login screen."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Where members land"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Members go straight to the community"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Signed-in members who open your home page see the feed. Visitors who aren't signed in still see your home page."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "The community is the whole site"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Everyone who opens your home page goes to the community. Visitors are asked to log in first."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Leave my home page alone"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "The community stays at its own address only."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:37
+msgid "Members also land on the feed after logging in; admins still go to the dashboard. Your other pages open as usual."
+msgstr ""
+
+#. translators: %s: file path, such as wp-content/mbcom-key.php
+#: assets/build/assets/SettingsView-DgIyW9fX.js:39
+#, js-format
+msgid "It’s stored in %s. Make sure your backups include that file."
+msgstr ""
+
+#. translators: %s: a date
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+#, js-format
+msgid "Copy saved on %s"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Copied. Paste it into your password manager."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "MemBuild - Community encryption key"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Private messages on this site are encrypted with this key. If the site is moved or restored and messages can’t be read, paste it into Community settings → Advanced → Encryption key."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Keep it private, like a password."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Downloaded. Keep the file somewhere safe, away from the website."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "The key is back. Messages can be read and sent again."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "A new key is in place. Messages from now on are encrypted with it; save a copy below."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Encryption key"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "The key is set in wp-config.php (MEMBUILD_COMMUNITY_KEY)."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Copy key"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Download key"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "I’ve saved it"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Messages are paused."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "The key on this server isn’t the one messages were encrypted with, which happens when a site is moved. Paste the key you saved from this community."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "The key file is missing, which happens when a site is moved or restored without it. Paste the key you saved, or put the file back."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Paste the saved key (64 letters and numbers)"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Saved encryption key"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Restore key"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "The key is lost for good"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "You can start over with a new key. Messages sent from now on work normally, but every earlier message will show as “This message can’t be shown”. This can’t be undone, even if the old key turns up later."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "I understand earlier messages will be lost"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Start over with a new key"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Advanced"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Community address"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Old links to the community will stop working after you save."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Delete all community data when the plugin is deleted"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Off by default, so removing the plugin by mistake never wipes your community. When on, deleting the plugin from the Plugins screen permanently removes posts, comments, messages, courses, points, uploads and settings. Videos on Bunny Stream stay in your Bunny account."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Saved."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Leave without saving your changes?"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "You have unsaved changes."
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Discard"
+msgstr ""
+
+#: assets/build/assets/SettingsView-DgIyW9fX.js:41
+msgid "Save changes"
+msgstr ""
+
+#: assets/build/assets/StoryCreator-DJr714Rv.js:1
+msgid "Discard this story?"
+msgstr ""
+
+#: assets/build/assets/StoryCreator-DJr714Rv.js:1
+msgid "Create a photo or video story"
+msgstr ""
+
+#: assets/build/assets/StoryCreator-DJr714Rv.js:1
+msgid "Create a text story"
+msgstr ""
+
+#: assets/build/assets/StoryCreator-DJr714Rv.js:1
+msgid "Start typing"
+msgstr ""
+
+#: assets/build/assets/StoryCreator-DJr714Rv.js:1
+msgid "Story text"
+msgstr ""
+
+#: assets/build/assets/StoryCreator-DJr714Rv.js:1
+msgid "Caption (optional)"
+msgstr ""
+
+#: assets/build/assets/StoryCreator-DJr714Rv.js:1
+msgid "Add text to your story"
+msgstr ""
+
+#: assets/build/assets/StoryCreator-DJr714Rv.js:1
+msgid "Choose another"
+msgstr ""
+
+#: assets/build/assets/StoryCreator-DJr714Rv.js:1
+msgid "Your story is visible to community members for 24 hours."
+msgstr ""
+
+#: assets/build/assets/StoryCreator-DJr714Rv.js:1
+msgid "Sharing…"
+msgstr ""
+
+#: assets/build/assets/StoryCreator-DJr714Rv.js:1
+msgid "Share to story"
+msgstr ""
+
+#: assets/build/assets/StoryViewer-Dt4fUwJq.js:1
+msgid "Your reply could not be sent."
+msgstr ""
+
+#: assets/build/assets/StoryViewer-Dt4fUwJq.js:1
+msgid "Delete this story?"
+msgstr ""
+
+#. translators: %d: number of people who viewed the story
+#: assets/build/assets/StoryViewer-Dt4fUwJq.js:3
+#, js-format
+msgid "%d viewer"
+msgid_plural "%d viewers"
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: the name of the person who posted the story
+#: assets/build/assets/StoryViewer-Dt4fUwJq.js:5
+#, js-format
+msgid "%s's story"
+msgstr ""
+
+#: assets/build/assets/StoryViewer-Dt4fUwJq.js:5
+msgid "Close stories"
+msgstr ""
+
+#: assets/build/assets/StoryViewer-Dt4fUwJq.js:5
+msgid "Previous person"
+msgstr ""
+
+#: assets/build/assets/StoryViewer-Dt4fUwJq.js:5
+msgid "Next person"
+msgstr ""
+
+#: assets/build/assets/StoryViewer-Dt4fUwJq.js:5
+msgid "Play"
+msgstr ""
+
+#: assets/build/assets/StoryViewer-Dt4fUwJq.js:5
+msgid "Pause"
+msgstr ""
+
+#: assets/build/assets/StoryViewer-Dt4fUwJq.js:5
+msgid "Story options"
+msgstr ""
+
+#: assets/build/assets/StoryViewer-Dt4fUwJq.js:5
+msgid "Delete story"
+msgstr ""
+
+#: assets/build/assets/StoryViewer-Dt4fUwJq.js:5
+msgid "Reply privately"
+msgstr ""
+
+#: assets/build/assets/StoryViewer-Dt4fUwJq.js:5
+msgid "Send reply"
+msgstr ""
+
+#: assets/build/assets/StoryViewer-Dt4fUwJq.js:5
+msgid "Sent ✓"
+msgstr ""
+
+#: assets/build/assets/StoryViewer-Dt4fUwJq.js:5
+msgid "React to story"
+msgstr ""
+
+#: assets/build/assets/StoryViewer-Dt4fUwJq.js:5
+msgid "Story details"
+msgstr ""
+
+#: assets/build/assets/StoryViewer-Dt4fUwJq.js:5
+msgid "No one has seen this yet."
+msgstr ""
+
+#: assets/build/assets/video-u-BKepX4.js:1
+msgid "This file has no video."
+msgstr ""
+
+#. translators: %d: the longest clip allowed, in seconds
+#: assets/build/assets/video-u-BKepX4.js:3
+#, js-format
+msgid "This browser can't trim video. Please choose a clip under %d second."
+msgid_plural "This browser can't trim video. Please choose a clip under %d seconds."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %d: the longest clip allowed, in seconds
+#: assets/build/assets/video-u-BKepX4.js:5
+#, js-format
+msgid "Please choose a clip under %d second."
+msgid_plural "Please choose a clip under %d seconds."
+msgstr[0] ""
+msgstr[1] ""
+
+#: assets/build/assets/VideoDock-B4w8GSwj.js:1
+msgid "Video player"
+msgstr ""
+
+#: assets/build/assets/VideoDock-B4w8GSwj.js:1
+msgid "Go to the post"
+msgstr ""
+
+#: assets/build/assets/VideoDock-B4w8GSwj.js:1
+msgid "Close video"
+msgstr ""

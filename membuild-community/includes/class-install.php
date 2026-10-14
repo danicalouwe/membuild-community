@@ -1,0 +1,432 @@
+<?php
+namespace MemBuild\Community;
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Creates and upgrades the plugin's custom tables.
+ *
+ * Feed content lives in its own tables (not posts/postmeta) so the feed
+ * stays one indexed query with denormalized counters.
+ *
+ * Schema changes go in create_tables() (dbDelta adds new columns and keys).
+ * Data changes go in a numbered upgrade step that runs once, when a site
+ * moves past that version; the version is saved only after every step ran.
+ */
+class Install {
+
+	/** Every table the plugin owns, without the "{prefix}mbcom_" part. */
+	const TABLES = array( 'posts', 'media', 'comments', 'reactions', 'stories', 'story_views', 'courses', 'groups', 'group_members', 'modules', 'lessons', 'lesson_progress', 'points', 'member_stats', 'threads', 'thread_members', 'messages', 'notifications', 'reports', 'blocks' );
+
+	/** Data migrations: the version each one brings a site to => method. */
+	const STEPS = array(
+		15 => 'mark_private_uploads',
+		16 => 'migrate_course_levels',
+		17 => 'schedule_private_files',
+		19 => 'schedule_message_encryption',
+	);
+
+	/** Hourly maintenance (the name is kept from 0.1 so existing schedules carry on). */
+	const CRON_HOOK = 'mbcom_cleanup_stories';
+
+	public static function activate() {
+		self::create_tables();
+		if ( ! get_option( 'mbcom_db_version' ) ) {
+			update_option( 'mbcom_db_version', MEMBUILD_COMMUNITY_DB_VERSION ); // a fresh install needs no migrations
+		}
+		Portal::add_rewrite_rule();
+		flush_rewrite_rules();
+	}
+
+	public static function deactivate() {
+		wp_clear_scheduled_hook( self::CRON_HOOK );
+		wp_clear_scheduled_hook( 'mbcom_send_emails' );
+		wp_clear_scheduled_hook( Files::MIGRATE_HOOK );
+		wp_clear_scheduled_hook( Vault::MIGRATE_HOOK );
+		flush_rewrite_rules();
+	}
+
+	public static function maybe_upgrade() {
+		$from = (int) get_option( 'mbcom_db_version', 0 );
+		if ( $from >= (int) MEMBUILD_COMMUNITY_DB_VERSION ) {
+			return;
+		}
+		self::create_tables();
+		foreach ( self::STEPS as $version => $method ) {
+			if ( $from > 0 && $from < $version ) {
+				self::$method();
+			}
+		}
+		update_option( 'mbcom_db_version', MEMBUILD_COMMUNITY_DB_VERSION );
+		// Updates can change the community's address rules too; refresh them once, after init.
+		add_action( 'init', fn() => flush_rewrite_rules( false ), 99 );
+	}
+
+	public static function table( $name ) {
+		global $wpdb;
+		return $wpdb->prefix . 'mbcom_' . $name;
+	}
+
+	/* ---------- Upgrade steps ---------- */
+
+	/** 15: uploads from earlier versions get the private marker (see Media::register_hooks). */
+	private static function mark_private_uploads() {
+		global $wpdb;
+		foreach ( $wpdb->get_col( $wpdb->prepare( 'SELECT attachment_id FROM %i WHERE attachment_id IS NOT NULL', self::table( 'media' ) ) ) as $att ) {
+			update_post_meta( (int) $att, Media::PRIVATE_META, 1 );
+		}
+	}
+
+	/** 16: courses that only had a level setting become "members from a level up". */
+	private static function migrate_course_levels() {
+		global $wpdb;
+		$wpdb->query( $wpdb->prepare( "UPDATE %i SET access = 'level' WHERE unlock_level > 1 AND access = 'everyone'", self::table( 'courses' ) ) );
+	}
+
+	/** 19: messages saved before encryption existed are encrypted, in batches. */
+	private static function schedule_message_encryption() {
+		if ( ! wp_next_scheduled( Vault::MIGRATE_HOOK ) ) {
+			wp_schedule_single_event( time(), Vault::MIGRATE_HOOK );
+		}
+	}
+
+	/** 17: existing message photos and lesson files move to the protected folder, in batches. */
+	private static function schedule_private_files() {
+		Files::schedule_migration();
+	}
+
+	private static function create_tables() {
+		global $wpdb;
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+		$charset  = $wpdb->get_charset_collate();
+		$posts    = self::table( 'posts' );
+		$media    = self::table( 'media' );
+		$comments = self::table( 'comments' );
+		$reacts   = self::table( 'reactions' );
+		$stories  = self::table( 'stories' );
+		$views    = self::table( 'story_views' );
+		$courses  = self::table( 'courses' );
+		$modules  = self::table( 'modules' );
+		$lessons  = self::table( 'lessons' );
+		$progress = self::table( 'lesson_progress' );
+		$groups   = self::table( 'groups' );
+		$grouped  = self::table( 'group_members' );
+		$points   = self::table( 'points' );
+		$stats    = self::table( 'member_stats' );
+		$threads  = self::table( 'threads' );
+		$members  = self::table( 'thread_members' );
+		$messages = self::table( 'messages' );
+		$notes    = self::table( 'notifications' );
+		$reports  = self::table( 'reports' );
+		$blocks   = self::table( 'blocks' );
+
+		// dbDelta needs two spaces before PRIMARY KEY and one field per line.
+		dbDelta(
+			"CREATE TABLE {$posts} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			user_id bigint(20) unsigned NOT NULL,
+			type varchar(20) NOT NULL DEFAULT 'post',
+			status varchar(20) NOT NULL DEFAULT 'published',
+			content text NULL,
+			background varchar(20) NULL,
+			feeling varchar(20) NULL,
+			reactions_count int(10) unsigned NOT NULL DEFAULT 0,
+			comments_count int(10) unsigned NOT NULL DEFAULT 0,
+			shares_count int(10) unsigned NOT NULL DEFAULT 0,
+			is_pinned tinyint(1) NOT NULL DEFAULT 0,
+			edited_at datetime NULL,
+			created_at datetime NOT NULL,
+			updated_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			KEY status_id (status, id),
+			KEY type_status_id (type, status, id),
+			KEY status_created (status, created_at),
+			KEY pinned (is_pinned, status, id),
+			KEY user_id (user_id),
+			KEY user_status_created (user_id, status, created_at)
+			) {$charset};
+
+			CREATE TABLE {$media} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			user_id bigint(20) unsigned NOT NULL,
+			post_id bigint(20) unsigned NULL,
+			kind varchar(10) NOT NULL,
+			attachment_id bigint(20) unsigned NULL,
+			url varchar(500) NOT NULL,
+			poster_url varchar(500) NULL,
+			mime varchar(50) NOT NULL,
+			width int(10) unsigned NOT NULL DEFAULT 0,
+			height int(10) unsigned NOT NULL DEFAULT 0,
+			duration float NOT NULL DEFAULT 0,
+			meta text NULL,
+			scope varchar(10) NULL,
+			scope_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			bytes bigint(20) unsigned NOT NULL DEFAULT 0,
+			sort_order tinyint(3) unsigned NOT NULL DEFAULT 0,
+			refreshed_at datetime NULL,
+			created_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			KEY post_id (post_id),
+			KEY user_id (user_id),
+			KEY scope (scope, scope_id),
+			KEY kind_refreshed (kind, refreshed_at),
+			KEY url (url(191))
+			) {$charset};
+
+			CREATE TABLE {$comments} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			post_id bigint(20) unsigned NOT NULL,
+			user_id bigint(20) unsigned NOT NULL,
+			parent_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			reply_to_user_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			content text NOT NULL,
+			image_url varchar(500) NULL,
+			image_w int(10) unsigned NOT NULL DEFAULT 0,
+			image_h int(10) unsigned NOT NULL DEFAULT 0,
+			reactions_count int(10) unsigned NOT NULL DEFAULT 0,
+			replies_count int(10) unsigned NOT NULL DEFAULT 0,
+			created_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			KEY post_id (post_id, id),
+			KEY post_parent (post_id, parent_id, id),
+			KEY parent_id (parent_id, id),
+			KEY user_id (user_id)
+			) {$charset};
+
+			CREATE TABLE {$reacts} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			object_type varchar(10) NOT NULL,
+			object_id bigint(20) unsigned NOT NULL,
+			user_id bigint(20) unsigned NOT NULL,
+			type varchar(10) NOT NULL DEFAULT 'like',
+			created_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY object_user (object_type, object_id, user_id),
+			KEY user_id (user_id)
+			) {$charset};
+
+			CREATE TABLE {$stories} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			user_id bigint(20) unsigned NOT NULL,
+			kind varchar(10) NOT NULL,
+			media_url varchar(500) NULL,
+			poster_url varchar(500) NULL,
+			width int(10) unsigned NOT NULL DEFAULT 0,
+			height int(10) unsigned NOT NULL DEFAULT 0,
+			duration float NOT NULL DEFAULT 0,
+			text varchar(500) NULL,
+			background varchar(20) NULL,
+			views_count int(10) unsigned NOT NULL DEFAULT 0,
+			created_at datetime NOT NULL,
+			expires_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			KEY expires_at (expires_at),
+			KEY user_created (user_id, created_at)
+			) {$charset};
+
+			CREATE TABLE {$views} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			story_id bigint(20) unsigned NOT NULL,
+			user_id bigint(20) unsigned NOT NULL,
+			reaction varchar(10) NULL,
+			viewed_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY story_user (story_id, user_id),
+			KEY user_id (user_id)
+			) {$charset};
+
+			CREATE TABLE {$courses} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			title varchar(200) NOT NULL,
+			description text NULL,
+			cover_url varchar(500) NULL,
+			status varchar(20) NOT NULL DEFAULT 'draft',
+			unlock_level tinyint(3) unsigned NOT NULL DEFAULT 0,
+			access varchar(20) NOT NULL DEFAULT 'everyone',
+			access_groups text NULL,
+			hide_locked tinyint(1) NOT NULL DEFAULT 0,
+			access_cta_label varchar(60) NULL,
+			access_cta_url varchar(500) NULL,
+			sort_order int(10) NOT NULL DEFAULT 0,
+			created_by bigint(20) unsigned NOT NULL,
+			created_at datetime NOT NULL,
+			updated_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			KEY status_order (status, sort_order)
+			) {$charset};
+
+			CREATE TABLE {$groups} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			name varchar(80) NOT NULL,
+			roles text NULL,
+			created_at datetime NOT NULL,
+			PRIMARY KEY  (id)
+			) {$charset};
+
+			CREATE TABLE {$grouped} (
+			group_id bigint(20) unsigned NOT NULL,
+			user_id bigint(20) unsigned NOT NULL,
+			added_by bigint(20) unsigned NOT NULL DEFAULT 0,
+			added_at datetime NOT NULL,
+			PRIMARY KEY  (group_id, user_id),
+			KEY user_id (user_id)
+			) {$charset};
+
+			CREATE TABLE {$modules} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			course_id bigint(20) unsigned NOT NULL,
+			title varchar(200) NOT NULL,
+			sort_order int(10) NOT NULL DEFAULT 0,
+			PRIMARY KEY  (id),
+			KEY course_order (course_id, sort_order)
+			) {$charset};
+
+			CREATE TABLE {$lessons} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			course_id bigint(20) unsigned NOT NULL,
+			module_id bigint(20) unsigned NOT NULL,
+			title varchar(200) NOT NULL,
+			content mediumtext NULL,
+			media_id bigint(20) unsigned NULL,
+			resources text NULL,
+			drip_days int(10) unsigned NOT NULL DEFAULT 0,
+			sort_order int(10) NOT NULL DEFAULT 0,
+			created_at datetime NOT NULL,
+			updated_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			KEY module_order (module_id, sort_order),
+			KEY course_id (course_id)
+			) {$charset};
+
+			CREATE TABLE {$progress} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			user_id bigint(20) unsigned NOT NULL,
+			lesson_id bigint(20) unsigned NOT NULL,
+			course_id bigint(20) unsigned NOT NULL,
+			completed_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY user_lesson (user_id, lesson_id),
+			KEY user_course (user_id, course_id)
+			) {$charset};
+
+			CREATE TABLE {$points} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			user_id bigint(20) unsigned NOT NULL,
+			points int(11) NOT NULL,
+			reason varchar(20) NOT NULL,
+			object_type varchar(10) NOT NULL DEFAULT '',
+			object_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			actor_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			created_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY once (user_id, reason, object_type, object_id, actor_id),
+			KEY user_created (user_id, created_at),
+			KEY user_reason_created (user_id, reason, created_at),
+			KEY created_at (created_at),
+			KEY created_user (created_at, user_id, points)
+			) {$charset};
+
+			CREATE TABLE {$stats} (
+			user_id bigint(20) unsigned NOT NULL,
+			points int(11) NOT NULL DEFAULT 0,
+			level tinyint(3) unsigned NOT NULL DEFAULT 1,
+			streak smallint(5) unsigned NOT NULL DEFAULT 0,
+			best_streak smallint(5) unsigned NOT NULL DEFAULT 0,
+			last_active date NULL,
+			updated_at datetime NOT NULL,
+			PRIMARY KEY  (user_id),
+			KEY points (points)
+			) {$charset};
+
+			CREATE TABLE {$threads} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			type varchar(10) NOT NULL DEFAULT 'direct',
+			direct_key varchar(45) NULL,
+			title varchar(100) NULL,
+			created_by bigint(20) unsigned NOT NULL,
+			last_message_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			last_message_at datetime NULL,
+			created_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY direct_key (direct_key),
+			KEY last_message_at (last_message_at)
+			) {$charset};
+
+			CREATE TABLE {$members} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			thread_id bigint(20) unsigned NOT NULL,
+			user_id bigint(20) unsigned NOT NULL,
+			last_read_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			joined_at datetime NOT NULL,
+			left_at datetime NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY thread_user (thread_id, user_id),
+			KEY user_id (user_id)
+			) {$charset};
+
+			CREATE TABLE {$messages} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			thread_id bigint(20) unsigned NOT NULL,
+			user_id bigint(20) unsigned NOT NULL,
+			content text NULL,
+			media text NULL,
+			story text NULL,
+			reply_to_id bigint(20) unsigned NULL,
+			status varchar(10) NOT NULL DEFAULT 'sent',
+			reactions_count int(10) unsigned NOT NULL DEFAULT 0,
+			created_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			KEY thread_id (thread_id, id),
+			KEY user_created (user_id, created_at)
+			) {$charset};
+
+			CREATE TABLE {$notes} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			user_id bigint(20) unsigned NOT NULL,
+			type varchar(30) NOT NULL,
+			object_type varchar(10) NOT NULL DEFAULT '',
+			object_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			post_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			actor_ids varchar(255) NULL,
+			actors_count int(10) unsigned NOT NULL DEFAULT 0,
+			data text NULL,
+			seen_at datetime NULL,
+			read_at datetime NULL,
+			created_at datetime NOT NULL,
+			updated_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			KEY user_updated (user_id, updated_at),
+			KEY user_seen (user_id, seen_at),
+			KEY updated_at (updated_at),
+			KEY group_key (user_id, type, object_type, object_id)
+			) {$charset};
+
+			CREATE TABLE {$reports} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			object_type varchar(10) NOT NULL,
+			object_id bigint(20) unsigned NOT NULL,
+			post_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			author_id bigint(20) unsigned NOT NULL,
+			reporter_id bigint(20) unsigned NOT NULL,
+			reason varchar(20) NOT NULL,
+			note varchar(500) NULL,
+			status varchar(10) NOT NULL DEFAULT 'open',
+			resolved_by bigint(20) unsigned NULL,
+			resolved_at datetime NULL,
+			created_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY one_per_reporter (object_type, object_id, reporter_id),
+			KEY status_created (status, created_at)
+			) {$charset};
+
+			CREATE TABLE {$blocks} (
+			user_id bigint(20) unsigned NOT NULL,
+			blocked_id bigint(20) unsigned NOT NULL,
+			created_at datetime NOT NULL,
+			PRIMARY KEY  (user_id, blocked_id),
+			KEY blocked_id (blocked_id)
+			) {$charset};"
+		);
+	}
+}

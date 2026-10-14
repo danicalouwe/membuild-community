@@ -1,0 +1,20 @@
+{
+  "name": "membuild-community-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite build --watch --mode development",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "hls.js": "^1.7.3",
+    "mediabunny": "^1",
+    "vue": "^3.5",
+    "vue-router": "^4.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6",
+    "terser": "^5.51.2",
+    "vite": "^7"
+  }
+}

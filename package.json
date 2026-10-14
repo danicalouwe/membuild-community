@@ -1,0 +1,16 @@
+{
+  "name": "membuild-community-workspace",
+  "private": true,
+  "scripts": {
+    "wp:start": "wp-env start",
+    "wp:stop": "wp-env stop",
+    "wp:cli": "wp-env run cli wp",
+    "dev": "npm --prefix app run dev",
+    "build": "npm --prefix app run build",
+    "test": "bash tests/run.sh",
+    "zip": "bash package-zip.sh"
+  },
+  "devDependencies": {
+    "@wordpress/env": "^10"
+  }
+}
