@@ -142,7 +142,15 @@ onBeforeUnmount(() => {
   map = null
 })
 
-watch(() => props.places, () => draw(!props.selected), { deep: false })
+watch(
+  () => props.places,
+  (now, before) => {
+    draw(!props.selected)
+    // Opened straight from a link: the places arrive after the map, so fly there now.
+    if (props.selected && !before?.length) focus()
+  },
+  { deep: false },
+)
 watch(() => props.selected, () => {
   restyle()
   focus()

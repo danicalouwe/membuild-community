@@ -17,6 +17,9 @@ A free community for WordPress, as simple as Skool and as familiar as Facebook. 
   </tr>
 </table>
 
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/places.jpg"><img src="docs/screenshots/light/places.jpg" alt="Places: a list of meetup spots, member perks and venues beside a map, with nearby places grouped into numbered bubbles"></picture>
+<sub>Places (optional): meetup spots, partners with a member perk, and venues, on a map.</sub>
+
 <table>
   <tr>
     <td width="32%" valign="top"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/phone.jpg"><img src="docs/screenshots/light/phone.jpg" alt="The community on a phone"></picture></td>

@@ -184,7 +184,7 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
         <p v-if="detail.perk" class="perk"><span aria-hidden="true">🎁</span> {{ detail.perk }}</p>
 
         <div class="buttons">
-          <button v-if="detail.status === 'published'" class="btn" :class="detail.going ? 'btn-primary' : ''" :disabled="busy" :aria-pressed="detail.going" @click="toggleGoing(detail)">
+          <button v-if="detail.status === 'published'" class="btn" :class="detail.going ? 'btn-primary' : 'go'" :disabled="busy" :aria-pressed="detail.going" @click="toggleGoing(detail)">
             <Icon :name="detail.going ? 'check' : 'mapPin'" :size="16" /> {{ detail.going ? t.__('You go here', 'membuild-community') : t.__('I go here', 'membuild-community') }}
           </button>
           <a class="btn" :href="directionsUrl(detail)" target="_blank" rel="noopener"><Icon name="send" :size="16" /> {{ t.__('Directions', 'membuild-community') }}</a>
@@ -653,6 +653,27 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.buttons .btn:hover {
+  background: color-mix(in srgb, var(--text) 10%, var(--surface-2));
+}
+
+/* "I go here" is the main action; once tapped it turns into the accent color. */
+.buttons .btn.go {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.buttons .btn.btn-primary {
+  background: var(--accent);
+  color: var(--accent-ink);
 }
 
 .facts {

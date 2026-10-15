@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.3.0
+Stable tag: 1.3.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -227,6 +227,10 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.3.1 =
+* Fix: opening a place from a link or from search now flies the map to it, instead of staying on the world view.
+* Fix: a place's actions (I go here, Directions, Website, Call) look like buttons again.
 
 = 1.3.0 =
 * New: Places (off until you switch it on in Settings → Features). A list and a map of meetup spots, partners with a member perk, and venues: "Near me", directions in the phone's maps app, website and call buttons, and "I go here" with the members who go there. Pins close together merge into a bubble with a count. A place without a photo shows a small map of its spot.
