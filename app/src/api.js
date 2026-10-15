@@ -179,6 +179,7 @@ export const api = {
   saveEmailPrefs: (body) => request('/me/email', { method: 'PUT', body }),
   saveSettings: (body) => request('/settings', { method: 'PUT', body }),
   people: (search) => request('/messages/people', { params: { search } }),
+  search: (q, type = 'all', page = 1) => request('/search', { params: { q, type, page } }),
   storyReply: (storyId, content) => request(`/stories/${storyId}/reply`, { method: 'POST', body: { content } }),
   leaderboard: (period = '30') => request('/leaderboard', { params: { period } }),
   stories: () => request('/stories'),

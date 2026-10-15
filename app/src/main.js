@@ -1,3 +1,6 @@
+/**
+ * MemBuild - Community · Copyright (C) 2026 Danica Louwe (MemBuild, https://membuild.com) · GPL-2.0-or-later
+ */
 import { createApp } from 'vue'
 import App from './App.vue'
 import { router } from './router.js'

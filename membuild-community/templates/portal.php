@@ -4,6 +4,7 @@
  * The app's files are registered in Portal::register_assets() and printed here.
  *
  * @package membuild-community
+ * @copyright 2026 Danica Louwe (MemBuild, https://membuild.com). GPL-2.0-or-later.
  */
 
 defined( 'ABSPATH' ) || exit;

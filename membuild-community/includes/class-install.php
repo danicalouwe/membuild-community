@@ -1,4 +1,8 @@
 <?php
+/**
+ * @package membuild-community
+ * @copyright 2026 Danica Louwe (MemBuild, https://membuild.com). GPL-2.0-or-later.
+ */
 namespace MemBuild\Community;
 
 defined( 'ABSPATH' ) || exit;
@@ -24,6 +28,7 @@ class Install {
 		16 => 'migrate_course_levels',
 		17 => 'schedule_private_files',
 		19 => 'schedule_message_encryption',
+		20 => 'schedule_search_index',
 	);
 
 	/** Hourly maintenance (the name is kept from 0.1 so existing schedules carry on). */
@@ -36,6 +41,7 @@ class Install {
 		}
 		Portal::add_rewrite_rule();
 		flush_rewrite_rules();
+		Search::schedule_index(); // new or reactivated: the index is added once, in the background
 	}
 
 	public static function deactivate() {
@@ -45,6 +51,7 @@ class Install {
 		wp_clear_scheduled_hook( Vault::MIGRATE_HOOK );
 		wp_clear_scheduled_hook( Usage::HOOK );
 		wp_clear_scheduled_hook( Usage::HOOK . '_now' );
+		wp_clear_scheduled_hook( Search::INDEX_HOOK );
 		flush_rewrite_rules();
 	}
 
@@ -90,6 +97,11 @@ class Install {
 		if ( ! wp_next_scheduled( Vault::MIGRATE_HOOK ) ) {
 			wp_schedule_single_event( time(), Vault::MIGRATE_HOOK );
 		}
+	}
+
+	/** 20: a FULLTEXT index for search, built in the background (see Search::add_index). */
+	private static function schedule_search_index() {
+		Search::schedule_index();
 	}
 
 	/** 17: existing message photos and lesson files move to the protected folder, in batches. */

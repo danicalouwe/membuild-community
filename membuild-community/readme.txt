@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.1.0
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -192,6 +192,10 @@ Each part of the plugin is a class in `includes/` that registers its own hooks; 
 
 **Protected files on nginx**: lesson files and photos in private messages live in `wp-content/uploads/mbcom-private/`, which Apache and IIS block automatically. On nginx, add `location ^~ /wp-content/uploads/mbcom-private/ { deny all; }` to your site's configuration. Site Health tells you if the folder is reachable from the web.
 
+== Copyright ==
+
+Copyright (C) 2026 Danica Louwe (MemBuild, https://membuild.com). Released under the GNU General Public License, version 2 or later: you may use, change and share it. Copies must keep the copyright notices, and changed copies must say what was changed. "MemBuild" is the author's name and brand, and isn't licensed for other products.
+
 == Source code ==
 
 The community app is written in Vue and compiled into `assets/build/`. Its full, readable source is included in the `source/` folder, with the build setup (`package.json`, `vite.config.js`). To rebuild it: `cd source && npm install && npx vite build --outDir ../assets/build --emptyOutDir`.
@@ -205,6 +209,11 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.2.0 =
+* New: search. A box at the top finds members, posts, comments, courses and lessons as you type, with a results page for each kind. It follows the Classroom's access rules: locked courses show their lesson titles with the lock but never their text, courses hidden when locked don't appear, and private messages are never searched. Switch it off in Settings → Features.
+* New: a full-text search index on posts and comments, added in the background after updating.
+* The copyright notice is now in every file.
 
 = 1.1.0 =
 * New: a one-time question on the Community overview (what your community is about, and how big you expect it to be), with an optional "Share anonymous usage with MemBuild".

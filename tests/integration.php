@@ -723,6 +723,107 @@ remove_filter( 'pre_http_request', $stand_in, 10 );
 delete_site_transient( \MemBuild\Community\Updater::CACHE );
 
 /* ---------------------------------------------------------------- */
+mbcom_section( 'Search' );
+$finder  = mbcom_user( 'mbct_finder' );
+$author  = mbcom_user( 'mbct_writer' );
+$buyer   = mbcom_user( 'mbct_buyer' );
+$wpdb->delete( "{$wpdb->prefix}mbcom_points", array( 'user_id' => $finder ) );
+$wpdb->delete( "{$wpdb->prefix}mbcom_member_stats", array( 'user_id' => $finder ) );
+wp_update_user( array( 'ID' => $author, 'display_name' => 'Quokka Writer' ) );
+$find    = function ( $user, $q, $type = 'all' ) {
+	list( $status, $res ) = mbcom_call( $user, 'GET', '/search', array( 'q' => $q, 'type' => $type ) );
+	return 200 === $status ? $res : array( 'status' => $status );
+};
+$kinds   = fn( $res, $group ) => wp_list_pluck( $res['groups'][ $group ]['items'] ?? array(), 'id' );
+
+list( , $sp ) = mbcom_call( $author, 'POST', '/posts', array( 'content' => 'Our zebrafruit pricing plan is live' ) );
+list( , $sc ) = mbcom_call( $finder, 'POST', "/posts/{$sp['id']}/comments", array( 'content' => 'Love the zebrafruit idea' ) );
+$res = $find( $finder, 'zebrafruit' );
+mbcom_check( 'finds posts and comments by their words', in_array( $sp['id'], $kinds( $res, 'posts' ), true ) && in_array( $sc['id'], $kinds( $res, 'comments' ), true ) );
+mbcom_check( '…every word has to match', ! in_array( $sp['id'], $kinds( $find( $finder, 'zebrafruit banana' ), 'posts' ), true ) && in_array( $sp['id'], $kinds( $find( $finder, 'pricing zebrafruit' ), 'posts' ), true ) );
+mbcom_check( 'results quote the text around the match and link to the post', str_contains( $res['groups']['posts']['items'][0]['snippet'], 'zebrafruit' ) && array( 'post' => $sp['id'] ) === $res['groups']['posts']['items'][0]['link']['query'] );
+mbcom_check( 'members are found by name', in_array( $author, $kinds( $find( $finder, 'quokka' ), 'members' ), true ) );
+mbcom_check( '…never by login name or email', ! in_array( $author, $kinds( $find( $finder, 'mbct_writer' ), 'members' ), true ) );
+mbcom_check( 'a single letter searches nothing', ! array_filter( wp_list_pluck( $find( $finder, 'z' )['groups'], 'items' ) ) );
+list( $s ) = mbcom_call( 0, 'GET', '/search', array( 'q' => 'zebrafruit' ) );
+mbcom_check( 'visitors who aren’t signed in can’t search', in_array( $s, array( 401, 403 ), true ), (string) $s );
+
+mbcom_call( $finder, 'PUT', "/members/{$author}/block" );
+$res = $find( $finder, 'zebrafruit' );
+mbcom_check( 'people you blocked don’t show up, nor their posts', ! in_array( $sp['id'], $kinds( $res, 'posts' ), true ) && ! in_array( $author, $kinds( $find( $finder, 'quokka' ), 'members' ), true ) );
+mbcom_check( '…nor comments on their posts', ! in_array( $sc['id'], $kinds( $res, 'comments' ), true ) );
+mbcom_call( $finder, 'DELETE', "/members/{$author}/block" );
+mbcom_call( $author, 'DELETE', "/posts/{$sp['id']}" );
+mbcom_check( 'deleted posts aren’t found', ! in_array( $sp['id'], $kinds( $find( $finder, 'zebrafruit' ), 'posts' ), true ) );
+
+mbcom_check( 'private messages aren’t a kind of result at all', ! isset( $find( $finder, 'zebrafruit' )['groups']['messages'] ) );
+
+// The Classroom: one open course, one locked by a group, one hidden when locked, and a draft.
+$make = function ( $title, $lesson_title, $text, array $course_args ) use ( $admin ) {
+	list( , $c ) = mbcom_call( $admin, 'POST', '/courses', array( 'title' => $title ) );
+	list( , $l ) = mbcom_call( $admin, 'POST', "/modules/{$c['modules'][0]['id']}/lessons", array( 'title' => $lesson_title ) );
+	mbcom_call( $admin, 'PUT', "/lessons/{$l['id']}", array( 'content' => $text ) );
+	mbcom_call( $admin, 'PUT', "/courses/{$c['id']}", $course_args + array( 'status' => 'published' ) );
+	return array( $c['id'], $l['id'] );
+};
+list( , $club ) = mbcom_call( $admin, 'POST', '/groups', array( 'name' => 'Ocelot club', 'roles' => array( 'author' ) ) );
+list( $open_c, $open_l )     = $make( 'Ocelot basics', 'Ocelot first steps', 'The ocelot handshake explained.', array() );
+list( $lock_c, $lock_l )     = $make( 'Ocelot advanced', 'Ocelot secrets', 'The ocelot vault code is 1234.', array( 'access' => 'groups', 'access_groups' => array( $club['id'] ) ) );
+list( $hide_c, $hide_l )     = $make( 'Ocelot hidden', 'Ocelot backstage', 'Ocelot backstage pass.', array( 'access' => 'groups', 'access_groups' => array( $club['id'] ), 'hide_locked' => true ) );
+list( $draft_c, $draft_l )   = $make( 'Ocelot draft', 'Ocelot unfinished', 'Ocelot work in progress.', array( 'status' => 'draft' ) );
+$fresh->setValue( null, array() );
+
+$items = $find( $finder, 'ocelot', 'courses' )['items'];
+$by    = function ( $kind, $id ) use ( &$items ) { // by reference: $items changes below
+	return current( array_filter( $items, fn( $i ) => $kind === $i['kind'] && $id === $i['id'] ) ) ?: null;
+};
+mbcom_check( 'open courses and their lessons are found', $by( 'course', $open_c ) && $by( 'lesson', $open_l ) );
+mbcom_check( 'a locked course’s lessons show by title, with the lock', $by( 'lesson', $lock_l ) && 'groups' === $by( 'lesson', $lock_l )['lock']['reason'] && array( 'Ocelot club' ) === $by( 'lesson', $lock_l )['lock']['groups'] );
+mbcom_check( '…but their text is never quoted', '' === $by( 'lesson', $lock_l )['snippet'] && ! str_contains( wp_json_encode( $items ), '1234' ) );
+mbcom_check( '…nor searched', ! array_filter( $find( $finder, 'vault', 'courses' )['items'], fn( $i ) => $i['id'] === $lock_l ) );
+mbcom_check( 'an open lesson is found by its text too', (bool) array_filter( $find( $finder, 'handshake', 'courses' )['items'], fn( $i ) => 'lesson' === $i['kind'] && $i['id'] === $open_l ) );
+mbcom_check( 'a course hidden when locked doesn’t appear at all', ! $by( 'course', $hide_c ) && ! $by( 'lesson', $hide_l ) );
+mbcom_check( 'drafts don’t appear for members', ! $by( 'course', $draft_c ) && ! $by( 'lesson', $draft_l ) );
+
+mbcom_call( $admin, 'PUT', "/lessons/{$open_l}", array( 'drip_days' => 3650 ) );
+$dripped = $find( $finder, 'handshake', 'courses' )['items'];
+$titled  = current( array_filter( $find( $finder, 'ocelot first', 'courses' )['items'], fn( $i ) => $i['id'] === $open_l ) );
+mbcom_check( 'a lesson that isn’t released yet is found by title only, with its date', ! array_filter( $dripped, fn( $i ) => $i['id'] === $open_l ) && $titled && $titled['unlock_at'] && '' === $titled['snippet'] );
+
+( new WP_User( $buyer ) )->set_role( 'author' ); // a membership plugin gives the role
+$fresh->setValue( null, array() );
+$items = $find( $buyer, 'ocelot', 'courses' )['items'];
+mbcom_check( 'with the course’s role, the locked course opens up in search', $by( 'lesson', $lock_l ) && null === $by( 'lesson', $lock_l )['lock'] && $by( 'lesson', $hide_l ) && (bool) array_filter( $find( $buyer, 'vault', 'courses' )['items'], fn( $i ) => $i['id'] === $lock_l ) );
+( new WP_User( $buyer ) )->set_role( 'subscriber' ); // …and takes it away
+$fresh->setValue( null, array() );
+$items = $find( $buyer, 'ocelot', 'courses' )['items'];
+mbcom_check( '…and losing the role locks it again at once', null !== $by( 'lesson', $lock_l )['lock'] && ! $by( 'lesson', $hide_l ) );
+$items = $find( $admin, 'ocelot', 'courses' )['items'];
+mbcom_check( 'admins find everything, drafts included', $by( 'course', $hide_c ) && $by( 'course', $draft_c ) && $by( 'course', $draft_c )['draft'] && str_contains( wp_json_encode( $find( $admin, 'vault', 'courses' )['items'] ), '1234' ) );
+
+mbcom_call( $admin, 'PUT', '/settings', array( 'features' => array( 'classroom' => false ) ) );
+\MemBuild\Community\Settings::flush();
+mbcom_check( 'with the Classroom off, courses aren’t searched', ! isset( $find( $finder, 'ocelot' )['groups']['courses'] ) );
+mbcom_call( $admin, 'PUT', '/settings', array( 'features' => array( 'classroom' => true, 'search' => false ) ) );
+\MemBuild\Community\Settings::flush();
+mbcom_check( 'search can be switched off', 403 === ( $find( $finder, 'ocelot' )['status'] ?? 0 ) );
+mbcom_call( $admin, 'PUT', '/settings', array( 'features' => array( 'search' => true ) ) );
+\MemBuild\Community\Settings::flush();
+
+delete_option( \MemBuild\Community\Search::INDEX_OPTION );
+\MemBuild\Community\Search::add_index();
+$state = get_option( \MemBuild\Community\Search::INDEX_OPTION );
+mbcom_check( 'the background job adds a full-text index to posts and comments', 'ready' === ( $state['posts'] ?? '' ) && 'ready' === ( $state['comments'] ?? '' ), wp_json_encode( $state ) );
+list( , $sp2 ) = mbcom_call( $author, 'POST', '/posts', array( 'content' => 'Wombatcake recipe for the meetup' ) );
+mbcom_check( '…and search uses it', in_array( $sp2['id'], $kinds( $find( $finder, 'wombatcake recipe' ), 'posts' ), true ) && in_array( $sp2['id'], $kinds( $find( $finder, 'wombat' ), 'posts' ), true ) );
+mbcom_call( $author, 'DELETE', "/posts/{$sp2['id']}" );
+
+foreach ( array( $open_c, $lock_c, $hide_c, $draft_c ) as $c ) {
+	mbcom_call( $admin, 'DELETE', "/courses/{$c}" );
+}
+mbcom_call( $admin, 'DELETE', "/groups/{$club['id']}" );
+
+/* ---------------------------------------------------------------- */
 mbcom_section( 'Anonymous usage reports (with a stand-in for MemBuild)' );
 delete_option( \MemBuild\Community\Usage::OPTION );
 $sent        = array();

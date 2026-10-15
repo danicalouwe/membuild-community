@@ -9,6 +9,7 @@
  * Videos stored on Bunny Stream stay in the Bunny account.
  *
  * @package membuild-community
+ * @copyright 2026 Danica Louwe (MemBuild, https://membuild.com). GPL-2.0-or-later.
  */
 
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
@@ -19,7 +20,7 @@ require_once __DIR__ . '/includes/class-install.php';
 function mbcom_uninstall_site() {
 	global $wpdb;
 
-	foreach ( array( MemBuild\Community\Install::CRON_HOOK, 'mbcom_send_emails', 'mbcom_migrate_private_files', 'mbcom_encrypt_messages', 'mbcom_usage_report' ) as $mbcom_hook ) {
+	foreach ( array( MemBuild\Community\Install::CRON_HOOK, 'mbcom_send_emails', 'mbcom_migrate_private_files', 'mbcom_encrypt_messages', 'mbcom_usage_report', 'mbcom_search_index' ) as $mbcom_hook ) {
 		wp_clear_scheduled_hook( $mbcom_hook );
 	}
 
@@ -54,7 +55,7 @@ function mbcom_uninstall_site() {
 		wp_delete_file( $mbcom_key );
 	}
 
-	foreach ( array( 'mbcom_settings', 'mbcom_db_version', 'mbcom_files_migration', 'mbcom_key', 'mbcom_key_check', 'mbcom_key_saved' ) as $mbcom_option ) {
+	foreach ( array( 'mbcom_settings', 'mbcom_db_version', 'mbcom_files_migration', 'mbcom_key', 'mbcom_key_check', 'mbcom_key_saved', 'mbcom_search_index' ) as $mbcom_option ) {
 		delete_option( $mbcom_option );
 	}
 	$wpdb->query(

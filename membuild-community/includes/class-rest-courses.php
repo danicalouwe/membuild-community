@@ -1,4 +1,8 @@
 <?php
+/**
+ * @package membuild-community
+ * @copyright 2026 Danica Louwe (MemBuild, https://membuild.com). GPL-2.0-or-later.
+ */
 namespace MemBuild\Community;
 
 defined( 'ABSPATH' ) || exit;
@@ -429,7 +433,7 @@ class Rest_Courses {
 	 * When a dripped lesson unlocks for the current member, or null if it is
 	 * already open. Counted from the day they joined; admins see everything.
 	 */
-	private static function unlock_at( $drip_days ) {
+	public static function unlock_at( $drip_days ) {
 		if ( $drip_days <= 0 || Helpers::can_manage() ) {
 			return null;
 		}

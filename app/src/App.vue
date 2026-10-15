@@ -8,6 +8,7 @@ import { tabs } from './router.js'
 import Icon from './components/Icon.vue'
 import Avatar from './components/Avatar.vue'
 import HeaderActions from './components/HeaderActions.vue'
+import SearchBox from './components/SearchBox.vue'
 import LevelUpToast from './components/LevelUpToast.vue'
 import { refreshStats } from './stores/me.js'
 import { messages, startPulse } from './stores/messages.js'
@@ -91,10 +92,13 @@ const isActive = (tab) =>
   <div class="shell" :class="{ immersive }">
     <header class="topbar">
       <div class="topbar-inner">
-        <RouterLink to="/" class="brand" :aria-label="homeLabel" :title="cfg.siteName">
-          <img v-if="cfg.community.logo" :src="cfg.community.logo" alt="" class="logo" />
-          <span v-else class="logo mark" aria-hidden="true">{{ initials }}</span>
-        </RouterLink>
+        <div class="start">
+          <RouterLink to="/" class="brand" :aria-label="homeLabel" :title="cfg.siteName">
+            <img v-if="cfg.community.logo" :src="cfg.community.logo" alt="" class="logo" />
+            <span v-else class="logo mark" aria-hidden="true">{{ initials }}</span>
+          </RouterLink>
+          <SearchBox v-if="feature('search')" />
+        </div>
         <nav class="top-tabs" :aria-label="t.__('Sections', 'membuild-community')">
           <RouterLink v-for="tab in desktopTabs" :key="tab.name" :to="tab.path" class="top-tab" :class="{ active: isActive(tab) }">
             {{ tab.label }}
@@ -167,8 +171,15 @@ const isActive = (tab) =>
   justify-self: end;
 }
 
-.brand {
+.start {
   justify-self: start;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.brand {
   display: flex;
   align-items: center;
   gap: 10px;

@@ -39,6 +39,7 @@ export const router = createRouter({
     { path: '/moderation', name: 'moderation', component: () => import('./views/ModerationView.vue') },
     { path: '/settings', name: 'settings', component: () => import('./views/SettingsView.vue') },
     { path: '/members', name: 'members', component: () => import('./views/MembersView.vue') },
+    { path: '/search', name: 'search', component: () => import('./views/SearchView.vue') },
     {
       path: '/members/:id(\\d+)',
       name: 'member',

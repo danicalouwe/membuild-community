@@ -1,4 +1,8 @@
 <?php
+/**
+ * @package membuild-community
+ * @copyright 2026 Danica Louwe (MemBuild, https://membuild.com). GPL-2.0-or-later.
+ */
 namespace MemBuild\Community;
 
 defined( 'ABSPATH' ) || exit;
@@ -17,7 +21,7 @@ class Settings {
 
 	const OPTION = 'mbcom_settings';
 
-	const FEATURES = array( 'reels', 'stories', 'classroom', 'leaderboard', 'messages' );
+	const FEATURES = array( 'reels', 'stories', 'classroom', 'leaderboard', 'messages', 'search' );
 
 	/** Accent presets offered in the form; any hex color is accepted. */
 	const ACCENTS = array( '#3b5bfd', '#7c4dff', '#e0407b', '#f05a28', '#f2a20c', '#1fa463', '#0e9aa7', '#16181d' );

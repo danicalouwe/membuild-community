@@ -71,6 +71,4 @@ Hooks for extending it are listed in `membuild-community/readme.txt` under Devel
 
 ## License
 
-GPL-2.0-or-later. See [LICENSE](LICENSE).
-
-Made by [MemBuild](https://membuild.com/).
+Copyright (C) 2026 Danica Louwe ([MemBuild](https://membuild.com/)). Released under GPL-2.0-or-later, see [LICENSE](LICENSE): you may use, change and share it, keeping the copyright notices and saying what you changed. The MemBuild name and logo aren't part of the license.

@@ -3,6 +3,7 @@
  * Protected files: message photos and lesson files.
  *
  * @package membuild-community
+ * @copyright 2026 Danica Louwe (MemBuild, https://membuild.com). GPL-2.0-or-later.
  */
 
 namespace MemBuild\Community;
