@@ -136,6 +136,7 @@ const scrollTo = (id) => document.getElementById(`s-${id}`)?.scrollIntoView({ be
         <div v-for="s in SECTIONS" :key="s.id" class="slot" :class="{ styled: !s.isolated }">
           <component :is="s.component" />
         </div>
+        <p class="credit">MemBuild - Community · {{ t.__('Built by', 'membuild-community') }} <a href="https://membuild.com/community" target="_blank" rel="noopener">MemBuild</a></p>
       </template>
     </div>
 
@@ -791,5 +792,16 @@ const scrollTo = (id) => document.getElementById(`s-${id}`)?.scrollIntoView({ be
   .savebar {
     bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 10px);
   }
+}
+.credit {
+  margin: 8px 0 0;
+  color: var(--text-3);
+  font-size: 13px;
+  text-align: center;
+}
+
+.credit a {
+  color: var(--text-2);
+  font-weight: 600;
 }
 </style>

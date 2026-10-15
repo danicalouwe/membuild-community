@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.2.0
+Stable tag: 1.2.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -209,6 +209,9 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.2.1 =
+* "Built by MemBuild" at the foot of the Community pages in wp-admin and of the community's Settings page (admins only; members don't see it).
 
 = 1.2.0 =
 * New: search. A box at the top finds members, posts, comments, courses and lessons as you type, with a results page for each kind. It follows the Classroom's access rules: locked courses show their lesson titles with the lock but never their text, courses hidden when locked don't appear, and private messages are never searched. Switch it off in Settings → Features.

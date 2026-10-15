@@ -824,6 +824,18 @@ foreach ( array( $open_c, $lock_c, $hide_c, $draft_c ) as $c ) {
 mbcom_call( $admin, 'DELETE', "/groups/{$club['id']}" );
 
 /* ---------------------------------------------------------------- */
+mbcom_section( 'Credit' );
+require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
+require_once ABSPATH . 'wp-admin/includes/screen.php';
+set_current_screen( 'toplevel_page_membuild-community' );
+$ours = \MemBuild\Community\Admin::footer( 'Thank you for creating with WordPress.' );
+set_current_screen( 'dashboard' );
+$theirs = \MemBuild\Community\Admin::footer( 'Thank you for creating with WordPress.' );
+mbcom_check( 'the Community pages in wp-admin say “Built by MemBuild”', str_contains( $ours, 'Built by' ) && str_contains( $ours, 'membuild.com' ) && str_contains( $ours, MEMBUILD_COMMUNITY_VERSION ) );
+mbcom_check( '…and other admin pages keep WordPress’s own footer', 'Thank you for creating with WordPress.' === $theirs );
+$GLOBALS['current_screen'] = null;
+
+/* ---------------------------------------------------------------- */
 mbcom_section( 'Anonymous usage reports (with a stand-in for MemBuild)' );
 delete_option( \MemBuild\Community\Usage::OPTION );
 $sent        = array();

@@ -25,6 +25,7 @@ class Admin {
 		add_action( 'admin_post_mbcom_export', array( __CLASS__, 'handle_export' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'styles' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'menu_icon' ) );
+		add_filter( 'admin_footer_text', array( __CLASS__, 'footer' ) );
 		add_filter( 'set-screen-option', fn( $keep, $option, $value ) => str_starts_with( $option, 'mbcom_' ) ? (int) $value : $keep, 10, 3 );
 	}
 
@@ -49,6 +50,20 @@ class Admin {
 		add_submenu_page( 'membuild-community', __( 'Export community data', 'membuild-community' ), __( 'Export', 'membuild-community' ), self::CAP, 'membuild-community-export', array( __CLASS__, 'page_export' ) );
 		add_submenu_page( 'membuild-community', __( 'Community settings', 'membuild-community' ), __( 'Settings', 'membuild-community' ), self::CAP, 'membuild-community-settings', '__return_null' );
 		add_submenu_page( 'membuild-community', __( 'Open community', 'membuild-community' ), __( 'Open community ↗', 'membuild-community' ), self::CAP, 'membuild-community-open', '__return_null' );
+	}
+
+	/** "Built by MemBuild" at the foot of the Community pages, in place of "Thank you for creating with WordPress". */
+	public static function footer( $text ) {
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen || false === strpos( (string) $screen->id, 'membuild-community' ) ) {
+			return $text;
+		}
+		return sprintf(
+			/* translators: 1: plugin name and version, e.g. "MemBuild - Community 1.2.0", 2: "MemBuild", linked */
+			esc_html__( '%1$s · Built by %2$s', 'membuild-community' ),
+			esc_html( 'MemBuild - Community ' . MEMBUILD_COMMUNITY_VERSION ),
+			'<a href="https://membuild.com/community" target="_blank" rel="noopener">MemBuild</a>'
+		);
 	}
 
 	public static function styles( $hook ) {
