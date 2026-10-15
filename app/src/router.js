@@ -10,6 +10,7 @@ export const tabs = [
   { name: 'classroom', path: '/classroom', label: t._x('Classroom', 'tab', 'membuild-community'), short: t._x('Classroom', 'phone tab', 'membuild-community'), icon: 'cap', feature: 'classroom' },
   { name: 'members', path: '/members', label: t._x('Members', 'tab', 'membuild-community'), icon: 'users', desktopOnly: true },
   { name: 'reels', path: '/reels', label: t._x('Reels', 'tab', 'membuild-community'), short: t._x('Reels', 'phone tab', 'membuild-community'), icon: 'film', feature: 'reels' },
+  { name: 'places', path: '/places', label: t._x('Places', 'tab', 'membuild-community'), icon: 'mapPin', desktopOnly: true, feature: 'places' },
   { name: 'leaderboard', path: '/leaderboard', label: t._x('Leaderboard', 'tab', 'membuild-community'), icon: 'trophy', desktopOnly: true, feature: 'leaderboard' },
   // Messages and notifications are header icons; on phones the bell is a tab.
   { name: 'notifications', path: '/notifications', label: t._x('Notifications', 'tab', 'membuild-community'), short: t._x('Alerts', 'phone tab', 'membuild-community'), icon: 'bell', mobileOnly: true },
@@ -40,6 +41,13 @@ export const router = createRouter({
     { path: '/settings', name: 'settings', component: () => import('./views/SettingsView.vue') },
     { path: '/members', name: 'members', component: () => import('./views/MembersView.vue') },
     { path: '/search', name: 'search', component: () => import('./views/SearchView.vue') },
+    {
+      // One route for the list and a place, so opening one keeps the map where it is.
+      path: '/places/:placeId(\\d+)?',
+      name: 'places',
+      component: () => import('./views/PlacesView.vue'),
+      props: (route) => ({ placeId: Number(route.params.placeId) || null }),
+    },
     {
       path: '/members/:id(\\d+)',
       name: 'member',

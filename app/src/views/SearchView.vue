@@ -25,6 +25,7 @@ const TABS = computed(() =>
     { key: 'posts', label: t.__('Posts', 'membuild-community') },
     { key: 'comments', label: t.__('Comments', 'membuild-community') },
     feature('classroom') && { key: 'courses', label: t.__('Classroom', 'membuild-community') },
+    feature('places') && { key: 'places', label: t.__('Places', 'membuild-community') },
   ].filter(Boolean),
 )
 

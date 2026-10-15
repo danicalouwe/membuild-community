@@ -21,7 +21,7 @@ class Settings {
 
 	const OPTION = 'mbcom_settings';
 
-	const FEATURES = array( 'reels', 'stories', 'classroom', 'leaderboard', 'messages', 'search' );
+	const FEATURES = array( 'reels', 'stories', 'classroom', 'leaderboard', 'messages', 'search', 'places' );
 
 	/** Accent presets offered in the form; any hex color is accepted. */
 	const ACCENTS = array( '#3b5bfd', '#7c4dff', '#e0407b', '#f05a28', '#f2a20c', '#1fa463', '#0e9aa7', '#16181d' );
@@ -53,7 +53,7 @@ class Settings {
 			'signup_url'  => '',   // when WordPress registration is off: where "Create new account" goes (e.g. a membership plugin's checkout)
 			'min_age'     => 13,   // 0, 13, 16 or 18; asked at sign-up, never stored
 			'terms_url'   => '',
-			'features'    => array_fill_keys( self::FEATURES, true ),
+			'features'    => array( 'places' => false ) + array_fill_keys( self::FEATURES, true ), // Places is the one most communities don't need
 			'posting'     => 'everyone', // everyone | staff
 			'messaging'   => 'everyone', // everyone | staff (members may only start chats with staff)
 			'moderators'  => array(),
@@ -164,6 +164,7 @@ class Settings {
 			'levelNames'  => $s['level_names'],
 			'restriction' => Moderation::my_restriction(),
 			'video'       => Bunny::enabled() ? 'bunny' : 'local',
+			'mapTiles'    => self::feature( 'places' ) ? Rest_Places::tiles() : null,
 		);
 	}
 

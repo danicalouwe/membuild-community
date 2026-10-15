@@ -824,6 +824,84 @@ foreach ( array( $open_c, $lock_c, $hide_c, $draft_c ) as $c ) {
 mbcom_call( $admin, 'DELETE', "/groups/{$club['id']}" );
 
 /* ---------------------------------------------------------------- */
+mbcom_section( 'Places' );
+$guide  = mbcom_user( 'mbct_guide' );
+$hiker  = mbcom_user( 'mbct_hiker' );
+\MemBuild\Community\Settings::flush();
+mbcom_check( 'Places is off by default', false === \MemBuild\Community\Settings::defaults()['features']['places'] );
+mbcom_call( $admin, 'PUT', '/settings', array( 'features' => array( 'places' => false ) ) );
+\MemBuild\Community\Settings::flush();
+list( $s ) = mbcom_call( $guide, 'GET', '/places' );
+mbcom_check( '…and while it’s off, nobody can use it', 403 === $s, (string) $s );
+mbcom_call( $admin, 'PUT', '/settings', array( 'features' => array( 'places' => true ) ) );
+\MemBuild\Community\Settings::flush();
+
+list( $s, $err ) = mbcom_call( $admin, 'POST', '/places', array( 'name' => 'Lake café' ) );
+mbcom_check( 'a place needs a spot on the map', 400 === $s && 'mbcom_invalid_place' === $err['code'], (string) $s );
+list( $s, $cafe ) = mbcom_call( $admin, 'POST', '/places', array( 'name' => 'Lake café', 'category' => 'perk', 'perk' => '10% off', 'address' => '1 Lake St', 'lat' => 47.6, 'lng' => -122.3, 'website' => 'lakecafe.example', 'description' => '<b>Cozy</b>' ) );
+mbcom_check( 'admins add places, published at once', 201 === $s && 'published' === $cafe['status'] && 'perk' === $cafe['category'] && '10% off' === $cafe['perk'], (string) $s );
+mbcom_check( '…with a tidy website address and plain text', 'https://lakecafe.example' === $cafe['website'] && ! str_contains( $cafe['description'], '<' ) );
+list( , $js ) = mbcom_call( $admin, 'PUT', "/places/{$cafe['id']}", array( 'website' => 'javascript:alert(1)' ) );
+mbcom_check( '…and only web links: javascript: and the like are dropped', '' === $js['website'] );
+mbcom_call( $admin, 'PUT', "/places/{$cafe['id']}", array( 'website' => 'lakecafe.example' ) );
+list( , $list ) = mbcom_call( $guide, 'GET', '/places' );
+mbcom_check( 'members see published places', in_array( $cafe['id'], wp_list_pluck( $list['items'], 'id' ), true ) && false === $list['can_edit'] );
+
+list( $s, $tip ) = mbcom_call( $guide, 'POST', '/places', array( 'name' => 'Trail head', 'category' => 'meetup', 'lat' => 47.7, 'lng' => -122.2 ) );
+mbcom_check( 'members can suggest a place, which waits for review', 201 === $s && 'pending' === $tip['status'], (string) $s );
+list( , $list ) = mbcom_call( $hiker, 'GET', '/places' );
+list( $s ) = mbcom_call( $hiker, 'GET', "/places/{$tip['id']}" );
+mbcom_check( '…unseen by other members until then', ! in_array( $tip['id'], wp_list_pluck( $list['items'], 'id' ), true ) && 404 === $s );
+list( , $list ) = mbcom_call( $guide, 'GET', '/places' );
+mbcom_check( '…but shown to the member who suggested it', in_array( $tip['id'], wp_list_pluck( $list['items'], 'id' ), true ) );
+list( $s ) = mbcom_call( $guide, 'PUT', "/places/{$tip['id']}", array( 'status' => 'published' ) );
+mbcom_check( 'members can’t approve or edit places', 403 === $s, (string) $s );
+list( $s ) = mbcom_call( $guide, 'PUT', "/places/{$tip['id']}/going" );
+mbcom_check( 'nobody can say they go to a place that isn’t approved', 404 === $s, (string) $s );
+list( $s, $ok ) = mbcom_call( $admin, 'PUT', "/places/{$tip['id']}", array( 'status' => 'published' ) );
+list( $s2 ) = mbcom_call( $hiker, 'GET', "/places/{$tip['id']}" );
+mbcom_check( 'an admin approves it, and everyone sees it', 200 === $s && 'published' === $ok['status'] && 200 === $s2 );
+
+list( $s, $went ) = mbcom_call( $hiker, 'PUT', "/places/{$cafe['id']}/going" );
+mbcom_call( $hiker, 'PUT', "/places/{$cafe['id']}/going" ); // twice: still once
+list( , $one ) = mbcom_call( $guide, 'GET', "/places/{$cafe['id']}" );
+mbcom_check( '“I go here” counts once and shows who', 200 === $s && $went['going'] && 1 === $one['going_count'] && array( $hiker ) === wp_list_pluck( $one['members'], 'id' ) );
+mbcom_call( $guide, 'PUT', "/members/{$hiker}/block" );
+list( , $one ) = mbcom_call( $guide, 'GET', "/places/{$cafe['id']}" );
+mbcom_check( '…except people you blocked', ! in_array( $hiker, wp_list_pluck( $one['members'], 'id' ), true ) );
+mbcom_call( $guide, 'DELETE', "/members/{$hiker}/block" );
+list( , $back ) = mbcom_call( $hiker, 'DELETE', "/places/{$cafe['id']}/going" );
+mbcom_check( '…and can be taken back', false === $back['going'] && 0 === $back['going_count'] );
+
+list( , $res ) = mbcom_call( $guide, 'GET', '/search', array( 'q' => 'lake' ) );
+mbcom_check( 'search finds places', in_array( $cafe['id'], wp_list_pluck( $res['groups']['places']['items'] ?? array(), 'id' ), true ) );
+mbcom_check( 'the app gets the map tiles only while Places is on', isset( \MemBuild\Community\Settings::public_config()['mapTiles']['url'] ) );
+
+$geo_calls  = array();
+$geo_stand  = function ( $pre, $args, $url ) use ( &$geo_calls ) {
+	if ( ! str_contains( $url, 'nominatim.openstreetmap.org' ) ) {
+		return $pre;
+	}
+	$geo_calls[] = array( $url, $args['headers']['User-Agent'] ?? '' );
+	return array( 'response' => array( 'code' => 200 ), 'body' => wp_json_encode( array( array( 'display_name' => '1 Lake St, Seattle', 'lat' => '47.61', 'lon' => '-122.33' ) ) ), 'headers' => array() );
+};
+add_filter( 'pre_http_request', $geo_stand, 10, 3 );
+delete_transient( 'mbcom_geo_' . md5( '1 lake st, seattle' ) );
+list( $s, $geo ) = mbcom_call( $guide, 'GET', '/places/geocode', array( 'q' => '1 Lake St, Seattle' ) );
+mbcom_call( $guide, 'GET', '/places/geocode', array( 'q' => '1 Lake St, Seattle' ) );
+mbcom_check( 'an address is looked up once, then remembered', 200 === $s && 47.61 === $geo['items'][0]['lat'] && 1 === count( $geo_calls ) );
+mbcom_check( '…sending only the address, with a User-Agent naming the site', str_contains( $geo_calls[0][0], 'Lake' ) && str_contains( $geo_calls[0][1], 'MemBuild-Community/' ) && str_contains( $geo_calls[0][1], home_url( '/' ) ) );
+remove_filter( 'pre_http_request', $geo_stand, 10 );
+
+list( $s ) = mbcom_call( $guide, 'DELETE', "/places/{$cafe['id']}" );
+mbcom_check( 'members can’t remove places', 403 === $s, (string) $s );
+list( $s ) = mbcom_call( $admin, 'DELETE', "/places/{$cafe['id']}" );
+mbcom_call( $admin, 'DELETE', "/places/{$tip['id']}" );
+mbcom_check( 'admins can', 200 === $s && ! $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_reactions WHERE object_type = 'place' AND object_id = %d", $cafe['id'] ) ) );
+mbcom_call( $admin, 'PUT', '/settings', array( 'features' => array( 'places' => false ) ) );
+\MemBuild\Community\Settings::flush();
+
+/* ---------------------------------------------------------------- */
 mbcom_section( 'Credit' );
 require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
 require_once ABSPATH . 'wp-admin/includes/screen.php';

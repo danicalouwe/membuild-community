@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) || exit;
 class Install {
 
 	/** Every table the plugin owns, without the "{prefix}mbcom_" part. */
-	const TABLES = array( 'posts', 'media', 'comments', 'reactions', 'stories', 'story_views', 'courses', 'groups', 'group_members', 'modules', 'lessons', 'lesson_progress', 'points', 'member_stats', 'threads', 'thread_members', 'messages', 'notifications', 'reports', 'blocks' );
+	const TABLES = array( 'posts', 'media', 'comments', 'reactions', 'stories', 'story_views', 'courses', 'groups', 'group_members', 'modules', 'lessons', 'lesson_progress', 'points', 'member_stats', 'threads', 'thread_members', 'messages', 'notifications', 'reports', 'blocks', 'places' );
 
 	/** Data migrations: the version each one brings a site to => method. */
 	const STEPS = array(
@@ -134,6 +134,7 @@ class Install {
 		$notes    = self::table( 'notifications' );
 		$reports  = self::table( 'reports' );
 		$blocks   = self::table( 'blocks' );
+		$places   = self::table( 'places' );
 
 		// dbDelta needs two spaces before PRIMARY KEY and one field per line.
 		dbDelta(
@@ -440,6 +441,28 @@ class Install {
 			created_at datetime NOT NULL,
 			PRIMARY KEY  (user_id, blocked_id),
 			KEY blocked_id (blocked_id)
+			) {$charset};
+
+			CREATE TABLE {$places} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			name varchar(120) NOT NULL,
+			category varchar(20) NOT NULL DEFAULT 'meetup',
+			perk varchar(120) NOT NULL DEFAULT '',
+			description text NULL,
+			address varchar(255) NOT NULL DEFAULT '',
+			lat decimal(9,6) NOT NULL,
+			lng decimal(9,6) NOT NULL,
+			website varchar(300) NOT NULL DEFAULT '',
+			phone varchar(40) NOT NULL DEFAULT '',
+			hours varchar(200) NOT NULL DEFAULT '',
+			cover_url varchar(500) NULL,
+			status varchar(20) NOT NULL DEFAULT 'pending',
+			created_by bigint(20) unsigned NOT NULL,
+			created_at datetime NOT NULL,
+			updated_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			KEY status_name (status, name),
+			KEY created_by (created_by)
 			) {$charset};"
 		);
 	}

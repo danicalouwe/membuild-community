@@ -54,7 +54,7 @@ class Search {
 				'permission_callback' => Rest_Feed::feature( 'search' ),
 				'args'                => array(
 					'q'    => array( 'type' => 'string', 'required' => true ),
-					'type' => array( 'enum' => array( 'all', 'members', 'posts', 'comments', 'courses' ), 'default' => 'all' ),
+					'type' => array( 'enum' => array( 'all', 'members', 'posts', 'comments', 'courses', 'places' ), 'default' => 'all' ),
 					'page' => array( 'type' => 'integer', 'default' => 1, 'minimum' => 1, 'maximum' => 50 ),
 				),
 			)
@@ -67,7 +67,10 @@ class Search {
 		$q     = self::clean_query( (string) $req['q'] );
 		$words = self::words( $q );
 		$type  = (string) $req['type'];
-		$kinds = array( 'members', 'posts', 'comments', 'courses' );
+		$kinds = array( 'members', 'posts', 'comments', 'courses', 'places' );
+		if ( ! Settings::feature( 'places' ) ) {
+			$kinds = array_diff( $kinds, array( 'places' ) );
+		}
 		if ( ! Settings::feature( 'classroom' ) ) {
 			$kinds = array_diff( $kinds, array( 'courses' ) );
 		}
@@ -308,6 +311,34 @@ class Search {
 			);
 		}
 		return array_slice( $out, $offset, $limit + 1 );
+	}
+
+	/** Published places by name, address or perk. */
+	private static function places( array $words, $limit, $offset ) {
+		global $wpdb;
+		$fields = array();
+		$args   = array( Install::table( 'places' ) );
+		foreach ( $words as $w ) {
+			$fields[] = '(name LIKE %s OR address LIKE %s OR perk LIKE %s)';
+			$like     = '%' . $wpdb->esc_like( $w ) . '%';
+			array_push( $args, $like, $like, $like );
+		}
+		array_push( $args, $limit + 1, $offset );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- one fixed fragment with placeholders per word; every value is bound.
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT id, name, category, perk, address, cover_url FROM %i WHERE status = 'published' AND " . implode( ' AND ', $fields ) . ' ORDER BY name ASC LIMIT %d OFFSET %d', $args ), ARRAY_A );
+		return array_map(
+			fn( $r ) => array(
+				'kind'     => 'place',
+				'id'       => (int) $r['id'],
+				'title'    => $r['name'],
+				'category' => $r['category'],
+				'perk'     => $r['perk'],
+				'address'  => $r['address'],
+				'cover'    => $r['cover_url'] ?: null,
+				'link'     => array( 'name' => 'places', 'params' => array( 'placeId' => (int) $r['id'] ) ),
+			),
+			$rows
+		);
 	}
 
 	private static function course_item( array $c, $snippet ) {

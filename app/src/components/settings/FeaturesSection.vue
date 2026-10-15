@@ -8,6 +8,7 @@ const FEATURES = [
   { key: 'stories', label: t.__('Stories', 'membuild-community'), hint: t.__('Photos and text that disappear after 24 hours, above the feed.', 'membuild-community') },
   { key: 'reels', label: t.__('Reels', 'membuild-community'), hint: t.__('Short vertical videos, in their own tab and inside the feed.', 'membuild-community') },
   { key: 'leaderboard', label: t.__('Leaderboard', 'membuild-community'), hint: t.__('The ranking of members. Points and levels keep working when it is off.', 'membuild-community') },
+  { key: 'places', label: t.__('Places', 'membuild-community'), hint: t.__('A map of meetup spots, partners with member perks, and venues. Admins add places; members can suggest them.', 'membuild-community') },
   { key: 'search', label: t.__('Search', 'membuild-community'), hint: t.__('Find members, posts, comments and lessons from the box at the top. Private messages are never searched.', 'membuild-community') },
 ]
 

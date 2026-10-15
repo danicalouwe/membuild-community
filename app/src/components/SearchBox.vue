@@ -32,6 +32,7 @@ const GROUPS = [
   { key: 'posts', label: t.__('Posts', 'membuild-community') },
   { key: 'comments', label: t.__('Comments', 'membuild-community') },
   { key: 'courses', label: t.__('Classroom', 'membuild-community') },
+  { key: 'places', label: t.__('Places', 'membuild-community') },
 ]
 const shown = computed(() => GROUPS.filter((g) => groups.value?.[g.key]?.items.length))
 const empty = computed(() => groups.value && !loading.value && !shown.value.length)
@@ -249,8 +250,8 @@ const noneLabel = computed(() => t.sprintf(/* translators: %s: the search text *
 }
 
 /* Medium screens: a button in the header, the box drops down under it.
-   Below 1200px the full box wouldn't leave room before the tabs. */
-@media (max-width: 1199px) {
+   Below 1280px the full box wouldn't leave room before the tabs. */
+@media (max-width: 1279px) {
   .opener {
     display: grid;
   }

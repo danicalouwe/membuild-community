@@ -6,6 +6,7 @@ import Icon from './Icon.vue'
 import { levelLabel } from '../config.js'
 import { t, locale } from '../lib/i18n.js'
 import { timeAgo } from '../lib/time.js'
+import { CATEGORY } from '../lib/places.js'
 
 /**
  * One search result: a member, post, reel, comment, course or lesson, as the
@@ -34,7 +35,7 @@ function parts(text) {
 const title = computed(() => {
   const i = props.item
   if (i.kind === 'member') return i.user.name
-  if (i.kind === 'course' || i.kind === 'lesson') return i.title
+  if (i.kind === 'course' || i.kind === 'lesson' || i.kind === 'place') return i.title
   return i.snippet
 })
 
@@ -56,6 +57,8 @@ const detail = computed(() => {
         : t.sprintf(/* translators: %s: who wrote the comment */ t.__('Comment by %s', 'membuild-community'), i.user.name)
     case 'course':
       return [t.__('Course', 'membuild-community'), t.sprintf(/* translators: %s: number of lessons */ t._n('%s lesson', '%s lessons', i.lessons, 'membuild-community'), i.lessons), lockText(i)].filter(Boolean).join(' · ')
+    case 'place':
+      return [CATEGORY[i.category]?.label, i.perk ? `🎁 ${i.perk}` : i.address].filter(Boolean).join(' · ')
     case 'lesson':
       return [t.sprintf(/* translators: %s: course title */ t.__('Lesson in %s', 'membuild-community'), i.course), lockText(i)].filter(Boolean).join(' · ')
   }
@@ -81,7 +84,7 @@ const quote = computed(() => (['course', 'lesson'].includes(props.item.kind) ? p
     <Avatar v-else-if="item.user" :user="item.user" :size="36" />
     <span v-else class="thumb" :class="{ locked }">
       <img v-if="item.cover && !locked" :src="item.cover" alt="" />
-      <Icon v-else :name="locked ? 'lock' : 'cap'" :size="18" />
+      <Icon v-else :name="locked ? 'lock' : item.kind === 'place' ? 'mapPin' : 'cap'" :size="18" />
     </span>
     <span class="text">
       <span class="title"><template v-for="(p, n) in parts(title)" :key="n"><mark v-if="p.hit">{{ p.text }}</mark><template v-else>{{ p.text }}</template></template></span>

@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.2.2
+Stable tag: 1.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -34,6 +34,16 @@ MemBuild - Community gives your WordPress site its own community app at /communi
 * Course access: open to everyone, to members from a level up, or to member groups you manage
 * Member groups can follow a WordPress role, so membership and shop plugins that give buyers a role open your courses automatically
 * Lesson videos, downloads and photos in private messages are served only to people allowed to see them
+
+**Places** (optional, off until you switch it on)
+
+* A list and a map of meetup spots, partners with a member perk, and venues
+* "Near me", directions in the phone's own maps app, and who in the community goes there
+* Admins and moderators add places; members suggest them for review
+
+**Search**
+
+* One box for members, posts, comments, courses, lessons and places, following the Classroom's access rules; private messages are never searched
 
 **Gamification**
 
@@ -165,6 +175,14 @@ The plugin works without any outside service. These are only contacted when you 
 * Terms: https://bunny.net/tos/
 * Privacy: https://bunny.net/privacy/
 
+**OpenStreetMap** (only when Places is on, in Settings → Features; it's off by default)
+* Map tiles: members' browsers load the map images from `tile.openstreetmap.org` while they look at Places, as on any site with an OpenStreetMap map. The map shows OpenStreetMap's attribution, as their terms require. Change the tile source with the `membuild_community/map_tiles` filter (for example to a paid provider, for a busy community).
+* Address lookup: when an admin or member adds a place and presses Find, your server sends the typed address (and nothing else) to OpenStreetMap's Nominatim service (`nominatim.openstreetmap.org`) to find it on the map. Answers are cached for 30 days. Change the service with the `membuild_community/geocode_url` filter.
+* Members' own locations are never sent or stored: "Near me" sorts places in the browser.
+* Tile usage policy: https://operations.osmfoundation.org/policies/tiles/
+* Nominatim usage policy: https://operations.osmfoundation.org/policies/nominatim/
+* Privacy: https://osmfoundation.org/wiki/Privacy_Policy
+
 **GitHub** (checking for plugin updates)
 * What is sent: twice a day your server asks `https://api.github.com/repos/danicalouwe/membuild-community/releases/latest` for the newest version, and downloads its zip from github.com when you update. Nothing about your site is sent. Turn it off with the `membuild_community/github_updates` filter.
 * Terms: https://docs.github.com/site-policy/github-terms/github-terms-of-service
@@ -182,9 +200,9 @@ The plugin shows no ads and sends nothing else to the plugin's authors.
 
 Each part of the plugin is a class in `includes/` that registers its own hooks; `includes/class-plugin.php` wires them up. Data lives in custom tables (`{prefix}mbcom_*`) described in `includes/class-install.php`.
 
-**Actions** (all prefixed `membuild_community/`): `post_created`, `post_deleted`, `comment_created`, `comment_deleted`, `reaction_changed`, `reported`, `member_restricted`, `level_up`, `message_sent`, `lesson_completed`, `lesson_uncompleted`, `course_completed`, `story_created`, `story_reacted`, `notification_created`, `access_group_added`, `access_group_removed`, `member_blocked`, `login_after` (under the login form, for other ways to sign in), `app_footer` (the end of the community page, which has no theme or wp_footer). Points and notifications are themselves built on these actions.
+**Actions** (all prefixed `membuild_community/`): `post_created`, `post_deleted`, `comment_created`, `comment_deleted`, `reaction_changed`, `reported`, `member_restricted`, `level_up`, `message_sent`, `lesson_completed`, `lesson_uncompleted`, `course_completed`, `story_created`, `story_reacted`, `place_created`, `notification_created`, `access_group_added`, `access_group_removed`, `member_blocked`, `login_after` (under the login form, for other ways to sign in), `app_footer` (the end of the community page, which has no theme or wp_footer). Points and notifications are themselves built on these actions.
 
-**Filters**: `membuild_community/points_rules` (points per action and daily caps), `membuild_community/level_thresholds` (points needed per level), `membuild_community/in_access_group` (decide access-group membership your own way, e.g. from a membership plugin), `membuild_community/send_protected_file` (let your server send protected files, e.g. with X-Accel-Redirect), `membuild_community/daily_upload_bytes` (how much a member may upload per day; 2 GB by default, no limit for admins and moderators), `membuild_community/github_updates` (return false to stop checking GitHub for updates), `membuild_community/usage_reports` (return false to send no reports to MemBuild).
+**Filters**: `membuild_community/points_rules` (points per action and daily caps), `membuild_community/level_thresholds` (points needed per level), `membuild_community/in_access_group` (decide access-group membership your own way, e.g. from a membership plugin), `membuild_community/send_protected_file` (let your server send protected files, e.g. with X-Accel-Redirect), `membuild_community/daily_upload_bytes` (how much a member may upload per day; 2 GB by default, no limit for admins and moderators), `membuild_community/github_updates` (return false to stop checking GitHub for updates), `membuild_community/usage_reports` (return false to send no reports to MemBuild), `membuild_community/map_tiles` and `membuild_community/geocode_url` (Places' map tiles and address lookup).
 
 **WP-CLI**: `wp mbcom recount-points` (recount totals and levels from the points ledger), `wp mbcom rebuild-points` (replay all activity into points), and `wp mbcom seed` for demo content.
 
@@ -209,6 +227,12 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.3.0 =
+* New: Places (off until you switch it on in Settings → Features). A list and a map of meetup spots, partners with a member perk, and venues: "Near me", directions in the phone's maps app, website and call buttons, and "I go here" with the members who go there. Pins close together merge into a bubble with a count. A place without a photo shows a small map of its spot.
+* New: admins and moderators add places; members suggest them, and admins approve suggestions right in the list. An address is found on the map once, when the place is saved, and the pin can be dragged to the exact spot.
+* New: search finds places too.
+* Places uses OpenStreetMap for the map and the address lookup, with no API keys; see External services.
 
 = 1.2.2 =
 * The header spans the full width: logo and search at the left edge, the icons at the right, the tabs centred between them. Below 1200px wide the search box becomes a button, so it never crowds the tabs.

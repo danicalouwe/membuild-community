@@ -115,7 +115,7 @@ const isActive = (tab) =>
       </span>
     </div>
 
-    <main class="main">
+    <main class="main" :class="{ flush: route.name === 'places' }">
       <RouterView v-slot="{ Component }">
         <KeepAlive include="FeedView">
           <component :is="Component" />
@@ -301,7 +301,8 @@ const isActive = (tab) =>
   padding-bottom: 24px;
 }
 
-.immersive .main {
+.immersive .main,
+.main.flush {
   padding-bottom: 0;
 }
 
