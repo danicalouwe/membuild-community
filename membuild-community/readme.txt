@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.2.1
+Stable tag: 1.2.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -209,6 +209,9 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.2.2 =
+* The header spans the full width: logo and search at the left edge, the icons at the right, the tabs centred between them. Below 1200px wide the search box becomes a button, so it never crowds the tabs.
 
 = 1.2.1 =
 * "Built by MemBuild" at the foot of the Community pages in wp-admin and of the community's Settings page (admins only; members don't see it).

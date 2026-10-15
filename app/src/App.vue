@@ -156,13 +156,13 @@ const isActive = (tab) =>
 }
 
 .topbar-inner {
-  max-width: 1080px;
+  /* Full width, like Facebook: logo and search at the left edge, icons at the right. */
   height: 100%;
-  margin: 0 auto;
   padding: 0 16px;
-  /* Equal side columns keep the tabs centred, whatever the logo and icons measure. */
+  /* Equal side columns keep the tabs centred, whatever the logo and icons measure;
+     minmax(0, …) lets a side shrink instead of pushing into the tabs. */
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 24px;
 }

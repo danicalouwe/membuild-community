@@ -248,8 +248,9 @@ const noneLabel = computed(() => t.sprintf(/* translators: %s: the search text *
   text-align: left;
 }
 
-/* Medium screens: a button in the header, the box drops down under it. */
-@media (max-width: 1099px) {
+/* Medium screens: a button in the header, the box drops down under it.
+   Below 1200px the full box wouldn't leave room before the tabs. */
+@media (max-width: 1199px) {
   .opener {
     display: grid;
   }
