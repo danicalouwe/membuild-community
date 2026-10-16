@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.4.0
+Stable tag: 1.4.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -224,6 +224,16 @@ Each part of the plugin is a class in `includes/` that registers its own hooks; 
 
 Copyright (C) 2026 Danica Louwe (MemBuild, https://membuild.com). Released under the GNU General Public License, version 2 or later: you may use, change and share it. Copies must keep the copyright notices, and changed copies must say what was changed. "MemBuild" is the author's name and brand, and isn't licensed for other products.
 
+== Credits ==
+
+The community app is built with these open-source libraries, bundled in `assets/build/` (their licences are compatible with the GPL):
+
+* Vue and Vue Router (MIT)
+* hls.js, for streaming video (Apache-2.0)
+* Mediabunny, for compressing videos in the browser (MPL-2.0)
+* Leaflet and Leaflet.markercluster, for the Places map (BSD-2-Clause, MIT)
+* Emoji names and categories from emojibase-data (MIT)
+
 == Source code ==
 
 The community app is written in Vue and compiled into `assets/build/`. Its full, readable source is included in the `source/` folder, with the build setup (`package.json`, `vite.config.js`). To rebuild it: `cd source && npm install && npx vite build --outDir ../assets/build --emptyOutDir`.
@@ -237,6 +247,10 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.4.1 =
+* Chat reactions work like Messenger: a smiley button, the quick six (❤️ 😆 😮 😢 😡 👍) above the message, and a "+" to react with any emoji. Unsend moved into the ⋮ menu. Reactions sit on the bubble's corner.
+* The emoji panel floats above the page (no more scrollbars inside the chat window), with a search box, "Your reactions", every emoji by category, and category tabs. Emoji names come from emojibase (MIT) and load only when the panel opens.
 
 = 1.4.0 =
 * New: GIFs from GIPHY. Paste a free GIPHY API key in Community settings → GIFs and a GIF button appears in posts, comments and chats: trending GIFs, search as you type, tap to add. Searches go from members' browsers to GIPHY, and nothing is copied to your site.

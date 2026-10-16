@@ -11,4 +11,9 @@ export const REACTIONS = [
 ]
 
 export const reactionFor = (type) => REACTIONS.find((r) => r.type === type) || REACTIONS[0]
-export const emojiFor = (type) => reactionFor(type).emoji
+
+/** In chats, any emoji can be a reaction (Messenger's "+"): those are stored as the emoji itself. */
+export const emojiFor = (type) => REACTIONS.find((r) => r.type === type)?.emoji || (type && !/^[a-z]+$/.test(type) ? type : reactionFor(type).emoji)
+
+/** Messenger's quick set, in its order; the "+" opens the full emoji list. */
+export const MESSAGE_REACTIONS = ['love', 'haha', 'wow', 'sad', 'angry', 'like'].map((type) => REACTIONS.find((r) => r.type === type))

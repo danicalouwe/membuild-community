@@ -229,7 +229,8 @@ class Rest_Messages {
 		if ( is_wp_error( $message ) ) {
 			return $message;
 		}
-		$type = in_array( $req['type'], Helpers::REACTIONS, true ) ? $req['type'] : 'love';
+		// The usual reactions, or any one emoji (Messenger's "+").
+		$type = in_array( $req['type'], Helpers::REACTIONS, true ) ? $req['type'] : ( Helpers::emoji( $req['type'] ) ?? 'love' );
 		$wpdb->query(
 			$wpdb->prepare(
 				"INSERT INTO %i (object_type, object_id, user_id, type, created_at) VALUES ('message', %d, %d, %s, %s) ON DUPLICATE KEY UPDATE type = VALUES(type)",

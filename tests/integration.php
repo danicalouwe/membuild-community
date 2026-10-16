@@ -146,6 +146,14 @@ list( $s, $hist ) = mbcom_call( $ben, 'GET', "/messages/threads/{$tid}/messages"
 mbcom_check( 'the other person can read it', 200 === $s && 'Hi Ben' === end( $hist['items'] )['content'] );
 list( $s ) = mbcom_call( $cy, 'GET', "/messages/threads/{$tid}/messages" );
 mbcom_check( "outsiders can't read the chat", in_array( $s, array( 403, 404 ), true ), (string) $s );
+$hi = end( $hist['items'] );
+list( $s, $r ) = mbcom_call( $ben, 'PUT', "/messages/{$hi['id']}/reaction", array( 'type' => '🥳' ) );
+mbcom_check( 'any one emoji can react to a message, like Messenger’s “+”', 200 === $s && '🥳' === $r['my_reaction'], wp_json_encode( $r['my_reaction'] ?? $r ) );
+list( , $r ) = mbcom_call( $ben, 'PUT', "/messages/{$hi['id']}/reaction", array( 'type' => '👩🏽‍💻' ) );
+mbcom_check( '…skin tones and joined emoji included', '👩🏽‍💻' === $r['my_reaction'] );
+list( , $r ) = mbcom_call( $ben, 'PUT', "/messages/{$hi['id']}/reaction", array( 'type' => '<b>hi</b>' ) );
+mbcom_check( '…but words and markup aren’t reactions', 'love' === $r['my_reaction'] );
+mbcom_call( $ben, 'DELETE', "/messages/{$hi['id']}/reaction" );
 list( $s ) = mbcom_call( $cy, 'POST', "/messages/threads/{$tid}/messages", array( 'content' => 'butting in' ) );
 mbcom_check( "…or post in it", in_array( $s, array( 403, 404 ), true ), (string) $s );
 list( , $pulse ) = mbcom_call( $ben, 'GET', '/messages/pulse' );

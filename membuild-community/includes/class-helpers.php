@@ -65,6 +65,20 @@ class Helpers {
 	}
 
 	/**
+	 * A single emoji (with any skin tone, gender or flag joins), for reacting to a
+	 * message with any emoji, like Messenger's "+". Null for anything else: no
+	 * letters, digits, punctuation, spaces or markup, and at most 8 characters.
+	 */
+	public static function emoji( $text ) {
+		$text = trim( (string) $text );
+		if ( '' === $text || mb_strlen( $text ) > 8 || strlen( $text ) > 32 || preg_match( '/[\p{L}\p{N}\p{P}\p{Z}\p{Cc}<>=+`^|~$]/u', $text ) ) {
+			return null;
+		}
+		// At least one real pictograph (emoji live above U+2190), not just joiners or variation marks.
+		return preg_match( '/[\x{2190}-\x{2BFF}\x{1F000}-\x{1FAFF}]/u', $text ) ? $text : null;
+	}
+
+	/**
 	 * A per-member rate limit: true while under $max actions per $window seconds.
 	 * Admins are never limited.
 	 *

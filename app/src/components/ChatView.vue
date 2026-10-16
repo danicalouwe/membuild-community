@@ -6,7 +6,8 @@ import { cfg } from '../config.js'
 import { watchChat, pulseNow } from '../stores/messages.js'
 import { startAttachment, startGif } from '../lib/attachments.js'
 import { giphyOn } from '../lib/giphy.js'
-import { REACTIONS, emojiFor } from '../lib/reactions.js'
+import { emojiFor } from '../lib/reactions.js'
+import ReactionPicker from './ReactionPicker.vue'
 import { BACKGROUNDS } from '../lib/postStyle.js'
 import Avatar from './Avatar.vue'
 import Icon from './Icon.vue'
@@ -39,7 +40,9 @@ const draft = ref('')
 const replyTo = ref(null)
 const photos = ref([])
 const showEmoji = ref(false)
-const menuFor = ref(null) // message id with the action menu open
+const menuFor = ref(null) // message id with the reaction pill open
+const moreFor = ref(null) // message id with the ⋮ menu open
+const reactAt = ref(null) // the open picker's anchor: { rect, side }
 const { open: headerMenu, root: headerMenuRoot, trigger: headerMenuTrigger, list: headerMenuList, toggle: toggleHeaderMenu, close: closeHeaderMenu, onKeydown: onHeaderMenuKey } = useMenu()
 const error = ref('')
 const scroller = ref(null)
@@ -268,8 +271,26 @@ function insertEmoji(e) {
 
 /* ---------- Message actions ---------- */
 
-async function react(m, type) {
+// The picker floats above the page (see ReactionPicker), anchored to the message's bubble.
+function openReactions(m, e) {
+  moreFor.value = null
+  if (menuFor.value === m.id) return closeReactions()
+  const bubble = e?.currentTarget?.closest('.bubble-row')?.querySelector('.bubble-wrap')
+  reactAt.value = bubble ? { rect: bubble.getBoundingClientRect(), side: m.mine ? 'end' : 'start' } : null
+  menuFor.value = reactAt.value ? m.id : null
+}
+function closeReactions() {
   menuFor.value = null
+  reactAt.value = null
+}
+
+function openMore(m) {
+  menuFor.value = null
+  moreFor.value = moreFor.value === m.id ? null : m.id
+}
+
+async function react(m, type) {
+  closeReactions()
   const removing = m.my_reaction === type
   const before = { reactions: m.reactions, my_reaction: m.my_reaction }
   m.reactions = removing ? m.reactions.filter((r) => r.user_id !== cfg.user.id) : [...m.reactions.filter((r) => r.user_id !== cfg.user.id), { user_id: cfg.user.id, type }]
@@ -289,6 +310,7 @@ function startReply(m) {
 
 async function unsend(m) {
   menuFor.value = null
+  moreFor.value = null
   if (!confirm(t.__('Unsend this message for everyone?', 'membuild-community'))) return
   try {
     Object.assign(m, await api.unsend(m.id))
@@ -402,7 +424,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
       </template>
     </header>
 
-    <div ref="scroller" class="scroll" @scroll.passive="onScroll" @click="menuFor = null">
+    <div ref="scroller" class="scroll" @scroll.passive="onScroll" @click="menuFor = null; moreFor = null">
       <p v-if="error" class="state">{{ error }}</p>
       <div v-else-if="!chat" class="state"><div class="spinner" /></div>
       <template v-else>
@@ -447,14 +469,18 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
                   </span>
                 </div>
 
-                <div v-if="!row.m.unsent && !row.m.pending && !row.m.failed" class="actions">
-                  <button :aria-label="t.__('React', 'membuild-community')" @click.stop="menuFor = menuFor === row.m.id ? null : row.m.id"><Icon name="sparkle" :size="16" /></button>
+                <!-- Like Messenger: react, reply, and ⋮ (Unsend) on your own; the smiley sits nearest the bubble. -->
+                <div v-if="!row.m.unsent && !row.m.pending && !row.m.failed" class="actions" :class="{ open: menuFor === row.m.id || moreFor === row.m.id }">
+                  <button :class="{ on: menuFor === row.m.id }" :aria-label="t.__('React', 'membuild-community')" :aria-expanded="menuFor === row.m.id" @click.stop="openReactions(row.m, $event)"><Icon name="smile" :size="17" /></button>
                   <button :aria-label="t.__('Reply', 'membuild-community')" @click.stop="startReply(row.m)"><Icon name="share" :size="16" class="flip" /></button>
-                  <button v-if="row.m.mine" :aria-label="t.__('Unsend', 'membuild-community')" @click.stop="unsend(row.m)"><Icon name="trash" :size="16" /></button>
-                  <div v-if="menuFor === row.m.id" class="react-pop" @click.stop>
-                    <button v-for="r in REACTIONS" :key="r.type" :class="{ on: row.m.my_reaction === r.type }" :aria-label="r.label" @click="react(row.m, r.type)">{{ r.emoji }}</button>
-                  </div>
+                  <span v-if="row.m.mine" class="more-wrap">
+                    <button :class="{ on: moreFor === row.m.id }" :aria-label="t.__('More', 'membuild-community')" :aria-expanded="moreFor === row.m.id" @click.stop="openMore(row.m)"><Icon name="more" :size="18" class="vertical" /></button>
+                    <span v-if="moreFor === row.m.id" class="more-menu card" role="menu" @click.stop>
+                      <button role="menuitem" @click="unsend(row.m)"><Icon name="trash" :size="16" /> {{ t.__('Unsend', 'membuild-community') }}</button>
+                    </span>
+                  </span>
                 </div>
+                <ReactionPicker v-if="menuFor === row.m.id && reactAt" :anchor="reactAt.rect" :side="reactAt.side" :current="row.m.my_reaction" @pick="(type) => react(row.m, type)" @close="closeReactions" />
               </div>
 
               <span v-if="row.m.failed" class="failed">{{ notSent(row.m.failed) }}</span>
@@ -872,7 +898,8 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 
 .reacts {
   position: relative;
-  margin-top: -8px;
+  align-self: flex-end; /* on the bubble's bottom-right corner, as in Messenger */
+  margin: -8px 6px 0 0;
   z-index: 1;
   display: inline-flex;
   gap: 2px;
@@ -926,32 +953,57 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
   transform: scaleX(-1);
 }
 
-.react-pop {
+.bubble-row {
+  position: relative;
+}
+
+/* Yours: the smiley nearest the bubble, then reply, then ⋮. */
+.mine .actions {
+  flex-direction: row-reverse;
+}
+
+.actions.open {
+  opacity: 1;
+}
+
+.actions button.on {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.vertical {
+  transform: rotate(90deg);
+}
+
+.more-wrap {
+  position: relative;
+}
+
+.more-menu {
   position: absolute;
   bottom: calc(100% + 4px);
-  left: 50%;
+  right: 0;
   z-index: 6;
+  padding: 4px;
+  min-width: 140px;
+}
+
+.more-menu button {
   display: flex;
-  gap: 2px;
-  padding: 4px 6px;
-  border-radius: 999px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 22%);
-  transform: translateX(-50%);
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: auto;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: var(--text);
+  font-weight: 600;
+  white-space: nowrap;
 }
 
-.react-pop button {
-  width: 34px;
-  height: 34px;
-  font-size: 22px;
-  transition: transform 0.12s ease;
-}
-
-.react-pop button:hover,
-.react-pop button.on {
-  transform: scale(1.2);
-  background: transparent;
+.mine .more-menu {
+  right: auto;
+  left: 0;
 }
 
 .quoted {

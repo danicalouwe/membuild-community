@@ -215,7 +215,7 @@ class Install {
 			object_type varchar(10) NOT NULL,
 			object_id bigint(20) unsigned NOT NULL,
 			user_id bigint(20) unsigned NOT NULL,
-			type varchar(10) NOT NULL DEFAULT 'like',
+			type varchar(32) NOT NULL DEFAULT 'like',
 			created_at datetime NOT NULL,
 			PRIMARY KEY  (id),
 			UNIQUE KEY object_user (object_type, object_id, user_id),
