@@ -638,10 +638,8 @@ class Rest_Courses {
 	 * A lesson's files as the app shows them: name, type, size and the link
 	 * (left out when the member can't open the lesson).
 	 */
-	private static function files( array $resources, $open ) {
-		global $wpdb;
-		$ids   = array_filter( array_map( fn( $r ) => (int) ( $r['media_id'] ?? 0 ), $resources ) );
-		$bytes = $ids ? $wpdb->get_results( $wpdb->prepare( 'SELECT id, bytes FROM %i WHERE id IN (' . implode( ',', array_fill( 0, count( $ids ), '%d' ) ) . ')', array_merge( array( Install::table( 'media' ) ), array_values( $ids ) ) ), OBJECT_K ) : array();
+	private static function files( array $resources, $open, $bytes = null ) {
+		$bytes = $bytes ?? self::sizes( $resources );
 		return array_map(
 			fn( $r ) => array(
 				'media_id' => (int) $r['media_id'],
@@ -649,10 +647,20 @@ class Rest_Courses {
 				'url'      => $open ? (string) $r['url'] : null,
 				'mime'     => (string) ( $r['mime'] ?? '' ),
 				'ext'      => strtoupper( (string) pathinfo( (string) $r['name'], PATHINFO_EXTENSION ) ),
-				'size'     => (int) ( $bytes[ $r['media_id'] ]->bytes ?? 0 ) ?: null,
+				'size'     => (int) ( $bytes[ (int) $r['media_id'] ] ?? 0 ) ?: null,
 			),
 			$resources
 		);
+	}
+
+	/** File sizes by media ID, in one query. */
+	private static function sizes( array $resources ) {
+		global $wpdb;
+		$ids = array_values( array_unique( array_filter( array_map( fn( $r ) => (int) ( $r['media_id'] ?? 0 ), $resources ) ) ) );
+		if ( ! $ids ) {
+			return array();
+		}
+		return array_map( 'intval', wp_list_pluck( $wpdb->get_results( $wpdb->prepare( 'SELECT id, bytes FROM %i WHERE id IN (' . implode( ',', array_fill( 0, count( $ids ), '%d' ) ) . ')', array_merge( array( Install::table( 'media' ) ), $ids ) ), OBJECT_K ), 'bytes' ) );
 	}
 
 	/**
@@ -712,21 +720,25 @@ class Rest_Courses {
 		$in       = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
 		$progress = Install::table( 'lesson_progress' );
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $in is a list of %d placeholders; values are bound.
-		$learners = $wpdb->get_results( $wpdb->prepare( "SELECT course_id, COUNT(DISTINCT user_id) n FROM %i WHERE course_id IN ({$in}) GROUP BY course_id", array_merge( array( $progress ), $ids ) ), OBJECT_K );
-		$recent   = $wpdb->get_results( $wpdb->prepare( "SELECT course_id, user_id, MAX(completed_at) t FROM %i WHERE course_id IN ({$in}) AND user_id <> %d GROUP BY course_id, user_id ORDER BY t DESC LIMIT 500", array_merge( array( $progress ), $ids, array( get_current_user_id() ) ) ), ARRAY_A );
-		$talk     = $wpdb->get_results( $wpdb->prepare( "SELECT course_id, COUNT(*) n, SUM(created_at >= %s) w FROM %i WHERE status = 'published' AND course_id IN ({$in}) GROUP BY course_id", array_merge( array( gmdate( 'Y-m-d H:i:s', time() - WEEK_IN_SECONDS ), Install::table( 'posts' ) ), $ids ) ), OBJECT_K );
+		// Both read the course_user and course_done indexes, so they stay quick with many members.
+		$learners = array_map( 'intval', wp_list_pluck( $wpdb->get_results( $wpdb->prepare( "SELECT course_id, COUNT(DISTINCT user_id) n FROM %i WHERE course_id IN ({$in}) GROUP BY course_id", array_merge( array( $progress ), $ids ) ), OBJECT_K ), 'n' ) );
+		$talk = $wpdb->get_results( $wpdb->prepare( "SELECT course_id, COUNT(*) n, SUM(created_at >= %s) w FROM %i WHERE status = 'published' AND course_id IN ({$in}) GROUP BY course_id", array_merge( array( gmdate( 'Y-m-d H:i:s', time() - WEEK_IN_SECONDS ), Install::table( 'posts' ) ), $ids ) ), OBJECT_K );
 		// phpcs:enable
+		// The faces: the members who finished a lesson most recently (not me, not anyone I blocked).
 		$faces = array();
-		foreach ( Blocks::filter( $recent ) as $r ) {
-			if ( count( $faces[ (int) $r['course_id'] ] ?? array() ) < 3 ) {
-				$faces[ (int) $r['course_id'] ][] = (int) $r['user_id'];
+		foreach ( $ids as $id ) {
+			$recent = $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE course_id = %d AND user_id <> %d ORDER BY completed_at DESC LIMIT 40', $progress, $id, get_current_user_id() ) );
+			foreach ( array_unique( array_map( 'intval', $recent ) ) as $u ) {
+				if ( count( $faces[ $id ] ?? array() ) < 3 && ! Blocks::hides( $u ) ) {
+					$faces[ $id ][] = $u;
+				}
 			}
 		}
 		$users = Helpers::users( array_merge( array(), ...array_values( $faces ) ) );
 		$out   = array();
 		foreach ( $ids as $id ) {
 			$out[ $id ] = array(
-				'learners'    => (int) ( $learners[ $id ]->n ?? 0 ),
+				'learners'    => (int) ( $learners[ $id ] ?? 0 ),
 				'faces'       => array_values( array_filter( array_map( fn( $u ) => $users[ $u ] ?? null, $faces[ $id ] ?? array() ) ) ),
 				'posts_count' => (int) ( $talk[ $id ]->n ?? 0 ),
 				'posts_week'  => (int) ( $talk[ $id ]->w ?? 0 ),
@@ -759,6 +771,8 @@ class Rest_Courses {
 			ARRAY_A
 		);
 		$items = array();
+		$all   = array_merge( array(), ...array_map( fn( $l ) => json_decode( (string) $l['resources'], true ) ?: array(), $lessons ) );
+		$bytes = self::sizes( $all );
 		foreach ( $lessons as $l ) {
 			$files = json_decode( (string) $l['resources'], true ) ?: array();
 			if ( ! $files ) {
@@ -771,7 +785,7 @@ class Rest_Courses {
 				'module_title' => $l['module_title'],
 				'locked'       => $locked || (bool) $unlock,
 				'unlock_at'    => $unlock ? gmdate( 'c', $unlock ) : null,
-				'files'        => self::files( $files, ! $locked && ! $unlock ),
+				'files'        => self::files( $files, ! $locked && ! $unlock, $bytes ),
 			);
 		}
 		return array( 'items' => $items );

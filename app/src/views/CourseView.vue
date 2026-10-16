@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api.js'
 import { renderMarkdown } from '../lib/markdown.js'
@@ -101,6 +101,36 @@ async function loadLesson(id) {
 
 watch(() => props.courseId, loadCourse, { immediate: true })
 watch(() => props.lessonId, loadLesson, { immediate: true })
+
+/**
+ * Long courses (like Udemy's): modules already finished start folded, and the
+ * outline scrolls to the lesson you're on, so "where am I" is never off-screen.
+ */
+const outlineEl = ref(null)
+watch(
+  () => course.value?.id,
+  () => {
+    if (allLessons.value.length > 20) {
+      collapsed.value = new Set(course.value.modules.filter((m) => m.lessons.length && m.lessons.every((l) => l.completed) && !m.lessons.some((l) => l.id === props.lessonId)).map((m) => m.id))
+    }
+  },
+)
+watch(
+  () => [props.lessonId, course.value?.id],
+  async ([id]) => {
+    if (!id) return
+    const m = course.value?.modules.find((x) => x.lessons.some((l) => l.id === id))
+    if (m && collapsed.value.has(m.id)) toggleModule(m.id)
+    await nextTick()
+    const row = outlineEl.value?.querySelector('li.active')
+    if (row && outlineEl.value) {
+      const box = outlineEl.value.getBoundingClientRect()
+      const at = row.getBoundingClientRect()
+      if (at.top < box.top || at.bottom > box.bottom) outlineEl.value.scrollTop += at.top - box.top - box.height / 3
+    }
+  },
+  { immediate: true },
+)
 
 function open(id) {
   router.push({ name: 'course', params: { courseId: props.courseId, lessonId: id }, query: { ...route.query, tab: undefined } })
@@ -278,7 +308,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
 
   <div v-else-if="course" class="course">
     <!-- Outline -->
-    <aside class="outline card" :class="{ open: outlineOpen }">
+    <aside ref="outlineEl" class="outline card" :class="{ open: outlineOpen }">
       <RouterLink to="/classroom" class="back"><Icon name="chevronLeft" :size="16" /> {{ t.__('Classroom', 'membuild-community') }}</RouterLink>
 
       <template v-if="editing">

@@ -43,7 +43,7 @@ const opensOn = (iso) => t.sprintf(/* translators: %s: a date */ t.__('Opens %s'
     </div>
 
     <div v-for="group in items" :key="group.lesson_id" class="card group">
-      <button class="lesson" @click="emit('open-lesson', group.lesson_id)">
+      <button class="lesson-link" @click="emit('open-lesson', group.lesson_id)">
         <small>{{ group.module_title }}</small>
         <strong>{{ group.lesson_title }}</strong>
       </button>
@@ -89,14 +89,14 @@ const opensOn = (iso) => t.sprintf(/* translators: %s: a date */ t.__('Opens %s'
   padding: 14px 16px;
 }
 
-.lesson {
+.lesson-link {
   display: flex;
   flex-direction: column;
   margin-bottom: 8px;
   text-align: left;
 }
 
-.lesson small {
+.lesson-link small {
   color: var(--text-3);
   font-size: 12px;
   font-weight: 650;
@@ -104,11 +104,11 @@ const opensOn = (iso) => t.sprintf(/* translators: %s: a date */ t.__('Opens %s'
   letter-spacing: 0.03em;
 }
 
-.lesson strong {
+.lesson-link strong {
   font-size: 15px;
 }
 
-.lesson:hover strong {
+.lesson-link:hover strong {
   text-decoration: underline;
 }
 

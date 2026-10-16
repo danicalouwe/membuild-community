@@ -329,7 +329,9 @@ class Install {
 			completed_at datetime NOT NULL,
 			PRIMARY KEY  (id),
 			UNIQUE KEY user_lesson (user_id, lesson_id),
-			KEY user_course (user_id, course_id)
+			KEY user_course (user_id, course_id),
+			KEY course_user (course_id, user_id),
+			KEY course_done (course_id, completed_at)
 			) {$charset};
 
 			CREATE TABLE {$points} (

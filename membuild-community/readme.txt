@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.5.0
+Stable tag: 1.5.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -252,6 +252,11 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.5.1 =
+* Faster Classroom with many members: lesson completions are now indexed by course, so the course list and course pages stay quick (tested with 2,000 members and 128,000 completed lessons: 75 ms down to 5 ms). The Resources tab loads every file size in one query instead of one per lesson.
+* Long courses: modules you've finished start folded, and the outline scrolls to the lesson you're on.
+* Fix: lesson titles in the Resources tab no longer show underlined.
 
 = 1.5.0 =
 * New: a course overview, like Teachable's or Kajabi's. A course you haven't started, have finished, or can't open yet opens on its first page: description, number of lessons, about how long it takes, files, the instructor, who's taking it, the full outline with locks and opening dates, the newest discussion posts, and one button (Start course, Review, or what unlocks it). A course you're part-way through still opens on your next lesson.
