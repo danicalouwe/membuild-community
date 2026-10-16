@@ -192,6 +192,7 @@ export const api = {
   saveUsage: (body) => request('/settings/usage', { method: 'PUT', body }),
   forgetUsage: () => request('/settings/usage/forget', { method: 'POST' }),
   subscribeUpdates: (body) => request('/settings/updates', { method: 'POST', body }),
+  reportProblem: (body) => request('/problems', { method: 'POST', body }),
   stopUpdates: () => request('/settings/updates', { method: 'DELETE' }),
   emailPrefs: () => request('/me/email'),
   saveEmailPrefs: (body) => request('/me/email', { method: 'PUT', body }),

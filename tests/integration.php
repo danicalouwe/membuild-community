@@ -1201,6 +1201,52 @@ mbcom_check( '…and other admin pages keep WordPress’s own footer', 'Thank yo
 $GLOBALS['current_screen'] = null;
 
 /* ---------------------------------------------------------------- */
+mbcom_section( 'Problems (errors in our own code, kept for the admin)' );
+\MemBuild\Community\Problems::clear();
+$P = '\MemBuild\Community\Problems';
+mbcom_check( 'a PHP warning is not a problem', null === $P::from_php( array( 'type' => E_WARNING, 'file' => '/srv/wp/wp-content/plugins/membuild-community/includes/class-feed.php', 'line' => 3, 'message' => 'x' ) ) );
+mbcom_check( 'a fatal in another plugin or the theme is not ours', null === $P::from_php( array( 'type' => E_ERROR, 'file' => '/srv/wp/wp-content/plugins/woocommerce/x.php', 'line' => 3, 'message' => 'x' ) ) && ! $P::all() );
+$sig = $P::from_php( array( 'type' => E_ERROR, 'file' => 'C:\\sites\\wp\\wp-content\\plugins\\membuild-community\\includes\\class-events.php', 'line' => 42, 'message' => "Uncaught TypeError: count(): Argument #1 must be of type Countable in /srv/wp/wp-content/plugins/membuild-community/includes/class-events.php:42\nStack trace:\n#0 /srv/wp/wp-includes/class-wp-hook.php(324): MemBuild\\Community\\Events::remind('secret@example.test', 'https://example.test/x')\n#1 {main}\n  thrown" ) );
+$p = $P::all()[ $sig ] ?? null;
+mbcom_check( 'a fatal in our files is kept with a plugin-relative path and the message apart from the stack', $p && 'php' === $p['kind'] && 'includes/class-events.php' === $p['file'] && 42 === $p['line'] && str_starts_with( $p['message'], 'Uncaught TypeError' ) && ! str_contains( $p['message'], 'Stack trace' ) && str_contains( $p['stack'], 'Events::remind' ) );
+mbcom_check( '…and the stack has no email, URL or server path', ! str_contains( $p['stack'], 'secret@' ) && ! str_contains( $p['stack'], 'https://' ) && ! str_contains( $p['stack'], '/srv/wp' ) && ! str_contains( $p['message'], '/srv/wp' ) );
+$P::from_php( array( 'type' => E_ERROR, 'file' => '/srv/wp/wp-content/plugins/membuild-community/includes/class-events.php', 'line' => 42, 'message' => "Uncaught TypeError: count(): Argument #1 must be of type Countable in /srv/wp/wp-content/plugins/membuild-community/includes/class-events.php:42\nStack trace:\n#0 {main}\n  thrown" ) );
+mbcom_check( 'the same place again counts, not duplicates', 1 === count( $P::all() ) && 2 === $P::all()[ $sig ]['count'] );
+$scrubbed = $P::scrub( 'Member ana@example.test opened https://example.test/community/post/9 with key "sk_live_abcdef" and id 1234567 at /var/www/html/wp-content/plugins/membuild-community/includes/class-feed.php' );
+mbcom_check( 'scrubbing drops emails, links, quoted text, long numbers and server paths', ! str_contains( $scrubbed, '@' ) && ! str_contains( $scrubbed, 'http' ) && ! str_contains( $scrubbed, 'sk_live' ) && ! str_contains( $scrubbed, '1234567' ) && ! str_contains( $scrubbed, '/var/www' ) && str_contains( $scrubbed, 'membuild-community/includes/class-feed.php' ), $scrubbed );
+
+list( $code ) = mbcom_call( 0, 'POST', '/problems', array( 'message' => 'x' ) );
+mbcom_check( 'visitors can’t report', 401 === $code || 403 === $code, (string) $code );
+list( $code ) = mbcom_call( $ana, 'POST', '/problems', array( 'message' => '' ) );
+mbcom_check( 'an empty report is refused', 400 === $code );
+list( $code ) = mbcom_call( $ana, 'POST', '/problems', array( 'message' => "Cannot read properties of undefined (reading 'faces') from ana@example.test", 'source' => 'http://localhost:8891/wp-content/plugins/membuild-community/assets/build/assets/index-D61fuWQ_.js', 'line' => 17, 'stack' => "TypeError: Cannot read properties of undefined\n    at EventCard (http://localhost:8891/.../index-D61fuWQ_.js:17:2000)", 'route' => 'events', 'extra' => str_repeat( 'x', 9000 ) ) );
+$js = array_values( array_filter( $P::all(), fn( $p ) => 'js' === $p['kind'] ) )[0] ?? null;
+mbcom_check( 'the app’s errors are kept: build hash off the file name, route, scrubbed message', 200 === $code && $js && 'index.js' === $js['file'] && 17 === $js['line'] && 'events' === $js['where'] && ! str_contains( $js['message'], '@' ) && str_contains( $js['message'], 'reading' ) );
+for ( $i = 0; $i < 12; $i++ ) {
+	list( $code ) = mbcom_call( $ana, 'POST', '/problems', array( 'message' => "flood {$i}" ) );
+}
+mbcom_check( 'a member is limited to ten reports a minute', 429 === $code );
+global $wpdb;
+$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE 'mbcom\\_rl\\_problem%'" );
+for ( $i = 0; $i < 60; $i++ ) {
+	$P::record( 'php', "includes/x{$i}.php", $i, "overflow {$i}" );
+}
+mbcom_check( 'at most 50 signatures are kept, the oldest dropped', 50 === count( $P::all() ) && ! isset( $P::all()[ $sig ] ) );
+$P::clear();
+$P::record( 'php', 'includes/class-feed.php', 7, 'Boom at https://example.test/x', "#0 /srv/wp/wp-content/plugins/membuild-community/includes/class-feed.php(7)\n#1 {main}", 'wp-admin' );
+mbcom_check( 'the overview says when something was caught', str_contains( $P::strip_item(), '1 problem in the last 7 days' ) );
+wp_set_current_user( $admin );
+ob_start();
+$P::page();
+$page = ob_get_clean();
+mbcom_check( 'the Problems page lists it, with the stack and a copy box', str_contains( $page, 'Boom at' ) && str_contains( $page, 'includes/class-feed.php:7' ) && str_contains( $page, 'Copy for support' ) && ! str_contains( $page, 'https://example.test' ) );
+wp_set_current_user( $ana );
+ob_start();
+$P::page();
+mbcom_check( 'members never see the page (and no route lists problems)', '' === ob_get_clean() );
+wp_set_current_user( $admin );
+
+/* ---------------------------------------------------------------- */
 mbcom_section( 'Anonymous usage reports (with a stand-in for MemBuild)' );
 delete_option( \MemBuild\Community\Usage::OPTION );
 $sent        = array();
@@ -1224,6 +1270,7 @@ mbcom_check( 'each site gets a random install ID, kept between visits', wp_is_uu
 mbcom_check( 'counts are sent as ranges, never exact', '0' === \MemBuild\Community\Usage::range( 0 ) && '1-10' === \MemBuild\Community\Usage::range( 7 ) && '51-200' === \MemBuild\Community\Usage::range( 51 ) && '201-1000' === \MemBuild\Community\Usage::range( 1000 ) && '5001+' === \MemBuild\Community\Usage::range( 6000 ) );
 $report = \MemBuild\Community\Usage::report();
 mbcom_check( 'without sharing, the report is only the ID and versions', array( 'install_id', 'plugin', 'wp', 'php', 'locale', 'multisite', 'shared' ) === array_keys( $report ) && false === $report['shared'] );
+mbcom_check( '…so no problems either', ! isset( $report['problems'] ) );
 list( $code ) = mbcom_call( $ana, 'GET', '/settings/usage' );
 mbcom_check( 'members can’t see or change sharing', 403 === $code, (string) $code );
 list( $code, $got ) = mbcom_call( $admin, 'PUT', '/settings/usage', array( 'share' => true, 'niche' => 'courses', 'niche_other' => 'ignored', 'size' => 'huge' ) );
@@ -1232,6 +1279,7 @@ mbcom_call( $admin, 'PUT', '/settings/usage', array( 'niche' => 'other', 'niche_
 $report = \MemBuild\Community\Usage::report();
 mbcom_check( '…“Something else” keeps a short description', 'other' === $report['niche'] && mb_strlen( $report['niche_other'] ) <= 40 && ! str_contains( $report['niche_other'], '<' ) );
 mbcom_check( 'shared reports add features and rough counts', isset( $report['features']['classroom'], $report['members'], $report['posts'] ) && in_array( $report['members'], array( '0', '1-10', '11-50', '51-200', '201-1000', '1001-5000', '5001+' ), true ) );
+mbcom_check( '…and the problems caught: file, line, scrubbed message and count, never the stack', 1 === count( $report['problems'] ) && 'includes/class-feed.php' === $report['problems'][0]['file'] && 7 === $report['problems'][0]['line'] && str_contains( $report['problems'][0]['message'], 'Boom at' ) && ! str_contains( $report['problems'][0]['message'], 'example.test' ) && ! isset( $report['problems'][0]['stack'], $report['problems'][0]['where'] ) );
 $sent = array();
 mbcom_check( 'the weekly report goes to MemBuild', \MemBuild\Community\Usage::send() && 1 === count( $sent ) && str_contains( $sent[0]['url'], 'action=community_report' ) );
 $host  = wp_parse_url( home_url(), PHP_URL_HOST );
@@ -1329,6 +1377,7 @@ remove_filter( 'membuild_community/usage_reports', '__return_false' );
 remove_filter( 'pre_http_request', $stand_in, 10 );
 delete_option( \MemBuild\Community\Usage::OPTION );
 wp_clear_scheduled_hook( \MemBuild\Community\Usage::HOOK . '_now' );
+\MemBuild\Community\Problems::clear();
 
 /* ---------------------------------------------------------------- */
 echo "\n{$GLOBALS['mbcom_passed']} passed, {$GLOBALS['mbcom_failed']} failed\n";

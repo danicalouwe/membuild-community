@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.7.0
+Stable tag: 1.8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -213,7 +213,7 @@ The plugin works without any outside service. These are only contacted when you 
 
 **MemBuild** (the plugin's authors: a weekly anonymous report, and updates if you ask for them)
 * Always, once a week: a random ID made on your site (not its address), the plugin, WordPress and PHP versions, the site's language and whether it's a multisite, sent to `https://tools.membuild.com/api.php`. Our server also notes the country the request comes from (two letters) and keeps no IP address. This is how we count active installs.
-* If "Share usage" is on (ticked by default on the card the Community overview shows once, and changeable in Community settings → Updates & usage): what the community is about and how big it expects to be, which features are on, how sign-up and video are set up, and rough counts in ranges ("51-200 members", "11-50 posts"), still under the random ID. Never names, email addresses, the site's address, posts, comments or messages.
+* If "Share usage" is on (ticked by default on the card the Community overview shows once, and changeable in Community settings → Updates & usage): what the community is about and how big it expects to be, which features are on, how sign-up and video are set up, rough counts in ranges ("51-200 members", "11-50 posts"), and the errors caught in the plugin's own code (file, line, a scrubbed message, how often; see Community → Problems), still under the random ID. Never names, email addresses, the site's address, posts, comments, messages or stack traces.
 * Only if an admin presses "Keep me updated" (on that card, or in Settings → Updates & usage): the email address they typed, the site's address and name, and the plugin, WordPress and PHP versions, so we can email about new features. While "Share usage" is also on, the community's exact counts (members, members active in the last 30 days, posts, courses, events, which features are on, the last day a member was active) go with it and are refreshed weekly. Never member names, emails, posts, comments or messages. "Stop" removes the email and everything with it from our server.
 * Settings → Updates & usage shows exactly what is sent, and "Delete this site's data at MemBuild" removes all of it from our server. The weekly report is not sent from sites whose environment type is local or development. The `membuild_community/usage_reports` filter turns everything off.
 * Privacy: https://membuild.com/privacy
@@ -261,6 +261,9 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.8.0 =
+* New: Problems. Errors in the plugin's own code are caught on your site: PHP crashes in its files, and errors the community app hits in the browser. Community → Problems lists each one once with how often it happened, the file and line, a stack, and a "Copy for support" box; the overview says when something new was caught. Messages are scrubbed before they're stored (emails, links, quoted text, long numbers and server paths are removed) and nothing a member typed is ever kept. Members never see any of it. With "Share usage" on, the weekly report also carries these lines (file, line, scrubbed message, count; never the stack or the site's address), so a version that breaks somewhere is noticed before anyone writes in.
 
 = 1.7.0 =
 * New: "Keep me updated". The Community overview asks once (and once more two weeks after "Not now") for an email address to hear about new features; the card also asks what the community is about and whether to share usage, which is ticked by default. While the card is up, the overview's numbers sit blurred behind it; "Not now" clears the way at once, and anything urgent (reports waiting, a broken host) always shows above it.

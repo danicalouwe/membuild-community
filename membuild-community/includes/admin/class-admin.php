@@ -48,6 +48,7 @@ class Admin {
 			add_action( "load-{$hook}", fn() => add_screen_option( 'per_page', array( 'default' => 20, 'option' => "mbcom_{$key}_per_page" ) ) );
 		}
 		add_submenu_page( 'membuild-community', __( 'Export community data', 'membuild-community' ), __( 'Export', 'membuild-community' ), self::CAP, 'membuild-community-export', array( __CLASS__, 'page_export' ) );
+		add_submenu_page( 'membuild-community', __( 'Problems', 'membuild-community' ), __( 'Problems', 'membuild-community' ), self::CAP, 'membuild-community-problems', array( Problems::class, 'page' ) );
 		add_submenu_page( 'membuild-community', __( 'Community settings', 'membuild-community' ), __( 'Settings', 'membuild-community' ), self::CAP, 'membuild-community-settings', '__return_null' );
 		add_submenu_page( 'membuild-community', __( 'Open community', 'membuild-community' ), __( 'Open community ↗', 'membuild-community' ), self::CAP, 'membuild-community-open', '__return_null' );
 	}
@@ -179,6 +180,9 @@ class Admin {
 		Usage::setup_card();
 		if ( $gated ) {
 			$urgent = array();
+			if ( Problems::strip_item() ) {
+				$urgent[] = Problems::strip_item();
+			}
 			if ( $reports ) {
 				/* translators: %s: number of reports */
 				$urgent[] = '<li class="mbcom-alert"><span class="dashicons dashicons-flag" aria-hidden="true"></span> ' . esc_html( sprintf( _n( '%s report waiting', '%s reports waiting', $reports, 'membuild-community' ), number_format_i18n( $reports ) ) ) . ' <a href="' . esc_url( self::app_url( 'moderation' ) ) . '">' . esc_html__( 'Review', 'membuild-community' ) . '</a></li>';
@@ -212,6 +216,7 @@ class Admin {
 
 		// The quieter numbers on one line; reports get attention only when there are some.
 		echo '<ul class="mbcom-strip">';
+		echo Problems::strip_item(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped there
 		printf(
 			'<li class="%s"><span class="dashicons dashicons-flag" aria-hidden="true"></span> %s%s</li>',
 			$reports ? 'mbcom-alert' : '',
@@ -735,6 +740,28 @@ class Admin {
 .mbcom-admin .mbcom-privacy{max-width:1100px;margin-top:4px}
 .mbcom-admin .mbcom-privacy p{max-width:760px;font-size:13px;line-height:1.55}
 .mbcom-admin .mbcom-privacy-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+
+/* Problems */
+.mbcom-admin .mbcom-problems{margin-top:16px;max-width:1100px}
+.mbcom-admin .mbcom-problems-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.mbcom-admin .mbcom-problems-head h2{margin:12px 0}
+.mbcom-admin .mbcom-problems-empty{margin-top:16px;max-width:1100px;padding:28px 24px;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+.mbcom-admin .mbcom-problems-empty .mbcom-stat-icon{position:static;background:#e3f6e8;color:#0f5132;margin-bottom:6px}
+.mbcom-admin .mbcom-problems-empty h2{margin:0}
+.mbcom-admin .mbcom-problems-empty p{margin:0}
+.mbcom-admin .mbcom-table-wrap{overflow-x:auto}
+.mbcom-admin .mbcom-problem-table{border:0;border-radius:10px;overflow:hidden}
+.mbcom-admin .mbcom-problem-table td,.mbcom-admin .mbcom-problem-table th{vertical-align:top;padding:12px 10px}
+.mbcom-admin .mbcom-problem-table th:nth-child(2){width:48%}.mbcom-admin .mbcom-problem-table th:nth-child(3){width:22%}
+.mbcom-admin .mbcom-problem-table code{font-size:12px;background:var(--mbcom-soft);padding:1px 6px;border-radius:5px}
+.mbcom-admin .mbcom-nowrap{white-space:nowrap}
+.mbcom-admin .mbcom-stack{margin-top:6px}
+.mbcom-admin .mbcom-stack summary{cursor:pointer;color:var(--mbcom-muted);font-size:12px}
+.mbcom-admin .mbcom-stack pre{margin:6px 0 0;padding:10px 12px;background:var(--mbcom-soft);border-radius:8px;font-size:11.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word;max-height:220px;overflow:auto}
+.mbcom-admin .mbcom-copy{margin-top:16px}
+.mbcom-admin .mbcom-copy summary{cursor:pointer;font-weight:600}
+.mbcom-admin .mbcom-copy p{margin:8px 0}
+.mbcom-admin .mbcom-copy textarea{width:100%;max-width:900px;font-family:Menlo,Consolas,monospace;font-size:12px;border-radius:8px}
 
 /* Tables */
 .mbcom-admin .wp-list-table thead th,.mbcom-admin .wp-list-table tfoot th{white-space:nowrap}

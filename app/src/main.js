@@ -10,6 +10,7 @@ import { applyAccent } from './lib/theme.js'
 import { vStream } from './lib/stream.js'
 import { vAutoGrow } from './lib/autoGrow.js'
 import { t } from './lib/i18n.js'
+import { reportProblem } from './lib/problems.js'
 
 applyAccent(cfg.community.accent)
 
@@ -27,6 +28,16 @@ window.addEventListener('vite:preloadError', (e) => {
   window.location.reload()
 })
 
+// Errors in the app's own code go to the site's Problems page (admins only see
+// it; see the plugin's Problems class). A few per page load, each once, and
+// never anything typed by the member: only the message, where, and the stack.
+window.addEventListener('error', (e) => reportProblem(e.error || e.message, e.filename, e.lineno))
+window.addEventListener('unhandledrejection', (e) => reportProblem(e.reason))
+
 const app = createApp(App).use(router).directive('stream', vStream).directive('auto-grow', vAutoGrow)
+app.config.errorHandler = (err, _instance, info) => {
+  reportProblem(err, '', 0, info)
+  console.error(err)
+}
 app.config.globalProperties.t = t // {{ t.__('…', 'membuild-community') }} in any template
 app.mount('#mbcom-app')

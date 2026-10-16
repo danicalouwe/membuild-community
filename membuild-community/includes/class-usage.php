@@ -19,8 +19,9 @@ defined( 'ABSPATH' ) || exit;
  * When an admin ticks "Share usage" (on by default on the Community overview's
  * card, and changeable in Settings → Updates & usage), the report also says what the
  * community is about, which features are on and roughly how big it is, in
- * ranges ("51–200 members"), never exact numbers. Post and message text, member
- * names and emails are never sent.
+ * ranges ("51–200 members"), never exact numbers, plus the signatures of
+ * errors caught in our own code (see Problems: file, line, scrubbed message,
+ * count). Post and message text, member names and emails are never sent.
  *
  * "Keep me updated" is separate and explicit: the admin gives an email address
  * to hear about new features. That sends the email, the site's address and
@@ -212,6 +213,7 @@ class Usage {
 			'landing'     => $settings['landing'],
 			'login_page'  => (bool) $settings['login_page'],
 			'signup'      => Login::registration_open() ? 'open' : ( $settings['signup_url'] ? 'elsewhere' : 'closed' ),
+			'problems'    => Problems::for_report(),
 		);
 	}
 
