@@ -4,7 +4,7 @@ A free community for WordPress, as simple as Skool and as familiar as Facebook. 
 
 **[Try the live demo →](https://demo-community.membuild.com)**
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/feed.jpg"><img src="docs/screenshots/light/feed.jpg" alt="The community feed: stories, a pinned welcome post, reactions and comments"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/feed.jpg"><img src="docs/screenshots/light/feed.jpg" alt="The community feed: stories, a pinned welcome post, reactions and comments, with the sections down the left like Facebook"></picture>
 
 <table>
   <tr>
@@ -16,6 +16,14 @@ A free community for WordPress, as simple as Skool and as familiar as Facebook. 
     <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/messages.jpg"><img src="docs/screenshots/light/messages.jpg" alt="A group chat between members"></picture></td>
   </tr>
 </table>
+
+<table>
+  <tr>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/events.jpg"><img src="docs/screenshots/light/events.jpg" alt="Events: upcoming live calls and workshops with who's going and a Going button"></picture></td>
+    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/event.jpg"><img src="docs/screenshots/light/event.jpg" alt="An event page: Going, Interested, Add to calendar, who's going, and the discussion"></picture></td>
+  </tr>
+</table>
+<sub>Events: a calendar with RSVPs, add-to-calendar, reminders, and a Join button or a live stream that plays on the page.</sub>
 
 <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/places.jpg"><img src="docs/screenshots/light/places.jpg" alt="Places: a list of meetup spots, member perks and venues beside a map, with nearby places grouped into numbered bubbles"></picture>
 <sub>Places (optional): meetup spots, partners with a member perk, and venues, on a map.</sub>
