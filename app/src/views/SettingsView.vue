@@ -17,6 +17,7 @@ import EmailSection from '../components/settings/EmailSection.vue'
 import VideoSection from '../components/settings/VideoSection.vue'
 import GifsSection from '../components/settings/GifsSection.vue'
 import JoiningSection from '../components/settings/JoiningSection.vue'
+import UpdatesSection from '../components/settings/UpdatesSection.vue'
 import AdvancedSection from '../components/settings/AdvancedSection.vue'
 import { t } from '../lib/i18n.js'
 
@@ -39,6 +40,7 @@ const SECTIONS = [
   { id: 'points', label: t.__('Points & levels', 'membuild-community'), component: PointsSection },
   { id: 'video', label: t.__('Video', 'membuild-community'), component: VideoSection },
   { id: 'gifs', label: t.__('GIFs', 'membuild-community'), component: GifsSection },
+  { id: 'updates', label: t.__('Updates & usage', 'membuild-community'), component: UpdatesSection },
   { id: 'advanced', label: t.__('Advanced', 'membuild-community'), component: AdvancedSection },
 ]
 

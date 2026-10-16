@@ -11,6 +11,7 @@
     "zip": "bash package-zip.sh"
   },
   "devDependencies": {
-    "@wordpress/env": "^10"
+    "@wordpress/env": "^10",
+    "playwright": "1.49.1"
   }
 }

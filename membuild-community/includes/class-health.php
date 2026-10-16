@@ -175,25 +175,36 @@ class Health {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
-		if ( ! Vault::ready() ) {
+		// A WordPress notice everywhere; on the Community pages the mbcom-notice
+		// classes dress it up (icon badge, title, actions), elsewhere it reads as
+		// a plain notice with a lock in front.
+		$notice = function ( $kind, $icon, $title, $text, $url, $button, $hint ) {
 			printf(
-				'<div class="notice notice-error"><p><strong>%s</strong> %s</p><p><a class="button button-primary" href="%s">%s</a></p></div>',
-				esc_html__( 'Community messages are paused.', 'membuild-community' ),
-				esc_html( self::key_problem() ),
-				esc_url( self::key_settings_url() ),
-				esc_html__( 'Restore the key', 'membuild-community' )
+				'<div class="notice notice-%1$s mbcom-notice"><span class="mbcom-notice-icon dashicons dashicons-%2$s" aria-hidden="true"></span><div class="mbcom-notice-body"><p><strong>%3$s</strong> %4$s</p><p class="mbcom-notice-actions"><a class="button button-primary" href="%5$s">%6$s</a> <span class="mbcom-notice-hint">%7$s</span></p></div></div>',
+				esc_attr( $kind ),
+				esc_attr( $icon ),
+				esc_html( $title ),
+				esc_html( $text ),
+				esc_url( $url ),
+				esc_html( $button ),
+				esc_html( $hint )
 			);
+		};
+		if ( ! Vault::ready() ) {
+			$notice( 'error', 'warning', __( 'Community messages are paused.', 'membuild-community' ), self::key_problem(), self::key_settings_url(), __( 'Restore the key', 'membuild-community' ), __( 'Members can’t read or send private messages until this is done.', 'membuild-community' ) );
 			return;
 		}
 		if ( 'constant' === Vault::key_source() || get_option( Vault::SAVED_OPTION ) ) {
 			return;
 		}
-		printf(
-			'<div class="notice notice-warning"><p><strong>%s</strong> %s</p><p><a class="button button-primary" href="%s">%s</a></p></div>',
-			esc_html__( 'Save a copy of your community’s encryption key.', 'membuild-community' ),
-			esc_html__( 'Private messages are encrypted with a key kept on your server. Keep a copy somewhere safe, like a password manager. If the site is ever moved or restored without it, members’ messages can’t be read.', 'membuild-community' ),
-			esc_url( self::key_settings_url() ),
-			esc_html__( 'Save the key', 'membuild-community' )
+		$notice(
+			'warning',
+			'lock',
+			__( 'Save a copy of your community’s encryption key.', 'membuild-community' ),
+			__( 'Private messages are encrypted with a key kept on your server. Keep a copy somewhere safe, like a password manager. If the site is ever moved or restored without it, members’ messages can’t be read.', 'membuild-community' ),
+			self::key_settings_url(),
+			__( 'Save the key', 'membuild-community' ),
+			__( 'Takes a minute. This note goes away once you’ve confirmed you have a copy.', 'membuild-community' )
 		);
 	}
 

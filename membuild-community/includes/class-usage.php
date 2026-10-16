@@ -1,6 +1,6 @@
 <?php
 /**
- * Anonymous usage reports to MemBuild.
+ * Anonymous usage reports to MemBuild, and the "Keep me updated" subscription.
  *
  * @package membuild-community
  * @copyright 2026 Danica Louwe (MemBuild, https://membuild.com). GPL-2.0-or-later.
@@ -16,24 +16,39 @@ defined( 'ABSPATH' ) || exit;
  * random ID made on this site, the plugin, WordPress and PHP versions, and
  * the site's language: no address, no names, no emails.
  *
- * When an admin ticks "Share anonymous usage" (asked once, on the Community
- * overview, and changeable in Settings → Advanced), the report also says what
- * the community is about, which features are on and roughly how big it is, in
+ * When an admin ticks "Share usage" (on by default on the Community overview's
+ * card, and changeable in Settings → Updates & usage), the report also says what the
+ * community is about, which features are on and roughly how big it is, in
  * ranges ("51–200 members"), never exact numbers. Post and message text, member
  * names and emails are never sent.
  *
- * Nothing is sent from local or development sites (wp_get_environment_type()),
- * or when the membuild_community/usage_reports filter returns false.
+ * "Keep me updated" is separate and explicit: the admin gives an email address
+ * to hear about new features. That sends the email, the site's address and
+ * name, and the versions, to the same server; while sharing is on, it also
+ * sends the community's exact counts (members, posts, courses, events, which
+ * features are on), refreshed with each weekly report. "Stop" in Settings →
+ * Updates & usage removes it from our server. The overview asks once, and once more
+ * two weeks after "Not now"; after that only Settings offers it.
  *
- *   GET  /settings/usage          what's shared, the niche and this site's ID
- *   PUT  /settings/usage          {share, niche, niche_other, size}
- *   POST /settings/usage/forget   MemBuild deletes what it has for this site
+ * Nothing anonymous is sent from local or development sites
+ * (wp_get_environment_type()); the subscription, being the admin's own ask,
+ * goes out from any site. The membuild_community/usage_reports filter stops
+ * both when it returns false.
+ *
+ *   GET    /settings/usage          what's shared, the niche, the subscription and this site's ID
+ *   PUT    /settings/usage          {share, niche, niche_other, size}
+ *   POST   /settings/usage/forget   MemBuild deletes what it has for this site
+ *   POST   /settings/updates        {email}: keep me updated
+ *   DELETE /settings/updates        stop
  */
 class Usage {
 
 	const OPTION   = 'mbcom_usage';
 	const HOOK     = 'mbcom_usage_report';
 	const ENDPOINT = 'https://tools.membuild.com/api.php';
+
+	/** After "Not now", the overview card comes back once, this much later. */
+	const RETURN_AFTER = 14 * DAY_IN_SECONDS;
 
 	/** What a community can be about, as asked on the overview. */
 	public static function niches() {
@@ -88,9 +103,17 @@ class Usage {
 			)
 		);
 		register_rest_route( MEMBUILD_COMMUNITY_REST_NS, '/settings/usage/forget', array( 'methods' => 'POST', 'callback' => array( __CLASS__, 'rest_forget' ), 'permission_callback' => $admin ) );
+		register_rest_route(
+			MEMBUILD_COMMUNITY_REST_NS,
+			'/settings/updates',
+			array(
+				array( 'methods' => 'POST', 'callback' => array( __CLASS__, 'rest_subscribe' ), 'permission_callback' => $admin ),
+				array( 'methods' => 'DELETE', 'callback' => array( __CLASS__, 'rest_unsubscribe' ), 'permission_callback' => $admin ),
+			)
+		);
 	}
 
-	/** Whether reports go out at all from this site. */
+	/** Whether the anonymous weekly report goes out from this site. */
 	public static function enabled() {
 		/**
 		 * Whether to send the weekly anonymous report to MemBuild.
@@ -100,11 +123,20 @@ class Usage {
 		return (bool) apply_filters( 'membuild_community/usage_reports', ! in_array( wp_get_environment_type(), array( 'local', 'development' ), true ) );
 	}
 
-	/** The saved answers: id, share, niche, niche_other, size, asked (the overview question was answered or skipped). */
+	/** Whether "Keep me updated" can reach MemBuild: the admin asked, so only the filter can say no. */
+	public static function allowed() {
+		return (bool) apply_filters( 'membuild_community/usage_reports', true );
+	}
+
+	/**
+	 * The saved answers: id, share, niche, niche_other, size, asked (the overview
+	 * card was answered or skipped), email, subscribed, subscribed_at, skips and
+	 * skipped_at (how often "Not now" was pressed, and when last).
+	 */
 	public static function state() {
 		$saved = get_option( self::OPTION, array() );
 		$state = array_merge(
-			array( 'id' => '', 'share' => false, 'niche' => '', 'niche_other' => '', 'size' => '', 'asked' => false, 'sent_at' => 0 ),
+			array( 'id' => '', 'share' => false, 'niche' => '', 'niche_other' => '', 'size' => '', 'asked' => false, 'sent_at' => 0, 'email' => '', 'subscribed' => false, 'subscribed_at' => 0, 'skips' => 0, 'skipped_at' => 0 ),
 			is_array( $saved ) ? $saved : array()
 		);
 		if ( ! $state['id'] ) {
@@ -147,7 +179,7 @@ class Usage {
 		return '5001+';
 	}
 
-	/** Exactly what the next report will send. Shown in Settings, too. */
+	/** Exactly what the next weekly report will send. Shown in Settings, too. */
 	public static function report() {
 		global $wp_version;
 		$state  = self::state();
@@ -163,20 +195,19 @@ class Usage {
 		if ( ! $state['share'] ) {
 			return $report;
 		}
-		global $wpdb;
-		$posts    = Install::table( 'posts' );
+		$counts   = self::counts();
 		$settings = Settings::all();
 		return $report + array(
 			'niche'       => $state['niche'],
 			'niche_other' => $state['niche_other'],
 			'size'        => $state['size'],
-			'features'    => array_map( 'boolval', $settings['features'] ),
-			'members'     => self::range( Helpers::member_total() ),
-			'active_week' => self::range( $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE last_active >= %s', Install::table( 'member_stats' ), gmdate( 'Y-m-d', time() - 7 * DAY_IN_SECONDS ) ) ) ),
-			'posts'       => self::range( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status = 'published' AND type = 'post'", $posts ) ) ),
-			'reels'       => self::range( $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status = 'published' AND type = 'reel'", $posts ) ) ),
-			'courses'     => self::range( $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', Install::table( 'courses' ) ) ) ),
-			'chats'       => self::range( $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', Install::table( 'threads' ) ) ) ),
+			'features'    => $counts['features'],
+			'members'     => self::range( $counts['members'] ),
+			'active_week' => self::range( $counts['active_week'] ),
+			'posts'       => self::range( $counts['posts'] ),
+			'reels'       => self::range( $counts['reels'] ),
+			'courses'     => self::range( $counts['courses'] ),
+			'chats'       => self::range( $counts['chats'] ),
 			'video'       => Bunny::enabled() ? 'bunny' : 'local',
 			'landing'     => $settings['landing'],
 			'login_page'  => (bool) $settings['login_page'],
@@ -184,68 +215,185 @@ class Usage {
 		);
 	}
 
-	/** Sends the report (weekly, and right after the answers change). */
-	public static function send() {
-		if ( ! self::enabled() ) {
-			return false;
+	/** The community's numbers, exact; the weekly report turns them into ranges. */
+	private static function counts() {
+		global $wpdb;
+		$posts = Install::table( 'posts' );
+		$stats = Install::table( 'member_stats' );
+		return array(
+			'features'    => array_map( 'boolval', Settings::all()['features'] ),
+			'members'     => Helpers::member_total(),
+			'active_week' => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE last_active >= %s', $stats, gmdate( 'Y-m-d', time() - 7 * DAY_IN_SECONDS ) ) ),
+			'active_30'   => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE last_active >= %s', $stats, gmdate( 'Y-m-d', time() - 30 * DAY_IN_SECONDS ) ) ),
+			'last_active' => (string) $wpdb->get_var( $wpdb->prepare( 'SELECT MAX(last_active) FROM %i', $stats ) ),
+			'posts'       => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status = 'published' AND type = 'post'", $posts ) ),
+			'reels'       => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status = 'published' AND type = 'reel'", $posts ) ),
+			'events'      => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status = 'published' AND event_at IS NOT NULL", $posts ) ),
+			'courses'     => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', Install::table( 'courses' ) ) ),
+			'chats'       => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', Install::table( 'threads' ) ) ),
+		);
+	}
+
+	/** Exactly what "Keep me updated" sends, or null when not subscribed. Shown in Settings, too. */
+	public static function subscriber() {
+		global $wp_version;
+		$state = self::state();
+		if ( ! $state['subscribed'] || ! $state['email'] ) {
+			return null;
 		}
+		$out = array(
+			'install_id' => $state['id'],
+			'email'      => $state['email'],
+			'site_url'   => home_url(),
+			'site_name'  => get_bloginfo( 'name' ),
+			'plugin'     => MEMBUILD_COMMUNITY_VERSION,
+			'wp'         => $wp_version,
+			'php'        => PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION,
+			'locale'     => get_locale(),
+		);
+		if ( $state['share'] ) {
+			$c            = self::counts();
+			$out['usage'] = array(
+				'members'     => $c['members'],
+				'active_30'   => $c['active_30'],
+				'posts'       => $c['posts'] + $c['reels'],
+				'courses'     => $c['courses'],
+				'events'      => $c['events'],
+				'features'    => $c['features'],
+				'last_active' => $c['last_active'],
+			);
+		}
+		return $out;
+	}
+
+	/** Sends the weekly report, and the subscription while there is one (weekly, and right after the answers change). True when everything due went out. */
+	public static function send() {
+		$sent = array();
+		if ( self::enabled() ) {
+			$sent[] = self::post( 'community_report', self::report() );
+			if ( end( $sent ) ) {
+				$state            = self::state();
+				$state['sent_at'] = time();
+				update_option( self::OPTION, $state, false );
+			}
+		}
+		$subscriber = self::subscriber();
+		if ( $subscriber && self::allowed() ) {
+			$sent[] = self::post( 'community_subscribe', $subscriber );
+		}
+		return $sent && ! in_array( false, $sent, true );
+	}
+
+	/** One request to MemBuild; true when it answered 200. */
+	private static function post( $action, array $body, $timeout = 8 ) {
 		$response = wp_remote_post(
-			self::ENDPOINT . '?action=community_report',
+			self::ENDPOINT . '?action=' . $action,
 			array(
-				'timeout' => 8,
+				'timeout' => $timeout,
 				'headers' => array( 'Content-Type' => 'application/json', 'User-Agent' => 'MemBuild-Community/' . MEMBUILD_COMMUNITY_VERSION ),
-				'body'    => wp_json_encode( self::report() ),
+				'body'    => wp_json_encode( $body ),
 			)
 		);
-		$ok = 200 === wp_remote_retrieve_response_code( $response );
-		if ( $ok ) {
-			$state            = self::state();
-			$state['sent_at'] = time();
-			update_option( self::OPTION, $state, false );
-		}
-		return $ok;
+		return 200 === wp_remote_retrieve_response_code( $response );
 	}
 
 	/** Sends soon, off the admin's request: after an answer changes. */
 	private static function send_soon() {
-		if ( self::enabled() ) {
+		if ( self::enabled() || self::subscriber() ) {
 			wp_schedule_single_event( time() + 30, self::HOOK . '_now' );
 		}
 	}
 
-	/* ---------- The question on the Community overview ---------- */
+	/**
+	 * "Keep me updated": remembers the email and tells MemBuild now. A failed
+	 * request still keeps the subscription; the weekly report retries it.
+	 * Returns false only for a bad email.
+	 */
+	public static function subscribe( $email ) {
+		$email = sanitize_email( (string) $email );
+		if ( ! is_email( $email ) ) {
+			return false;
+		}
+		$state                  = self::state();
+		$state['email']         = $email;
+		$state['subscribed']    = true;
+		$state['subscribed_at'] = $state['subscribed_at'] ?: time();
+		$state['asked']         = true;
+		update_option( self::OPTION, $state, false );
+		if ( self::allowed() && ! self::post( 'community_subscribe', self::subscriber() ) ) {
+			self::send_soon();
+		}
+		return true;
+	}
 
-	/** The card above the numbers, until it's answered or skipped. */
+	/** "Stop": asks MemBuild to drop the subscription, then forgets the email here. False when MemBuild couldn't be reached. */
+	public static function unsubscribe() {
+		$state = self::state();
+		if ( $state['subscribed'] && self::allowed() && ! self::post( 'community_unsubscribe', array( 'install_id' => $state['id'], 'email' => $state['email'] ), 10 ) ) {
+			return false;
+		}
+		$state['email']         = '';
+		$state['subscribed']    = false;
+		$state['subscribed_at'] = 0;
+		$state['skips']         = 2; // the overview doesn't ask again; Settings still offers it
+		update_option( self::OPTION, $state, false );
+		return true;
+	}
+
+	/* ---------- The card on the Community overview ---------- */
+
+	/** Whether the overview shows the card: until subscribed, once, and once more two weeks after "Not now". */
+	public static function card_due() {
+		$state = self::state();
+		if ( $state['subscribed'] || $state['skips'] >= 2 ) {
+			return false;
+		}
+		return 0 === (int) $state['skips'] || time() - (int) $state['skipped_at'] >= self::RETURN_AFTER;
+	}
+
+	/** The card above the numbers. */
 	public static function setup_card() {
 		$state = self::state();
-		if ( $state['asked'] || ! Helpers::can_manage() ) {
+		if ( ! Helpers::can_manage() || ! self::card_due() ) {
 			return;
 		}
 		echo '<form class="mbcom-panel mbcom-setup" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 		wp_nonce_field( 'mbcom_usage' );
 		echo '<input type="hidden" name="action" value="mbcom_usage">';
-		printf( '<h2>%s</h2><p class="mbcom-muted">%s</p>', esc_html__( 'Tell us about your community', 'membuild-community' ), esc_html__( 'Two quick questions. They help us build what communities like yours need next.', 'membuild-community' ) );
+		echo '<span class="mbcom-setup-icon"><span class="dashicons dashicons-megaphone" aria-hidden="true"></span></span>';
+		printf(
+			'<h2>%s</h2><p class="mbcom-muted">%s</p>',
+			esc_html__( 'Get the next features before anyone else', 'membuild-community' ),
+			esc_html__( 'An email when something new ships in MemBuild - Community, and the odd question about what to build next. No newsletters, nothing for sale.', 'membuild-community' )
+		);
 		echo '<div class="mbcom-setup-fields">';
-		printf( '<label><span>%s</span><select name="niche" required><option value="">%s</option>', esc_html__( 'What is it about?', 'membuild-community' ), esc_html__( 'Choose one', 'membuild-community' ) );
+		printf( '<label><span>%s</span><input type="email" name="email" value="%s" required></label>', esc_html__( 'Your email', 'membuild-community' ), esc_attr( wp_get_current_user()->user_email ) );
+		printf( '<label><span>%s</span><input type="text" value="%s" readonly></label>', esc_html__( 'Your site', 'membuild-community' ), esc_attr( home_url() ) );
+		printf( '<label><span>%s</span><select name="niche"><option value="">%s</option>', esc_html__( 'What is it about?', 'membuild-community' ), esc_html__( 'Choose one', 'membuild-community' ) );
 		foreach ( self::niches() as $key => $label ) {
-			printf( '<option value="%s">%s</option>', esc_attr( $key ), esc_html( $label ) );
+			printf( '<option value="%s"%s>%s</option>', esc_attr( $key ), selected( $state['niche'], $key, false ), esc_html( $label ) );
 		}
 		echo '</select></label>';
-		printf( '<label class="mbcom-setup-other"><span>%s</span><input type="text" name="niche_other" maxlength="40"></label>', esc_html__( 'In a few words', 'membuild-community' ) );
-		printf( '<label><span>%s</span><select name="size" required><option value="">%s</option>', esc_html__( 'How many members do you expect?', 'membuild-community' ), esc_html__( 'Choose one', 'membuild-community' ) );
+		printf( '<label class="mbcom-setup-other"><span>%s</span><input type="text" name="niche_other" maxlength="40" value="%s"></label>', esc_html__( 'In a few words', 'membuild-community' ), esc_attr( $state['niche_other'] ) );
+		printf( '<label><span>%s</span><select name="size"><option value="">%s</option>', esc_html__( 'How many members do you expect?', 'membuild-community' ), esc_html__( 'Choose one', 'membuild-community' ) );
 		foreach ( self::sizes() as $key => $label ) {
-			printf( '<option value="%s">%s</option>', esc_attr( $key ), esc_html( $label ) );
+			printf( '<option value="%s"%s>%s</option>', esc_attr( $key ), selected( $state['size'], $key, false ), esc_html( $label ) );
 		}
 		echo '</select></label></div>';
 		printf(
-			'<label class="mbcom-setup-share"><input type="checkbox" name="share" value="1"> <span><strong>%s</strong> %s</span></label>',
-			esc_html__( 'Share anonymous usage with MemBuild.', 'membuild-community' ),
-			esc_html__( 'Once a week: your answers, which features are on and rough counts, like “51–200 members”. Never names, emails, posts or messages. You can turn it off in Settings → Advanced.', 'membuild-community' )
+			'<label class="mbcom-setup-share"><input type="checkbox" name="share" value="1"%s> <span><strong>%s</strong> %s</span></label>',
+			checked( $state['asked'] ? $state['share'] : true, true, false ),
+			esc_html__( 'Also share how your community is used.', 'membuild-community' ),
+			esc_html__( 'Which features are on and how many members, posts, courses and events there are, refreshed weekly. Never member names, emails, posts or messages.', 'membuild-community' )
 		);
 		printf(
 			'<p class="mbcom-setup-actions"><button class="button button-primary" name="do" value="save">%s</button> <button class="button-link" name="do" value="skip" formnovalidate>%s</button></p>',
-			esc_html__( 'Save', 'membuild-community' ),
+			esc_html__( 'Keep me updated', 'membuild-community' ),
 			esc_html__( 'Not now', 'membuild-community' )
+		);
+		printf(
+			'<p class="mbcom-setup-fine">%s</p>',
+			esc_html__( 'We get your email, your site’s address and name, and the plugin, WordPress and PHP versions. Stop any time in the community’s Settings → Updates & usage, which also shows exactly what’s sent.', 'membuild-community' )
 		);
 		echo '</form>';
 	}
@@ -256,39 +404,61 @@ class Usage {
 		}
 		check_admin_referer( 'mbcom_usage' );
 		// phpcs:disable WordPress.Security.NonceVerification.Missing -- checked above.
-		$in = array( 'asked' => true );
 		if ( 'save' === sanitize_key( wp_unslash( $_POST['do'] ?? '' ) ) ) {
-			$in += array(
-				'niche'       => sanitize_key( wp_unslash( $_POST['niche'] ?? '' ) ),
-				'niche_other' => sanitize_text_field( wp_unslash( $_POST['niche_other'] ?? '' ) ),
-				'size'        => sanitize_key( wp_unslash( $_POST['size'] ?? '' ) ),
-				'share'       => ! empty( $_POST['share'] ),
+			$before = self::state();
+			$after  = self::update(
+				array(
+					'niche'       => sanitize_key( wp_unslash( $_POST['niche'] ?? '' ) ),
+					'niche_other' => sanitize_text_field( wp_unslash( $_POST['niche_other'] ?? '' ) ),
+					'size'        => sanitize_key( wp_unslash( $_POST['size'] ?? '' ) ),
+					'share'       => ! empty( $_POST['share'] ),
+					'asked'       => true,
+				)
 			);
+			if ( $before['share'] !== $after['share'] ) {
+				self::send_soon();
+			}
+			self::subscribe( sanitize_email( wp_unslash( $_POST['email'] ?? '' ) ) ); // the subscription goes out right away
+		} else {
+			self::skip();
 		}
 		// phpcs:enable
-		self::update( $in );
-		if ( ! empty( $in['share'] ) ) {
-			self::send_soon();
-		}
 		wp_safe_redirect( Admin::url() );
 		exit;
 	}
 
-	/* ---------- REST, for Settings → Advanced ---------- */
+	/** "Not now": the card comes back once, two weeks later. */
+	public static function skip() {
+		$state               = self::state();
+		$state['skips']      = (int) $state['skips'] + 1;
+		$state['skipped_at'] = time();
+		$state['asked']      = true;
+		update_option( self::OPTION, $state, false );
+	}
+
+	/* ---------- REST, for Settings → Updates & usage ---------- */
 
 	public static function rest_get() {
 		$state = self::state();
 		return array(
-			'share'       => (bool) $state['share'],
-			'niche'       => $state['niche'],
-			'niche_other' => $state['niche_other'],
-			'size'        => $state['size'],
-			'id'          => $state['id'],
-			'enabled'     => self::enabled(),
-			'sent_at'     => $state['sent_at'] ? gmdate( 'c', $state['sent_at'] ) : null,
-			'report'      => self::report(),
-			'niches'      => self::niches(),
-			'sizes'       => self::sizes(),
+			'share'         => (bool) $state['share'],
+			'niche'         => $state['niche'],
+			'niche_other'   => $state['niche_other'],
+			'size'          => $state['size'],
+			'id'            => $state['id'],
+			'enabled'       => self::enabled(),
+			'allowed'       => self::allowed(),
+			'sent_at'       => $state['sent_at'] ? gmdate( 'c', $state['sent_at'] ) : null,
+			'report'        => self::report(),
+			'niches'        => self::niches(),
+			'sizes'         => self::sizes(),
+			'email'         => $state['email'],
+			'subscribed'    => (bool) $state['subscribed'],
+			'subscribed_at' => $state['subscribed_at'] ? gmdate( 'c', $state['subscribed_at'] ) : null,
+			'admin_email'   => wp_get_current_user()->user_email,
+			'site_url'      => home_url(),
+			'site_name'     => get_bloginfo( 'name' ),
+			'subscriber'    => self::subscriber(),
 		);
 	}
 
@@ -301,23 +471,32 @@ class Usage {
 		return self::rest_get();
 	}
 
-	/** Asks MemBuild to delete everything it has for this site's ID, then starts over with a new ID. */
+	public static function rest_subscribe( \WP_REST_Request $req ) {
+		if ( ! self::subscribe( $req->get_json_params()['email'] ?? '' ) ) {
+			return new \WP_Error( 'mbcom_bad_email', __( 'That doesn’t look like an email address.', 'membuild-community' ), array( 'status' => 400 ) );
+		}
+		return self::rest_get();
+	}
+
+	public static function rest_unsubscribe() {
+		if ( ! self::unsubscribe() ) {
+			return new \WP_Error( 'mbcom_unsubscribe_failed', __( 'MemBuild couldn’t be reached. Please try again in a few minutes.', 'membuild-community' ), array( 'status' => 502 ) );
+		}
+		return self::rest_get();
+	}
+
+	/** Asks MemBuild to delete everything it has for this site's ID (the subscription too), then starts over with a new ID. */
 	public static function rest_forget() {
-		$state    = self::state();
-		$response = wp_remote_post(
-			self::ENDPOINT . '?action=community_forget',
-			array(
-				'timeout' => 10,
-				'headers' => array( 'Content-Type' => 'application/json' ),
-				'body'    => wp_json_encode( array( 'install_id' => $state['id'] ) ),
-			)
-		);
-		if ( 200 !== wp_remote_retrieve_response_code( $response ) ) {
+		$state = self::state();
+		if ( ! self::post( 'community_forget', array( 'install_id' => $state['id'] ), 10 ) ) {
 			return new \WP_Error( 'mbcom_forget_failed', __( 'MemBuild couldn’t be reached. Please try again in a few minutes.', 'membuild-community' ), array( 'status' => 502 ) );
 		}
-		$state['id']      = wp_generate_uuid4();
-		$state['share']   = false;
-		$state['sent_at'] = 0;
+		$state['id']            = wp_generate_uuid4();
+		$state['share']         = false;
+		$state['sent_at']       = 0;
+		$state['email']         = '';
+		$state['subscribed']    = false;
+		$state['subscribed_at'] = 0;
 		update_option( self::OPTION, $state, false );
 		return self::rest_get();
 	}

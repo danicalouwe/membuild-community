@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.6.0
+Stable tag: 1.7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -211,10 +211,11 @@ The plugin works without any outside service. These are only contacted when you 
 * Terms: https://docs.github.com/site-policy/github-terms/github-terms-of-service
 * Privacy: https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement
 
-**MemBuild** (the plugin's authors: a weekly anonymous report)
+**MemBuild** (the plugin's authors: a weekly anonymous report, and updates if you ask for them)
 * Always, once a week: a random ID made on your site (not its address), the plugin, WordPress and PHP versions, the site's language and whether it's a multisite, sent to `https://tools.membuild.com/api.php`. Our server also notes the country the request comes from (two letters) and keeps no IP address. This is how we count active installs.
-* Only if an admin turns on "Share anonymous usage" (asked once on the Community overview, and in Community settings → Advanced): what the community is about and how big it expects to be, which features are on, how sign-up and video are set up, and rough counts in ranges ("51-200 members", "11-50 posts"). Never names, email addresses, the site's address, posts, comments or messages.
-* Settings → Advanced shows exactly what is sent, and "Delete this site's data at MemBuild" removes it from our server. Nothing is sent from sites whose environment type is local or development. Turn it off entirely with the `membuild_community/usage_reports` filter.
+* If "Share usage" is on (ticked by default on the card the Community overview shows once, and changeable in Community settings → Updates & usage): what the community is about and how big it expects to be, which features are on, how sign-up and video are set up, and rough counts in ranges ("51-200 members", "11-50 posts"), still under the random ID. Never names, email addresses, the site's address, posts, comments or messages.
+* Only if an admin presses "Keep me updated" (on that card, or in Settings → Updates & usage): the email address they typed, the site's address and name, and the plugin, WordPress and PHP versions, so we can email about new features. While "Share usage" is also on, the community's exact counts (members, members active in the last 30 days, posts, courses, events, which features are on, the last day a member was active) go with it and are refreshed weekly. Never member names, emails, posts, comments or messages. "Stop" removes the email and everything with it from our server.
+* Settings → Updates & usage shows exactly what is sent, and "Delete this site's data at MemBuild" removes all of it from our server. The weekly report is not sent from sites whose environment type is local or development. The `membuild_community/usage_reports` filter turns everything off.
 * Privacy: https://membuild.com/privacy
 
 The plugin shows no ads and sends nothing else to the plugin's authors.
@@ -260,6 +261,10 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.7.0 =
+* New: "Keep me updated". The Community overview asks once (and once more two weeks after "Not now") for an email address to hear about new features; the card also asks what the community is about and whether to share usage, which is ticked by default. While the card is up, the overview's numbers sit blurred behind it; "Not now" clears the way at once, and anything urgent (reports waiting, a broken host) always shows above it.
+* The Community overview in wp-admin redesigned: stat cards with icons and "this week" chips, a pill strip, softer panels, all in the admin colour scheme. Settings has a new "Updates & usage" section with the same choice, a Stop button, the usage switch (moved there from Advanced) and a preview of exactly what's sent. See External services for what each choice sends; nothing identifying leaves the site unless an admin presses "Keep me updated".
 
 = 1.6.0 =
 * New: Events. Admins and moderators add a live call, a Q&A or a workshop in one dialog: title, date and time, length, a link, details, a cover, and who can see it. Members see times in their own time zone, tap Going or Interested, add it to Google, Apple or Outlook calendar with the join link inside, and get a reminder the day before and an hour before (in the app and by email). The Join button appears 15 minutes before the start. A YouTube, Vimeo or Twitch live stream plays right on the event page, and becomes the replay afterwards; hosts can also paste a recording link. Each event is a post too, so it shows in the feed with its own discussion. Changing the time or cancelling tells everyone going. Duplicate makes next week's copy in two taps. Built for big communities: reminding 2,000 members takes a few queries, and the emails go out in the email job's batches.

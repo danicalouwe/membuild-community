@@ -5,15 +5,16 @@ import { t } from '../../lib/i18n.js'
 
 /**
  * The weekly anonymous report to MemBuild (see the plugin's Usage class).
- * Saves as soon as something changes, like the encryption key above it,
- * and shows exactly what the next report contains.
+ * Saves as soon as something changes, outside the Save bar, and shows
+ * exactly what the next report contains. UpdatesSection owns the status
+ * (v-model:status) so "Keep me updated" above and this stay in step.
  */
-const status = ref(null) // { share, niche, niche_other, size, id, enabled, sent_at, report, niches, sizes }
+const status = defineModel('status') // { share, niche, niche_other, size, id, enabled, sent_at, report, subscriber, niches, sizes, … }
 const busy = ref(false)
 const result = ref(null) // { ok, message }
 
 onMounted(async () => {
-  status.value = await api.usage().catch(() => null)
+  if (!status.value) status.value = await api.usage().catch(() => null)
 })
 
 const lastSent = computed(() =>
@@ -22,6 +23,7 @@ const lastSent = computed(() =>
     : '',
 )
 const preview = computed(() => JSON.stringify(status.value?.report ?? {}, null, 2))
+const subscriberPreview = computed(() => (status.value?.subscriber ? JSON.stringify(status.value.subscriber, null, 2) : ''))
 
 async function run(fn, success) {
   busy.value = true
@@ -44,8 +46,9 @@ const forget = () => run(() => api.forgetUsage(), t.__('Done. MemBuild deleted w
   <div v-if="status" class="field usage">
     <label class="toggle-row">
       <span>
-        <strong>{{ t.__('Share anonymous usage with MemBuild', 'membuild-community') }}</strong>
-        <small>{{ t.__('Once a week: what your community is about, which features are on, and rough counts like “51–200 members”. Never names, emails, posts or messages. It helps us decide what to build next.', 'membuild-community') }}</small>
+        <strong>{{ t.__('Share usage with MemBuild', 'membuild-community') }}</strong>
+        <small>{{ t.__('Once a week: what your community is about, which features are on, and rough counts like “51–200 members”, under a random ID. Never names, emails, posts or messages. It helps us decide what to build next.', 'membuild-community') }}</small>
+        <small v-if="status.subscribed">{{ t.__('Because you asked for updates, the same numbers also go with your email, exact rather than in ranges.', 'membuild-community') }}</small>
       </span>
       <input :checked="status.share" type="checkbox" class="switch" role="switch" :disabled="busy" @change="save({ share: $event.target.checked })" />
     </label>
@@ -79,6 +82,10 @@ const forget = () => run(() => api.forgetUsage(), t.__('Done. MemBuild deleted w
     <details class="preview">
       <summary>{{ t.__('See exactly what’s sent', 'membuild-community') }}</summary>
       <pre>{{ preview }}</pre>
+      <template v-if="subscriberPreview">
+        <p class="muted">{{ t.__('With your subscription:', 'membuild-community') }}</p>
+        <pre>{{ subscriberPreview }}</pre>
+      </template>
       <div class="actions">
         <small v-if="lastSent" class="muted">{{ lastSent }}</small>
         <button type="button" class="btn" :disabled="busy" @click="forget">{{ t.__('Delete this site’s data at MemBuild', 'membuild-community') }}</button>

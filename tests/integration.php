@@ -1204,14 +1204,17 @@ $GLOBALS['current_screen'] = null;
 mbcom_section( 'Anonymous usage reports (with a stand-in for MemBuild)' );
 delete_option( \MemBuild\Community\Usage::OPTION );
 $sent        = array();
-$forget_code = 200;
+$forget_code = 200; // what the stand-in answers to community_forget and community_unsubscribe
 $stand_in    = function ( $pre, $args, $url ) use ( &$sent, &$forget_code ) {
 	if ( ! str_starts_with( $url, \MemBuild\Community\Usage::ENDPOINT ) ) {
 		return $pre;
 	}
 	$sent[] = array( 'url' => $url, 'body' => (string) $args['body'] );
-	$code   = str_contains( $url, 'community_forget' ) ? $forget_code : 200;
+	$code   = str_contains( $url, 'community_forget' ) || str_contains( $url, 'community_unsubscribe' ) ? $forget_code : 200;
 	return array( 'response' => array( 'code' => $code ), 'body' => '{"ok":true}', 'headers' => array() );
+};
+$sent_to = function ( $action ) use ( &$sent ) {
+	return array_values( array_filter( $sent, fn( $s ) => str_contains( $s['url'], "action={$action}" ) ) );
 };
 add_filter( 'pre_http_request', $stand_in, 10, 3 );
 add_filter( 'membuild_community/usage_reports', '__return_true' );
@@ -1233,8 +1236,44 @@ $sent = array();
 mbcom_check( 'the weekly report goes to MemBuild', \MemBuild\Community\Usage::send() && 1 === count( $sent ) && str_contains( $sent[0]['url'], 'action=community_report' ) );
 $host  = wp_parse_url( home_url(), PHP_URL_HOST );
 $email = get_userdata( $admin )->user_email;
-mbcom_check( '…and never carries the site address, emails or names', ! str_contains( $sent[0]['body'], $host ) && ! str_contains( $sent[0]['body'], $email ) && ! str_contains( $sent[0]['body'], 'mbct_' ) && ! str_contains( $sent[0]['body'], get_bloginfo( 'name' ) ) );
+$leaks = fn( $body ) => str_contains( $body, $host ) || str_contains( $body, $email ) || str_contains( $body, 'mbct_' ) || str_contains( $body, get_bloginfo( 'name' ) );
+mbcom_check( '…and never carries the site address, emails or names', ! $leaks( $sent[0]['body'] ) );
 mbcom_check( 'Settings shows exactly what’s sent', mbcom_call( $admin, 'GET', '/settings/usage' )[1]['report'] == json_decode( $sent[0]['body'], true ) );
+
+/* Keep me updated */
+list( $code, $got ) = mbcom_call( $admin, 'GET', '/settings/usage' );
+mbcom_check( 'nobody is subscribed until an admin asks', false === $got['subscribed'] && null === $got['subscriber'] && $email === $got['admin_email'] );
+list( $code ) = mbcom_call( $admin, 'POST', '/settings/updates', array( 'email' => 'not an address' ) );
+mbcom_check( 'a bad email is refused', 400 === $code && ! \MemBuild\Community\Usage::state()['subscribed'] );
+list( $code ) = mbcom_call( $ana, 'POST', '/settings/updates', array( 'email' => $email ) );
+mbcom_check( 'members can’t subscribe the site', 403 === $code );
+$sent = array();
+list( $code, $got ) = mbcom_call( $admin, 'POST', '/settings/updates', array( 'email' => ' ' . $email . ' ' ) );
+$sub  = $sent_to( 'community_subscribe' );
+$body = $sub ? json_decode( $sub[0]['body'], true ) : array();
+mbcom_check( '“Keep me updated” goes to MemBuild right away, with the email, site and versions', 200 === $code && $got['subscribed'] && 1 === count( $sub ) && $body['email'] === $email && home_url() === $body['site_url'] && get_bloginfo( 'name' ) === $body['site_name'] && MEMBUILD_COMMUNITY_VERSION === $body['plugin'] && $body['install_id'] === \MemBuild\Community\Usage::state()['id'] );
+mbcom_check( '…with exact counts while sharing is on', isset( $body['usage'] ) && is_int( $body['usage']['members'] ) && $body['usage']['members'] > 0 && isset( $body['usage']['active_30'], $body['usage']['posts'], $body['usage']['courses'], $body['usage']['events'], $body['usage']['features']['classroom'], $body['usage']['last_active'] ) && ! isset( $body['usage']['names'] ) );
+mbcom_check( '…and never member names or emails', ! str_contains( $sub[0]['body'], get_userdata( $ana )->user_email ) && ! str_contains( $sub[0]['body'], get_userdata( $ana )->display_name ) );
+mbcom_check( 'Settings shows exactly what the subscription sends', $got['subscriber'] == $body && $email === $got['email'] );
+mbcom_call( $admin, 'PUT', '/settings/usage', array( 'share' => false ) );
+$sent = array();
+\MemBuild\Community\Usage::send();
+$sub = $sent_to( 'community_subscribe' );
+mbcom_check( 'the weekly send refreshes the subscription too; without sharing it carries no counts', 1 === count( $sent_to( 'community_report' ) ) && 1 === count( $sub ) && ! isset( json_decode( $sub[0]['body'], true )['usage'] ) );
+mbcom_check( '…while the anonymous report still never carries the site address or email', ! $leaks( $sent_to( 'community_report' )[0]['body'] ) );
+mbcom_call( $admin, 'PUT', '/settings/usage', array( 'share' => true ) );
+$forget_code = 500;
+list( $code ) = mbcom_call( $admin, 'DELETE', '/settings/updates' );
+mbcom_check( 'if MemBuild can’t be reached, Stop says so and keeps the subscription', 502 === $code && \MemBuild\Community\Usage::state()['subscribed'] );
+$forget_code = 200;
+$sent        = array();
+list( $code, $got ) = mbcom_call( $admin, 'DELETE', '/settings/updates' );
+$un = $sent_to( 'community_unsubscribe' );
+mbcom_check( 'Stop tells MemBuild and forgets the email here', 200 === $code && ! $got['subscribed'] && '' === $got['email'] && 1 === count( $un ) && json_decode( $un[0]['body'], true )['email'] === $email );
+$sent = array();
+\MemBuild\Community\Usage::send();
+mbcom_check( '…and the weekly send is anonymous again', 1 === count( $sent ) && ! $sent_to( 'community_subscribe' ) );
+mbcom_check( '…and the overview won’t ask again', ! \MemBuild\Community\Usage::card_due() );
 
 $forget_code = 500;
 list( $code ) = mbcom_call( $admin, 'POST', '/settings/usage/forget' );
@@ -1245,14 +1284,42 @@ mbcom_check( '…otherwise sharing stops and the site gets a new ID', 200 === $c
 
 delete_option( \MemBuild\Community\Usage::OPTION );
 wp_set_current_user( $admin );
-ob_start();
-\MemBuild\Community\Usage::setup_card();
-$card = ob_get_clean();
-mbcom_check( 'the overview asks about the community once', str_contains( $card, 'name="niche"' ) && str_contains( $card, 'name="share"' ) && ! str_contains( $card, 'name="share" value="1" checked' ) );
-\MemBuild\Community\Usage::update( array( 'asked' => true ) );
-ob_start();
-\MemBuild\Community\Usage::setup_card();
-mbcom_check( '…and not again after it’s answered or skipped', '' === ob_get_clean() );
+$card = function () {
+	ob_start();
+	\MemBuild\Community\Usage::setup_card();
+	return ob_get_clean();
+};
+$html = $card();
+mbcom_check( 'the overview asks for an email, prefilled, with sharing ticked by default', str_contains( $html, 'name="email" value="' . $email . '" required' ) && str_contains( $html, 'name="niche"' ) && str_contains( $html, 'name="share" value="1" checked' ) && str_contains( $html, home_url() ) );
+\MemBuild\Community\Usage::skip();
+mbcom_check( '…not again right after “Not now”', '' === $card() );
+$state               = \MemBuild\Community\Usage::state();
+$state['skipped_at'] = time() - \MemBuild\Community\Usage::RETURN_AFTER - 1;
+update_option( \MemBuild\Community\Usage::OPTION, $state, false );
+mbcom_check( '…once more two weeks later', str_contains( $card(), 'name="email"' ) );
+\MemBuild\Community\Usage::skip();
+$state               = \MemBuild\Community\Usage::state();
+$state['skipped_at'] = time() - 10 * \MemBuild\Community\Usage::RETURN_AFTER;
+update_option( \MemBuild\Community\Usage::OPTION, $state, false );
+mbcom_check( '…and never after a second “Not now”', '' === $card() );
+delete_option( \MemBuild\Community\Usage::OPTION );
+\MemBuild\Community\Usage::subscribe( $email );
+mbcom_check( '…nor once subscribed', '' === $card() );
+wp_set_current_user( $ana );
+delete_option( \MemBuild\Community\Usage::OPTION );
+mbcom_check( 'members never see the card', '' === $card() );
+wp_set_current_user( $admin );
+$overview = function () {
+	ob_start();
+	\MemBuild\Community\Admin::page_overview();
+	return ob_get_clean();
+};
+$html = $overview();
+mbcom_check( 'while the card is up, the overview’s numbers sit blurred behind it', str_contains( $html, 'name="email"' ) && str_contains( $html, 'class="mbcom-gated" inert' ) && str_contains( $html, 'mbcom-stats' ) );
+\MemBuild\Community\Usage::skip();
+$html = $overview();
+mbcom_check( '…and “Not now” clears the way', ! str_contains( $html, 'name="email"' ) && ! str_contains( $html, 'mbcom-gated' ) && str_contains( $html, 'mbcom-stats' ) );
+delete_option( \MemBuild\Community\Usage::OPTION );
 
 remove_filter( 'membuild_community/usage_reports', '__return_true' );
 add_filter( 'membuild_community/usage_reports', '__return_false' );

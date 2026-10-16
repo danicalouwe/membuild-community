@@ -161,26 +161,51 @@ class Admin {
 		/* translators: %s: number of reels */
 		$reels = sprintf( _n( '%s reel', '%s reels', $t['reels'], 'membuild-community' ), number_format_i18n( $t['reels'] ) );
 		$cards = array(
-			array( __( 'Members', 'membuild-community' ), $t['members'], $this_week( $week['members'] ), self::url( 'members' ) ),
-			array( __( 'Active this week', 'membuild-community' ), $t['active'], $active_share, self::url( 'members', array( 'orderby' => 'last_active', 'order' => 'desc' ) ) ),
-			array( __( 'Posts', 'membuild-community' ), $t['posts'] + $t['reels'], $this_week( $week['posts'] ) . ' · ' . $reels, self::url( 'posts' ) ),
-			array( __( 'Comments', 'membuild-community' ), $t['comments'], $this_week( $week['comments'] ), self::url( 'comments' ) ),
+			// label, value, chip, note after the chip, link, icon, chip is good news
+			array( __( 'Members', 'membuild-community' ), $t['members'], $this_week( $week['members'] ), '', self::url( 'members' ), 'groups', (bool) $week['members'] ),
+			array( __( 'Active this week', 'membuild-community' ), $t['active'], $active_share, '', self::url( 'members', array( 'orderby' => 'last_active', 'order' => 'desc' ) ), 'chart-bar', false ),
+			array( __( 'Posts', 'membuild-community' ), $t['posts'] + $t['reels'], $this_week( $week['posts'] ), $reels, self::url( 'posts' ), 'admin-post', (bool) $week['posts'] ),
+			array( __( 'Comments', 'membuild-community' ), $t['comments'], $this_week( $week['comments'] ), '', self::url( 'comments' ), 'admin-comments', (bool) $week['comments'] ),
 		);
 
 		echo '<div class="wrap mbcom-admin">';
 		printf( '<h1 class="wp-heading-inline">%s</h1> <a class="page-title-action" href="%s">%s</a>', esc_html( Settings::name() ), esc_url( self::app_url() ), esc_html__( 'Open community', 'membuild-community' ) );
 		echo '<hr class="wp-header-end">';
 
-		Usage::setup_card(); // two questions, once, until answered or skipped
+		// Keep me updated: once, and once more two weeks after “Not now”. While it's
+		// up, the numbers sit blurred behind it; either button clears the way. Anything
+		// urgent (reports, a broken host) is shown above the blur, never behind it.
+		$gated = Helpers::can_manage() && Usage::card_due();
+		Usage::setup_card();
+		if ( $gated ) {
+			$urgent = array();
+			if ( $reports ) {
+				/* translators: %s: number of reports */
+				$urgent[] = '<li class="mbcom-alert"><span class="dashicons dashicons-flag" aria-hidden="true"></span> ' . esc_html( sprintf( _n( '%s report waiting', '%s reports waiting', $reports, 'membuild-community' ), number_format_i18n( $reports ) ) ) . ' <a href="' . esc_url( self::app_url( 'moderation' ) ) . '">' . esc_html__( 'Review', 'membuild-community' ) . '</a></li>';
+			}
+			foreach ( array( 'permalinks', 'cron', 'https', 'images', 'uploads', 'email' ) as $key ) {
+				if ( 'critical' === Health::check( $key )[0] ) {
+					$urgent[] = '<li class="mbcom-alert"><span class="dashicons dashicons-warning" aria-hidden="true"></span> ' . esc_html__( 'Something on your hosting needs fixing', 'membuild-community' ) . ' <a href="' . esc_url( admin_url( 'site-health.php' ) ) . '">' . esc_html__( 'Open Site Health', 'membuild-community' ) . '</a></li>';
+					break;
+				}
+			}
+			if ( $urgent ) {
+				echo '<ul class="mbcom-strip mbcom-urgent">' . implode( '', $urgent ) . '</ul>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built above from escaped parts
+			}
+			echo '<div class="mbcom-gated" inert aria-hidden="true">';
+		}
 
 		echo '<div class="mbcom-cards mbcom-stats">';
-		foreach ( $cards as list( $label, $value, $sub, $link ) ) {
+		foreach ( $cards as list( $label, $value, $chip, $note, $link, $icon, $up ) ) {
 			printf(
-				'<a class="mbcom-card" href="%s"><span class="mbcom-card-label">%s</span><span class="mbcom-card-value">%s</span><span class="mbcom-card-sub">%s</span></a>',
+				'<a class="mbcom-card mbcom-stat" href="%s"><span class="mbcom-stat-icon"><span class="dashicons dashicons-%s" aria-hidden="true"></span></span><span class="mbcom-card-label">%s</span><span class="mbcom-card-value">%s</span><span class="mbcom-card-foot"><span class="mbcom-card-sub%s">%s</span>%s</span></a>',
 				esc_url( $link ),
+				esc_attr( $icon ),
 				esc_html( $label ),
 				esc_html( number_format_i18n( $value ) ),
-				esc_html( $sub )
+				$up ? ' is-up' : '',
+				esc_html( $chip ),
+				$note ? '<span class="mbcom-card-note">' . esc_html( $note ) . '</span>' : ''
 			);
 		}
 		echo '</div>';
@@ -213,6 +238,9 @@ class Admin {
 			'<p class="mbcom-note">%s</p>',
 			esc_html__( 'All of this is stored in your own WordPress database, in tables that start with “mbcom_”. Private messages are counted here but never shown; reported messages and posts reach moderators in the community’s Moderation page.', 'membuild-community' )
 		);
+		if ( $gated ) {
+			echo '</div>';
+		}
 		echo '</div>';
 	}
 
@@ -266,22 +294,16 @@ class Admin {
 			}
 		}
 		$sum = fn( $k ) => array_sum( array_column( $days, $k ) );
+		// The totals double as the legend: each pill carries its series' colour.
 		printf(
-			'<h2>%s <span class="mbcom-muted">%s</span></h2>',
+			'<h2>%s <span class="mbcom-legend"><span class="mbcom-pill"><i class="p"></i>%s</span><span class="mbcom-pill"><i class="c"></i>%s</span><span class="mbcom-pill"><i class="j"></i>%s</span></span></h2>',
 			esc_html__( 'Last 30 days', 'membuild-community' ),
-			esc_html(
-				implode(
-					' · ',
-					array(
-						/* translators: %s: number of posts */
-						sprintf( _n( '%s post', '%s posts', $sum( 0 ), 'membuild-community' ), number_format_i18n( $sum( 0 ) ) ),
-						/* translators: %s: number of comments, e.g. "12" or "1.2K" */
-						sprintf( _n( '%s comment', '%s comments', $sum( 1 ), 'membuild-community' ), number_format_i18n( $sum( 1 ) ) ),
-						/* translators: %s: number of new members */
-						sprintf( _n( '%s new member', '%s new members', $sum( 2 ), 'membuild-community' ), number_format_i18n( $sum( 2 ) ) ),
-					)
-				)
-			)
+			/* translators: %s: number of posts */
+			esc_html( sprintf( _n( '%s post', '%s posts', $sum( 0 ), 'membuild-community' ), number_format_i18n( $sum( 0 ) ) ) ),
+			/* translators: %s: number of comments, e.g. "12" or "1.2K" */
+			esc_html( sprintf( _n( '%s comment', '%s comments', $sum( 1 ), 'membuild-community' ), number_format_i18n( $sum( 1 ) ) ) ),
+			/* translators: %s: number of new members */
+			esc_html( sprintf( _n( '%s new member', '%s new members', $sum( 2 ), 'membuild-community' ), number_format_i18n( $sum( 2 ) ) ) )
 		);
 		$max = max( 1, max( array_map( fn( $v ) => $v[0] + $v[1], $days ) ) );
 		$w   = 18;
@@ -309,12 +331,6 @@ class Admin {
 			'<div class="mbcom-axis"><span>%s</span><span>%s</span></div>',
 			esc_html( date_i18n( 'M j', strtotime( array_key_first( $days ) ) ) ),
 			esc_html__( 'Today', 'membuild-community' )
-		);
-		printf(
-			'<p class="mbcom-legend"><span class="p"></span> %s <span class="c"></span> %s <span class="j"></span> %s</p>',
-			esc_html__( 'Posts', 'membuild-community' ),
-			esc_html__( 'Comments', 'membuild-community' ),
-			esc_html__( 'New members', 'membuild-community' )
 		);
 	}
 
@@ -556,15 +572,23 @@ class Admin {
 	public static function page_export() {
 		echo '<div class="wrap mbcom-admin">';
 		printf( '<h1>%s</h1>', esc_html__( 'Export community data', 'membuild-community' ) );
-		printf( '<p>%s</p>', esc_html__( 'Download your community’s data as spreadsheets (CSV files open in Excel, Numbers and Google Sheets). Private message text is never exported; message counts are included with members.', 'membuild-community' ) );
+		printf( '<p class="mbcom-intro">%s</p>', esc_html__( 'Download your community’s data as spreadsheets (CSV files open in Excel, Numbers and Google Sheets). Private message text is never exported; message counts are included with members.', 'membuild-community' ) );
+		$icons = array( 'members' => 'groups', 'posts' => 'admin-post', 'comments' => 'admin-comments', 'progress' => 'welcome-learn-more', 'points' => 'star-filled', 'files' => 'media-default' );
 		echo '<div class="mbcom-cards mbcom-exports">';
 		foreach ( self::datasets() as $key => list( $label, $desc ) ) {
 			$url = wp_nonce_url( add_query_arg( array( 'action' => 'mbcom_export', 'dataset' => $key ), admin_url( 'admin-post.php' ) ), 'mbcom_export_' . $key );
-			printf( '<div class="mbcom-card mbcom-export"><strong>%s</strong><span class="mbcom-muted">%s</span><a class="button" href="%s"><span class="dashicons dashicons-download" aria-hidden="true"></span> %s</a></div>', esc_html( $label ), esc_html( $desc ), esc_url( $url ), esc_html__( 'Download CSV', 'membuild-community' ) );
+			printf(
+				'<div class="mbcom-card mbcom-export"><span class="mbcom-stat-icon"><span class="dashicons dashicons-%s" aria-hidden="true"></span></span><strong>%s</strong><span class="mbcom-muted">%s</span><a class="button" href="%s"><span class="dashicons dashicons-download" aria-hidden="true"></span> %s</a></div>',
+				esc_attr( $icons[ $key ] ?? 'media-spreadsheet' ),
+				esc_html( $label ),
+				esc_html( $desc ),
+				esc_url( $url ),
+				esc_html__( 'Download CSV', 'membuild-community' )
+			);
 		}
 		echo '</div>';
 		printf(
-			'<section class="mbcom-panel mbcom-privacy"><h2>%s</h2><p>%s</p><p><a class="button" href="%s">%s</a> <a class="button" href="%s">%s</a></p></section>',
+			'<section class="mbcom-panel mbcom-privacy"><h2>%s</h2><p>%s</p><p class="mbcom-privacy-actions"><a class="button" href="%s">%s</a> <a class="button" href="%s">%s</a></p></section>',
 			esc_html__( 'A member asked for their data?', 'membuild-community' ),
 			esc_html__( 'The community is part of WordPress’s privacy tools. Exporting a member’s personal data includes their profile, posts, comments, points and course progress. Erasing it removes their posts, comments, messages, stories, reactions and uploads.', 'membuild-community' ),
 			esc_url( admin_url( 'export-personal-data.php' ) ),
@@ -595,25 +619,60 @@ class Admin {
 		return '
 .mbcom-admin{--mbcom-accent:var(--wp-admin-theme-color,#2271b1);--mbcom-line:#dcdcde;--mbcom-soft:#f6f7f7;--mbcom-muted:#646970}
 .mbcom-admin .mbcom-muted{color:var(--mbcom-muted)}
-.mbcom-admin .mbcom-panel,.mbcom-admin .mbcom-card{background:#fff;border:1px solid var(--mbcom-line);border-radius:12px}
-.mbcom-admin .mbcom-panel{padding:4px 20px 16px}
-.mbcom-admin .mbcom-panel h2{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;font-size:15px;margin:16px 0 12px}
+.mbcom-admin .mbcom-panel,.mbcom-admin .mbcom-card{background:#fff;border:1px solid var(--mbcom-line);border-radius:14px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+.mbcom-admin .mbcom-panel{padding:8px 24px 20px}
+.mbcom-admin .mbcom-panel h2{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;font-size:16px;letter-spacing:-.01em;margin:16px 0 14px}
+.mbcom-admin h1{font-size:26px;font-weight:600;letter-spacing:-.02em}
+.mbcom-admin .mbcom-intro{color:var(--mbcom-muted);font-size:14px;max-width:760px;margin:12px 0 0}
+/* Buttons on our pages share one shape: rounded, a touch taller, icons centred */
+.mbcom-admin .button,.mbcom-admin .button-primary{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px;border-radius:8px;font-weight:600;line-height:1}
+.mbcom-admin .button .dashicons{font-size:16px;width:16px;height:16px;line-height:16px}
+.mbcom-admin .button-link{display:inline;min-height:0;padding:0;border-radius:0;font-weight:400}
+.mbcom-admin .page-title-action.button{min-height:0}
+.mbcom-admin .page-title-action{border-radius:999px;padding:0 14px 0 12px;font-weight:600;display:inline-flex;align-items:center;gap:4px;margin-left:8px;vertical-align:middle;top:0}
+.mbcom-admin .page-title-action:after{content:"\2197";font-size:12px}
+.mbcom-admin .wp-header-end{margin-bottom:8px}
+.mbcom-admin .notice{border-radius:10px;margin:16px 0 0}
+.mbcom-admin .mbcom-notice{display:flex;gap:16px;align-items:flex-start;padding:18px 22px;border:1px solid #f0c36d;border-left-width:1px;border-radius:14px;background:linear-gradient(135deg,#fff7e6,#fffdf8 70%);box-shadow:0 1px 2px rgba(16,24,40,.04)}
+.mbcom-admin .mbcom-notice.notice-error{border-color:#f0a8a8;background:linear-gradient(135deg,#fdecec,#fffafa 70%)}
+.mbcom-admin .mbcom-notice-icon{flex:none;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:#f0b849;color:#fff;font-size:22px;box-shadow:0 6px 14px rgba(240,184,73,.35)}
+.mbcom-admin .mbcom-notice-icon:before{font-size:22px;width:22px;height:22px}
+.mbcom-admin .notice-error .mbcom-notice-icon{background:#d63638;box-shadow:0 6px 14px rgba(214,54,56,.3)}
+.mbcom-admin .mbcom-notice-body{min-width:0}
+.mbcom-admin .mbcom-notice-body p{margin:0;font-size:13px;line-height:1.55;max-width:760px}
+.mbcom-admin .mbcom-notice-body p strong{display:block;font-size:15px;color:#1d2327;margin-bottom:3px;letter-spacing:-.01em}
+.mbcom-admin .mbcom-notice-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:12px!important}
+.mbcom-admin .mbcom-notice-actions .button-primary{min-height:36px;padding:0 16px;border-radius:8px;font-weight:600}
+.mbcom-admin .mbcom-notice-hint{color:var(--mbcom-muted);font-size:12px}
+@media (max-width:600px){.mbcom-admin .mbcom-notice-icon{display:none}}
 .mbcom-admin .mbcom-panel h2 .mbcom-muted{font-size:13px;font-weight:400}
 
 /* Overview */
 .mbcom-admin .mbcom-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin:20px 0 12px}
 .mbcom-admin .mbcom-stats{grid-template-columns:repeat(4,minmax(0,1fr))}
 @media (max-width:1100px){.mbcom-admin .mbcom-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.mbcom-admin .mbcom-card{display:flex;flex-direction:column;gap:2px;padding:16px 20px;color:#1d2327;text-decoration:none;transition:border-color .15s,box-shadow .15s}
-.mbcom-admin a.mbcom-card:hover,.mbcom-admin a.mbcom-card:focus{border-color:var(--mbcom-accent);box-shadow:0 0 0 1px var(--mbcom-accent);color:#1d2327;outline:0}
-.mbcom-admin .mbcom-card-label{color:var(--mbcom-muted);font-weight:500}
-.mbcom-admin .mbcom-card-value{font-size:32px;font-weight:600;line-height:1.25;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
-.mbcom-admin .mbcom-card-sub{color:var(--mbcom-muted);font-size:12px}
-.mbcom-admin .mbcom-strip{display:flex;flex-wrap:wrap;gap:8px 24px;margin:0 0 20px;padding:0 4px;color:var(--mbcom-muted)}
-.mbcom-admin .mbcom-strip li{margin:0;display:flex;align-items:center;gap:6px}
-.mbcom-admin .mbcom-strip .dashicons{font-size:16px;width:16px;height:16px}
-.mbcom-admin .mbcom-strip .mbcom-alert{color:#8a2424;font-weight:600}
-.mbcom-admin .mbcom-strip .mbcom-alert a{font-weight:600}
+@media (max-width:600px){.mbcom-admin .mbcom-stats{grid-template-columns:1fr}}
+.mbcom-admin .mbcom-card{display:flex;flex-direction:column;gap:2px;padding:18px 20px;color:#1d2327;text-decoration:none;transition:border-color .15s,box-shadow .15s,transform .15s}
+.mbcom-admin a.mbcom-card:hover,.mbcom-admin a.mbcom-card:focus{border-color:color-mix(in srgb,var(--mbcom-accent) 50%,var(--mbcom-line));box-shadow:0 6px 16px rgba(16,24,40,.08);transform:translateY(-1px);color:#1d2327;outline:0}
+.mbcom-admin a.mbcom-card:focus-visible{box-shadow:0 0 0 2px var(--mbcom-accent)}
+.mbcom-admin .mbcom-stat{position:relative}
+.mbcom-admin .mbcom-stat .mbcom-card-label{padding-right:48px}
+.mbcom-admin .mbcom-stat-icon{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:color-mix(in srgb,var(--mbcom-accent) 10%,#fff);color:var(--mbcom-accent)}
+.mbcom-admin .mbcom-stat-icon .dashicons{font-size:18px;width:18px;height:18px}
+.mbcom-admin .mbcom-card-label{color:var(--mbcom-muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.mbcom-admin .mbcom-card-value{font-size:34px;font-weight:700;line-height:1.2;letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin:2px 0 6px}
+.mbcom-admin .mbcom-card-foot{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:12px;color:var(--mbcom-muted)}
+.mbcom-admin .mbcom-card-sub{color:var(--mbcom-muted);white-space:nowrap;line-height:20px;padding:0 9px;border-radius:999px;background:var(--mbcom-soft)}
+.mbcom-admin .mbcom-card-note{white-space:nowrap}
+.mbcom-admin .mbcom-card-sub.is-up{color:#0f5132;background:#e3f6e8}
+.mbcom-admin .mbcom-strip{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px;padding:0;color:var(--mbcom-muted)}
+.mbcom-admin .mbcom-strip li{margin:0;display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;background:#fff;border:1px solid var(--mbcom-line);font-size:12.5px}
+.mbcom-admin .mbcom-strip li a{text-decoration:none;font-weight:600}
+.mbcom-admin .mbcom-strip .dashicons{font-size:15px;width:15px;height:15px;color:var(--mbcom-muted)}
+.mbcom-admin .mbcom-strip .mbcom-alert{color:#8a2424;font-weight:600;background:#fbeaea;border-color:#f3c7c7}
+.mbcom-admin .mbcom-strip .mbcom-alert .dashicons{color:#8a2424}
+.mbcom-admin .mbcom-urgent{margin:16px 0 0}
+.mbcom-admin .mbcom-gated{filter:blur(5px);opacity:.55;pointer-events:none;user-select:none;max-height:900px;overflow:hidden;-webkit-mask-image:linear-gradient(#000 55%,transparent);mask-image:linear-gradient(#000 55%,transparent)}
 .mbcom-admin .mbcom-grid{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:16px;align-items:start}
 @media (max-width:960px){.mbcom-admin .mbcom-grid{grid-template-columns:1fr}}
 .mbcom-admin .mbcom-chart{display:block;width:100%;height:auto;max-height:220px;overflow:visible}
@@ -624,18 +683,18 @@ class Admin {
 .mbcom-admin .mbcom-chart .g{stroke:#e0e0e0;stroke-dasharray:3 3}
 .mbcom-admin .mbcom-chart .t{fill:var(--mbcom-muted);font-size:10px}
 .mbcom-admin .mbcom-axis{display:flex;justify-content:space-between;color:var(--mbcom-muted);font-size:12px;margin-top:4px}
-.mbcom-admin .mbcom-legend{color:var(--mbcom-muted);margin:12px 0 0}
-.mbcom-admin .mbcom-legend span{display:inline-block;width:10px;height:10px;border-radius:3px;margin:0 6px 0 16px;vertical-align:-1px}
-.mbcom-admin .mbcom-legend span:first-child{margin-left:0}
+.mbcom-admin .mbcom-legend{display:inline-flex;flex-wrap:wrap;gap:6px;margin-left:4px}
+.mbcom-admin .mbcom-pill{display:inline-flex;align-items:center;gap:6px;padding:0 9px;line-height:20px;border-radius:999px;background:var(--mbcom-soft);color:var(--mbcom-muted);font-size:12px;font-weight:500;white-space:nowrap}
+.mbcom-admin .mbcom-pill i{display:inline-block;width:8px;height:8px;border-radius:50%}
 .mbcom-admin .mbcom-activity{margin:0}
-.mbcom-admin .mbcom-activity li{display:flex;gap:10px;align-items:flex-start;padding:10px 0;margin:0;border-top:1px solid #f0f0f1;line-height:1.45}
+.mbcom-admin .mbcom-activity li{display:flex;gap:12px;align-items:flex-start;padding:11px 0;margin:0;border-top:1px solid #f0f0f1;line-height:1.45}
 .mbcom-admin .mbcom-activity li:first-child{border-top:0;padding-top:0}
 .mbcom-admin .mbcom-activity img{border-radius:50%;flex:none}
 .mbcom-admin .mbcom-activity .mbcom-muted{display:block;font-size:12px}
 .mbcom-admin .mbcom-activity a{text-decoration:none}
 .mbcom-admin .mbcom-activity a:hover{text-decoration:underline}
 .mbcom-admin .mbcom-column{display:flex;flex-direction:column;gap:16px;min-width:0}
-.mbcom-admin .mbcom-checks{padding:12px 20px}
+.mbcom-admin .mbcom-checks{padding:14px 20px;background:#fffbf0;border-color:#f0dca8}
 .mbcom-admin .mbcom-checks summary{cursor:pointer;font-weight:600;display:flex;align-items:center;gap:6px}
 .mbcom-admin .mbcom-checks summary .dashicons{color:#996800}
 .mbcom-admin .mbcom-checks.is-critical{border-color:#d63638}
@@ -644,28 +703,38 @@ class Admin {
 .mbcom-admin .mbcom-checks li{margin-bottom:6px}
 .mbcom-admin .mbcom-note{margin-top:20px;color:var(--mbcom-muted);max-width:760px}
 
-/* Tell us about your community (Usage::setup_card) */
-.mbcom-admin .mbcom-setup{margin:20px 0 0;max-width:900px;border-color:var(--mbcom-accent)}
-.mbcom-admin .mbcom-setup h2{margin-bottom:4px}
-.mbcom-admin .mbcom-setup>p{margin:0 0 14px}
-.mbcom-admin .mbcom-setup-fields{display:flex;flex-wrap:wrap;gap:12px 20px}
-.mbcom-admin .mbcom-setup-fields label{display:flex;flex-direction:column;gap:4px;font-weight:600}
-.mbcom-admin .mbcom-setup-fields select,.mbcom-admin .mbcom-setup-fields input{min-width:240px;font-weight:400}
+/* Keep me updated (Usage::setup_card) */
+.mbcom-admin .mbcom-setup{position:relative;margin:20px 0 0;padding:24px 28px 20px 92px;border-color:color-mix(in srgb,var(--mbcom-accent) 30%,var(--mbcom-line));background:linear-gradient(135deg,color-mix(in srgb,var(--mbcom-accent) 8%,#fff),#fff 60%)}
+.mbcom-admin .mbcom-setup-icon{position:absolute;top:24px;left:28px;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--mbcom-accent);color:#fff;box-shadow:0 6px 14px color-mix(in srgb,var(--mbcom-accent) 30%,transparent)}
+.mbcom-admin .mbcom-setup-icon .dashicons{font-size:22px;width:22px;height:22px}
+.mbcom-admin .mbcom-setup h2{margin:0 0 4px;font-size:18px;letter-spacing:-.01em}
+.mbcom-admin .mbcom-setup>p{margin:0 0 18px;max-width:720px}
+.mbcom-admin .mbcom-setup-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 20px;max-width:760px}
+.mbcom-admin .mbcom-setup-fields label{display:flex;flex-direction:column;gap:5px;font-weight:600;font-size:13px;min-width:0}
+.mbcom-admin .mbcom-setup-fields select,.mbcom-admin .mbcom-setup-fields input{width:100%;max-width:none;min-height:38px;border-radius:8px;border-color:#c3c4c7;font-weight:400;font-size:14px;padding:0 12px}
+.mbcom-admin .mbcom-setup-fields select{padding-right:32px}
+.mbcom-admin .mbcom-setup-fields input[readonly]{color:var(--mbcom-muted);background:#f6f7f7;box-shadow:none}
 .mbcom-admin .mbcom-setup:not(:has(option[value="other"]:checked)) .mbcom-setup-other{display:none}
-.mbcom-admin .mbcom-setup-share{display:flex;gap:8px;align-items:flex-start;margin:16px 0 0;max-width:720px;color:var(--mbcom-muted)}
-.mbcom-admin .mbcom-setup-share input{margin-top:2px}
+.mbcom-admin .mbcom-setup-share{display:flex;gap:12px;align-items:flex-start;margin:18px 0 16px;max-width:760px;padding:12px 14px;border-radius:10px;background:#fff;border:1px solid var(--mbcom-line);color:var(--mbcom-muted);line-height:1.5}
+.mbcom-admin .mbcom-setup-share input{margin:3px 0 0;flex:none}
 .mbcom-admin .mbcom-setup-share strong{color:#1d2327}
-.mbcom-admin .mbcom-setup-actions{display:flex;align-items:center;gap:16px;margin:16px 0 4px}
+.mbcom-admin .mbcom-setup-actions{display:flex;align-items:center;gap:16px;margin:0}
+.mbcom-admin .mbcom-setup-actions .button-primary{min-height:38px;padding:0 18px;border-radius:8px;font-weight:600}
+.mbcom-admin .mbcom-setup-actions .button-link{color:var(--mbcom-muted);text-decoration:none}
+.mbcom-admin .mbcom-setup-actions .button-link:hover{color:#1d2327;text-decoration:underline}
+.mbcom-admin .mbcom-setup-fine{margin:14px 0 0;font-size:12px;color:var(--mbcom-muted);max-width:760px;line-height:1.5}
+@media (max-width:782px){.mbcom-admin .mbcom-setup{padding:20px 20px 18px}.mbcom-admin .mbcom-setup-icon{display:none}.mbcom-admin .mbcom-setup-fields{grid-template-columns:1fr}}
 
 /* Export */
 .mbcom-admin .mbcom-exports{grid-template-columns:repeat(3,minmax(0,1fr));max-width:1100px}
 @media (max-width:900px){.mbcom-admin .mbcom-exports{grid-template-columns:1fr}}
-.mbcom-admin .mbcom-export{gap:6px;padding:18px 20px}
-.mbcom-admin .mbcom-export strong{font-size:14px}
-.mbcom-admin .mbcom-export .button{align-self:flex-start;margin-top:auto;display:inline-flex;align-items:center;gap:4px}
-.mbcom-admin .mbcom-export .mbcom-muted{margin-bottom:10px}
-.mbcom-admin .mbcom-export .dashicons{font-size:16px;width:16px;height:16px}
-.mbcom-admin .mbcom-privacy{max-width:760px;margin-top:8px}
+.mbcom-admin .mbcom-export{position:relative;gap:4px;padding:18px 20px}
+.mbcom-admin .mbcom-export strong{font-size:15px;letter-spacing:-.01em;padding-right:48px}
+.mbcom-admin .mbcom-export .mbcom-muted{margin-bottom:14px;line-height:1.5;padding-right:24px}
+.mbcom-admin .mbcom-export .button{align-self:flex-start;margin-top:auto}
+.mbcom-admin .mbcom-privacy{max-width:1100px;margin-top:4px}
+.mbcom-admin .mbcom-privacy p{max-width:760px;font-size:13px;line-height:1.55}
+.mbcom-admin .mbcom-privacy-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 
 /* Tables */
 .mbcom-admin .wp-list-table thead th,.mbcom-admin .wp-list-table tfoot th{white-space:nowrap}
