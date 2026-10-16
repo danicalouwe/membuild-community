@@ -35,6 +35,9 @@ A free community for WordPress, as simple as Skool and as familiar as Facebook. 
   </tr>
 </table>
 
+<img src="docs/screenshots/problems.jpg" alt="Community → Problems in wp-admin: errors caught in the plugin's own code, one row per place in the code, with the stack and a copy-for-support box">
+<sub>Problems: errors in the plugin's own code are caught on your site and listed for the admin, scrubbed of emails, links and paths. Nothing leaves the site unless you share usage, and then only the lines, never the stack.</sub>
+
 ## What's inside
 
 - **Feed:** posts with photos, video and links; reactions, comments and replies; pinned posts.
