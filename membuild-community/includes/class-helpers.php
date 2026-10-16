@@ -60,6 +60,15 @@ class Helpers {
 	}
 
 	/** Admins, editors and the moderators picked in settings. */
+	/** 'instructor' for admins, 'moderator' for moderators, null for members. Remembered per request. */
+	public static function staff_role( $user_id ) {
+		static $roles = array();
+		if ( ! array_key_exists( $user_id, $roles ) ) {
+			$roles[ $user_id ] = user_can( $user_id, 'manage_options' ) ? 'instructor' : ( Settings::is_staff( $user_id ) ? 'moderator' : null );
+		}
+		return $roles[ $user_id ];
+	}
+
 	public static function can_moderate() {
 		return is_user_logged_in() && Settings::is_staff( get_current_user_id() );
 	}

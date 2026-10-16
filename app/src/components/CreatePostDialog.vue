@@ -25,6 +25,8 @@ const props = defineProps({
   files: { type: Array, default: () => [] }, // picked from the feed bar before opening
   draft: { type: Object, default: null }, // restored after a failed post
   edit: { type: Object, default: null }, // an existing post: change its words, feeling and background
+  // Posting inside a course: { course: { id, title }, lesson: { id, title } | null }. Only members of the course see it.
+  place: { type: Object, default: null },
 })
 const emit = defineEmits(['close', 'posted'])
 
@@ -86,7 +88,12 @@ const BACKGROUND_NAMES = {
   candy: t._x('candy', 'post background', 'membuild-community'),
   lime: t._x('lime', 'post background', 'membuild-community'),
 }
-const placeholder = t.sprintf(/* translators: %s: the person's first name */ t.__("What's on your mind, %s?", 'membuild-community'), firstName)
+const placeholder = props.place
+  ? t.__('Ask a question, share a win or add a tip…', 'membuild-community')
+  : t.sprintf(/* translators: %s: the person's first name */ t.__("What's on your mind, %s?", 'membuild-community'), firstName)
+const placeLabel = props.place?.lesson
+  ? props.place.lesson.title
+  : props.place && t.sprintf(/* translators: %s: course title */ t.__('%s · Discussion', 'membuild-community'), props.place.course.title)
 
 /**
  * "<name> is feeling <emoji> <feeling>." as one translatable sentence, split
@@ -200,11 +207,13 @@ async function submit() {
   const chosenFeeling = feeling.value
   const key = `local-post-${Date.now()}-${++localKey}`
 
+  const place = props.place
   insertPost({
     id: key,
     localKey: key,
     pending: true,
     type: 'post',
+    ...(place ? { course: place.course, lesson: place.lesson, helpful_count: 0, my_helpful: false, best_comment_id: null, pin: null } : {}),
     content,
     background: chosenBg || null,
     feeling: chosenFeeling || null,
@@ -231,6 +240,8 @@ async function submit() {
       no_embed: dismissed.value && !embed ? true : undefined,
       background: chosenBg || undefined,
       feeling: chosenFeeling || undefined,
+      course_id: place?.course.id,
+      lesson_id: place?.lesson?.id,
     })
     replacePost(key, saved)
     items.forEach((a) => a.release()) // the saved media shows now, not the local previews
@@ -240,7 +251,7 @@ async function submit() {
     // Reopen with everything restored, so nothing the member wrote is lost.
     window.dispatchEvent(
       new CustomEvent('mbcom:reopen-composer', {
-        detail: { text: content, attachments: items, background: chosenBg, feeling: chosenFeeling, error: err.message },
+        detail: { text: content, attachments: items, background: chosenBg, feeling: chosenFeeling, error: err.message, place },
       }),
     )
   }
@@ -323,7 +334,8 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
                     >
                   </template>
                 </div>
-                <span class="chip"><Icon name="user" :size="15" /> {{ t.__('Community members', 'membuild-community') }}</span>
+                <span v-if="placeLabel" class="chip place"><Icon name="cap" :size="15" /> {{ placeLabel }}</span>
+                <span v-else class="chip"><Icon name="user" :size="15" /> {{ t.__('Community members', 'membuild-community') }}</span>
               </div>
             </div>
 
@@ -561,6 +573,11 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
 
 .link:hover {
   text-decoration: underline;
+}
+
+.chip.place {
+  max-width: 100%;
+  color: var(--accent-text);
 }
 
 .chip {

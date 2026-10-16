@@ -100,7 +100,7 @@ export const api = {
   blocks: () => request('/blocks'),
   block: (userId) => request(`/members/${userId}/block`, { method: 'PUT' }),
   unblock: (userId) => request(`/members/${userId}/block`, { method: 'DELETE' }),
-  pinPost: (id) => request(`/posts/${id}/pin`, { method: 'PUT' }),
+  pinPost: (id, scope) => request(`/posts/${id}/pin`, { method: 'PUT', body: scope ? { scope } : undefined }), // scope: 'lesson' | 'course' for course posts
   unpinPost: (id) => request(`/posts/${id}/pin`, { method: 'DELETE' }),
   updatePost: (id, body) => request(`/posts/${id}`, { method: 'PUT', body }),
   members: (params) => request('/members', { params }),
@@ -137,6 +137,14 @@ export const api = {
   deleteLesson: (id) => request(`/lessons/${id}`, { method: 'DELETE' }),
   completeLesson: (id) => request(`/lessons/${id}/complete`, { method: 'POST' }),
   uncompleteLesson: (id) => request(`/lessons/${id}/complete`, { method: 'DELETE' }),
+  courseResources: (id) => request(`/courses/${id}/resources`),
+  // Course discussions: posts under a lesson, or across the whole course.
+  lessonPosts: (id, params) => request(`/lessons/${id}/posts`, { params }),
+  coursePosts: (id, params, signal) => request(`/courses/${id}/posts`, { params, signal }),
+  helpful: (id) => request(`/posts/${id}/helpful`, { method: 'PUT' }),
+  unhelpful: (id) => request(`/posts/${id}/helpful`, { method: 'DELETE' }),
+  chooseBest: (postId, commentId) => request(`/posts/${postId}/best`, { method: 'PUT', body: { comment_id: commentId } }),
+  clearBest: (postId) => request(`/posts/${postId}/best`, { method: 'DELETE' }),
   comments: (postId, { sort = 'relevant', page = 1 } = {}) => request(`/posts/${postId}/comments`, { params: { sort, page } }),
   replies: (commentId) => request(`/comments/${commentId}/replies`),
   createComment: (postId, content, { parentId, replyToUserId, mediaId } = {}) =>

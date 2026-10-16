@@ -322,7 +322,7 @@ class Rest_Messages {
 		$since = (int) $req['feed_since'];
 		if ( $since > 0 ) {
 			$out['new_posts'] = (int) $wpdb->get_var(
-				$wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status = 'published' AND id > %d AND user_id <> %d", Install::table( 'posts' ), $since, $me )
+				$wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status = 'published' AND course_id = 0 AND id > %d AND user_id <> %d", Install::table( 'posts' ), $since, $me )
 			);
 		}
 		return $out;

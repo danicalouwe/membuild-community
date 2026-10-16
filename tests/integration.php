@@ -960,6 +960,139 @@ mbcom_call( $admin, 'PUT', '/settings', array( 'gifs' => array( 'key' => '' ) ) 
 \MemBuild\Community\Settings::flush();
 
 /* ---------------------------------------------------------------- */
+mbcom_section( 'Course discussions' );
+mbcom_call( $admin, 'PUT', '/settings', array( 'features' => array( 'classroom' => true, 'search' => true ) ) );
+\MemBuild\Community\Settings::flush();
+list( , $tc )  = mbcom_call( $admin, 'POST', '/courses', array( 'title' => 'Talk course' ) );
+$tcid          = $tc['id'];
+$tmod          = $tc['modules'][0]['id'];
+list( , $ta )  = mbcom_call( $admin, 'POST', "/modules/{$tmod}/lessons", array( 'title' => 'Open lesson' ) );
+list( , $tb )  = mbcom_call( $admin, 'POST', "/modules/{$tmod}/lessons", array( 'title' => 'Later lesson' ) );
+mbcom_call( $admin, 'PUT', "/lessons/{$tb['id']}", array( 'drip_days' => 3650 ) );
+mbcom_call( $admin, 'PUT', "/courses/{$tcid}", array( 'status' => 'published' ) );
+$asker   = mbcom_user( 'mbct_asker' );
+$helper  = mbcom_user( 'mbct_helper' );
+$outside = mbcom_user( 'mbct_outsider' );
+
+list( $s, $q ) = mbcom_call( $asker, 'POST', '/posts', array( 'content' => 'How do zebracornish pricing tiers work?', 'lesson_id' => $ta['id'] ) );
+mbcom_check( 'members post under a lesson like on the feed', 201 === $s && $tcid === ( $q['course']['id'] ?? 0 ) && $ta['id'] === ( $q['lesson']['id'] ?? 0 ), (string) $s );
+list( , $feed ) = mbcom_call( $asker, 'GET', '/feed' );
+list( , $prof ) = mbcom_call( $asker, 'GET', '/feed', array( 'author' => $asker ) );
+mbcom_check( '…which stays in the course: not in the feed or on their profile', ! in_array( $q['id'], wp_list_pluck( $feed['items'], 'id' ), true ) && ! in_array( $q['id'], wp_list_pluck( $prof['items'], 'id' ), true ) );
+list( , $lp ) = mbcom_call( $helper, 'GET', "/lessons/{$ta['id']}/posts" );
+list( , $cp ) = mbcom_call( $helper, 'GET', "/courses/{$tcid}/posts" );
+mbcom_check( 'it shows under the lesson and in the course’s Discussion tab', in_array( $q['id'], wp_list_pluck( $lp['items'], 'id' ), true ) && in_array( $q['id'], wp_list_pluck( $cp['items'], 'id' ), true ) && 'Open lesson' === $cp['items'][0]['lesson']['title'] );
+list( $s ) = mbcom_call( $asker, 'POST', '/posts', array( 'content' => 'Early!', 'lesson_id' => $tb['id'] ) );
+mbcom_check( 'a lesson that hasn’t opened yet can’t be posted under', 403 === $s, (string) $s );
+list( $s, $gen ) = mbcom_call( $helper, 'POST', '/posts', array( 'content' => 'Hi everyone, glad to be here', 'course_id' => $tcid ) );
+mbcom_check( 'posts can go in the Discussion tab without a lesson', 201 === $s && null === $gen['lesson'], (string) $s );
+
+// Helpful
+list( $s ) = mbcom_call( $asker, 'PUT', "/posts/{$q['id']}/helpful" );
+mbcom_check( 'nobody can vote their own post helpful', 400 === $s, (string) $s );
+list( $s, $v ) = mbcom_call( $helper, 'PUT', "/posts/{$q['id']}/helpful" );
+mbcom_call( $helper, 'PUT', "/posts/{$q['id']}/helpful" );
+mbcom_check( 'others can, once each', 200 === $s && 1 === $v['helpful_count'] && $v['my_helpful'] && 1 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT helpful_count FROM %i WHERE id = %d', "{$wpdb->prefix}mbcom_posts", $q['id'] ) ) );
+list( , $newer ) = mbcom_call( $helper, 'POST', '/posts', array( 'content' => 'Loved this one', 'lesson_id' => $ta['id'] ) );
+list( , $lp ) = mbcom_call( $helper, 'GET', "/lessons/{$ta['id']}/posts" );
+mbcom_check( 'a lesson lists its most helpful posts first', $q['id'] === $lp['items'][0]['id'] && $lp['items'][0]['my_helpful'] );
+list( , $lp ) = mbcom_call( $helper, 'GET', "/lessons/{$ta['id']}/posts", array( 'sort' => 'newest' ) );
+mbcom_check( '…or the newest', $newer['id'] === $lp['items'][0]['id'] );
+list( , $v ) = mbcom_call( $helper, 'DELETE', "/posts/{$q['id']}/helpful" );
+mbcom_check( 'a vote can be taken back', 0 === $v['helpful_count'] && ! $v['my_helpful'] );
+mbcom_call( $helper, 'PUT', "/posts/{$q['id']}/helpful" );
+
+// Best answer
+list( , $ans ) = mbcom_call( $helper, 'POST', "/posts/{$q['id']}/comments", array( 'content' => 'Start with three tiers.' ) );
+list( , $ans2 ) = mbcom_call( $admin, 'POST', "/posts/{$q['id']}/comments", array( 'content' => 'Later answer' ) );
+list( , $rep ) = mbcom_call( $asker, 'POST', "/posts/{$q['id']}/comments", array( 'content' => 'Thanks!', 'parent_id' => $ans['id'] ) );
+list( $s ) = mbcom_call( $helper, 'PUT', "/posts/{$q['id']}/best", array( 'comment_id' => $ans['id'] ) );
+mbcom_check( 'only the person who asked (or staff) picks the best answer', 403 === $s, (string) $s );
+list( $s ) = mbcom_call( $asker, 'PUT', "/posts/{$q['id']}/best", array( 'comment_id' => $rep['id'] ) );
+mbcom_check( '…and it has to be an answer, not a reply', 400 === $s, (string) $s );
+list( $s ) = mbcom_call( $asker, 'PUT', "/posts/{$q['id']}/best", array( 'comment_id' => $ans['id'] ) );
+list( , $cm ) = mbcom_call( $helper, 'GET', "/posts/{$q['id']}/comments", array( 'sort' => 'newest' ) );
+mbcom_check( 'the best answer leads the comments, whatever the order', 200 === $s && $ans['id'] === $cm['items'][0]['id'] && $cm['items'][0]['best'] && 1 === count( array_filter( wp_list_pluck( $cm['items'], 'id' ), fn( $id ) => $id === $ans['id'] ) ) );
+list( , $lp ) = mbcom_call( $helper, 'GET', "/lessons/{$ta['id']}/posts" );
+mbcom_check( '…and is the preview under the post', $ans['id'] === ( $lp['items'][0]['preview_comment']['id'] ?? 0 ) && $lp['items'][0]['preview_comment']['best'] && $ans['id'] === $lp['items'][0]['best_comment_id'] );
+
+// Pins
+list( $s, $pin ) = mbcom_call( $admin, 'PUT', "/posts/{$newer['id']}/pin", array( 'scope' => 'lesson' ) );
+list( , $lp ) = mbcom_call( $helper, 'GET', "/lessons/{$ta['id']}/posts" );
+list( , $cp ) = mbcom_call( $helper, 'GET', "/courses/{$tcid}/posts" );
+mbcom_check( 'staff pin a post to its lesson', 200 === $s && 'lesson' === $pin['pin'] && array( $newer['id'] ) === wp_list_pluck( $lp['pinned'], 'id' ) && ! in_array( $newer['id'], wp_list_pluck( $cp['pinned'], 'id' ), true ) );
+mbcom_call( $admin, 'PUT', "/posts/{$gen['id']}/pin", array( 'scope' => 'course' ) );
+list( , $cp ) = mbcom_call( $helper, 'GET', "/courses/{$tcid}/posts" );
+list( , $feed ) = mbcom_call( $helper, 'GET', '/feed' );
+mbcom_check( '…or to the course’s Discussion tab, never the feed', array( $gen['id'] ) === wp_list_pluck( $cp['pinned'], 'id' ) && 'course' === $cp['pinned'][0]['pin'] && ! in_array( $gen['id'], wp_list_pluck( $feed['pinned'], 'id' ), true ) );
+for ( $i = 0; $i < 3; $i++ ) {
+	list( , $extra ) = mbcom_call( $helper, 'POST', '/posts', array( 'content' => "Pin me {$i}", 'lesson_id' => $ta['id'] ) );
+	list( $s, $err ) = mbcom_call( $admin, 'PUT', "/posts/{$extra['id']}/pin", array( 'scope' => 'lesson' ) );
+}
+mbcom_check( 'up to three pins per lesson', 400 === $s && 'mbcom_pin_limit' === $err['code'], (string) $s );
+list( $s ) = mbcom_call( $helper, 'PUT', "/posts/{$q['id']}/pin", array( 'scope' => 'lesson' ) );
+mbcom_check( 'members can’t pin', 403 === $s, (string) $s );
+
+// Search inside the course, and the main search
+list( , $cp ) = mbcom_call( $helper, 'GET', "/courses/{$tcid}/posts", array( 'q' => 'three tiers' ) );
+mbcom_check( 'the Discussion tab searches posts and their replies', array( $q['id'] ) === wp_list_pluck( $cp['items'], 'id' ), wp_json_encode( wp_list_pluck( $cp['items'], 'id' ) ) );
+list( , $found ) = mbcom_call( $helper, 'GET', '/search', array( 'q' => 'zebracornish', 'type' => 'posts' ) );
+mbcom_check( 'the main search finds course posts for members of the course', in_array( $q['id'], wp_list_pluck( $found['items'], 'id' ), true ) );
+
+// Locked course: nothing leaks
+$club = mbcom_call( $admin, 'POST', '/groups', array( 'name' => 'Talk club' ) )[1];
+mbcom_call( $admin, 'PUT', "/courses/{$tcid}", array( 'access' => 'groups', 'access_groups' => array( $club['id'] ) ) );
+$fresh->setValue( null, array() );
+list( $s1 ) = mbcom_call( $outside, 'GET', "/posts/{$q['id']}" );
+list( $s2 ) = mbcom_call( $outside, 'GET', "/lessons/{$ta['id']}/posts" );
+list( $s3 ) = mbcom_call( $outside, 'GET', "/courses/{$tcid}/posts" );
+list( $s4 ) = mbcom_call( $outside, 'GET', "/posts/{$q['id']}/comments" );
+list( $s5 ) = mbcom_call( $outside, 'PUT', "/posts/{$q['id']}/reaction", array( 'type' => 'like' ) );
+list( $s6 ) = mbcom_call( $outside, 'POST', '/posts', array( 'content' => 'let me in', 'course_id' => $tcid ) );
+list( , $found ) = mbcom_call( $outside, 'GET', '/search', array( 'q' => 'zebracornish', 'type' => 'posts' ) );
+list( , $found_c ) = mbcom_call( $outside, 'GET', '/search', array( 'q' => 'three tiers', 'type' => 'comments' ) );
+mbcom_check( 'members who can’t open the course can’t read, react to or search its posts', 404 === $s1 && 403 === $s2 && 403 === $s3 && 404 === $s4 && 404 === $s5 && 403 === $s6 && ! in_array( $q['id'], wp_list_pluck( $found['items'], 'id' ), true ) && ! array_filter( $found_c['items'], fn( $i ) => $i['post_id'] === $q['id'] ), "$s1 $s2 $s3 $s4 $s5 $s6" );
+list( , $grid ) = mbcom_call( $outside, 'GET', '/courses' );
+$card = current( array_filter( $grid['items'], fn( $c ) => $c['id'] === $tcid ) );
+mbcom_check( '…but the card still shows how lively it is (counts only)', $card && $card['posts_count'] >= 5 && null === $card['next_lesson'] );
+mbcom_call( $admin, 'PUT', "/courses/{$tcid}", array( 'access' => 'everyone' ) );
+$fresh->setValue( null, array() );
+
+// Course cards and the outline
+mbcom_call( $asker, 'POST', "/lessons/{$ta['id']}/complete" );
+list( , $grid ) = mbcom_call( $helper, 'GET', '/courses' );
+$card = current( array_filter( $grid['items'], fn( $c ) => $c['id'] === $tcid ) );
+mbcom_check( 'cards show who’s taking the course', 1 <= $card['learners'] && in_array( $asker, wp_list_pluck( $card['faces'], 'id' ), true ) );
+list( , $grid ) = mbcom_call( $asker, 'GET', '/courses' );
+$card = current( array_filter( $grid['items'], fn( $c ) => $c['id'] === $tcid ) );
+mbcom_check( '…and where “Continue” goes (not a lesson that hasn’t opened yet)', null === $card['next_lesson'] && $card['last_activity'] );
+list( , $outline ) = mbcom_call( $helper, 'GET', "/courses/{$tcid}" );
+$first = $outline['modules'][0]['lessons'][0];
+mbcom_check( 'the outline counts each lesson’s posts', 5 <= $first['posts'] && $outline['posts_count'] >= 6 );
+mbcom_check( '…and names the instructor and who’s taking it, for the overview', $admin === ( $outline['instructor']['id'] ?? 0 ) && 1 <= $outline['learners'] && in_array( $asker, wp_list_pluck( $outline['faces'], 'id' ), true ) );
+mbcom_call( $admin, 'PUT', "/lessons/{$ta['id']}", array( 'content' => str_repeat( 'word ', 900 ) ) );
+list( , $one ) = mbcom_call( $helper, 'GET', "/lessons/{$ta['id']}" );
+mbcom_check( 'a lesson says where it sits and about how long it takes', 1 === $one['number'] && 2 === $one['total'] && 'Module 1' === $one['module_title'] && 4 === $one['minutes'], wp_json_encode( array( $one['number'], $one['total'], $one['minutes'] ) ) );
+
+// Resources
+$guide = mbcom_upload( $admin, 'text/plain', str_repeat( "A line of the guide.\n", 100 ), 'guide.txt' );
+mbcom_check( '(the guide uploads)', isset( $guide['id'] ), wp_json_encode( $guide ) );
+$later = mbcom_upload( $admin, 'text/plain', "later\n", 'later.txt' );
+mbcom_call( $admin, 'PUT', "/lessons/{$ta['id']}", array( 'resources' => array( array( 'media_id' => $guide['id'], 'name' => 'Guide.pdf' ) ) ) );
+mbcom_call( $admin, 'PUT', "/lessons/{$tb['id']}", array( 'resources' => array( array( 'media_id' => $later['id'], 'name' => 'Later.docx' ) ) ) );
+list( $s, $res ) = mbcom_call( $helper, 'GET', "/courses/{$tcid}/resources" );
+$files = array_merge( ...array_map( fn( $g ) => $g['files'], $res['items'] ) );
+mbcom_check( 'the Resources tab lists every lesson’s files with type and size', 200 === $s && 2 === count( $files ) && 'PDF' === $files[0]['ext'] && 2100 === $files[0]['size'] && $files[0]['url'], wp_json_encode( $files ) );
+mbcom_check( '…and a lesson that hasn’t opened shows its file without a link', $res['items'][1]['locked'] && null === $files[1]['url'] && $res['items'][1]['unlock_at'] );
+
+// Clean-up follows the lesson
+mbcom_call( $admin, 'DELETE', "/lessons/{$ta['id']}" );
+mbcom_check( 'deleting a lesson deletes its posts', 'deleted' === $wpdb->get_var( $wpdb->prepare( 'SELECT status FROM %i WHERE id = %d', "{$wpdb->prefix}mbcom_posts", $q['id'] ) ) );
+mbcom_call( $admin, 'DELETE', "/courses/{$tcid}" );
+mbcom_check( '…and deleting a course, the rest', 'deleted' === $wpdb->get_var( $wpdb->prepare( 'SELECT status FROM %i WHERE id = %d', "{$wpdb->prefix}mbcom_posts", $gen['id'] ) ) );
+mbcom_call( $admin, 'DELETE', "/groups/{$club['id']}" );
+
+/* ---------------------------------------------------------------- */
 mbcom_section( 'Credit' );
 require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
 require_once ABSPATH . 'wp-admin/includes/screen.php';

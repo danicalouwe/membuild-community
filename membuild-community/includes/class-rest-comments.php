@@ -95,23 +95,32 @@ class Rest_Comments {
 		$table  = Install::table( 'comments' );
 		$offset = ( (int) $req['page'] - 1 ) * self::PAGE_SIZE;
 		$limit  = self::PAGE_SIZE + 1;
+		// A course post's best answer leads, whatever the order; the rest follow without it.
+		$best = (int) ( $post['best_comment_id'] ?? 0 );
 		if ( 'newest' === $req['sort'] ) {
 			$rows = $wpdb->get_results(
-				$wpdb->prepare( 'SELECT * FROM %i WHERE post_id = %d AND parent_id = 0 ORDER BY id DESC LIMIT %d, %d', $table, $post['id'], $offset, $limit ),
+				$wpdb->prepare( 'SELECT * FROM %i WHERE post_id = %d AND parent_id = 0 AND id <> %d ORDER BY id DESC LIMIT %d, %d', $table, $post['id'], $best, $offset, $limit ),
 				ARRAY_A
 			);
 		} else {
 			// "Most relevant": comments people reacted to and replied to rise; ties keep conversation order.
 			$rows = $wpdb->get_results(
-				$wpdb->prepare( 'SELECT * FROM %i WHERE post_id = %d AND parent_id = 0 ORDER BY (reactions_count + 2 * replies_count) DESC, id ASC LIMIT %d, %d', $table, $post['id'], $offset, $limit ),
+				$wpdb->prepare( 'SELECT * FROM %i WHERE post_id = %d AND parent_id = 0 AND id <> %d ORDER BY (reactions_count + 2 * replies_count) DESC, id ASC LIMIT %d, %d', $table, $post['id'], $best, $offset, $limit ),
 				ARRAY_A
 			);
 		}
 		$has_more = count( $rows ) > self::PAGE_SIZE;
-		$rows     = Blocks::filter( array_slice( $rows, 0, self::PAGE_SIZE ) );
+		$rows     = array_slice( $rows, 0, self::PAGE_SIZE );
+		if ( $best && 1 === (int) $req['page'] ) {
+			$best_row = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d AND post_id = %d AND parent_id = 0', $table, $best, $post['id'] ), ARRAY_A );
+			if ( $best_row ) {
+				array_unshift( $rows, $best_row );
+			}
+		}
+		$rows = Blocks::filter( $rows );
 
 		return array(
-			'items'     => self::format( $rows, (int) $post['user_id'] ),
+			'items'     => self::mark_best( self::format( $rows, (int) $post['user_id'] ), $best ),
 			'next_page' => $has_more ? (int) $req['page'] + 1 : null,
 		);
 	}
@@ -284,7 +293,7 @@ class Rest_Comments {
 
 	/* ---------- Helpers ---------- */
 
-	private static function get( $id ) {
+	public static function get( $id ) {
 		global $wpdb;
 		return $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', Install::table( 'comments' ), $id ), ARRAY_A );
 	}
@@ -349,6 +358,15 @@ class Rest_Comments {
 		if ( ! $top ) {
 			return array();
 		}
+		// A course post's best answer is its preview.
+		$best = array_filter( array_map( fn( $p ) => (int) ( $p['best_comment_id'] ?? 0 ), array_column( $posts, null, 'id' ) ) );
+		if ( $best ) {
+			foreach ( $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE id IN (' . implode( ',', array_fill( 0, count( $best ), '%d' ) ) . ') AND parent_id = 0', array_merge( array( $table ), array_values( $best ) ) ), ARRAY_A ) as $row ) {
+				if ( ( $best[ (int) $row['post_id'] ] ?? 0 ) === (int) $row['id'] && ! Blocks::hides( $row['user_id'] ) ) {
+					$top[ (int) $row['post_id'] ] = $row;
+				}
+			}
+		}
 		$parent_ids = array_values( array_map( fn( $r ) => (int) $r['id'], $top ) );
 		$first      = array();
 		foreach ( $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE parent_id IN (' . implode( ',', array_fill( 0, count( $parent_ids ), '%d' ) ) . ') ORDER BY id ASC LIMIT 1000', array_merge( array( $table ), $parent_ids ) ), ARRAY_A ) as $row ) {
@@ -362,12 +380,17 @@ class Rest_Comments {
 		$formatted = array_column( self::format( array_merge( array_values( $top ), array_values( $first ) ), $authors ), null, 'id' );
 		$out       = array();
 		foreach ( $top as $post_id => $row ) {
-			$comment            = $formatted[ (int) $row['id'] ];
+			$comment            = $formatted[ (int) $row['id'] ] + array( 'best' => ( $best[ $post_id ] ?? 0 ) === (int) $row['id'] );
 			$reply              = $first[ (int) $row['id'] ] ?? null;
 			$comment['replies'] = $reply ? array( $formatted[ (int) $reply['id'] ] ) : array();
 			$out[ $post_id ]    = $comment;
 		}
 		return $out;
+	}
+
+	/** Flags the best answer in a formatted list. */
+	private static function mark_best( array $items, $best ) {
+		return array_map( fn( $c ) => $c + array( 'best' => $best && (int) $c['id'] === $best ), $items );
 	}
 
 	/**
@@ -425,6 +448,7 @@ class Rest_Comments {
 						'my_reaction'     => isset( $mine[ $id ] ) ? $mine[ $id ]->type : null,
 						'top_reactions'   => array_slice( array_keys( $tops ), 0, 3 ),
 						'liked_by_author' => $by_author[ $id ] ?? null,
+						'staff_role'      => Helpers::staff_role( (int) $row['user_id'] ), // shown as "Instructor" in courses
 						'can_delete'      => (int) $row['user_id'] === $me || Helpers::can_moderate(),
 					);
 				},

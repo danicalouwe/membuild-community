@@ -36,7 +36,7 @@ function pickedReel(e) {
 }
 
 // A post that failed to save comes back here with everything restored.
-const reopen = (e) => open({ draft: e.detail })
+const reopen = (e) => !e.detail.place && open({ draft: e.detail }) // course posts reopen in their lesson
 onMounted(() => window.addEventListener('mbcom:reopen-composer', reopen))
 onBeforeUnmount(() => window.removeEventListener('mbcom:reopen-composer', reopen))
 </script>

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, defineAsyncComponent, ref } from 'vue'
 import { api } from '../api.js'
-import { removePost, setPinned, takePost } from '../stores/feed.js'
+import { removePost, setCoursePin, setPinned, takePost } from '../stores/feed.js'
 import { cfg } from '../config.js'
 import { timeAgo } from '../lib/time.js'
 import Avatar from './Avatar.vue'
@@ -17,13 +17,34 @@ import { BACKGROUNDS, FEELINGS } from '../lib/postStyle.js'
 import { t } from '../lib/i18n.js'
 import { useMenu } from '../lib/useMenu.js'
 
-const props = defineProps({ post: { type: Object, required: true } })
+const props = defineProps({
+  post: { type: Object, required: true },
+  showPlace: { type: Boolean, default: false }, // a course post outside its lesson: say which lesson
+})
 
 const { open: menu, root: menuRoot, trigger: menuTrigger, list: menuList, toggle: toggleMenu, close: closeMenu, onKeydown: onMenuKey } = useMenu()
 const editing = ref(false)
 const reporting = ref(false)
 const isMine = computed(() => props.post.author?.id === cfg.user.id)
 const canPin = computed(() => cfg.community.isStaff && props.post.type === 'post' && !props.post.pending)
+const inCourse = computed(() => !!props.post.course)
+const pinLabel = computed(() =>
+  props.post.pin === 'lesson' ? t.__('Pinned to lesson', 'membuild-community') : props.post.pin === 'course' ? t.__('Pinned to course', 'membuild-community') : t.__('Pinned', 'membuild-community'),
+)
+const staffLabel = computed(() =>
+  props.post.staff_role === 'instructor' ? t.__('Instructor', 'membuild-community') : props.post.staff_role === 'moderator' ? t.__('Moderator', 'membuild-community') : '',
+)
+
+// Course posts pin to their lesson or to the whole course, never to the feed.
+async function pinInCourse(scope) {
+  closeMenu()
+  try {
+    const res = scope ? await api.pinPost(props.post.id, scope) : await api.unpinPost(props.post.id)
+    setCoursePin(props.post, scope ? res.pin : null)
+  } catch (err) {
+    alert(err.message)
+  }
+}
 
 async function togglePin() {
   closeMenu()
@@ -95,13 +116,24 @@ async function remove() {
             >
           </template>
         </div>
-        <span>{{ post.pending ? t.__('Posting…', 'membuild-community') : timeAgo(post.created_at) }}<template v-if="post.edited"> · {{ t.__('Edited', 'membuild-community') }}</template></span>
+        <span>
+          <em v-if="staffLabel" class="staff">{{ staffLabel }}</em>
+          {{ post.pending ? t.__('Posting…', 'membuild-community') : timeAgo(post.created_at) }}<template v-if="post.edited"> · {{ t.__('Edited', 'membuild-community') }}</template>
+        </span>
+        <RouterLink v-if="showPlace && post.lesson" class="place" :to="{ name: 'course', params: { courseId: post.course.id, lessonId: post.lesson.id } }">
+          <Icon name="cap" :size="13" /> {{ post.lesson.title }}
+        </RouterLink>
       </div>
-      <span v-if="post.pinned" class="pin" :title="t.__('Pinned by an admin', 'membuild-community')"><Icon name="pin" :size="14" /> {{ t.__('Pinned', 'membuild-community') }}</span>
+      <span v-if="post.pinned" class="pin" :title="t.__('Pinned by an admin', 'membuild-community')"><Icon name="pin" :size="14" /> {{ pinLabel }}</span>
       <div v-if="!post.pending" :ref="menuRoot" class="menu-wrap">
         <button :ref="menuTrigger" class="icon-btn" :aria-label="t.__('Post options', 'membuild-community')" aria-haspopup="menu" :aria-expanded="menu" @click="toggleMenu"><Icon name="more" /></button>
         <div v-if="menu" :ref="menuList" class="menu" role="menu" @keydown="onMenuKey">
-          <button v-if="canPin" role="menuitem" class="plain" @click="togglePin"><Icon name="pin" :size="18" /> {{ post.pinned ? t.__('Unpin post', 'membuild-community') : t.__('Pin to top', 'membuild-community') }}</button>
+          <template v-if="canPin && inCourse">
+            <button v-if="post.lesson && post.pin !== 'lesson'" role="menuitem" class="plain" @click="pinInCourse('lesson')"><Icon name="pin" :size="18" /> {{ t.__('Pin to lesson', 'membuild-community') }}</button>
+            <button v-if="post.pin !== 'course'" role="menuitem" class="plain" @click="pinInCourse('course')"><Icon name="pin" :size="18" /> {{ t.__('Pin to course', 'membuild-community') }}</button>
+            <button v-if="post.pin" role="menuitem" class="plain" @click="pinInCourse(null)"><Icon name="pin" :size="18" /> {{ t.__('Unpin post', 'membuild-community') }}</button>
+          </template>
+          <button v-else-if="canPin" role="menuitem" class="plain" @click="togglePin"><Icon name="pin" :size="18" /> {{ post.pinned ? t.__('Unpin post', 'membuild-community') : t.__('Pin to top', 'membuild-community') }}</button>
           <button v-if="post.can_edit" role="menuitem" @click="closeMenu(); editing = true"><Icon name="compose" :size="18" /> {{ t.__('Edit post', 'membuild-community') }}</button>
           <button v-if="post.can_delete" role="menuitem" @click="remove"><Icon name="trash" :size="18" /> {{ t.__('Delete post', 'membuild-community') }}</button>
           <button v-if="!isMine" role="menuitem" @click="closeMenu(); reporting = true"><Icon name="flag" :size="18" /> {{ t.__('Report post', 'membuild-community') }}</button>
@@ -120,9 +152,9 @@ async function remove() {
 
     <div v-if="preview" class="preview">
       <button v-if="moreComments" class="more" @click="open(false)">{{ t.__('View more comments', 'membuild-community') }}</button>
-      <CommentItem :comment="preview" @reply="open(true)" />
+      <CommentItem :comment="preview" :in-course="inCourse" @reply="open(true)" />
       <div v-if="preview.replies.length" class="preview-replies">
-        <CommentItem v-for="r in preview.replies" :key="r.id" :comment="r" reply @reply="open(true)" />
+        <CommentItem v-for="r in preview.replies" :key="r.id" :comment="r" reply :in-course="inCourse" @reply="open(true)" />
       </div>
     </div>
 
@@ -133,6 +165,39 @@ async function remove() {
 </template>
 
 <style scoped>
+.staff {
+  margin-right: 4px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.place {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  max-width: 100%;
+  margin-top: 3px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 12.5px;
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.place:hover {
+  color: var(--text);
+}
+
 .pin {
   display: inline-flex;
   align-items: center;

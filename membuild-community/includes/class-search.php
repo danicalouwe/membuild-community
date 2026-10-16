@@ -114,7 +114,7 @@ class Search {
 	 *
 	 * @return array{0:string,1:array}
 	 */
-	private static function match( $table, $column, array $words ) {
+	public static function match( $table, $column, array $words ) {
 		global $wpdb;
 		static $min = null;
 		$min = $min ?? (int) ( $wpdb->get_var( "SHOW VARIABLES LIKE 'innodb_ft_min_token_size'", 1 ) ?: 3 ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
@@ -188,9 +188,11 @@ class Search {
 		$posts           = Install::table( 'posts' );
 		list( $m, $vals ) = self::match( 'posts', 'content', $words );
 		$reels           = Settings::feature( 'reels' ) ? '' : " AND type = 'post'";
+		// Posts in courses show only to members who can open that course and lesson.
+		list( $seen, $seen_vals ) = Discussions::visible_sql();
 		$rows            = $wpdb->get_results(
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $m comes from match(): fixed SQL with %s placeholders; $reels is a fixed literal; values are bound.
-			$wpdb->prepare( "SELECT id, user_id, type, content, reactions_count, comments_count, created_at FROM %i WHERE status = 'published'{$reels} AND {$m} ORDER BY id DESC LIMIT %d OFFSET %d", array_merge( array( $posts ), $vals, array( $limit + 1, $offset ) ) ),
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $m comes from match() and $seen from visible_sql(): fixed SQL with placeholders; $reels is a fixed literal; values are bound.
+			$wpdb->prepare( "SELECT id, user_id, type, content, course_id, lesson_id, reactions_count, comments_count, created_at FROM %i WHERE status = 'published'{$reels} AND {$seen} AND {$m} ORDER BY id DESC LIMIT %d OFFSET %d", array_merge( array( $posts ), $seen_vals, $vals, array( $limit + 1, $offset ) ) ),
 			ARRAY_A
 		);
 		$rows  = Blocks::filter( $rows );
@@ -206,6 +208,7 @@ class Search {
 						'reactions'  => (int) $r['reactions_count'],
 						'comments'   => (int) $r['comments_count'],
 						'created_at' => Helpers::iso( $r['created_at'] ),
+						'in_course'  => (bool) (int) $r['course_id'],
 						'link'       => array( 'query' => array( 'post' => (int) $r['id'] ) ),
 					) : null,
 					$rows
@@ -219,9 +222,10 @@ class Search {
 		global $wpdb;
 		list( $m, $vals ) = self::match( 'comments', 'c.content', $words );
 		$reels           = Settings::feature( 'reels' ) ? '' : " AND p.type = 'post'";
+		list( $seen, $seen_vals ) = Discussions::visible_sql( 'p' );
 		$rows            = $wpdb->get_results(
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $m comes from match(): fixed SQL with %s placeholders; $reels is a fixed literal; values are bound.
-			$wpdb->prepare( "SELECT c.id, c.post_id, c.user_id, c.content, c.created_at, p.user_id AS post_user, p.content AS post_content FROM %i c INNER JOIN %i p ON p.id = c.post_id AND p.status = 'published'{$reels} WHERE {$m} ORDER BY c.id DESC LIMIT %d OFFSET %d", array_merge( array( Install::table( 'comments' ), Install::table( 'posts' ) ), $vals, array( $limit + 1, $offset ) ) ),
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $m comes from match() and $seen from visible_sql(): fixed SQL with placeholders; $reels is a fixed literal; values are bound.
+			$wpdb->prepare( "SELECT c.id, c.post_id, c.user_id, c.content, c.created_at, p.user_id AS post_user, p.content AS post_content FROM %i c INNER JOIN %i p ON p.id = c.post_id AND p.status = 'published'{$reels} AND {$seen} WHERE {$m} ORDER BY c.id DESC LIMIT %d OFFSET %d", array_merge( array( Install::table( 'comments' ), Install::table( 'posts' ) ), $seen_vals, $vals, array( $limit + 1, $offset ) ) ),
 			ARRAY_A
 		);
 		$rows  = Blocks::filter( Blocks::filter( $rows ), 'post_user' ); // neither the comment's author nor the post's

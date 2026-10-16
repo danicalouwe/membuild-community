@@ -10,6 +10,7 @@ import Avatar from './components/Avatar.vue'
 import HeaderActions from './components/HeaderActions.vue'
 import SearchBox from './components/SearchBox.vue'
 import LevelUpToast from './components/LevelUpToast.vue'
+import Toast from './components/Toast.vue'
 import { refreshStats } from './stores/me.js'
 import { messages, startPulse } from './stores/messages.js'
 import { t, locale } from './lib/i18n.js'
@@ -139,6 +140,7 @@ const isActive = (tab) =>
     <ChatDock v-if="showDock" />
     <VideoDock v-if="video.media" />
     <LevelUpToast />
+    <Toast />
   </div>
 </template>
 

@@ -31,7 +31,7 @@ A free community for WordPress, as simple as Skool and as familiar as Facebook. 
 
 - **Feed:** posts with photos, video and links; reactions, comments and replies; pinned posts.
 - **Reels and stories:** vertical video, compressed in the browser before upload; 24-hour stories.
-- **Classroom:** courses with modules and lessons, drip release, and courses unlocked by level or member group.
+- **Classroom:** courses with modules and lessons, drip release, and courses unlocked by level or member group. Every card says where you stand, "Continue where you left off" picks up your next lesson, and each lesson has its own discussion with Helpful votes, pins and a Best answer, plus a Resources tab for every file in the course.
 - **Levels and leaderboard:** points for taking part, nine levels you can rename, weekly and monthly leaderboards.
 - **Messages:** one-to-one and group chats, encrypted before they're saved. Admins see counts, never the text.
 - **Places (optional):** a map of meetup spots, partners with member perks, and venues. Off until you switch it on.

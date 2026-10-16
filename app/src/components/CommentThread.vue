@@ -244,6 +244,19 @@ function onKey(e) {
   }
 }
 
+// Best answer (course posts): it moves to the top, and only one can be chosen.
+async function toggleBest(c) {
+  const on = !c.best
+  try {
+    await (on ? api.chooseBest(props.post.id, c.id) : api.clearBest(props.post.id))
+    for (const x of items.value) x.best = on && x.id === c.id
+    if (on) items.value = [c, ...items.value.filter((x) => x.id !== c.id)]
+    updatePost(props.post.id, { best_comment_id: on ? c.id : null })
+  } catch (err) {
+    alert(err.message)
+  }
+}
+
 defineExpose({ focus: () => input.value?.focus() })
 const viewReplies = (n) => t.sprintf(/* translators: %d: number of replies */ t._n('View %d reply', 'View %d replies', n, 'membuild-community'), n)
 </script>
@@ -274,14 +287,14 @@ const viewReplies = (n) => t.sprintf(/* translators: %d: number of replies */ t.
     <p v-else-if="!items.length" class="empty">{{ t.__('No comments yet. Be the first to comment.', 'membuild-community') }}</p>
 
     <div v-for="c in items" :key="c.id" class="item">
-      <CommentItem :comment="c" @reply="startReply" @delete="remove" />
+      <CommentItem :comment="c" :can-choose-best="!!post.can_choose_best" :in-course="!!post.course" @reply="startReply" @delete="remove" @best="toggleBest" />
 
       <div v-if="c.replies_count || c.replies.length" class="replies">
         <button v-if="!c.showReplies" class="view-replies" @click="toggleReplies(c)">
           <Icon name="chevronDown" :size="16" /> {{ viewReplies(c.replies_count) }}
         </button>
         <template v-else>
-          <CommentItem v-for="r in c.replies" :key="r.id" :comment="r" reply @reply="startReply" @delete="remove" />
+          <CommentItem v-for="r in c.replies" :key="r.id" :comment="r" reply :in-course="!!post.course" @reply="startReply" @delete="remove" />
           <button class="view-replies" @click="toggleReplies(c)">{{ t.__('Hide replies', 'membuild-community') }}</button>
         </template>
       </div>

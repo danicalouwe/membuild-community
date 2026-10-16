@@ -17,8 +17,10 @@ const ReportDialog = defineAsyncComponent(() => import('./ReportDialog.vue'))
 const props = defineProps({
   comment: { type: Object, required: true },
   reply: { type: Boolean, default: false }, // rendered inside a thread
+  canChooseBest: { type: Boolean, default: false }, // a course post's author or staff: may mark this as the best answer
+  inCourse: { type: Boolean, default: false }, // under a course post: staff show as Instructor / Moderator
 })
-defineEmits(['reply', 'delete'])
+defineEmits(['reply', 'delete', 'best'])
 
 const c = computed(() => props.comment)
 const pendingOrFailed = computed(() => c.value.pending || c.value.failed)
@@ -39,8 +41,13 @@ function react(type) {
     <div class="main">
       <div class="head">
         <RouterLink v-if="c.author" :to="{ name: 'member', params: { id: c.author.id } }" class="name">{{ c.author.name }}</RouterLink>
+        <span v-if="inCourse && c.staff_role" class="staff">{{ c.staff_role === 'instructor' ? t.__('Instructor', 'membuild-community') : t.__('Moderator', 'membuild-community') }}</span>
         <span class="dot">·</span>
         <span class="time">{{ c.failed ? t.__('Not sent', 'membuild-community') : c.pending ? t.__('Posting…', 'membuild-community') : timeAgo(c.created_at) }}</span>
+        <template v-if="c.best">
+          <span class="dot">·</span>
+          <span class="best"><Icon name="check" :size="13" /> {{ t.__('Best answer', 'membuild-community') }}</span>
+        </template>
         <template v-if="c.liked_by_author">
           <span class="dot">·</span>
           <span class="by-author">{{ byAuthor[0] }}<span class="mini">{{ emojiFor(c.liked_by_author) }}</span>{{ byAuthor[1] }}</span>
@@ -63,6 +70,9 @@ function react(type) {
           <Icon name="thumbDown" :size="20" />
         </button>
         <button class="act text-btn" @click="$emit('reply', c)">{{ t._x('Reply', 'verb: reply to a comment', 'membuild-community') }}</button>
+        <button v-if="canChooseBest && !reply && !pendingOrFailed" class="act text-btn" :class="{ on: c.best }" :aria-pressed="!!c.best" @click="$emit('best', c)">
+          {{ c.best ? t.__('Unmark best', 'membuild-community') : t.__('Best answer', 'membuild-community') }}
+        </button>
         <button v-if="isMine && !c.pending" class="act text-btn subtle" @click="$emit('delete', c)">{{ t.__('Delete', 'membuild-community') }}</button>
         <span v-if="!isMine && !pendingOrFailed" :ref="menuRoot" class="more-wrap">
           <button :ref="menuTrigger" class="act more" :aria-label="t.__('Comment options', 'membuild-community')" aria-haspopup="menu" :aria-expanded="menu" @click="toggleMenu"><Icon name="more" :size="18" /></button>
@@ -79,6 +89,27 @@ function react(type) {
 </template>
 
 <style scoped>
+.staff {
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.best {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 8px 1px 6px;
+  border-radius: 999px;
+  background: #2fb36b;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .comment {
   display: flex;
   gap: 10px;

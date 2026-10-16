@@ -1,7 +1,8 @@
 <script setup>
-import { defineAsyncComponent, ref } from 'vue'
+import { computed, defineAsyncComponent, ref } from 'vue'
 import { api } from '../api.js'
-import { setReaction, updatePost } from '../stores/feed.js'
+import { cfg } from '../config.js'
+import { setHelpful, setReaction, updatePost } from '../stores/feed.js'
 import { compactNumber } from '../lib/time.js'
 import { t } from '../lib/i18n.js'
 import Icon from './Icon.vue'
@@ -16,6 +17,13 @@ const props = defineProps({ post: { type: Object, required: true } })
 defineEmits(['comment'])
 
 const copied = ref(false)
+// In a course, the third button is "Helpful" (like an upvote), so the best posts rise to the top.
+const inCourse = computed(() => !!props.post.course)
+const isMine = computed(() => props.post.author?.id === cfg.user.id)
+function toggleHelpful() {
+  if (!isMine.value) setHelpful(props.post, !props.post.my_helpful).catch((err) => alert(err.message))
+}
+const helpfulCount = (n) => t.sprintf(/* translators: %s: number of members who found a post helpful */ t._n('%s found this helpful', '%s found this helpful', n, 'membuild-community'), fmt(n))
 const showReactions = ref(false)
 const fmt = (n) => (n ? compactNumber(n) : null)
 
@@ -40,12 +48,13 @@ const shareCount = (n) => t.sprintf(/* translators: %s: number of shares, e.g. "
 
 <template>
   <div class="actions" :class="{ disabled: post.pending }">
-    <div v-if="post.reactions_count || post.comments_count || post.shares_count" class="summary">
+    <div v-if="post.reactions_count || post.comments_count || post.shares_count || post.helpful_count" class="summary">
       <button v-if="post.reactions_count" class="who" :aria-label="t.__('See who reacted', 'membuild-community')" @click="showReactions = true">
         <ReactionStack :types="post.top_reactions" :size="18" />
         <span>{{ fmt(post.reactions_count) }}</span>
       </button>
       <span class="counts">
+        <span v-if="post.helpful_count" class="helpful-count"><Icon name="arrowUp" :size="14" /> {{ helpfulCount(post.helpful_count) }}</span>
         <button v-if="post.comments_count" class="link" @click="$emit('comment')">
           {{ commentCount(post.comments_count) }}
         </button>
@@ -58,7 +67,19 @@ const shareCount = (n) => t.sprintf(/* translators: %s: number of shares, e.g. "
         <Icon name="comment" :size="20" />
         <span>{{ t._x('Comment', 'verb: write a comment', 'membuild-community') }}</span>
       </button>
-      <button class="act" :aria-live="copied ? 'polite' : null" @click="share">
+      <button
+        v-if="inCourse"
+        class="act helpful"
+        :class="{ on: post.my_helpful }"
+        :aria-pressed="post.my_helpful"
+        :disabled="isMine"
+        :title="isMine ? t.__('Others can mark your post as helpful', 'membuild-community') : null"
+        @click="toggleHelpful"
+      >
+        <Icon name="arrowUp" :size="20" />
+        <span>{{ t._x('Helpful', 'button: mark a post as helpful', 'membuild-community') }}</span>
+      </button>
+      <button v-else class="act" :aria-live="copied ? 'polite' : null" @click="share">
         <Icon name="share" :size="20" />
         <span>{{ copied ? t.__('Link copied', 'membuild-community') : t._x('Share', 'verb', 'membuild-community') }}</span>
       </button>
@@ -132,8 +153,29 @@ const shareCount = (n) => t.sprintf(/* translators: %s: number of shares, e.g. "
   font-size: 15px;
 }
 
-.act:hover,
+.act:hover:not(:disabled),
 .bar :deep(.like .trigger:hover) {
   background: var(--surface-2);
+}
+
+.act:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.helpful.on {
+  color: #ff6a1a;
+}
+
+.helpful.on :deep(svg) {
+  stroke-width: 3;
+}
+
+.helpful-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #ff6a1a;
+  font-weight: 650;
 }
 </style>

@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.4.2
+Stable tag: 1.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -30,6 +30,11 @@ MemBuild - Community gives your WordPress site its own community app at /communi
 **Classroom**
 
 * Courses, modules and lessons, with videos and downloads
+* A course overview before you start: what's inside, how long it takes, who teaches it and who's taking it
+* Every course card says where you stand: Start, Continue (and which lesson), Completed, or why it's locked; "Continue where you left off" at the top
+* In a lesson: module and lesson number, about how long it takes, its files with type and size; Done moves you to the next lesson, a finished video offers the next one, and finishing a course is celebrated
+* Discussions under every lesson, posted like on the feed, with a Helpful vote so the best posts rise; a Discussion tab for the whole course with its own search; pins to a lesson or a course; and a Best answer
+* A Resources tab with every file in the course
 * Progress tracking and drip schedules
 * Course access: open to everyone, to members from a level up, or to member groups you manage
 * Member groups can follow a WordPress role, so membership and shop plugins that give buyers a role open your courses automatically
@@ -247,6 +252,16 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.5.0 =
+* New: a course overview, like Teachable's or Kajabi's. A course you haven't started, have finished, or can't open yet opens on its first page: description, number of lessons, about how long it takes, files, the instructor, who's taking it, the full outline with locks and opening dates, the newest discussion posts, and one button (Start course, Review, or what unlocks it). A course you're part-way through still opens on your next lesson.
+* Classroom: each course card says where you stand (Start, Continue with the lesson to take, Completed, or what unlocks it), shows who's taking it and how lively its discussion is, and opens on your next lesson. "Continue where you left off" sits at the top, with All / In progress / Completed filters.
+* Lessons say where you are (module, "Lesson 3 of 12", about how many minutes) and list their files with type and size. Done moves you on to the next lesson; when a video ends, the next one starts in five seconds unless you stay. Finishing a course gets a celebration and a one-tap post to the feed.
+* New: lesson discussions. Members post under a lesson the same way as on the feed (photos, GIFs, emoji, reactions, replies). A Helpful vote lifts the most useful posts; staff show as Instructor or Moderator. Posts stay inside the course: only members who can open it see them, and they don't appear in the feed or on profiles.
+* New: a Discussion tab with every post in the course, each tagged with its lesson, newest first, with its own search of posts and replies. Course posts show in the main search too, for members of the course.
+* New: admins and moderators pin posts to a lesson or to a course (three of each). The person who asked, or staff, can mark a reply as the Best answer; it leads the replies and shows under the post.
+* New: a Resources tab with every file in the course. Files in lessons that haven't opened yet show with a lock.
+* Fix: locked lessons in the course outline no longer show as very tall rows.
 
 = 1.4.2 =
 * The emoji button in posts, comments and chats opens the same panel as chat reactions, like Facebook's: above the button with a pointer to it, "Recently used" at the top, search, every emoji by category, and the category in view highlighted. It stays open for several picks. On phones it's a bottom sheet.

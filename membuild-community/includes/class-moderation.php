@@ -410,7 +410,10 @@ class Moderation {
 		if ( ! $row ) {
 			return new \WP_Error( 'mbcom_not_found', __( 'Post not found.', 'membuild-community' ), array( 'status' => 404 ) );
 		}
-		$pinned = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE is_pinned = 1 AND status = %s', $posts, 'published' ) );
+		if ( (int) $row['course_id'] ) {
+			return Discussions::pin( $row, (string) $req['scope'] ); // to its lesson or its course, not the feed
+		}
+		$pinned = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE is_pinned = 1 AND status = %s AND course_id = 0', $posts, 'published' ) );
 		if ( ! $row['is_pinned'] && $pinned >= self::MAX_PINS ) {
 			/* translators: %d: how many posts can be pinned */
 			return new \WP_Error( 'mbcom_pin_limit', sprintf( __( 'Up to %d posts can be pinned. Unpin one first.', 'membuild-community' ), self::MAX_PINS ), array( 'status' => 400 ) );

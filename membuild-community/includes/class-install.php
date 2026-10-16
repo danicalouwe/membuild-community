@@ -150,6 +150,10 @@ class Install {
 			comments_count int(10) unsigned NOT NULL DEFAULT 0,
 			shares_count int(10) unsigned NOT NULL DEFAULT 0,
 			is_pinned tinyint(1) NOT NULL DEFAULT 0,
+			course_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			lesson_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			helpful_count int(10) unsigned NOT NULL DEFAULT 0,
+			best_comment_id bigint(20) unsigned NOT NULL DEFAULT 0,
 			edited_at datetime NULL,
 			created_at datetime NOT NULL,
 			updated_at datetime NOT NULL,
@@ -159,7 +163,9 @@ class Install {
 			KEY status_created (status, created_at),
 			KEY pinned (is_pinned, status, id),
 			KEY user_id (user_id),
-			KEY user_status_created (user_id, status, created_at)
+			KEY user_status_created (user_id, status, created_at),
+			KEY course_status_id (course_id, status, id),
+			KEY lesson_status_id (lesson_id, status, id)
 			) {$charset};
 
 			CREATE TABLE {$media} (

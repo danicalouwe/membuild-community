@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api.js'
 import { renderMarkdown } from '../lib/markdown.js'
@@ -9,6 +9,12 @@ import Icon from '../components/Icon.vue'
 import LessonPlayer from '../components/LessonPlayer.vue'
 import LessonEditor from '../components/LessonEditor.vue'
 import CourseAccess from '../components/CourseAccess.vue'
+import LessonDiscussion from '../components/LessonDiscussion.vue'
+import CourseResources from '../components/CourseResources.vue'
+import CourseComplete from '../components/CourseComplete.vue'
+import CourseOverview from '../components/CourseOverview.vue'
+import { fileSize } from '../lib/files.js'
+import { showToast } from '../lib/toast.js'
 import { lockHint, lockLabel } from '../lib/access.js'
 import { around, t } from '../lib/i18n.js'
 import { useLatest } from '../lib/useLatest.js'
@@ -35,6 +41,22 @@ const allLessons = computed(() => course.value?.modules.flatMap((m) => m.lessons
 const current = computed(() => allLessons.value.find((l) => l.id === lesson.value?.id))
 const nextLocked = computed(() => allLessons.value.find((l) => l.id === lesson.value?.next_id)?.locked)
 const html = computed(() => renderMarkdown(lesson.value?.content || ''))
+// Overview · Lesson · Discussion · Resources, kept in the address so a link can open a tab.
+// Without a lesson in the address, the course shows its overview.
+const tab = computed(() => (['overview', 'discussion', 'resources'].includes(route.query.tab) ? route.query.tab : props.lessonId ? 'lesson' : 'overview'))
+const resumeLesson = () => allLessons.value.find((l) => !l.completed && !l.locked) || allLessons.value[0]
+function setTab(name) {
+  if (name === 'lesson' && !props.lessonId) {
+    const resume = resumeLesson()
+    if (resume) open(resume.id)
+    return
+  }
+  router.replace({ query: { ...route.query, tab: name === 'lesson' || (name === 'overview' && !props.lessonId) ? undefined : name } })
+}
+const moduleDone = (m) => m.lessons.filter((l) => l.completed).length
+const finished = ref(false) // the "You finished" moment
+const upNext = ref(null) // after a video ends: { id, title, seconds }
+let upTimer = null
 const emptyHint = computed(() => around(/* translators: %s: the "Edit course" button label, shown in bold */ t.__('Switch on %s and add your first lesson.', 'membuild-community')))
 
 async function loadCourse() {
@@ -42,9 +64,12 @@ async function loadCourse() {
   try {
     course.value = await api.course(props.courseId)
     editing.value = course.value.can_manage && !!route.query.edit
-    if (!props.lessonId) {
-      // Resume where the member left off: the first open lesson not yet done.
-      const resume = allLessons.value.find((l) => !l.completed && !l.locked) || allLessons.value[0]
+    // A course the member is part-way through picks up where they left off; a new,
+    // finished or locked one opens on its overview (admins editing go straight to a lesson).
+    const c = course.value
+    const midway = c.completed_count > 0 && c.progress < 100 && !c.lock
+    if (!props.lessonId && !route.query.tab && (midway || editing.value)) {
+      const resume = resumeLesson()
       if (resume) router.replace({ name: 'course', params: { courseId: props.courseId, lessonId: resume.id }, query: route.query })
     }
   } catch (err) {
@@ -78,31 +103,84 @@ watch(() => props.courseId, loadCourse, { immediate: true })
 watch(() => props.lessonId, loadLesson, { immediate: true })
 
 function open(id) {
-  router.push({ name: 'course', params: { courseId: props.courseId, lessonId: id }, query: route.query })
+  router.push({ name: 'course', params: { courseId: props.courseId, lessonId: id }, query: { ...route.query, tab: undefined } })
 }
 
 function applyProgress(res) {
   Object.assign(course.value, { progress: res.progress, completed_count: res.completed_count })
 }
 
-async function toggleComplete() {
+/**
+ * Done moves the member on, like finishing a level: a short "Nice work",
+ * then the next lesson. Finishing the last one is the course-complete moment.
+ * `advance` false keeps them on the lesson (a video that just ended counts
+ * itself done, then offers the next lesson with a countdown).
+ */
+async function toggleComplete(advance = true) {
   const l = lesson.value
   const done = !l.completed
+  const before = course.value.progress
   l.completed = done
   if (current.value) current.value.completed = done
   try {
-    applyProgress(done ? await api.completeLesson(l.id) : await api.uncompleteLesson(l.id))
+    const res = done ? await api.completeLesson(l.id) : await api.uncompleteLesson(l.id)
+    applyProgress(res)
     pointsMayHaveChanged()
+    if (!done) return
+    if (res.progress === 100 && before < 100) {
+      finished.value = true
+      return
+    }
+    const next = allLessons.value.find((x) => x.id === l.next_id)
+    if (advance && next && !next.locked) {
+      showToast(t.__('Nice work! On to the next lesson.', 'membuild-community'), '🎉')
+      open(next.id)
+    } else if (advance) {
+      showToast(t.__('Lesson done. Nice work!', 'membuild-community'), '✅')
+    }
   } catch {
     l.completed = !done
     if (current.value) current.value.completed = !done
   }
 }
 
-// An uploaded lesson video counts as done when it plays to the end.
-function onVideoEnded() {
-  if (lesson.value && !lesson.value.completed) toggleComplete()
+// An uploaded lesson video counts as done when it plays to the end, then
+// the next lesson starts in a few seconds unless the member stays.
+async function onVideoEnded() {
+  if (!lesson.value) return
+  const id = lesson.value.id
+  if (!lesson.value.completed) await toggleComplete(false)
+  const next = allLessons.value.find((x) => x.id === lesson.value?.next_id)
+  if (finished.value || !next || next.locked || lesson.value?.id !== id) return
+  upNext.value = { id: next.id, title: next.title, seconds: 5 }
+  clearInterval(upTimer)
+  upTimer = setInterval(() => {
+    if (!upNext.value) return clearInterval(upTimer)
+    if (--upNext.value.seconds <= 0) playNext()
+  }, 1000)
 }
+function playNext() {
+  const id = upNext.value?.id
+  cancelNext()
+  if (id) open(id)
+}
+function cancelNext() {
+  clearInterval(upTimer)
+  upNext.value = null
+}
+watch(() => props.lessonId, cancelNext)
+onBeforeUnmount(cancelNext)
+
+// A new post under the lesson: the counts in the outline and the tab follow.
+function onPosted() {
+  course.value.posts_count = (course.value.posts_count || 0) + 1
+  if (current.value) current.value.posts = (current.value.posts || 0) + 1
+}
+const playNow = (s) => t.sprintf(/* translators: %d: seconds until the next lesson plays */ t.__('Play now (%d)', 'membuild-community'), s)
+const lessonOf = (l) => t.sprintf(/* translators: 1: lesson number, 2: number of lessons in the course */ t.__('Lesson %1$d of %2$d', 'membuild-community'), l.number, l.total)
+const minutesLabel = (n) => t.sprintf(/* translators: %d: minutes */ t._n('%d min', '%d min', n, 'membuild-community'), n)
+const filesLabel = (n) => t.sprintf(/* translators: %d: number of files */ t._n('%d file', '%d files', n, 'membuild-community'), n)
+const postsLabel = (n) => t.sprintf(/* translators: %d: number of posts */ t._n('%d post', '%d posts', n, 'membuild-community'), n)
 
 function toggleModule(id) {
   const s = new Set(collapsed.value)
@@ -232,6 +310,9 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
             <input v-if="editing" class="module-input" :value="m.title" :aria-label="t.__('Module title', 'membuild-community')" @change="renameModule(m, $event.target.value)" />
             <button v-else class="module-toggle" :aria-expanded="!collapsed.has(m.id)" @click="toggleModule(m.id)">
               <span>{{ m.title }}</span>
+              <span v-if="m.lessons.length" class="module-count" :class="{ full: moduleDone(m) === m.lessons.length }">
+                <Icon v-if="moduleDone(m) === m.lessons.length" name="check" :size="12" />{{ moduleDone(m) }}/{{ m.lessons.length }}
+              </span>
               <Icon name="chevronDown" :size="16" :class="{ flip: !collapsed.has(m.id) }" />
             </button>
             <span v-if="editing" class="tools">
@@ -248,7 +329,14 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
                   <Icon v-if="l.locked" name="lock" :size="13" />
                   <svg v-else-if="l.completed" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
                 </span>
-                <span class="ltitle">{{ l.title }}</span>
+                <span class="ltitle">
+                  {{ l.title }}
+                  <span v-if="l.minutes || l.files || l.posts" class="meta">
+                    <span v-if="l.minutes">{{ minutesLabel(l.minutes) }}</span>
+                    <span v-if="l.files" :aria-label="filesLabel(l.files)"><Icon name="paperclip" :size="12" /> {{ l.files }}</span>
+                    <span v-if="l.posts" :aria-label="postsLabel(l.posts)"><Icon name="comment" :size="12" /> {{ l.posts }}</span>
+                  </span>
+                </span>
                 <Icon v-if="l.has_video" name="play" :size="12" class="vid" />
               </button>
               <span v-if="editing" class="tools">
@@ -277,7 +365,31 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
         <Icon name="cap" :size="18" /> {{ contentsCount(course.completed_count, course.lessons_count) }}
       </button>
 
-      <div v-if="lessonError" class="card locked">
+      <nav v-if="!editing && allLessons.length" class="tabs" role="tablist" :aria-label="t.__('Course sections', 'membuild-community')">
+        <button role="tab" :aria-selected="tab === 'overview'" :class="{ on: tab === 'overview' }" @click="setTab('overview')">{{ t.__('Overview', 'membuild-community') }}</button>
+        <button role="tab" :aria-selected="tab === 'lesson'" :class="{ on: tab === 'lesson' }" @click="setTab('lesson')">{{ t.__('Lesson', 'membuild-community') }}</button>
+        <button role="tab" :aria-selected="tab === 'discussion'" :class="{ on: tab === 'discussion' }" @click="setTab('discussion')">
+          {{ t.__('Discussion', 'membuild-community') }} <span v-if="course.posts_count" class="count">{{ course.posts_count }}</span>
+        </button>
+        <button role="tab" :aria-selected="tab === 'resources'" :class="{ on: tab === 'resources' }" @click="setTab('resources')">
+          {{ t.__('Resources', 'membuild-community') }} <span v-if="course.files_count" class="count">{{ course.files_count }}</span>
+        </button>
+      </nav>
+
+      <CourseOverview v-if="!editing && tab === 'overview'" :course="course" @open="open" @tab="setTab" />
+
+      <template v-else-if="!editing && tab === 'discussion'">
+        <div v-if="course.lock" class="card locked">
+          <span class="lock-badge"><Icon name="lock" :size="28" /></span>
+          <h2>{{ lockLabel(course.lock) }}</h2>
+          <p>{{ t.__('The discussion opens with the course.', 'membuild-community') }}</p>
+        </div>
+        <LessonDiscussion v-else :course="course" @posted="onPosted" />
+      </template>
+
+      <CourseResources v-else-if="!editing && tab === 'resources'" :course-id="course.id" @open-lesson="open" />
+
+      <div v-else-if="lessonError" class="card locked">
         <span class="lock-badge"><Icon name="lock" :size="28" /></span>
         <h2>{{ course.lock ? lockLabel(course.lock) : lessonError.title || t.__('Locked lesson', 'membuild-community') }}</h2>
         <p>{{ lessonError.message }}</p>
@@ -293,14 +405,33 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
       </div>
 
       <article v-else-if="lesson" class="card pad">
+        <p class="where">
+          <span v-if="lesson.module_title">{{ lesson.module_title }}</span>
+          <span v-if="lesson.number">{{ lessonOf(lesson) }}</span>
+          <span v-if="lesson.minutes"><Icon name="clock" :size="13" /> {{ minutesLabel(lesson.minutes) }}</span>
+          <span v-if="lesson.completed" class="done-tag"><Icon name="check" :size="13" /> {{ t._x('Done', 'lesson completed', 'membuild-community') }}</span>
+        </p>
         <h2 class="ltitle-main">{{ lesson.title }}</h2>
-        <LessonPlayer v-if="lesson.media" :media="lesson.media" @ended="onVideoEnded" />
+        <div v-if="lesson.media" class="player">
+          <LessonPlayer :media="lesson.media" @ended="onVideoEnded" />
+          <div v-if="upNext" class="up-next" role="status">
+            <small>{{ t.__('Up next', 'membuild-community') }}</small>
+            <strong>{{ upNext.title }}</strong>
+            <div class="up-actions">
+              <button class="btn btn-primary" @click="playNext"><Icon name="play" :size="16" /> {{ playNow(upNext.seconds) }}</button>
+              <button class="btn btn-ghost" @click="cancelNext">{{ t.__('Stay here', 'membuild-community') }}</button>
+            </div>
+          </div>
+        </div>
         <div v-if="lesson.content" class="md" v-html="html" />
 
         <section v-if="lesson.resources.length" class="downloads">
-          <h3>{{ t.__('Downloads', 'membuild-community') }}</h3>
+          <h3><Icon name="paperclip" :size="16" /> {{ t.__('Files for this lesson', 'membuild-community') }}</h3>
           <a v-for="r in lesson.resources" :key="r.media_id" :href="r.url" class="download" target="_blank" rel="noopener" download>
-            <Icon name="share" :size="16" class="dl-icon" /> {{ r.name }}
+            <span class="type" :data-ext="r.ext">{{ r.ext || t.__('File', 'membuild-community') }}</span>
+            <span class="dname">{{ r.name }}</span>
+            <span v-if="r.size" class="dsize">{{ fileSize(r.size) }}</span>
+            <Icon name="download" :size="18" class="dl-icon" />
           </a>
         </section>
 
@@ -315,6 +446,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
           </button>
         </footer>
       </article>
+      <LessonDiscussion v-if="lesson && !editing && tab === 'lesson' && !lessonError" :key="lesson.id" class="lesson-talk" :course="course" :lesson="lesson" @posted="onPosted" />
 
       <div v-else-if="!allLessons.length" class="card pad empty-course">
         <h2>{{ t.__('No lessons yet', 'membuild-community') }}</h2>
@@ -322,6 +454,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
         <p v-else>{{ t.__('Lessons are on their way. Check back soon.', 'membuild-community') }}</p>
       </div>
     </main>
+    <CourseComplete v-if="finished" :course="course" @close="finished = false" />
   </div>
 </template>
 
@@ -600,6 +733,9 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
 }
 
 .downloads h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin: 0 0 8px;
   font-size: 15px;
 }
@@ -607,7 +743,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
 .download {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   padding: 10px 12px;
   margin-bottom: 6px;
   border-radius: 10px;
@@ -617,9 +753,196 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
   font-size: 14px;
 }
 
+.download:hover {
+  background: color-mix(in srgb, var(--surface-2) 85%, var(--text) 8%);
+}
+
+.dname {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dsize {
+  flex: none;
+  color: var(--text-3);
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.type {
+  display: grid;
+  place-items: center;
+  flex: none;
+  min-width: 42px;
+  height: 30px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: #6b7280;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.type[data-ext='PDF'] {
+  background: #e5484d;
+}
+
+.type[data-ext='DOC'],
+.type[data-ext='DOCX'] {
+  background: #2f6fe4;
+}
+
+.type[data-ext='XLS'],
+.type[data-ext='XLSX'],
+.type[data-ext='CSV'] {
+  background: #2fb36b;
+}
+
+.type[data-ext='PPT'],
+.type[data-ext='PPTX'] {
+  background: #f07b16;
+}
+
 .dl-icon {
-  transform: rotate(90deg);
+  flex: none;
   color: var(--accent-text);
+}
+
+/* Where am I: module, lesson number, time. */
+.where {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 0 0 6px;
+  color: var(--text-3);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.where span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.where span + span::before {
+  content: '·';
+  margin-right: 8px;
+}
+
+.where .done-tag {
+  color: #2fb36b;
+}
+
+.player {
+  position: relative;
+}
+
+.up-next {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgb(0 0 0 / 78%);
+  color: #fff;
+  text-align: center;
+}
+
+.up-next small {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+.up-next strong {
+  font-size: 20px;
+}
+
+.up-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.up-actions .btn-ghost {
+  color: #fff;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.tabs button {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  border-radius: 9px;
+  font-weight: 650;
+  color: var(--text-2);
+}
+
+.tabs button.on {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.tabs .count {
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 12px;
+}
+
+.lesson-talk {
+  margin-top: 16px;
+}
+
+.module-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  margin-right: 6px;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--text-3);
+}
+
+.module-count.full {
+  color: #2fb36b;
+}
+
+.meta {
+  display: flex;
+  gap: 10px;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
 }
 
 .nav {
@@ -654,7 +977,8 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
   color: #fff;
 }
 
-.locked,
+/* The big locked card (not the lock mark in the outline, which shares the class). */
+.card.locked,
 .empty-course {
   text-align: center;
   padding: 48px 24px;
@@ -670,11 +994,11 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
   color: var(--text-2);
 }
 
-.locked h2 {
+.card.locked h2 {
   margin: 14px 0 6px;
 }
 
-.locked p,
+.card.locked p,
 .empty-course p {
   margin: 0;
   color: var(--text-2);
@@ -706,6 +1030,16 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
 
   .outline.open {
     display: block;
+  }
+
+  .tabs {
+    margin: 0 12px 10px;
+    gap: 2px;
+  }
+
+  .tabs button {
+    gap: 4px;
+    font-size: 13.5px;
   }
 
   .contents-btn {

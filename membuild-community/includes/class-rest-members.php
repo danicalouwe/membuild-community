@@ -161,7 +161,7 @@ class Rest_Members {
 			'level_progress' => $next ? (int) round( 100 * ( $stats['points'] - $floor ) / max( 1, $next - $floor ) ) : 100,
 			'joined_at'    => Helpers::iso( $user->user_registered ),
 			'role'         => self::role( $id ),
-			'posts_count'  => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE user_id = %d AND status = 'published'", Install::table( 'posts' ), $id ) ),
+			'posts_count'  => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE user_id = %d AND status = 'published' AND course_id = 0", Install::table( 'posts' ), $id ) ),
 			'is_me'        => $id === $me,
 			'can_message'  => $id !== $me && Settings::can_message( $me, array( $id ) ) && ! Blocks::hides( $id ),
 			'blocked'      => Blocks::i_blocked( $id ),

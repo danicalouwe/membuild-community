@@ -138,7 +138,8 @@ class Rest_Feed {
 		global $wpdb;
 		$posts = Install::table( 'posts' );
 		// $where only ever holds fixed SQL with placeholders; the values go in $args, in order.
-		$where = "status = 'published'";
+		// Posts inside courses stay in their course: never in the feed or on profiles.
+		$where = "status = 'published' AND course_id = 0";
 		$args  = array( $posts );
 		if ( in_array( $req['type'], array( 'post', 'reel' ), true ) ) {
 			$where .= ' AND type = %s';
@@ -234,11 +235,11 @@ class Rest_Feed {
 		global $wpdb;
 		if ( in_array( $req['type'], array( 'post', 'reel' ), true ) ) {
 			$count = (int) $wpdb->get_var(
-				$wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status = 'published' AND id > %d AND type = %s", Install::table( 'posts' ), (int) $req['since'], $req['type'] )
+				$wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status = 'published' AND course_id = 0 AND id > %d AND type = %s", Install::table( 'posts' ), (int) $req['since'], $req['type'] )
 			);
 		} else {
 			$count = (int) $wpdb->get_var(
-				$wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status = 'published' AND id > %d", Install::table( 'posts' ), (int) $req['since'] )
+				$wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status = 'published' AND course_id = 0 AND id > %d", Install::table( 'posts' ), (int) $req['since'] )
 			);
 		}
 		return array( 'count' => $count );
@@ -260,7 +261,17 @@ class Rest_Feed {
 		if ( $blocked ) {
 			return $blocked;
 		}
-		if ( ! Settings::can_post( $user_id ) ) {
+		// A post under a lesson or in a course's Discussion tab. Course discussions are for
+		// questions, so "only staff can post" (a feed setting) doesn't apply there.
+		$place = array( 0, 0 );
+		if ( ! empty( $req['lesson_id'] ) || ! empty( $req['course_id'] ) ) {
+			$place = Discussions::place( (int) $req['lesson_id'], (int) $req['course_id'] );
+			if ( is_wp_error( $place ) ) {
+				return $place;
+			}
+			$type = 'post';
+		}
+		if ( ! $place[0] && ! Settings::can_post( $user_id ) ) {
 			return new \WP_Error( 'mbcom_posting_staff', __( 'Only admins and moderators can post here.', 'membuild-community' ), array( 'status' => 403 ) );
 		}
 		$slow = Helpers::throttle( 'post', 10, 10 * MINUTE_IN_SECONDS );
@@ -301,6 +312,8 @@ class Rest_Feed {
 				'content'    => $content,
 				'background' => 'reel' === $type ? null : $background,
 				'feeling'    => $feeling,
+				'course_id'  => $place[0],
+				'lesson_id'  => $place[1],
 				'created_at' => $now,
 				'updated_at' => $now,
 			)
@@ -525,6 +538,48 @@ class Rest_Feed {
 
 	/* ---------- Formatting ---------- */
 
+	/**
+	 * What posts in a course carry on top of a normal post: where they were
+	 * posted, "Helpful" votes, the best answer, the kind of pin, and whether the
+	 * author is an admin ("Instructor") or a moderator. Three queries for the whole page.
+	 *
+	 * @return array<int,array> Extra fields by post ID (course posts only).
+	 */
+	private static function course_details( array $rows ) {
+		global $wpdb;
+		$rows = array_filter( $rows, fn( $r ) => (int) ( $r['course_id'] ?? 0 ) );
+		if ( ! $rows ) {
+			return array();
+		}
+		$ids     = array_map( 'intval', wp_list_pluck( $rows, 'id' ) );
+		$lessons = array_values( array_unique( array_filter( array_map( 'intval', wp_list_pluck( $rows, 'lesson_id' ) ) ) ) );
+		$courses = array_values( array_unique( array_map( 'intval', wp_list_pluck( $rows, 'course_id' ) ) ) );
+		$titles  = $lessons ? $wpdb->get_results( $wpdb->prepare( 'SELECT id, title FROM %i WHERE id IN (' . implode( ',', array_fill( 0, count( $lessons ), '%d' ) ) . ')', array_merge( array( Install::table( 'lessons' ) ), $lessons ) ), OBJECT_K ) : array();
+		$names   = $wpdb->get_results( $wpdb->prepare( 'SELECT id, title FROM %i WHERE id IN (' . implode( ',', array_fill( 0, count( $courses ), '%d' ) ) . ')', array_merge( array( Install::table( 'courses' ) ), $courses ) ), OBJECT_K );
+		$voted   = array_flip(
+			array_map(
+				'intval',
+				$wpdb->get_col( $wpdb->prepare( "SELECT object_id FROM %i WHERE object_type = 'helpful' AND user_id = %d AND object_id IN (" . implode( ',', array_fill( 0, count( $ids ), '%d' ) ) . ')', array_merge( array( Install::table( 'reactions' ), get_current_user_id() ), $ids ) ) )
+			)
+		);
+		$out = array();
+		foreach ( $rows as $row ) {
+			$id         = (int) $row['id'];
+			$lesson     = (int) $row['lesson_id'];
+			$out[ $id ] = array(
+				'course'          => array( 'id' => (int) $row['course_id'], 'title' => $names[ $row['course_id'] ]->title ?? '' ),
+				'lesson'          => $lesson && isset( $titles[ $lesson ] ) ? array( 'id' => $lesson, 'title' => $titles[ $lesson ]->title ) : null,
+				'helpful_count'   => (int) $row['helpful_count'],
+				'my_helpful'      => isset( $voted[ $id ] ),
+				'best_comment_id' => (int) $row['best_comment_id'] ?: null,
+				'can_choose_best' => Discussions::can_choose( $row ),
+				'pin'             => array( 0 => null, 1 => 'lesson', 2 => 'course' )[ (int) $row['is_pinned'] ] ?? null,
+				'staff_role'      => Helpers::staff_role( (int) $row['user_id'] ),
+			);
+		}
+		return $out;
+	}
+
 	/** A published post, or null; posts by someone hidden from the current member (a block) count as missing. */
 	public static function row( $id ) {
 		global $wpdb;
@@ -532,7 +587,10 @@ class Rest_Feed {
 			$wpdb->prepare( "SELECT * FROM %i WHERE id = %d AND status = 'published'", Install::table( 'posts' ), $id ),
 			ARRAY_A
 		);
-		return $row && ! Blocks::hides( $row['user_id'] ) ? $row : null;
+		if ( ! $row || Blocks::hides( $row['user_id'] ) ) {
+			return null;
+		}
+		return (int) $row['course_id'] && ! Discussions::can_read( $row ) ? null : $row;
 	}
 
 	private static function find_post( $id ) {
@@ -544,7 +602,7 @@ class Rest_Feed {
 	 * Formats a page of posts with a fixed number of queries, whatever the page size:
 	 * authors, media, my reactions and reaction breakdowns are each fetched once.
 	 */
-	private static function format_posts( array $rows ) {
+	public static function format_posts( array $rows ) {
 		global $wpdb;
 		if ( ! $rows ) {
 			return array();
@@ -563,11 +621,12 @@ class Rest_Feed {
 		foreach ( $wpdb->get_results( $wpdb->prepare( "SELECT object_id, type, COUNT(*) AS n FROM %i WHERE object_type = 'post' AND object_id IN (" . implode( ',', array_fill( 0, count( $ids ), '%d' ) ) . ') GROUP BY object_id, type ORDER BY n DESC', array_merge( array( $reacts ), $ids ) ), ARRAY_A ) as $r ) {
 			$summary[ (int) $r['object_id'] ][] = $r['type'];
 		}
+		$course = self::course_details( $rows );
 
 		return array_map(
-			function ( $row ) use ( $users, $media, $mine, $summary, $me, $preview ) {
+			function ( $row ) use ( $users, $media, $mine, $summary, $me, $preview, $course ) {
 				$id = (int) $row['id'];
-				return array(
+				return ( $course[ $id ] ?? array() ) + array(
 					'id'              => $id,
 					'type'            => $row['type'],
 					'content'         => $row['content'],

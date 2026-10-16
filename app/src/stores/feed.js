@@ -43,18 +43,46 @@ export function memberList(userId) {
   return lists[key]
 }
 
+/**
+ * A course discussion: one lesson's posts, or a whole course's (its Discussion
+ * tab). Kept with the other lists, so edits, deletes, reactions and new posts
+ * reach it too. `place` is { course, lesson }; params are { sort, q }.
+ */
+const DISCUSSION_LISTS = 12
+const discussionKeys = []
+export function discussionList(place, params) {
+  const key = `talk-${place.course}-${place.lesson || 0}-${params.sort}-${params.q || ''}`
+  if (!lists[key]) {
+    lists[key] = createList(params)
+    lists[key].place = place
+  }
+  const at = discussionKeys.indexOf(key)
+  if (at !== -1) discussionKeys.splice(at, 1)
+  discussionKeys.push(key)
+  while (discussionKeys.length > DISCUSSION_LISTS) delete lists[discussionKeys.shift()]
+  return lists[key]
+}
+
+const fetchPage = (list, params) =>
+  list.place
+    ? list.place.lesson
+      ? api.lessonPosts(list.place.lesson, { sort: params.sort, page: params.page })
+      : api.coursePosts(list.place.course, { sort: params.sort, q: params.q || undefined, page: params.page })
+    : api.feed(params)
+const paged = (list) => !!list.place || list.params.sort === 'hot'
+
 export async function loadMore(list) {
   if (list.loading || !list.hasMore) return
   list.loading = true
   list.error = null
   try {
-    const res = await api.feed({ ...list.params, cursor: list.cursor || undefined, page: list.page })
+    const res = await fetchPage(list, { ...list.params, cursor: list.cursor || undefined, page: list.page })
     if (res.pinned && !list.cursor && list.page <= 1) list.pinned = res.pinned
     const seen = new Set(list.items.map((p) => p.id))
     list.items.push(...res.items.filter((p) => !seen.has(p.id)))
     list.cursor = res.next_cursor || 0
     list.page = res.next_page || list.page
-    list.hasMore = list.params.sort === 'hot' ? !!res.next_page : !!res.next_cursor
+    list.hasMore = paged(list) ? !!res.next_page : !!res.next_cursor
     list.loaded = true
   } catch (err) {
     list.error = err.message
@@ -71,11 +99,12 @@ export async function refresh(list) {
   if (list.loading) return false
   list.loading = true
   try {
-    const res = await api.feed({ ...list.params })
+    const res = await fetchPage(list, { ...list.params, page: 1 })
     list.items = res.items
+    if (res.pinned) list.pinned = res.pinned
     list.cursor = res.next_cursor || 0
     list.page = res.next_page || 1
-    list.hasMore = list.params.sort === 'hot' ? !!res.next_page : !!res.next_cursor
+    list.hasMore = paged(list) ? !!res.next_page : !!res.next_cursor
     list.loaded = true
     list.error = null
     return true
@@ -97,6 +126,14 @@ export function updatePost(id, patch) {
 }
 
 export function insertPost(post) {
+  if (post.course) {
+    // A course post goes to the top of its lesson and of its course's Discussion tab (not search results).
+    for (const list of Object.values(lists)) {
+      const p = list.place
+      if (p && !list.params.q && p.course === post.course.id && (!p.lesson || p.lesson === post.lesson?.id)) list.items.unshift(post)
+    }
+    return
+  }
   ;(post.type === 'reel' ? lists.reels : lists.latest).items.unshift(post)
 }
 
@@ -154,6 +191,37 @@ export async function setReaction(post, type) {
     updatePost(post.id, res)
   } catch {
     updatePost(post.id, before)
+  }
+}
+
+/**
+ * Pins in a course: 'lesson' (top of its lesson), 'course' (top of the
+ * Discussion tab and of its lesson) or null. Moves every copy to match.
+ */
+export function setCoursePin(post, pin) {
+  for (const list of Object.values(lists)) {
+    if (!list.place || list.params.q) continue
+    const copy = list.items.find((p) => p.id === post.id) || list.pinned.find((p) => p.id === post.id)
+    if (!copy) continue
+    Object.assign(copy, { pin, pinned: !!pin })
+    const pinnedHere = list.place.lesson ? !!pin : pin === 'course'
+    list.items = list.items.filter((p) => p.id !== post.id)
+    list.pinned = list.pinned.filter((p) => p.id !== post.id)
+    if (pinnedHere) list.pinned.unshift(copy)
+    else list.items.unshift(copy)
+  }
+  Object.assign(post, { pin, pinned: !!pin })
+}
+
+/** "Helpful" on a course post: shows at once, then the server's count. */
+export async function setHelpful(post, on) {
+  const before = { my_helpful: post.my_helpful, helpful_count: post.helpful_count }
+  updatePost(post.id, { my_helpful: on, helpful_count: Math.max(0, post.helpful_count + (on ? 1 : -1)) })
+  try {
+    updatePost(post.id, await (on ? api.helpful(post.id) : api.unhelpful(post.id)))
+  } catch (err) {
+    updatePost(post.id, before)
+    throw err
   }
 }
 

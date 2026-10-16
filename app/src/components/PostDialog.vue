@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { timeAgo } from '../lib/time.js'
 import Avatar from './Avatar.vue'
+import Icon from './Icon.vue'
 import BaseDialog from './BaseDialog.vue'
 import RichText from './RichText.vue'
 import MediaGrid from './MediaGrid.vue'
@@ -35,6 +36,9 @@ watch(() => route.path, () => emit('close'))
         <div class="who">
           <RouterLink v-if="post.author" :to="{ name: 'member', params: { id: post.author.id } }" class="author-link"><strong>{{ post.author.name }}</strong></RouterLink>
           <span>{{ timeAgo(post.created_at) }}</span>
+          <RouterLink v-if="post.course" class="place" :to="post.lesson ? { name: 'course', params: { courseId: post.course.id, lessonId: post.lesson.id } } : { name: 'course', params: { courseId: post.course.id }, query: { tab: 'discussion' } }">
+            <Icon name="cap" :size="13" /> {{ post.lesson ? post.lesson.title : post.course.title }}
+          </RouterLink>
         </div>
       </div>
       <RichText v-if="post.content" class="text" :text="post.content" />
@@ -77,6 +81,16 @@ watch(() => route.path, () => emit('close'))
 
 .text {
   padding: 0 16px 10px;
+}
+
+.place {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 3px;
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--accent-text);
 }
 
 .actions {
