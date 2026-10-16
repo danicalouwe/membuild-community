@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.3.1
+Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -40,6 +40,11 @@ MemBuild - Community gives your WordPress site its own community app at /communi
 * A list and a map of meetup spots, partners with a member perk, and venues
 * "Near me", directions in the phone's own maps app, and who in the community goes there
 * Admins and moderators add places; members suggest them for review
+
+**GIFs** (optional, with a free GIPHY API key)
+
+* A GIF button in posts, comments and chats, with GIPHY's trending GIFs and search
+* GIFs play as light, looping video, only while on screen
 
 **Search**
 
@@ -183,6 +188,11 @@ The plugin works without any outside service. These are only contacted when you 
 * Nominatim usage policy: https://operations.osmfoundation.org/policies/nominatim/
 * Privacy: https://osmfoundation.org/wiki/Privacy_Policy
 
+**GIPHY** (only if you paste a GIPHY API key in Community settings → GIFs)
+* What is sent: when a member opens the GIF picker, their browser asks GIPHY (`api.giphy.com`) for trending GIFs or for what they type in the search, with your site's GIPHY key. GIFs then load from GIPHY's servers (`media.giphy.com`) for everyone who sees them. Your site stores only the address of a chosen GIF, never a copy.
+* Terms: GIPHY’s API terms, linked from https://developers.giphy.com/docs/api/
+* Privacy: https://support.giphy.com/hc/en-us/articles/360032872931-GIPHY-Privacy-Policy
+
 **GitHub** (checking for plugin updates)
 * What is sent: twice a day your server asks `https://api.github.com/repos/danicalouwe/membuild-community/releases/latest` for the newest version, and downloads its zip from github.com when you update. Nothing about your site is sent. Turn it off with the `membuild_community/github_updates` filter.
 * Terms: https://docs.github.com/site-policy/github-terms/github-terms-of-service
@@ -227,6 +237,11 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.4.0 =
+* New: GIFs from GIPHY. Paste a free GIPHY API key in Community settings → GIFs and a GIF button appears in posts, comments and chats: trending GIFs, search as you type, tap to add. Searches go from members' browsers to GIPHY, and nothing is copied to your site.
+* New: GIFs play like on Facebook, as GIPHY's silent looping video version (often a tenth of the GIF's size), only while on screen. With "reduce motion" on, they wait for a tap.
+* Fix: rate limits (posts, comments, chats, GIFs, place suggestions) now hold when many requests arrive at the same moment; before, a burst could slip past them.
 
 = 1.3.1 =
 * Fix: opening a place from a link or from search now flies the map to it, instead of staying on the world view.

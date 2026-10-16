@@ -1,15 +1,18 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import GifMedia from './GifMedia.vue'
 import { api } from '../api.js'
 import { cfg } from '../config.js'
 import { watchChat, pulseNow } from '../stores/messages.js'
-import { startAttachment } from '../lib/attachments.js'
+import { startAttachment, startGif } from '../lib/attachments.js'
+import { giphyOn } from '../lib/giphy.js'
 import { REACTIONS, emojiFor } from '../lib/reactions.js'
 import { BACKGROUNDS } from '../lib/postStyle.js'
 import Avatar from './Avatar.vue'
 import Icon from './Icon.vue'
 import RichText from './RichText.vue'
 import EmojiPicker from './EmojiPicker.vue'
+const GifPicker = defineAsyncComponent(() => import('./GifPicker.vue'))
 import { listNames, locale, t } from '../lib/i18n.js'
 import { useLatest } from '../lib/useLatest.js'
 import { useMenu } from '../lib/useMenu.js'
@@ -197,6 +200,12 @@ function pickPhotos(e) {
     if (file.type.startsWith('image/')) photos.value.push(startAttachment(file))
   }
   e.target.value = ''
+}
+
+const showGifs = ref(false)
+function addGif(gif) {
+  if (photos.value.length < 10) photos.value.push(startGif(gif))
+  nextTick(() => input.value?.focus())
 }
 
 async function send() {
@@ -430,7 +439,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
                 <div v-if="row.m.unsent" class="bubble unsent">{{ row.m.mine ? t.__('You unsent a message', 'membuild-community') : t.__('Message unsent', 'membuild-community') }}</div>
                 <div v-else class="bubble-wrap">
                   <div v-if="row.m.media.length" class="photos" :class="`n${Math.min(row.m.media.length, 3)}`">
-                    <a v-for="(p, i) in row.m.media" :key="i" :href="p.url" target="_blank" rel="noopener"><img :src="p.url" alt="" loading="lazy" /></a>
+                    <a v-for="(p, i) in row.m.media" :key="i" :href="p.url" target="_blank" rel="noopener"><GifMedia v-if="p.mp4" :src="p.url" :mp4="p.mp4" :width="p.width || 0" :height="p.height || 0" /><img v-else :src="p.url" alt="" loading="lazy" /></a>
                   </div>
                   <div v-if="row.m.content" class="bubble"><RichText :text="row.m.content" /></div>
                   <span v-if="row.m.reactions.length" class="reacts">
@@ -487,6 +496,8 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
       <div class="bar">
         <button type="button" class="icon tool" :aria-label="t.__('Add photo', 'membuild-community')" @click="photoInput.click()"><Icon name="image" :size="22" /></button>
         <input ref="photoInput" class="sr-only" type="file" accept="image/*" multiple @change="pickPhotos" />
+        <button v-if="giphyOn()" type="button" class="icon tool" :aria-label="t.__('Add a GIF', 'membuild-community')" @click="showGifs = true"><span class="gif-badge" aria-hidden="true">GIF</span></button>
+        <GifPicker v-if="showGifs" @pick="addGif" @close="showGifs = false" />
         <div class="field">
           <textarea ref="input" v-auto-grow v-model="draft" rows="1" :placeholder="t.__('Aa', 'membuild-community')" :aria-label="t.__('Write a message', 'membuild-community')" @input="onInput" @keydown="onKey" />
           <div class="emoji-wrap">

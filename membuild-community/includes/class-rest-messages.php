@@ -496,7 +496,7 @@ class Rest_Messages {
 			$row = Media::get( $mid );
 			if ( $row && (int) $row['user_id'] === (int) $user_id && null === $row['post_id'] && 'image' === $row['kind'] ) {
 				$wpdb->update( Install::table( 'media' ), array( 'post_id' => 0 ), array( 'id' => $mid ) );
-				$out[] = array( 'id' => $mid, 'url' => Files::protect( $mid, 'message', $thread_id ), 'width' => (int) $row['width'], 'height' => (int) $row['height'] );
+				$out[] = array_filter( array( 'id' => $mid, 'url' => Files::protect( $mid, 'message', $thread_id ), 'width' => (int) $row['width'], 'height' => (int) $row['height'], 'mp4' => Giphy::mp4( $row ) ) );
 			}
 		}
 		return $out;

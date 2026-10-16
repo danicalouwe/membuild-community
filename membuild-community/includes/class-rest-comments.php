@@ -150,7 +150,7 @@ class Rest_Comments {
 		$image = null;
 		if ( ! empty( $req['media_id'] ) ) {
 			$media = Install::table( 'media' );
-			$image = $wpdb->get_row( $wpdb->prepare( "SELECT id, url, width, height FROM %i WHERE id = %d AND user_id = %d AND kind = 'image' AND post_id IS NULL", $media, (int) $req['media_id'], get_current_user_id() ), ARRAY_A );
+			$image = $wpdb->get_row( $wpdb->prepare( "SELECT id, url, width, height, meta FROM %i WHERE id = %d AND user_id = %d AND kind = 'image' AND post_id IS NULL", $media, (int) $req['media_id'], get_current_user_id() ), ARRAY_A );
 			if ( ! $image ) {
 				return new \WP_Error( 'mbcom_bad_media', __( 'Add the photo again, please.', 'membuild-community' ), array( 'status' => 400 ) );
 			}
@@ -189,6 +189,7 @@ class Rest_Comments {
 				'image_url'        => $image['url'] ?? null,
 				'image_w'          => (int) ( $image['width'] ?? 0 ),
 				'image_h'          => (int) ( $image['height'] ?? 0 ),
+				'image_mp4'        => $image ? Giphy::mp4( $image ) : null,
 				'created_at'       => Helpers::now(),
 			)
 		);
@@ -415,7 +416,7 @@ class Rest_Comments {
 						'post_id'         => (int) $row['post_id'],
 						'parent_id'       => (int) $row['parent_id'],
 						'content'         => $row['content'],
-						'image'           => $row['image_url'] ? array( 'url' => $row['image_url'], 'width' => (int) $row['image_w'], 'height' => (int) $row['image_h'] ) : null,
+						'image'           => $row['image_url'] ? array_filter( array( 'url' => $row['image_url'], 'width' => (int) $row['image_w'], 'height' => (int) $row['image_h'], 'mp4' => $row['image_mp4'] ?? null ) ) : null,
 						'created_at'      => Helpers::iso( $row['created_at'] ),
 						'author'          => $users[ (int) $row['user_id'] ] ?? null,
 						'reply_to'        => $users[ (int) $row['reply_to_user_id'] ] ?? null,

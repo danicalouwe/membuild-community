@@ -223,3 +223,18 @@ video {
 [role='dialog']:focus {
   outline: none;
 }
+
+/* The "GIF" button in the composers, the way Facebook draws it. */
+.gif-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 18px;
+  padding: 0 3px;
+  border: 2px solid currentColor;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}

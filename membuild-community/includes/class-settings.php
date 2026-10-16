@@ -61,6 +61,7 @@ class Settings {
 			'level_names' => array_fill( 0, 9, '' ),
 			'email'       => array(), // see Email::defaults()
 			'video'       => array(), // see Bunny::defaults()
+			'gifs'        => array( 'key' => '', 'rating' => 'pg' ), // GIPHY; no key, no GIF button (see Giphy)
 			'delete_data' => false, // uninstall.php removes everything only when this is on
 		);
 	}
@@ -165,6 +166,7 @@ class Settings {
 			'restriction' => Moderation::my_restriction(),
 			'video'       => Bunny::enabled() ? 'bunny' : 'local',
 			'mapTiles'    => self::feature( 'places' ) ? Rest_Places::tiles() : null,
+			'giphy'       => Giphy::config(), // a browser key: GIPHY's terms have members' browsers search them directly
 		);
 	}
 
@@ -360,6 +362,13 @@ class Settings {
 				return $email;
 			}
 			$s['email'] = $email;
+		}
+		if ( isset( $in['gifs'] ) ) {
+			$gifs = Giphy::clean_settings( $in['gifs'], (array) $s['gifs'] );
+			if ( is_wp_error( $gifs ) ) {
+				return $gifs;
+			}
+			$s['gifs'] = $gifs;
 		}
 
 		update_option( self::OPTION, $s, true );

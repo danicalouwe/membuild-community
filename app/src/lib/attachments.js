@@ -132,3 +132,41 @@ async function run(item, file, signal, compress, bunny) {
   item.status = 'done'
   item.stage = t._x('Ready', 'upload stage', 'membuild-community')
 }
+
+/**
+ * A GIF picked from GIPHY, as an attachment like a photo: it becomes a media
+ * row of the member's own that points at GIPHY's address (nothing is copied).
+ * Same shape as startAttachment(), so composers treat both the same.
+ */
+export function startGif(gif) {
+  const item = reactive({
+    key: `local-${++localId}`,
+    kind: 'image',
+    previewUrl: gif.preview,
+    poster: null,
+    width: gif.pick.width,
+    height: gif.pick.height,
+    status: 'working',
+    stage: t._x('Adding', 'upload stage', 'membuild-community'),
+    name: gif.title || 'GIF',
+    progress: 1,
+    media: null,
+    posterId: null,
+    error: null,
+    cancel: () => {
+      if (item.media?.id) request(`/media/${item.media.id}`, { method: 'DELETE' }).catch(() => {})
+    },
+    release: () => {},
+  })
+  item.promise = request('/media/gif', { method: 'POST', body: { id: gif.id, url: gif.pick.url, mp4: gif.pick.mp4, still: gif.pick.still, width: gif.pick.width, height: gif.pick.height, title: gif.title } })
+    .then((media) => {
+      item.media = media
+      item.previewUrl = media.url
+      item.status = 'done'
+    })
+    .catch((err) => {
+      item.status = 'error'
+      item.error = err.message
+    })
+  return item
+}

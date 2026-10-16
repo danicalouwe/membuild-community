@@ -36,6 +36,7 @@ A free community for WordPress, as simple as Skool and as familiar as Facebook. 
 - **Messages:** one-to-one and group chats, encrypted before they're saved. Admins see counts, never the text.
 - **Places (optional):** a map of meetup spots, partners with member perks, and venues. Off until you switch it on.
 - **Search:** members, posts, comments, lessons and places, from one box.
+- **GIFs (optional):** a GIF button with GIPHY's search in posts, comments and chats, once you add a free GIPHY key.
 - **Moderation:** reports, mutes, bans and blocking.
 - **Your login and sign-up pages,** in the community's colors.
 - **Installable as an app** on phones, with your logo as the icon.

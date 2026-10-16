@@ -65,20 +65,32 @@ class Helpers {
 	}
 
 	/**
-	 * A simple per-member rate limit: true while under $max actions per $window seconds.
+	 * A per-member rate limit: true while under $max actions per $window seconds.
 	 * Admins are never limited.
+	 *
+	 * The count goes up in one database statement (insert, or add one), so many
+	 * requests at the same moment can't all read the same count and slip past
+	 * the limit, as a read-then-save would let them. Each window has its own
+	 * row, named with the time it ends; cleanup_rate_limits() clears old ones.
 	 */
 	public static function rate_ok( $action, $max, $window ) {
+		global $wpdb;
 		if ( self::can_manage() ) {
 			return true;
 		}
-		$key   = 'mbcom_rl_' . $action . '_' . get_current_user_id();
-		$count = (int) get_transient( $key );
-		if ( $count >= $max ) {
-			return false;
-		}
-		set_transient( $key, $count + 1, $window );
-		return true;
+		$window = max( 1, (int) $window );
+		$ends   = ( (int) floor( time() / $window ) + 1 ) * $window;
+		$name   = 'mbcom_rl_' . $action . '_' . get_current_user_id() . '_' . $ends;
+		$wpdb->query( $wpdb->prepare( "INSERT INTO %i (option_name, option_value, autoload) VALUES (%s, '1', 'no') ON DUPLICATE KEY UPDATE option_value = option_value + 1", $wpdb->options, $name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$count = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT option_value FROM %i WHERE option_name = %s', $wpdb->options, $name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		return $count <= (int) $max;
+	}
+
+	/** Hourly: rate-limit counts whose window has ended. */
+	public static function cleanup_rate_limits() {
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE option_name LIKE %s AND CAST(SUBSTRING_INDEX(option_name, '_', -1) AS UNSIGNED) < %d LIMIT 5000", $wpdb->options, $wpdb->esc_like( 'mbcom_rl_' ) . '%', time() ) );
 	}
 
 	/**

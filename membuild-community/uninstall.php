@@ -25,6 +25,7 @@ function mbcom_uninstall_site() {
 	}
 
 	delete_option( 'mbcom_usage' ); // the anonymous report's ID and answers; a reinstall starts fresh
+	$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE option_name LIKE %s', $wpdb->options, $wpdb->esc_like( 'mbcom_rl_' ) . '%' ) ); // rate-limit counts: temporary either way
 
 	$mbcom_settings = get_option( 'mbcom_settings', array() );
 	if ( empty( $mbcom_settings['delete_data'] ) ) {

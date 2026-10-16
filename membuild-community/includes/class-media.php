@@ -304,6 +304,8 @@ class Media {
 			'width'    => (int) $row['width'],
 			'height'   => (int) $row['height'],
 			'duration' => (float) $row['duration'],
+			'via'      => ! empty( $meta['giphy'] ) ? 'giphy' : null, // shown as "GIPHY" on the GIF, as their terms ask
+			'mp4'      => Giphy::mp4( $row ), // GIPHY GIFs play as this silent looping video
 		);
 	}
 

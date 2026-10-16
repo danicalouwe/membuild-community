@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
+import GifMedia from './GifMedia.vue'
 import FeedVideo from './FeedVideo.vue'
 import FeedEmbed from './FeedEmbed.vue'
 import Icon from './Icon.vue'
@@ -41,12 +42,16 @@ const position = (n, total) => t.sprintf(/* translators: 1: number of the photo 
   <FeedEmbed v-else-if="embed" :media="embed" />
 
   <button v-else-if="images.length === 1" class="single" :style="{ aspectRatio: singleRatio }" :aria-label="t.__('Open photo', 'membuild-community')" @click="viewer = 0">
-    <img :src="images[0].url" :width="images[0].width" :height="images[0].height" alt="" loading="lazy" decoding="async" />
+    <GifMedia v-if="images[0].mp4" :src="images[0].url" :mp4="images[0].mp4" :still="images[0].poster || ''" :width="images[0].width" :height="images[0].height" />
+    <img v-else :src="images[0].url" :width="images[0].width" :height="images[0].height" alt="" loading="lazy" decoding="async" />
+    <span v-if="images[0].via === 'giphy'" class="via">GIPHY</span>
   </button>
 
   <div v-else-if="images.length > 1" class="grid" :class="`n${shown.length}`">
     <button v-for="(m, i) in shown" :key="m.id || m.key" class="cell" @click="viewer = i">
-      <img :src="m.url" alt="" loading="lazy" decoding="async" />
+      <GifMedia v-if="m.mp4" :src="m.url" :mp4="m.mp4" :still="m.poster || ''" />
+      <img v-else :src="m.url" alt="" loading="lazy" decoding="async" />
+      <span v-if="m.via === 'giphy'" class="via">GIPHY</span>
       <span v-if="i === shown.length - 1 && extra > 0" class="extra">+{{ extra }}</span>
     </button>
   </div>
@@ -54,7 +59,8 @@ const position = (n, total) => t.sprintf(/* translators: 1: number of the photo 
   <Teleport to="body">
     <div v-if="viewer >= 0" ref="viewerEl" class="viewer" role="dialog" aria-modal="true" :aria-label="t.__('Photo', 'membuild-community')" @click.self="viewer = -1" @keydown="onViewerKey">
       <button class="close" :aria-label="t.__('Close', 'membuild-community')" @click="viewer = -1"><Icon name="close" /></button>
-      <img :src="images[viewer]?.url" alt="" />
+      <video v-if="images[viewer]?.mp4" :src="images[viewer].mp4" :poster="images[viewer].poster || images[viewer].url" autoplay muted loop playsinline disablepictureinpicture />
+      <img v-else :src="images[viewer]?.url" alt="" />
       <div v-if="images.length > 1" class="nav">
         <button :disabled="viewer === 0" :aria-label="t.__('Previous photo', 'membuild-community')" @click="viewer--">‹</button>
         <span>{{ position(viewer + 1, images.length) }}</span>
@@ -66,6 +72,7 @@ const position = (n, total) => t.sprintf(/* translators: 1: number of the photo 
 
 <style scoped>
 .single {
+  position: relative;
   display: block;
   width: 100%;
   background: var(--surface-2);
@@ -132,6 +139,7 @@ const position = (n, total) => t.sprintf(/* translators: 1: number of the photo 
   background: rgb(0 0 0 / 92%);
 }
 
+.viewer video,
 .viewer img {
   max-width: 96vw;
   max-height: 88vh;
@@ -163,5 +171,20 @@ const position = (n, total) => t.sprintf(/* translators: 1: number of the photo 
 
 .nav button:disabled {
   opacity: 0.3;
+}
+
+/* GIFs from GIPHY carry its name, as their terms ask. */
+.via {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 55%);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  pointer-events: none;
 }
 </style>

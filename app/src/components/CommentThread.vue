@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { api } from '../api.js'
 import { cfg } from '../config.js'
 import { updatePost } from '../stores/feed.js'
@@ -8,7 +8,9 @@ import Avatar from './Avatar.vue'
 import Icon from './Icon.vue'
 import CommentItem from './CommentItem.vue'
 import EmojiPicker from './EmojiPicker.vue'
-import { startAttachment } from '../lib/attachments.js'
+const GifPicker = defineAsyncComponent(() => import('./GifPicker.vue'))
+import { startAttachment, startGif } from '../lib/attachments.js'
+import { giphyOn } from '../lib/giphy.js'
 import { around, t } from '../lib/i18n.js'
 import { useLatest } from '../lib/useLatest.js'
 import { useMenu } from '../lib/useMenu.js'
@@ -52,6 +54,13 @@ function pickPhoto(e) {
   if (!file?.type.startsWith('image/')) return
   photo.value?.cancel()
   photo.value = startAttachment(file)
+  nextTick(() => input.value?.focus())
+}
+
+const showGifs = ref(false)
+function addGif(gif) {
+  photo.value?.cancel()
+  photo.value = startGif(gif)
   nextTick(() => input.value?.focus())
 }
 
@@ -312,6 +321,8 @@ const viewReplies = (n) => t.sprintf(/* translators: %d: number of replies */ t.
             </div>
             <button type="button" class="tool" :aria-label="t.__('Attach a photo', 'membuild-community')" :title="t.__('Photo', 'membuild-community')" @click="photoInput.click()"><Icon name="camera" :size="20" /></button>
             <input ref="photoInput" class="sr-only" type="file" accept="image/*" @change="pickPhoto" />
+            <button v-if="giphyOn()" type="button" class="tool" :aria-label="t.__('Add a GIF', 'membuild-community')" :title="t.__('GIF', 'membuild-community')" @click="showGifs = true"><span class="gif-badge" aria-hidden="true">GIF</span></button>
+            <GifPicker v-if="showGifs" @pick="addGif" @close="showGifs = false" />
             <button type="submit" class="send" :disabled="!canSend" :aria-label="t.__('Send', 'membuild-community')"><Icon name="send" :size="18" /></button>
           </div>
         </div>

@@ -199,6 +199,7 @@ class Install {
 			image_url varchar(500) NULL,
 			image_w int(10) unsigned NOT NULL DEFAULT 0,
 			image_h int(10) unsigned NOT NULL DEFAULT 0,
+			image_mp4 varchar(500) NULL,
 			reactions_count int(10) unsigned NOT NULL DEFAULT 0,
 			replies_count int(10) unsigned NOT NULL DEFAULT 0,
 			created_at datetime NOT NULL,

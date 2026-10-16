@@ -6,7 +6,7 @@
 global $wpdb;
 $member = (int) get_option( 'mbcom_stress_busy_user' ) + 40;
 wp_set_current_user( $member );
-$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_transient\\_%mbcom\\_rl\\_%'" );
+$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_transient\\_%mbcom\\_rl\\_%' OR option_name LIKE 'mbcom\\_rl\\_%'" );
 wp_cache_flush();
 
 $call = function ( $method, $route, $body = null, $json = true ) {
@@ -95,7 +95,7 @@ for ( $i = 0; $i < 70; $i++ ) {
 $counts = array_count_values( $codes );
 ksort( $counts );
 echo '70 uploads started in a row: ', implode( ', ', array_map( fn( $k, $v ) => "{$v}x {$k}", array_keys( $counts ), $counts ) ), "\n";
-$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_transient\\_%mbcom\\_rl\\_%'" );
+$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_transient\\_%mbcom\\_rl\\_%' OR option_name LIKE 'mbcom\\_rl\\_%'" );
 wp_cache_flush();
 
 // Daily allowance: a member who already uploaded close to the limit today.

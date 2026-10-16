@@ -15,6 +15,7 @@ import AccessSection from '../components/settings/AccessSection.vue'
 import PointsSection from '../components/settings/PointsSection.vue'
 import EmailSection from '../components/settings/EmailSection.vue'
 import VideoSection from '../components/settings/VideoSection.vue'
+import GifsSection from '../components/settings/GifsSection.vue'
 import JoiningSection from '../components/settings/JoiningSection.vue'
 import AdvancedSection from '../components/settings/AdvancedSection.vue'
 import { t } from '../lib/i18n.js'
@@ -37,6 +38,7 @@ const SECTIONS = [
   { id: 'access', label: t.__('Member groups', 'membuild-community'), component: AccessSection, isolated: true },
   { id: 'points', label: t.__('Points & levels', 'membuild-community'), component: PointsSection },
   { id: 'video', label: t.__('Video', 'membuild-community'), component: VideoSection },
+  { id: 'gifs', label: t.__('GIFs', 'membuild-community'), component: GifsSection },
   { id: 'advanced', label: t.__('Advanced', 'membuild-community'), component: AdvancedSection },
 ]
 

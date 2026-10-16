@@ -71,7 +71,7 @@ function mbcom_upload( $user, $mime, $bytes, $name ) {
 
 // A clean slate: start from default settings with known test members, and no rate limits left over from an earlier run.
 delete_option( 'mbcom_settings' );
-$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s", '_transient_mbcom_rl_%', '_transient_timeout_mbcom_rl_%', '_transient%mbcom_shared_%' ) );
+$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s", '_transient_mbcom_rl_%', '_transient_timeout_mbcom_rl_%', '_transient%mbcom_shared_%', 'mbcom\\_rl\\_%' ) );
 \MemBuild\Community\Settings::flush();
 $admin = mbcom_user( 'mbct_admin', 'administrator' );
 $ana   = mbcom_user( 'mbct_ana' );
@@ -644,7 +644,7 @@ mbcom_check( 'mid-range accents pick the more readable text color', '#111214' ==
 
 /* ---------------------------------------------------------------- */
 mbcom_section( 'Uploads that are taken back or deleted' );
-$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_transient\\_%mbcom\\_rl\\_%'" );
+$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_transient\\_%mbcom\\_rl\\_%' OR option_name LIKE 'mbcom\\_rl\\_%'" );
 wp_cache_flush();
 $img = imagecreatetruecolor( 40, 30 );
 ob_start();
@@ -899,6 +899,56 @@ list( $s ) = mbcom_call( $admin, 'DELETE', "/places/{$cafe['id']}" );
 mbcom_call( $admin, 'DELETE', "/places/{$tip['id']}" );
 mbcom_check( 'admins can', 200 === $s && ! $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_reactions WHERE object_type = 'place' AND object_id = %d", $cafe['id'] ) ) );
 mbcom_call( $admin, 'PUT', '/settings', array( 'features' => array( 'places' => false ) ) );
+\MemBuild\Community\Settings::flush();
+
+/* ---------------------------------------------------------------- */
+mbcom_section( 'GIFs from GIPHY' );
+$gif = array( 'id' => 'xT9IgG50Fb7Mi0prBC', 'url' => 'https://media2.giphy.com/media/v1.Y2lkPTc5/xT9IgG50Fb7Mi0prBC/giphy.webp?cid=79&rid=giphy.webp&ct=g', 'mp4' => 'https://media2.giphy.com/media/v1.Y2lkPTc5/xT9IgG50Fb7Mi0prBC/giphy.mp4?cid=79&rid=giphy.mp4&ct=g', 'still' => 'https://media2.giphy.com/media/v1.Y2lkPTc5/xT9IgG50Fb7Mi0prBC/giphy_s.gif?cid=79&ct=g', 'width' => 480, 'height' => 270, 'title' => 'Happy dance' );
+mbcom_call( $admin, 'PUT', '/settings', array( 'gifs' => array( 'key' => '' ) ) );
+\MemBuild\Community\Settings::flush();
+list( $s ) = mbcom_call( $ana, 'POST', '/media/gif', $gif );
+mbcom_check( 'without a GIPHY key there’s no GIF picker', 403 === $s && null === \MemBuild\Community\Settings::public_config()['giphy'], (string) $s );
+list( $s, $err ) = mbcom_call( $admin, 'PUT', '/settings', array( 'gifs' => array( 'key' => 'not a key!' ) ) );
+mbcom_check( 'a key that isn’t one is refused', 400 === $s, (string) $s );
+list( $s ) = mbcom_call( $admin, 'PUT', '/settings', array( 'gifs' => array( 'key' => 'AbCdEf0123456789AbCdEf0123456789', 'rating' => 'nc-17' ) ) );
+\MemBuild\Community\Settings::flush();
+$giphy = \MemBuild\Community\Settings::public_config()['giphy'];
+mbcom_check( 'with a key, the app gets it and a safe rating', 200 === $s && 'AbCdEf0123456789AbCdEf0123456789' === $giphy['key'] && 'pg' === $giphy['rating'] );
+
+list( $s, $m ) = mbcom_call( $ana, 'POST', '/media/gif', $gif );
+mbcom_check( 'a picked GIF becomes the member’s own image, at GIPHY’s address unchanged', 201 === $s && 'image' === $m['kind'] && $gif['url'] === $m['url'] && 'giphy' === $m['via'] && 480 === $m['width'], (string) $s );
+mbcom_check( '…with GIPHY’s video version to play and its first frame, also unchanged', $gif['mp4'] === $m['mp4'] && $gif['still'] === $m['poster'] );
+foreach ( array(
+	'another site'       => array( 'url' => 'https://evil.example/giphy.webp' ),
+	'a look-alike host'  => array( 'url' => 'https://media.giphy.com.evil.example/x.gif' ),
+	'plain http'         => array( 'url' => 'http://media.giphy.com/media/x/giphy.gif' ),
+	'a script link'      => array( 'url' => 'javascript:alert(1)' ),
+	'a silly size'       => array( 'width' => 99999 ),
+	'a bad ID'           => array( 'id' => '../../etc' ),
+	'a video elsewhere'  => array( 'mp4' => 'https://evil.example/x.mp4' ),
+	'a frame elsewhere'  => array( 'still' => 'javascript:alert(1)' ),
+) as $what => $bad ) {
+	list( $s ) = mbcom_call( $ana, 'POST', '/media/gif', $bad + $gif );
+	mbcom_check( "refused: {$what}", 400 === $s, (string) $s );
+}
+
+list( $s, $gp ) = mbcom_call( $ana, 'POST', '/posts', array( 'content' => 'Friday mood', 'media_ids' => array( $m['id'] ) ) );
+mbcom_check( 'a GIF goes in a post like a photo', 201 === $s && $gif['url'] === ( $gp['media'][0]['url'] ?? '' ) && 'giphy' === ( $gp['media'][0]['via'] ?? '' ) && $gif['mp4'] === ( $gp['media'][0]['mp4'] ?? '' ), (string) $s );
+list( , $m2 ) = mbcom_call( $ben, 'POST', '/media/gif', $gif );
+list( $s, $gc ) = mbcom_call( $ben, 'POST', "/posts/{$gp['id']}/comments", array( 'content' => '', 'media_id' => $m2['id'] ) );
+mbcom_check( '…in a comment', in_array( $s, array( 200, 201 ), true ) && $gif['url'] === ( $gc['image']['url'] ?? '' ) && $gif['mp4'] === ( $gc['image']['mp4'] ?? '' ), (string) $s );
+list( , $m3 ) = mbcom_call( $ana, 'POST', '/media/gif', $gif );
+list( $s, $gm ) = mbcom_call( $ana, 'POST', "/messages/threads/{$tid}/messages", array( 'content' => '', 'media_ids' => array( $m3['id'] ) ) );
+list( , $hist ) = mbcom_call( $ben, 'GET', "/messages/threads/{$tid}/messages" );
+mbcom_check( '…and in a chat, still pointing at GIPHY (nothing to protect on this site)', in_array( $s, array( 200, 201 ), true ) && $gif['url'] === ( end( $hist['items'] )['media'][0]['url'] ?? '' ) && $gif['mp4'] === ( end( $hist['items'] )['media'][0]['mp4'] ?? '' ), wp_json_encode( end( $hist['items'] )['media'] ?? null ) );
+$plain = mbcom_upload( $ana, 'image/png', $small_png, 'plain.png' );
+mbcom_check( 'an ordinary photo has no video version', null === ( $plain['mp4'] ?? null ) );
+list( , $m4 ) = mbcom_call( $ana, 'POST', '/media/gif', $gif );
+list( $s ) = mbcom_call( $ben, 'POST', '/posts', array( 'content' => 'stolen', 'media_ids' => array( $m4['id'] ) ) );
+mbcom_check( 'nobody can post someone else’s picked GIF', ! $wpdb->get_var( $wpdb->prepare( "SELECT post_id FROM {$wpdb->prefix}mbcom_media WHERE id = %d", $m4['id'] ) ) );
+mbcom_call( $ana, 'DELETE', "/media/{$m4['id']}" );
+mbcom_call( $ana, 'DELETE', "/posts/{$gp['id']}" );
+mbcom_call( $admin, 'PUT', '/settings', array( 'gifs' => array( 'key' => '' ) ) );
 \MemBuild\Community\Settings::flush();
 
 /* ---------------------------------------------------------------- */

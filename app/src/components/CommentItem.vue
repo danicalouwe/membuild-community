@@ -1,5 +1,6 @@
 <script setup>
 import { computed, defineAsyncComponent, ref } from 'vue'
+import GifMedia from './GifMedia.vue'
 import { cfg } from '../config.js'
 import { timeAgo } from '../lib/time.js'
 import { emojiFor } from '../lib/reactions.js'
@@ -51,7 +52,8 @@ function react(type) {
         <RichText :text="c.content" class="inline" />
       </div>
       <a v-if="c.image" class="pic" :href="c.image.url" target="_blank" rel="noopener">
-        <img :src="c.image.url" alt="" loading="lazy" :width="c.image.width || null" :height="c.image.height || null" />
+        <GifMedia v-if="c.image.mp4" :src="c.image.url" :mp4="c.image.mp4" :width="c.image.width || 0" :height="c.image.height || 0" />
+        <img v-else :src="c.image.url" alt="" loading="lazy" :width="c.image.width || null" :height="c.image.height || null" />
       </a>
       <p v-if="c.failed" class="failed">{{ c.failed }}</p>
 

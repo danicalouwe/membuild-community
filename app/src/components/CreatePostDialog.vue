@@ -1,15 +1,17 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { api } from '../api.js'
 import { cfg } from '../config.js'
 import { insertPost, removePost, replacePost, updatePost } from '../stores/feed.js'
-import { startAttachment } from '../lib/attachments.js'
+import { startAttachment, startGif } from '../lib/attachments.js'
+import { giphyOn } from '../lib/giphy.js'
 import { pointsMayHaveChanged } from '../stores/me.js'
 import { BACKGROUNDS, BACKGROUND_MAX, FEELINGS } from '../lib/postStyle.js'
 import Avatar from './Avatar.vue'
 import Icon from './Icon.vue'
 import AttachmentPreview from './AttachmentPreview.vue'
 import EmojiPicker from './EmojiPicker.vue'
+const GifPicker = defineAsyncComponent(() => import('./GifPicker.vue'))
 import FeedEmbed from './FeedEmbed.vue'
 import { t } from '../lib/i18n.js'
 import { useDialog } from '../lib/useDialog.js'
@@ -129,6 +131,14 @@ function addFiles(files) {
     attachments.value.push(startAttachment(file))
   }
   if (attachments.value.length) showBackgrounds.value = false
+}
+
+const showGifs = ref(false)
+function addGif(gif) {
+  error.value = ''
+  if (hasVideo.value) return (error.value = t.__('A video has to be posted on its own.', 'membuild-community'))
+  if (attachments.value.length >= 10) return (error.value = t.__('Up to 10 photos per post.', 'membuild-community'))
+  attachments.value.push(startGif(gif))
 }
 
 function pickFiles(e) {
@@ -381,12 +391,16 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
                 <button v-if="!edit" class="add-icon" :aria-label="t.__('Photo or video', 'membuild-community')" :title="t.__('Photo/video', 'membuild-community')" @click="fileInput.click()">
                   <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="16" height="14" rx="2.5" fill="#2f9e5b" opacity=".55" /><rect x="2.5" y="6" width="16" height="15" rx="2.5" fill="#45bd62" /><circle cx="8" cy="11" r="1.8" fill="#fff" /><path d="M4.5 19l4.5-4.5 3 3 2.5-2.5 3 3.5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round" /></svg>
                 </button>
+                <button v-if="!edit && giphyOn()" class="add-icon gif" :aria-label="t.__('GIF', 'membuild-community')" :title="t.__('GIF', 'membuild-community')" @click="showGifs = true">
+                  <span class="gif-badge" aria-hidden="true">GIF</span>
+                </button>
                 <button class="add-icon" :class="{ on: feeling }" :aria-label="t.__('Feeling or activity', 'membuild-community')" :title="t.__('Feeling/activity', 'membuild-community')" @click="view = 'feeling'">
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9.5" stroke="#f7932f" stroke-width="2" /><path d="M8 14c1 1.6 2.4 2.4 4 2.4s3-.8 4-2.4" stroke="#f7932f" stroke-width="2" stroke-linecap="round" /><circle cx="9" cy="9.6" r="1.3" fill="#f7932f" /><circle cx="15" cy="9.6" r="1.3" fill="#f7932f" /></svg>
                 </button>
               </div>
             </div>
             <input ref="fileInput" class="sr-only" type="file" accept="image/*,video/*" multiple @change="pickFiles" />
+            <GifPicker v-if="showGifs" @pick="addGif" @close="showGifs = false" />
           </div>
 
           <footer class="foot">
