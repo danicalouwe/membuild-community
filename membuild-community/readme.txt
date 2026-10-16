@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.4.1
+Stable tag: 1.4.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -247,6 +247,10 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.4.2 =
+* The emoji button in posts, comments and chats opens the same panel as chat reactions, like Facebook's: above the button with a pointer to it, "Recently used" at the top, search, every emoji by category, and the category in view highlighted. It stays open for several picks. On phones it's a bottom sheet.
+* Fix: the emoji list in "Create post" no longer opens inside the window, cut off and covering the text.
 
 = 1.4.1 =
 * Chat reactions work like Messenger: a smiley button, the quick six (❤️ 😆 😮 😢 😡 👍) above the message, and a "+" to react with any emoji. Unsend moved into the ⋮ menu. Reactions sit on the bubble's corner.

@@ -12,7 +12,6 @@ import { BACKGROUNDS } from '../lib/postStyle.js'
 import Avatar from './Avatar.vue'
 import Icon from './Icon.vue'
 import RichText from './RichText.vue'
-import EmojiPicker from './EmojiPicker.vue'
 const GifPicker = defineAsyncComponent(() => import('./GifPicker.vue'))
 import { listNames, locale, t } from '../lib/i18n.js'
 import { useLatest } from '../lib/useLatest.js'
@@ -40,6 +39,12 @@ const draft = ref('')
 const replyTo = ref(null)
 const photos = ref([])
 const showEmoji = ref(false)
+// The emoji button opens the floating emoji panel (search, categories), anchored to it.
+const emojiBtn = ref(null)
+function toggleEmoji(e) {
+  emojiBtn.value = e.currentTarget
+  showEmoji.value = !showEmoji.value
+}
 const menuFor = ref(null) // message id with the reaction pill open
 const moreFor = ref(null) // message id with the ⋮ menu open
 const reactAt = ref(null) // the open picker's anchor: { rect, side }
@@ -527,8 +532,8 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
         <div class="field">
           <textarea ref="input" v-auto-grow v-model="draft" rows="1" :placeholder="t.__('Aa', 'membuild-community')" :aria-label="t.__('Write a message', 'membuild-community')" @input="onInput" @keydown="onKey" />
           <div class="emoji-wrap">
-            <button type="button" class="icon" :aria-label="t.__('Emoji', 'membuild-community')" @click="showEmoji = !showEmoji">😊</button>
-            <EmojiPicker v-if="showEmoji" class="emoji-pop" @pick="insertEmoji" />
+            <button type="button" class="icon" :aria-label="t.__('Emoji', 'membuild-community')" :aria-expanded="showEmoji" @click="toggleEmoji">😊</button>
+            <ReactionPicker v-if="showEmoji && emojiBtn" mode="emoji" side="center" :anchor="emojiBtn.getBoundingClientRect()" :ignore="emojiBtn" @pick="insertEmoji" @close="showEmoji = false" />
           </div>
         </div>
         <button v-if="draft.trim() || photos.length" type="submit" class="icon send" :aria-label="t.__('Send', 'membuild-community')"><Icon name="send" :size="22" /></button>

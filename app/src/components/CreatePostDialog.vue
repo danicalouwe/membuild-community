@@ -10,7 +10,7 @@ import { BACKGROUNDS, BACKGROUND_MAX, FEELINGS } from '../lib/postStyle.js'
 import Avatar from './Avatar.vue'
 import Icon from './Icon.vue'
 import AttachmentPreview from './AttachmentPreview.vue'
-import EmojiPicker from './EmojiPicker.vue'
+import ReactionPicker from './ReactionPicker.vue'
 const GifPicker = defineAsyncComponent(() => import('./GifPicker.vue'))
 import FeedEmbed from './FeedEmbed.vue'
 import { t } from '../lib/i18n.js'
@@ -62,6 +62,12 @@ function closeLink() {
 const error = ref(props.draft?.error || '')
 const showBackgrounds = ref(false)
 const showEmoji = ref(false)
+// The emoji button opens the floating emoji panel (search, categories), anchored to it.
+const emojiBtn = ref(null)
+function toggleEmoji(e) {
+  emojiBtn.value = e.currentTarget
+  showEmoji.value = !showEmoji.value
+}
 const feelingQuery = ref('')
 const dragging = ref(false)
 const textarea = ref(null)
@@ -360,12 +366,12 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
                 />
               </div>
               <div class="emoji-wrap">
-                <button class="icon-only" :aria-label="t.__('Emoji', 'membuild-community')" :aria-expanded="showEmoji" @click="showEmoji = !showEmoji">
+                <button class="icon-only" :aria-label="t.__('Emoji', 'membuild-community')" :aria-expanded="showEmoji" @click="toggleEmoji">
                   <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
                     <circle cx="12" cy="12" r="9.5" /><path d="M8 14.5c1 1.4 2.4 2 4 2s3-.6 4-2" stroke-linecap="round" /><circle cx="9" cy="10" r="1" fill="currentColor" stroke="none" /><circle cx="15" cy="10" r="1" fill="currentColor" stroke="none" />
                   </svg>
                 </button>
-                <EmojiPicker v-if="showEmoji" class="emoji-pop" @pick="insertEmoji" />
+                <ReactionPicker v-if="showEmoji && emojiBtn" mode="emoji" side="center" :anchor="emojiBtn.getBoundingClientRect()" :ignore="emojiBtn" @pick="insertEmoji" @close="showEmoji = false" />
               </div>
             </div>
 

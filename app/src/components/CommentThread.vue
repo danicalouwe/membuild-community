@@ -7,7 +7,7 @@ import { pointsMayHaveChanged } from '../stores/me.js'
 import Avatar from './Avatar.vue'
 import Icon from './Icon.vue'
 import CommentItem from './CommentItem.vue'
-import EmojiPicker from './EmojiPicker.vue'
+import ReactionPicker from './ReactionPicker.vue'
 const GifPicker = defineAsyncComponent(() => import('./GifPicker.vue'))
 import { startAttachment, startGif } from '../lib/attachments.js'
 import { giphyOn } from '../lib/giphy.js'
@@ -34,6 +34,12 @@ const input = ref(null)
 const photo = ref(null) // one photo per comment, uploading while you type
 const photoInput = ref(null)
 const showEmoji = ref(false)
+// The emoji button opens the floating emoji panel (search, categories), anchored to it.
+const emojiBtn = ref(null)
+function toggleEmoji(e) {
+  emojiBtn.value = e.currentTarget
+  showEmoji.value = !showEmoji.value
+}
 const emojiWrap = ref(null)
 let tempId = 0
 
@@ -80,11 +86,6 @@ function insertEmoji(e) {
   })
 }
 
-function closeEmoji(e) {
-  if (showEmoji.value && !emojiWrap.value?.contains(e.target)) showEmoji.value = false
-}
-onMounted(() => document.addEventListener('pointerdown', closeEmoji))
-onBeforeUnmount(() => document.removeEventListener('pointerdown', closeEmoji))
 
 // Each top-level comment carries its own (collapsed) reply list.
 const withThread = (c) => reactive({ ...c, replies: c.replies || [], showReplies: false, repliesLoaded: false })
@@ -314,10 +315,10 @@ const viewReplies = (n) => t.sprintf(/* translators: %d: number of replies */ t.
           </div>
           <div class="tools">
             <div ref="emojiWrap" class="emoji-wrap">
-              <button type="button" class="tool" :class="{ on: showEmoji }" :aria-label="t.__('Insert an emoji', 'membuild-community')" :title="t.__('Emoji', 'membuild-community')" :aria-expanded="showEmoji" @click="showEmoji = !showEmoji">
+              <button type="button" class="tool" :class="{ on: showEmoji }" :aria-label="t.__('Insert an emoji', 'membuild-community')" :title="t.__('Emoji', 'membuild-community')" :aria-expanded="showEmoji" @click="toggleEmoji">
                 <Icon name="smile" :size="20" />
               </button>
-              <EmojiPicker v-if="showEmoji" class="emoji-pop" @pick="insertEmoji" />
+              <ReactionPicker v-if="showEmoji && emojiBtn" mode="emoji" side="center" :anchor="emojiBtn.getBoundingClientRect()" :ignore="emojiBtn" @pick="insertEmoji" @close="showEmoji = false" />
             </div>
             <button type="button" class="tool" :aria-label="t.__('Attach a photo', 'membuild-community')" :title="t.__('Photo', 'membuild-community')" @click="photoInput.click()"><Icon name="camera" :size="20" /></button>
             <input ref="photoInput" class="sr-only" type="file" accept="image/*" @change="pickPhoto" />
