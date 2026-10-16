@@ -139,8 +139,10 @@ class Rest_Feed {
 		$posts = Install::table( 'posts' );
 		// $where only ever holds fixed SQL with placeholders; the values go in $args, in order.
 		// Posts inside courses stay in their course: never in the feed or on profiles.
-		$where = "status = 'published' AND course_id = 0";
-		$args  = array( $posts );
+		// Events for one member group show only to that group.
+		list( $seen, $seen_vals ) = Events::visible_sql();
+		$where = "status = 'published' AND course_id = 0 AND {$seen}";
+		$args  = array_merge( array( $posts ), $seen_vals );
 		if ( in_array( $req['type'], array( 'post', 'reel' ), true ) ) {
 			$where .= ' AND type = %s';
 			$args[] = $req['type'];
@@ -590,7 +592,10 @@ class Rest_Feed {
 		if ( ! $row || Blocks::hides( $row['user_id'] ) ) {
 			return null;
 		}
-		return (int) $row['course_id'] && ! Discussions::can_read( $row ) ? null : $row;
+		if ( (int) $row['course_id'] && ! Discussions::can_read( $row ) ) {
+			return null;
+		}
+		return $row['event_at'] && ! Events::can_see( $row ) ? null : $row;
 	}
 
 	private static function find_post( $id ) {
@@ -622,11 +627,12 @@ class Rest_Feed {
 			$summary[ (int) $r['object_id'] ][] = $r['type'];
 		}
 		$course = self::course_details( $rows );
+		$events = Events::details( array_filter( $rows, fn( $r ) => ! empty( $r['event_at'] ) ) );
 
 		return array_map(
-			function ( $row ) use ( $users, $media, $mine, $summary, $me, $preview, $course ) {
+			function ( $row ) use ( $users, $media, $mine, $summary, $me, $preview, $course, $events ) {
 				$id = (int) $row['id'];
-				return ( $course[ $id ] ?? array() ) + array(
+				return ( $course[ $id ] ?? array() ) + ( isset( $events[ $id ] ) ? array( 'event' => $events[ $id ] ) : array() ) + array(
 					'id'              => $id,
 					'type'            => $row['type'],
 					'content'         => $row['content'],

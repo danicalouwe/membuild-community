@@ -62,7 +62,12 @@ const ACTIONS = {
   post_comment: () => /* translators: %s: who commented */ t.__('%s commented on your post', 'membuild-community'),
   comment_reply: () => /* translators: %s: who replied */ t.__('%s replied to your comment', 'membuild-community'),
   story_reaction: () => /* translators: %s: who reacted */ t.__('%s reacted to your story', 'membuild-community'),
+  event_new: () => /* translators: %s: who scheduled it */ t.__('%s scheduled an event', 'membuild-community'),
+  event_changed: () => /* translators: %s: who changed it */ t.__('%s changed the time of an event', 'membuild-community'),
+  event_cancelled: () => /* translators: %s: who cancelled it */ t.__('%s cancelled an event', 'membuild-community'),
 }
+const isEvent = (n) => n.type.startsWith('event_')
+const eventLine = (n) => (n.type === 'event_reminder' ? (n.data.soon ? t.__('Starts in about an hour', 'membuild-community') : t.__('Tomorrow', 'membuild-community')) : '')
 /** The sentence split around the names, so the names can be bold: [before, after]. */
 const sentence = (n) => around(ACTIONS[n.type]?.() || '%s')
 
@@ -100,10 +105,12 @@ const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles
         <button class="item" :class="{ unread: !n.read }" @click="open(n)">
           <span class="pic">
             <span v-if="n.type === 'level_up'" class="level">{{ n.data.level }}</span>
+            <span v-else-if="n.type === 'event_reminder' || !n.actors.length" class="level cal"><Icon name="calendar" :size="26" /></span>
             <Avatar v-else :user="n.actors[0]" :size="56" />
             <span class="type">
               <ReactionBadge v-if="n.data.reaction" :type="n.data.reaction" :size="26" />
               <span v-else-if="n.type === 'level_up'" class="tbadge star">🏆</span>
+              <span v-else-if="isEvent(n)" class="tbadge cal">📅</span>
               <span v-else class="tbadge comment"><Icon name="comment" :size="14" /></span>
             </span>
           </span>
@@ -113,6 +120,12 @@ const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles
               <!-- The space lives inside the text: Vue drops a lone leading space. -->
               <template v-if="n.data.courses?.length">{{ ' ' + unlockedCourses(n.data.courses) }}</template>
               <template v-else>{{ ' ' + t.__('Keep it up 🎉', 'membuild-community') }}</template>
+            </span>
+            <span v-else-if="n.type === 'event_reminder'" class="sentence">
+              <strong>{{ n.data.title }}</strong>{{ ' · ' + eventLine(n) }}
+            </span>
+            <span v-else-if="isEvent(n)" class="sentence">
+              {{ sentence(n)[0] }}<strong>{{ who(n) }}</strong>{{ sentence(n)[1] }}: <strong>{{ n.data.title }}</strong>
             </span>
             <span v-else class="sentence">
               {{ sentence(n)[0] }}<strong>{{ who(n) }}</strong>{{ sentence(n)[1] }}<template v-if="n.data.snippet">: “{{ n.data.snippet }}”</template>
@@ -202,6 +215,15 @@ const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles
   flex: none;
   width: 56px;
   height: 56px;
+}
+
+.level.cal {
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+
+.tbadge.cal {
+  font-size: 13px;
 }
 
 .level {

@@ -21,7 +21,7 @@ class Settings {
 
 	const OPTION = 'mbcom_settings';
 
-	const FEATURES = array( 'reels', 'stories', 'classroom', 'leaderboard', 'messages', 'search', 'places' );
+	const FEATURES = array( 'reels', 'stories', 'classroom', 'leaderboard', 'messages', 'search', 'places', 'events' );
 
 	/** Accent presets offered in the form; any hex color is accepted. */
 	const ACCENTS = array( '#3b5bfd', '#7c4dff', '#e0407b', '#f05a28', '#f2a20c', '#1fa463', '#0e9aa7', '#16181d' );

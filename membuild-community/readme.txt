@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.5.1
+Stable tag: 1.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -39,6 +39,14 @@ MemBuild - Community gives your WordPress site its own community app at /communi
 * Course access: open to everyone, to members from a level up, or to member groups you manage
 * Member groups can follow a WordPress role, so membership and shop plugins that give buyers a role open your courses automatically
 * Lesson videos, downloads and photos in private messages are served only to people allowed to see them
+
+**Events**
+
+* A calendar of live calls, Q&As and workshops: Upcoming and Past, in each member's own time zone
+* Going and Interested, with who's going; "Add to calendar" for Google, Apple and Outlook, with the join link inside
+* A link to Zoom, Google Meet or anything else opens 15 minutes before the start; a YouTube, Vimeo or Twitch live stream plays inside the community, and becomes the replay afterwards
+* Reminders the day before and an hour before, in the app and by email, to everyone going or interested
+* Every event is also a post, so members discuss it in the feed; events can be for everyone or for one member group
 
 **Places** (optional, off until you switch it on)
 
@@ -252,6 +260,11 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.6.0 =
+* New: Events. Admins and moderators add a live call, a Q&A or a workshop in one dialog: title, date and time, length, a link, details, a cover, and who can see it. Members see times in their own time zone, tap Going or Interested, add it to Google, Apple or Outlook calendar with the join link inside, and get a reminder the day before and an hour before (in the app and by email). The Join button appears 15 minutes before the start. A YouTube, Vimeo or Twitch live stream plays right on the event page, and becomes the replay afterwards; hosts can also paste a recording link. Each event is a post too, so it shows in the feed with its own discussion. Changing the time or cancelling tells everyone going. Duplicate makes next week's copy in two taps. Built for big communities: reminding 2,000 members takes a few queries, and the emails go out in the email job's batches.
+* Facebook's desktop layout on wide screens: the sections are icons across the top (their name shows on hover) and the same sections with their words down the left, with your profile at the top and Messages, Settings and Moderation below a line. Laptops keep the word tabs, tablets get an icon with its word underneath, and phones are unchanged.
+* The test runner copies the test file into the container instead of passing it on the command line (it had outgrown the limit).
 
 = 1.5.1 =
 * Faster Classroom with many members: lesson completions are now indexed by course, so the course list and course pages stay quick (tested with 2,000 members and 128,000 completed lessons: 75 ms down to 5 ms). The Resources tab loads every file size in one query instead of one per lesson.

@@ -41,6 +41,7 @@ phone.addEventListener?.('change', (e) => (isPhone.value = e.matches))
 const places = computed(() =>
   [
     isPhone.value && { to: '/members', icon: 'users', label: t.__('Members', 'membuild-community') },
+    isPhone.value && feature('events') && { to: '/events', icon: 'calendar', label: t.__('Events', 'membuild-community') },
     feature('leaderboard') && { to: '/leaderboard', icon: 'trophy', label: t.__('Leaderboard', 'membuild-community') },
     isPhone.value && feature('places') && { to: '/places', icon: 'mapPin', label: t.__('Places', 'membuild-community') },
     feature('messages') && { to: '/messages', icon: 'messenger', label: t.__('Messages', 'membuild-community') },

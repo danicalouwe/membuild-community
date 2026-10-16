@@ -10,6 +10,7 @@ import RichText from './RichText.vue'
 import MediaGrid from './MediaGrid.vue'
 import PostActions from './PostActions.vue'
 import CommentItem from './CommentItem.vue'
+import EventCard from './EventCard.vue'
 const PostDialog = defineAsyncComponent(() => import('./PostDialog.vue'))
 const CreatePostDialog = defineAsyncComponent(() => import('./CreatePostDialog.vue'))
 const ReportDialog = defineAsyncComponent(() => import('./ReportDialog.vue'))
@@ -141,12 +142,13 @@ async function remove() {
       </div>
     </header>
 
+    <EventCard v-if="post.event" :post="post" compact />
     <div v-if="background" class="bg-post" :style="{ background }">
       <p>{{ post.content }}</p>
     </div>
     <RichText v-else-if="post.content" class="text" :class="{ big: !post.media.length && post.content.length < 90 }" :text="post.content" :clamp="320" />
 
-    <MediaGrid v-if="post.media.length" class="media" :media="post.media" :reel-link="post.type === 'reel' ? { name: 'reels', query: { id: post.id } } : null" />
+    <MediaGrid v-if="post.media.length && !post.event" class="media" :media="post.media" :reel-link="post.type === 'reel' ? { name: 'reels', query: { id: post.id } } : null" />
 
     <PostActions :post="post" @comment="open(true)" />
 

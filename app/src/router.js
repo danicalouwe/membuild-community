@@ -10,6 +10,7 @@ export const tabs = [
   { name: 'classroom', path: '/classroom', label: t._x('Classroom', 'tab', 'membuild-community'), short: t._x('Classroom', 'phone tab', 'membuild-community'), icon: 'cap', feature: 'classroom' },
   { name: 'members', path: '/members', label: t._x('Members', 'tab', 'membuild-community'), icon: 'users', desktopOnly: true },
   { name: 'reels', path: '/reels', label: t._x('Reels', 'tab', 'membuild-community'), short: t._x('Reels', 'phone tab', 'membuild-community'), icon: 'film', feature: 'reels' },
+  { name: 'events', path: '/events', label: t._x('Events', 'tab', 'membuild-community'), icon: 'calendar', desktopOnly: true, feature: 'events' },
   { name: 'places', path: '/places', label: t._x('Places', 'tab', 'membuild-community'), icon: 'mapPin', desktopOnly: true, feature: 'places' },
   { name: 'leaderboard', path: '/leaderboard', label: t._x('Leaderboard', 'tab', 'membuild-community'), icon: 'trophy', desktopOnly: true, feature: 'leaderboard' },
   // Messages and notifications are header icons; on phones the bell is a tab.
@@ -23,6 +24,8 @@ export const router = createRouter({
     { path: '/', name: 'feed', component: FeedView },
     { path: '/reels', name: 'reels', component: () => import('./views/ReelsView.vue') },
     { path: '/classroom', name: 'classroom', component: () => import('./views/ClassroomView.vue') },
+    { path: '/events', name: 'events', component: () => import('./views/EventsView.vue') },
+    { path: '/events/:id(\\d+)', name: 'event', component: () => import('./views/EventView.vue'), props: (route) => ({ id: Number(route.params.id) }) },
     {
       path: '/classroom/:courseId(\\d+)/:lessonId(\\d+)?',
       name: 'course',
@@ -62,7 +65,7 @@ export const router = createRouter({
 })
 
 // Parts the admin switched off, and admin-only pages, send people back to the feed.
-const routeFeature = { reels: 'reels', classroom: 'classroom', course: 'classroom', leaderboard: 'leaderboard', messages: 'messages' }
+const routeFeature = { reels: 'reels', classroom: 'classroom', course: 'classroom', leaderboard: 'leaderboard', messages: 'messages', events: 'events', event: 'events' }
 router.beforeEach((to) => {
   if (to.name === 'member' && Number(to.params.id) === cfg.user.id) return { name: 'me' } // your own profile lives at /me
   if (routeFeature[to.name] && !feature(routeFeature[to.name])) return { name: 'feed' }

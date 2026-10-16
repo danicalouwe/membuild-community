@@ -1,5 +1,6 @@
 import { reactive } from 'vue'
 import { api } from '../api.js'
+import { cfg } from '../config.js'
 
 /**
  * One list per feed (latest, hot, reels). Lists live at module level, so
@@ -63,13 +64,25 @@ export function discussionList(place, params) {
   return lists[key]
 }
 
+/** The Events tab: 'upcoming' or 'past', soonest or newest first. Events are posts, so edits and RSVPs reach them here too. */
+export function eventList(when) {
+  const key = `events-${when}`
+  if (!lists[key]) {
+    lists[key] = createList({ when })
+    lists[key].events = when
+  }
+  return lists[key]
+}
+
 const fetchPage = (list, params) =>
-  list.place
+  list.events
+    ? api.events({ when: list.events, page: params.page })
+    : list.place
     ? list.place.lesson
       ? api.lessonPosts(list.place.lesson, { sort: params.sort, page: params.page })
       : api.coursePosts(list.place.course, { sort: params.sort, q: params.q || undefined, page: params.page })
     : api.feed(params)
-const paged = (list) => !!list.place || list.params.sort === 'hot'
+const paged = (list) => !!list.place || !!list.events || list.params.sort === 'hot'
 
 export async function loadMore(list) {
   if (list.loading || !list.hasMore) return
@@ -118,14 +131,30 @@ export async function refresh(list) {
 
 /** The same post can sit in several lists; apply a change to every copy. */
 export function updatePost(id, patch) {
+  const seen = new Set()
   for (const list of Object.values(lists)) {
     for (const post of [...list.items, ...list.pinned].filter((p) => p.id === id)) {
+      seen.add(post)
       Object.assign(post, typeof patch === 'function' ? patch(post) : patch)
     }
   }
+  for (const post of standalone) {
+    if (post.id === id && !seen.has(post)) Object.assign(post, typeof patch === 'function' ? patch(post) : patch)
+  }
+}
+
+/**
+ * Posts shown on their own page (an event), outside any list, still get
+ * every update. A page registers its post while it's open.
+ */
+const standalone = new Set()
+export function watchPost(post) {
+  standalone.add(post)
+  return () => standalone.delete(post)
 }
 
 export function insertPost(post) {
+  if (post.event) return // events are added to the Events tab by the dialog, in date order
   if (post.course) {
     // A course post goes to the top of its lesson and of its course's Discussion tab (not search results).
     for (const list of Object.values(lists)) {
@@ -211,6 +240,29 @@ export function setCoursePin(post, pin) {
     else list.items.unshift(copy)
   }
   Object.assign(post, { pin, pinned: !!pin })
+}
+
+/** Going / Interested on an event (null takes it back): shows at once, then the server's counts. */
+export async function setRsvp(post, status) {
+  const before = { ...post.event }
+  const me = { id: cfg.user.id, name: cfg.user.name, avatar: cfg.user.avatar, level: cfg.user.level }
+  const faces = before.faces.filter((u) => u.id !== me.id)
+  updatePost(post.id, {
+    event: {
+      ...before,
+      my_rsvp: status,
+      going_count: before.going_count + (status === 'going' ? 1 : 0) - (before.my_rsvp === 'going' ? 1 : 0),
+      interested_count: before.interested_count + (status === 'interested' ? 1 : 0) - (before.my_rsvp === 'interested' ? 1 : 0),
+      faces: status === 'going' ? [me, ...faces].slice(0, 3) : faces,
+    },
+  })
+  try {
+    const res = status ? await api.rsvp(post.id, status) : await api.unrsvp(post.id)
+    updatePost(post.id, (p) => ({ event: { ...p.event, ...res } }))
+  } catch (err) {
+    updatePost(post.id, { event: before })
+    throw err
+  }
 }
 
 /** "Helpful" on a course post: shows at once, then the server's count. */

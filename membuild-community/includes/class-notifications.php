@@ -252,6 +252,7 @@ class Notifications {
 		$link   = match ( $r['type'] ) {
 			'level_up'       => array( 'name' => 'me' ),
 			'story_reaction' => array( 'name' => 'feed' ),
+			'event_new', 'event_changed', 'event_cancelled', 'event_reminder' => array( 'name' => 'event', 'params' => array( 'id' => (int) $r['post_id'] ) ),
 			default          => array( 'name' => 'feed', 'query' => array( 'post' => (int) $r['post_id'] ) ),
 		};
 		return array(

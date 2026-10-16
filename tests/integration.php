@@ -1093,6 +1093,102 @@ mbcom_check( '…and deleting a course, the rest', 'deleted' === $wpdb->get_var(
 mbcom_call( $admin, 'DELETE', "/groups/{$club['id']}" );
 
 /* ---------------------------------------------------------------- */
+mbcom_section( 'Events' );
+mbcom_call( $admin, 'PUT', '/settings', array( 'features' => array( 'events' => true ) ) );
+\MemBuild\Community\Settings::flush();
+$guest  = mbcom_user( 'mbct_eventguest' );
+$mod    = mbcom_user( 'mbct_eventmod' );
+mbcom_call( $admin, 'PUT', '/settings', array( 'moderators' => array( $mod ) ) );
+\MemBuild\Community\Settings::flush();
+$in2d   = gmdate( 'c', time() + 2 * DAY_IN_SECONDS );
+list( $s ) = mbcom_call( $guest, 'POST', '/events', array( 'title' => 'Sneaky', 'at' => $in2d ) );
+mbcom_check( 'members can’t add events', 403 === $s, (string) $s );
+list( $s, $err ) = mbcom_call( $mod, 'POST', '/events', array( 'title' => '', 'at' => $in2d ) );
+mbcom_check( 'an event needs a title', 400 === $s && 'mbcom_invalid_event' === $err['code'], (string) $s );
+list( $s, $err ) = mbcom_call( $mod, 'POST', '/events', array( 'title' => 'Q&A', 'at' => $in2d, 'url' => 'javascript:alert(1)' ) );
+mbcom_check( '…and only a web link', 400 === $s, (string) $s );
+list( $s, $ev ) = mbcom_call( $mod, 'POST', '/events', array( 'title' => 'Thursday Q&A', 'at' => $in2d, 'minutes' => 45, 'url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'description' => 'Bring questions' ) );
+mbcom_check( 'moderators add events; a YouTube link is a stream', 201 === $s && 'Thursday Q&A' === $ev['event']['title'] && 'youtube' === $ev['event']['kind'] && 45 === $ev['event']['minutes'] && 'scheduled' === $ev['event']['status'], (string) $s );
+$eid = (int) $ev['id'];
+mbcom_check( '…and everyone is told once', (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE type = %s AND post_id = %d AND user_id = %d', "{$wpdb->prefix}mbcom_notifications", 'event_new', $eid, $guest ) ) === 1 );
+list( , $feed ) = mbcom_call( $guest, 'GET', '/feed' );
+$in_feed = current( array_filter( $feed['items'], fn( $p ) => $p['id'] === $eid ) );
+mbcom_check( 'the event is a post in the feed, carrying its event', $in_feed && 'Thursday Q&A' === ( $in_feed['event']['title'] ?? '' ) );
+
+list( $s, $r ) = mbcom_call( $guest, 'PUT', "/events/{$eid}/rsvp", array( 'status' => 'going' ) );
+mbcom_check( 'members say they’re going', 200 === $s && 1 === $r['going_count'] && 'going' === $r['my_rsvp'] && $guest === ( $r['faces'][0]['id'] ?? 0 ), (string) $s );
+list( , $r ) = mbcom_call( $guest, 'PUT', "/events/{$eid}/rsvp", array( 'status' => 'interested' ) );
+mbcom_check( '…or interested, one answer per member', 0 === $r['going_count'] && 1 === $r['interested_count'] && 'interested' === $r['my_rsvp'] );
+list( , $r ) = mbcom_call( $guest, 'DELETE', "/events/{$eid}/rsvp" );
+mbcom_check( '…and take it back', 0 === $r['interested_count'] && null === $r['my_rsvp'] );
+mbcom_call( $guest, 'PUT', "/events/{$eid}/rsvp", array( 'status' => 'going' ) );
+list( , $who ) = mbcom_call( $mod, 'GET', "/events/{$eid}/going" );
+mbcom_check( 'hosts see who’s going', array( $guest ) === array_map( fn( $i ) => $i['user']['id'], $who['items'] ) );
+
+list( , $up ) = mbcom_call( $guest, 'GET', '/events' );
+list( , $past ) = mbcom_call( $guest, 'GET', '/events', array( 'when' => 'past' ) );
+mbcom_check( 'the Events tab lists it under Upcoming, not Past', in_array( $eid, wp_list_pluck( $up['items'], 'id' ), true ) && ! in_array( $eid, wp_list_pluck( $past['items'], 'id' ), true ) && ! $up['can_add'] );
+
+// Reminders: the day-before one is due now (the event is in 2 days? no: within 24h). Move it to 20 hours away, then 50 minutes away.
+$notes = "{$wpdb->prefix}mbcom_notifications";
+$wpdb->update( "{$wpdb->prefix}mbcom_posts", array( 'event_at' => gmdate( 'Y-m-d H:i:s', time() + 20 * HOUR_IN_SECONDS ) ), array( 'id' => $eid ) );
+\MemBuild\Community\Events::remind();
+\MemBuild\Community\Events::remind();
+$day = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE type = %s AND post_id = %d AND user_id = %d', $notes, 'event_reminder', $eid, $guest ) );
+mbcom_check( 'a reminder goes to everyone going, once, the day before', 1 === $day, (string) $day );
+$wpdb->update( "{$wpdb->prefix}mbcom_posts", array( 'event_at' => gmdate( 'Y-m-d H:i:s', time() + 50 * MINUTE_IN_SECONDS ) ), array( 'id' => $eid ) );
+\MemBuild\Community\Events::remind();
+\MemBuild\Community\Events::remind();
+$soon = $wpdb->get_results( $wpdb->prepare( 'SELECT data FROM %i WHERE type = %s AND post_id = %d AND user_id = %d ORDER BY id', $notes, 'event_reminder', $eid, $guest ), ARRAY_A );
+mbcom_check( '…and again an hour before', 2 === count( $soon ) && ! empty( json_decode( $soon[1]['data'], true )['soon'] ), (string) count( $soon ) );
+$mbcom_mails = array();
+$wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->prefix}mbcom_notifications SET updated_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 15 MINUTE) WHERE user_id = %d", $guest ) );
+delete_user_meta( $guest, 'mbcom_email_last' );
+delete_user_meta( $guest, 'mbcom_last_active' );
+\MemBuild\Community\Email::run();
+$to_guest = array_values( array_filter( $mbcom_mails, fn( $m ) => 'mbct_eventguest@example.test' === $m['to'] ) );
+mbcom_check( '…and the reminder arrives by email, through the regular email job', 1 === count( $to_guest ) && str_contains( $to_guest[0]['message'], 'Thursday Q&amp;A' ) && str_contains( $to_guest[0]['message'], "/events/{$eid}" ), count( $to_guest ) . ' emails ' . ( $to_guest[0]['subject'] ?? '' ) );
+
+list( $s, $moved ) = mbcom_call( $mod, 'PUT', "/events/{$eid}", array( 'at' => gmdate( 'c', time() + 3 * DAY_IN_SECONDS ) ) );
+mbcom_check( 'a new time resets the reminders and tells everyone going', 200 === $s && 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT event_reminded FROM %i WHERE id = %d', "{$wpdb->prefix}mbcom_posts", $eid ) ) && 1 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE type = %s AND post_id = %d AND user_id = %d', $notes, 'event_changed', $eid, $guest ) ), (string) $s );
+list( $s, $moved ) = mbcom_call( $mod, 'PUT', "/events/{$eid}", array( 'recording' => 'https://vimeo.com/123456' ) );
+mbcom_check( 'a recording link can be added later', 200 === $s && 'https://vimeo.com/123456' === $moved['event']['recording'] );
+
+// A group-only event
+$club = mbcom_call( $admin, 'POST', '/groups', array( 'name' => 'Event club' ) )[1];
+list( $s, $priv ) = mbcom_call( $admin, 'POST', '/events', array( 'title' => 'Club call', 'at' => $in2d, 'group' => $club['id'] ) );
+$pid = (int) $priv['id'];
+$fresh->setValue( null, array() );
+list( $s1 ) = mbcom_call( $guest, 'GET', "/posts/{$pid}" );
+list( $s2 ) = mbcom_call( $guest, 'PUT', "/events/{$pid}/rsvp", array( 'status' => 'going' ) );
+list( , $up ) = mbcom_call( $guest, 'GET', '/events' );
+list( , $feed ) = mbcom_call( $guest, 'GET', '/feed' );
+$told = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE type = %s AND post_id = %d AND user_id = %d', $notes, 'event_new', $pid, $guest ) );
+mbcom_check( 'an event for one group is invisible to everyone else', 404 === $s1 && 404 === $s2 && ! in_array( $pid, wp_list_pluck( $up['items'], 'id' ), true ) && ! in_array( $pid, wp_list_pluck( $feed['items'], 'id' ), true ) && 0 === $told, "$s1 $s2 $told" );
+mbcom_call( $admin, 'POST', "/groups/{$club['id']}/members", array( 'user_ids' => array( $guest ) ) );
+$fresh->setValue( null, array() );
+list( $s1 ) = mbcom_call( $guest, 'GET', "/posts/{$pid}" );
+mbcom_check( '…until they join the group', 200 === $s1, (string) $s1 );
+
+list( $s, $c ) = mbcom_call( $mod, 'POST', "/events/{$eid}/cancel" );
+list( $s2 ) = mbcom_call( $guest, 'PUT', "/events/{$eid}/rsvp", array( 'status' => 'going' ) );
+mbcom_check( 'cancelling marks it, tells everyone going, and stops RSVPs', 200 === $s && 'cancelled' === $c['event']['status'] && 400 === $s2 && 1 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE type = %s AND post_id = %d AND user_id = %d', $notes, 'event_cancelled', $eid, $guest ) ), "$s $s2" );
+
+mbcom_call( $admin, 'PUT', '/settings', array( 'features' => array( 'events' => false ) ) );
+\MemBuild\Community\Settings::flush();
+list( $s ) = mbcom_call( $guest, 'GET', '/events' );
+list( , $feed ) = mbcom_call( $guest, 'GET', '/feed' );
+mbcom_check( 'with Events off, the tab is gone and events leave the feed', 403 === $s && ! in_array( $eid, wp_list_pluck( $feed['items'], 'id' ), true ), (string) $s );
+mbcom_call( $admin, 'PUT', '/settings', array( 'features' => array( 'events' => true ), 'moderators' => array() ) );
+\MemBuild\Community\Settings::flush();
+foreach ( array( $eid, $pid ) as $x ) {
+	\MemBuild\Community\Rest_Feed::remove_post( $x );
+	$wpdb->delete( $notes, array( 'post_id' => $x ) );
+	$wpdb->delete( "{$wpdb->prefix}mbcom_reactions", array( 'object_type' => 'event', 'object_id' => $x ) );
+}
+mbcom_call( $admin, 'DELETE', "/groups/{$club['id']}" );
+
+/* ---------------------------------------------------------------- */
 mbcom_section( 'Credit' );
 require_once ABSPATH . 'wp-admin/includes/class-wp-screen.php';
 require_once ABSPATH . 'wp-admin/includes/screen.php';

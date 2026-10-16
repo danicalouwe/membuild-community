@@ -154,6 +154,14 @@ class Install {
 			lesson_id bigint(20) unsigned NOT NULL DEFAULT 0,
 			helpful_count int(10) unsigned NOT NULL DEFAULT 0,
 			best_comment_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			event_title varchar(200) NULL,
+			event_at datetime NULL,
+			event_minutes smallint(5) unsigned NOT NULL DEFAULT 60,
+			event_url varchar(500) NULL,
+			event_recording varchar(500) NULL,
+			event_status varchar(12) NOT NULL DEFAULT '',
+			event_group bigint(20) unsigned NOT NULL DEFAULT 0,
+			event_reminded tinyint(1) unsigned NOT NULL DEFAULT 0,
 			edited_at datetime NULL,
 			created_at datetime NOT NULL,
 			updated_at datetime NOT NULL,
@@ -165,7 +173,8 @@ class Install {
 			KEY user_id (user_id),
 			KEY user_status_created (user_id, status, created_at),
 			KEY course_status_id (course_id, status, id),
-			KEY lesson_status_id (lesson_id, status, id)
+			KEY lesson_status_id (lesson_id, status, id),
+			KEY event_at (event_at, status)
 			) {$charset};
 
 			CREATE TABLE {$media} (

@@ -43,7 +43,13 @@ const nextLocked = computed(() => allLessons.value.find((l) => l.id === lesson.v
 const html = computed(() => renderMarkdown(lesson.value?.content || ''))
 // Overview · Lesson · Discussion · Resources, kept in the address so a link can open a tab.
 // Without a lesson in the address, the course shows its overview.
-const tab = computed(() => (['overview', 'discussion', 'resources'].includes(route.query.tab) ? route.query.tab : props.lessonId ? 'lesson' : 'overview'))
+// The Resources tab only exists once a lesson has a file; an empty tab is a dead end.
+const hasFiles = computed(() => (course.value?.files_count || 0) > 0)
+const tab = computed(() => {
+  const asked = route.query.tab
+  if (asked === 'resources' && !hasFiles.value) return 'overview'
+  return ['overview', 'discussion', 'resources'].includes(asked) ? asked : props.lessonId ? 'lesson' : 'overview'
+})
 const resumeLesson = () => allLessons.value.find((l) => !l.completed && !l.locked) || allLessons.value[0]
 function setTab(name) {
   if (name === 'lesson' && !props.lessonId) {
@@ -290,7 +296,10 @@ function move(list, index, delta) {
 function onLessonSaved(updated) {
   lesson.value = updated
   const l = allLessons.value.find((x) => x.id === updated.id)
-  if (l) Object.assign(l, { title: updated.title, has_video: !!updated.media, drip_days: updated.drip_days })
+  if (l) {
+    course.value.files_count += (updated.resources?.length || 0) - (l.files || 0) // the Resources tab appears with the first file
+    Object.assign(l, { title: updated.title, has_video: !!updated.media, drip_days: updated.drip_days, files: updated.resources?.length || 0 })
+  }
 }
 
 function onLessonDeleted(outline) {
@@ -401,7 +410,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
         <button role="tab" :aria-selected="tab === 'discussion'" :class="{ on: tab === 'discussion' }" @click="setTab('discussion')">
           {{ t.__('Discussion', 'membuild-community') }} <span v-if="course.posts_count" class="count">{{ course.posts_count }}</span>
         </button>
-        <button role="tab" :aria-selected="tab === 'resources'" :class="{ on: tab === 'resources' }" @click="setTab('resources')">
+        <button v-if="hasFiles" role="tab" :aria-selected="tab === 'resources'" :class="{ on: tab === 'resources' }" @click="setTab('resources')">
           {{ t.__('Resources', 'membuild-community') }} <span v-if="course.files_count" class="count">{{ course.files_count }}</span>
         </button>
       </nav>

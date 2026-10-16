@@ -138,6 +138,14 @@ export const api = {
   completeLesson: (id) => request(`/lessons/${id}/complete`, { method: 'POST' }),
   uncompleteLesson: (id) => request(`/lessons/${id}/complete`, { method: 'DELETE' }),
   courseResources: (id) => request(`/courses/${id}/resources`),
+  // Events: a live call, a Q&A, a workshop. Each one is also a post.
+  events: (params) => request('/events', { params }),
+  createEvent: (body) => request('/events', { method: 'POST', body }),
+  updateEvent: (id, body) => request(`/events/${id}`, { method: 'PUT', body }),
+  cancelEvent: (id) => request(`/events/${id}/cancel`, { method: 'POST' }),
+  rsvp: (id, status) => request(`/events/${id}/rsvp`, { method: 'PUT', body: { status } }),
+  unrsvp: (id) => request(`/events/${id}/rsvp`, { method: 'DELETE' }),
+  eventGoing: (id) => request(`/events/${id}/going`),
   // Course discussions: posts under a lesson, or across the whole course.
   lessonPosts: (id, params) => request(`/lessons/${id}/posts`, { params }),
   coursePosts: (id, params, signal) => request(`/courses/${id}/posts`, { params, signal }),

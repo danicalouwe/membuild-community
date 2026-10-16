@@ -337,6 +337,13 @@ const percentDone = (pct) => t.sprintf(/* translators: %d: percent of the course
   }
 }
 
+@media (max-width: 360px) {
+  .filters button {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+}
+
 .done-badge {
   position: absolute;
   top: 10px;

@@ -190,9 +190,10 @@ class Search {
 		$reels           = Settings::feature( 'reels' ) ? '' : " AND type = 'post'";
 		// Posts in courses show only to members who can open that course and lesson.
 		list( $seen, $seen_vals ) = Discussions::visible_sql();
+		list( $ev, $ev_vals )     = Events::visible_sql();
 		$rows            = $wpdb->get_results(
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $m comes from match() and $seen from visible_sql(): fixed SQL with placeholders; $reels is a fixed literal; values are bound.
-			$wpdb->prepare( "SELECT id, user_id, type, content, course_id, lesson_id, reactions_count, comments_count, created_at FROM %i WHERE status = 'published'{$reels} AND {$seen} AND {$m} ORDER BY id DESC LIMIT %d OFFSET %d", array_merge( array( $posts ), $seen_vals, $vals, array( $limit + 1, $offset ) ) ),
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $m comes from match(), $seen and $ev from visible_sql(): fixed SQL with placeholders; $reels is a fixed literal; values are bound.
+			$wpdb->prepare( "SELECT id, user_id, type, content, course_id, lesson_id, event_at, event_title, reactions_count, comments_count, created_at FROM %i WHERE status = 'published'{$reels} AND {$seen} AND {$ev} AND ({$m} OR event_title LIKE %s) ORDER BY id DESC LIMIT %d OFFSET %d", array_merge( array( $posts ), $seen_vals, $ev_vals, $vals, array( '%' . $wpdb->esc_like( $words[0] ) . '%', $limit + 1, $offset ) ) ),
 			ARRAY_A
 		);
 		$rows  = Blocks::filter( $rows );
@@ -209,7 +210,8 @@ class Search {
 						'comments'   => (int) $r['comments_count'],
 						'created_at' => Helpers::iso( $r['created_at'] ),
 						'in_course'  => (bool) (int) $r['course_id'],
-						'link'       => array( 'query' => array( 'post' => (int) $r['id'] ) ),
+						'event'      => $r['event_at'] ? (string) $r['event_title'] : null,
+						'link'       => $r['event_at'] ? array( 'name' => 'event', 'params' => array( 'id' => (int) $r['id'] ) ) : array( 'query' => array( 'post' => (int) $r['id'] ) ),
 					) : null,
 					$rows
 				)

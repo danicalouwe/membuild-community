@@ -3,7 +3,12 @@
 # WP_PATH=/var/www/html/wp64 npm test  runs it against the WordPress 6.4 copy there instead.
 set -uo pipefail
 cd "$(dirname "$0")/.."
-code="$(tail -n +2 tests/integration.php | base64 | tr -d '\n')" # everything after "<?php", as one line
-# WP_PATH runs it against another WordPress in the tests container, e.g. an older release.
-./node_modules/.bin/wp-env run tests-cli wp ${WP_PATH:+--path="$WP_PATH"} eval "eval(base64_decode('$code'));" 2>&1 | grep -vE '^(ℹ|✔|✖) |^Command failed'
+# The file is copied into the container (it's too long to pass on the command line).
+container="$(docker ps --format '{{.Names}}' | grep -- '-tests-cli-1$' | head -n1)"
+if [ -z "$container" ]; then
+  echo "The wp-env tests site isn't running. Start it with ./node_modules/.bin/wp-env start" >&2
+  exit 1
+fi
+docker cp tests/integration.php "$container:/tmp/mbcom-integration.php" >/dev/null
+./node_modules/.bin/wp-env run tests-cli wp ${WP_PATH:+--path="$WP_PATH"} eval-file /tmp/mbcom-integration.php 2>&1 | grep -vE '^(ℹ|✔|✖) |^Command failed'
 exit "${PIPESTATUS[0]}"

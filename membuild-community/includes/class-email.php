@@ -341,7 +341,7 @@ class Email {
 		// Everyone with an unseen comment or reply, or an unread message, that is a few minutes old.
 		$ids = $wpdb->get_col(
 			$wpdb->prepare(
-				"SELECT DISTINCT user_id FROM %i WHERE type IN ('post_comment','comment_reply') AND read_at IS NULL AND seen_at IS NULL AND updated_at <= %s AND updated_at > %s
+				"SELECT DISTINCT user_id FROM %i WHERE type IN ('post_comment','comment_reply','event_reminder','event_changed','event_cancelled') AND read_at IS NULL AND seen_at IS NULL AND updated_at <= %s AND updated_at > %s
 				UNION
 				SELECT DISTINCT tm.user_id FROM %i tm JOIN %i m ON m.thread_id = tm.thread_id
 				WHERE tm.left_at IS NULL AND m.id > tm.last_read_id AND m.user_id <> tm.user_id AND m.status = 'sent' AND m.created_at <= %s AND m.created_at > %s
@@ -395,7 +395,7 @@ class Email {
 		if ( $prefs['activity'] ) {
 			$rows = $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT * FROM %i WHERE user_id = %d AND type IN ('post_comment','comment_reply') AND read_at IS NULL AND seen_at IS NULL AND updated_at > %s AND updated_at <= %s ORDER BY updated_at DESC LIMIT 10",
+					"SELECT * FROM %i WHERE user_id = %d AND type IN ('post_comment','comment_reply','event_reminder','event_changed','event_cancelled') AND read_at IS NULL AND seen_at IS NULL AND updated_at > %s AND updated_at <= %s ORDER BY updated_at DESC LIMIT 10",
 					Install::table( 'notifications' ),
 					$user_id,
 					$since,
@@ -405,7 +405,20 @@ class Email {
 			);
 			$actors = Helpers::users( array_merge( ...array_map( fn( $r ) => array_slice( array_map( 'intval', explode( ',', (string) $r['actor_ids'] ) ), 0, 2 ), $rows ?: array( array( 'actor_ids' => '' ) ) ) ) );
 			foreach ( $rows as $r ) {
-				$data    = json_decode( (string) $r['data'], true ) ?: array();
+				$data = json_decode( (string) $r['data'], true ) ?: array();
+				if ( str_starts_with( $r['type'], 'event_' ) ) {
+					// Event reminders and changes: the title says what, the quote says when.
+					$title   = match ( $r['type'] ) {
+						/* translators: %s: event title */
+						'event_reminder'  => sprintf( ! empty( $data['soon'] ) ? __( 'Starting soon: %s', 'membuild-community' ) : __( 'Tomorrow: %s', 'membuild-community' ), $data['title'] ?? '' ),
+						/* translators: %s: event title */
+						'event_changed'   => sprintf( __( 'New time: %s', 'membuild-community' ), $data['title'] ?? '' ),
+						/* translators: %s: event title */
+						default           => sprintf( __( 'Cancelled: %s', 'membuild-community' ), $data['title'] ?? '' ),
+					};
+					$items[] = array( 'title' => $title, 'quote' => 'event_cancelled' === $r['type'] ? '' : (string) ( $data['when'] ?? '' ), 'url' => Events::url( (int) $r['post_id'] ) );
+					continue;
+				}
 				$names   = array_values( array_filter( array_map( fn( $id ) => $actors[ (int) $id ]['name'] ?? null, array_slice( explode( ',', (string) $r['actor_ids'] ), 0, 2 ) ) ) );
 				$who     = self::who( $names, (int) $r['actors_count'] );
 				$what    = 'comment_reply' === $r['type'] ? __( 'replied to your comment', 'membuild-community' ) : __( 'commented on your post', 'membuild-community' );

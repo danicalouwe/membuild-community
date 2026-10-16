@@ -29,6 +29,9 @@ const route = useRoute()
 const initials = computed(() => initialsOf(cfg.siteName))
 const router = useRouter()
 const immersive = computed(() => route.name === 'reels')
+// Single-column pages sit at the exact centre of the window, as on Facebook: the right side
+// reserves the same width as the left column. Grids and maps use the full width beside it.
+const centred = computed(() => ['feed', 'event', 'member', 'me', 'notifications', 'search'].includes(route.name))
 // Tabs follow the features switched on in settings (the lists update after a save).
 const shown = computed(() => tabs.filter((tab) => !tab.feature || feature(tab.feature)))
 const desktopTabs = computed(() => shown.value.filter((tab) => tab.name !== 'me' && !tab.mobileOnly))
@@ -40,6 +43,19 @@ const wide = window.matchMedia('(min-width: 768px)')
 const isWide = ref(wide.matches)
 wide.addEventListener('change', (e) => (isWide.value = e.matches))
 const showDock = computed(() => isWide.value && feature('messages') && route.name !== 'messages')
+
+/*
+ * Facebook's desktop layout on wide screens: icons across the top (a label on
+ * hover), and the same sections with their words down the left. Narrower
+ * windows have no room for the column, so the top tabs keep their words there.
+ */
+const sideLinks = computed(() =>
+  [
+    feature('messages') && { to: '/messages', icon: 'messenger', label: t.__('Messages', 'membuild-community'), badge: messages.unread },
+    cfg.community.canManage && { to: '/settings', icon: 'settings', label: t.__('Community settings', 'membuild-community') },
+    cfg.community.isStaff && { to: '/moderation', icon: 'shield', label: t.__('Moderation', 'membuild-community'), badge: messages.reports },
+  ].filter(Boolean),
+)
 
 // Any page can open a post on top of itself with ?post=ID (used by notifications).
 const linked = ref(null)
@@ -86,7 +102,7 @@ const homeLabel = t.sprintf(/* translators: %s: the site's name */ t.__('%s home
 
 // A course page belongs to the Classroom tab.
 const isActive = (tab) =>
-  route.name === tab.name || (tab.name === 'classroom' && route.name === 'course') || (tab.name === 'members' && route.name === 'member')
+  route.name === tab.name || (tab.name === 'classroom' && route.name === 'course') || (tab.name === 'members' && route.name === 'member') || (tab.name === 'events' && route.name === 'event')
 </script>
 
 <template>
@@ -101,8 +117,9 @@ const isActive = (tab) =>
           <SearchBox v-if="feature('search')" />
         </div>
         <nav class="top-tabs" :aria-label="t.__('Sections', 'membuild-community')">
-          <RouterLink v-for="tab in desktopTabs" :key="tab.name" :to="tab.path" class="top-tab" :class="{ active: isActive(tab) }">
-            {{ tab.label }}
+          <RouterLink v-for="tab in desktopTabs" :key="tab.name" :to="tab.path" class="top-tab" :class="{ active: isActive(tab) }" :title="tab.label" :aria-label="tab.label">
+            <Icon :name="tab.icon" :size="24" />
+            <span class="top-label">{{ tab.label }}</span>
           </RouterLink>
         </nav>
         <HeaderActions />
@@ -116,7 +133,27 @@ const isActive = (tab) =>
       </span>
     </div>
 
-    <main class="main" :class="{ flush: route.name === 'places' }">
+    <aside v-if="!immersive" class="side" :aria-label="t.__('Sections', 'membuild-community')">
+      <RouterLink to="/me" class="side-me">
+        <Avatar :user="cfg.user" :size="36" />
+        <strong>{{ cfg.user.name }}</strong>
+      </RouterLink>
+      <nav class="side-nav">
+        <RouterLink v-for="tab in desktopTabs" :key="tab.name" :to="tab.path" class="side-link" :class="{ active: isActive(tab) }">
+          <span class="side-ic"><Icon :name="tab.icon" :size="22" /></span>
+          <span>{{ tab.label }}</span>
+        </RouterLink>
+      </nav>
+      <nav v-if="sideLinks.length" class="side-nav tools">
+        <RouterLink v-for="l in sideLinks" :key="l.to" :to="l.to" class="side-link" :class="{ active: route.path.startsWith(l.to) }">
+          <span class="side-ic"><Icon :name="l.icon" :size="22" /></span>
+          <span>{{ l.label }}</span>
+          <span v-if="l.badge" class="side-badge">{{ l.badge > 9 ? '9+' : l.badge }}</span>
+        </RouterLink>
+      </nav>
+    </aside>
+
+    <main class="main" :class="{ flush: route.name === 'places', centred }">
       <RouterView v-slot="{ Component }">
         <KeepAlive include="FeedView">
           <component :is="Component" />
@@ -219,10 +256,165 @@ const isActive = (tab) =>
 }
 
 .top-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
   padding: 8px 14px;
   border-radius: 999px;
   color: var(--text-2);
   font-weight: 600;
+}
+
+/* Narrower windows have no left column, so the tabs keep their words and drop the icons to fit. */
+@media (max-width: 1099px) {
+  .top-tab :deep(svg) {
+    display: none;
+  }
+}
+
+/* Tablets: seven words don't fit in a row, so each tab is an icon with its word underneath. */
+@media (min-width: 768px) and (max-width: 999px) {
+  .top-tabs {
+    gap: 2px;
+  }
+
+  .top-tab {
+    flex-direction: column;
+    gap: 2px;
+    min-width: 44px;
+    min-height: 50px;
+    padding: 4px 4px;
+    border-radius: 12px;
+    font-size: 10.5px;
+    line-height: 1.1;
+  }
+
+  .topbar-inner {
+    gap: 10px;
+    padding: 0 10px;
+  }
+
+  .top-tab :deep(svg) {
+    display: block;
+    width: 22px;
+    height: 22px;
+  }
+}
+
+/* Wide screens: icons only up top (the words are in the left column), on a wider, taller target. */
+@media (min-width: 1100px) {
+  .top-tab {
+    padding: 8px 22px;
+  }
+
+  .top-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+}
+
+/* The left column: the same sections, with their words, plus account tools. */
+.side {
+  display: none;
+}
+
+@media (min-width: 1100px) {
+  .side {
+    position: fixed;
+    top: calc(var(--header-h) + env(safe-area-inset-top));
+    bottom: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 272px;
+    padding: 14px 10px 16px;
+    overflow-y: auto;
+  }
+
+  .main {
+    padding-left: 272px;
+  }
+
+  .main.centred {
+    padding-right: 272px;
+  }
+}
+
+.side-me {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 15px;
+}
+
+.side-me:hover,
+.side-link:hover {
+  background: var(--surface-2);
+}
+
+.side-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.side-nav.tools {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.side-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.side-ic {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.side-link.active {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.side-link.active .side-ic {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.side-badge {
+  margin-left: auto;
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+  line-height: 20px;
 }
 
 .count {
@@ -295,8 +487,8 @@ const isActive = (tab) =>
 }
 
 .top-tab.active {
-  color: var(--text);
-  background: var(--surface-2);
+  color: var(--accent-text);
+  background: var(--accent-soft);
 }
 
 .main {
