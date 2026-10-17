@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.8.0
+Stable tag: 1.8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -261,6 +261,9 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.8.1 =
+* On wide screens the Reels page keeps the left column (Home, Classroom, Members and the rest), with the dark stage filling the space beside it; it used to leave an empty strip where the column belonged.
 
 = 1.8.0 =
 * New: Problems. Errors in the plugin's own code are caught on your site: PHP crashes in its files, and errors the community app hits in the browser. Community → Problems lists each one once with how often it happened, the file and line, a stack, and a "Copy for support" box; the overview says when something new was caught. Messages are scrubbed before they're stored (emails, links, quoted text, long numbers and server paths are removed) and nothing a member typed is ever kept. Members never see any of it. With "Share usage" on, the weekly report also carries these lines (file, line, scrubbed message, count; never the stack or the site's address), so a version that breaks somewhere is noticed before anyone writes in.

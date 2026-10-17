@@ -133,7 +133,7 @@ const isActive = (tab) =>
       </span>
     </div>
 
-    <aside v-if="!immersive" class="side" :aria-label="t.__('Sections', 'membuild-community')">
+    <aside class="side" :aria-label="t.__('Sections', 'membuild-community')">
       <RouterLink to="/me" class="side-me">
         <Avatar :user="cfg.user" :size="36" />
         <strong>{{ cfg.user.name }}</strong>
@@ -342,6 +342,12 @@ const isActive = (tab) =>
 
   .main.centred {
     padding-right: 272px;
+  }
+
+  /* Reels keep the column (navigation never disappears); the stage fills the rest. */
+  .immersive .side {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
   }
 }
 
