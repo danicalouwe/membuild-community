@@ -81,6 +81,12 @@ const quote = computed(() => (['course', 'lesson'].includes(props.item.kind) ? p
 <template>
   <RouterLink :to="to" class="result" @click="emit('open')">
     <Avatar v-if="item.user && item.kind === 'member'" :user="item.user" :size="36" badge />
+    <!-- A post with a picture shows it; a reel or video post gets a play badge, so it reads as video at a glance. -->
+    <span v-else-if="item.thumb" class="thumb" :class="{ tall: item.kind === 'reel', video: item.video }">
+      <img :src="item.thumb" alt="" />
+      <span v-if="item.video" class="play"><Icon name="play" :size="12" /></span>
+      <Avatar v-if="item.user" :user="item.user" :size="18" class="who" />
+    </span>
     <Avatar v-else-if="item.user" :user="item.user" :size="36" />
     <span v-else class="thumb" :class="{ locked }">
       <img v-if="item.cover && !locked" :src="item.cover" alt="" />
@@ -131,6 +137,46 @@ const quote = computed(() => (['course', 'lesson'].includes(props.item.kind) ? p
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.thumb.tall {
+  width: 32px;
+  height: 44px;
+  border-radius: 7px;
+}
+
+.thumb:has(.who),
+.thumb.video {
+  position: relative;
+  overflow: visible;
+  background: #000;
+}
+
+.thumb:has(.who) img,
+.thumb:has(.who) .play {
+  border-radius: inherit;
+}
+
+/* Who posted it, on the corner of the picture, ringed in the panel colour. */
+.thumb .who {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  box-shadow: 0 0 0 2px var(--surface);
+  border-radius: 50%;
+}
+
+.play {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.play svg {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
 }
 
 .text {

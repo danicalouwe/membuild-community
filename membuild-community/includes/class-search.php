@@ -198,6 +198,16 @@ class Search {
 		);
 		$rows  = Blocks::filter( $rows );
 		$users = Helpers::users( wp_list_pluck( $rows, 'user_id' ) );
+		// The first attachment gives the row a picture: a photo, a video's poster or an embed's thumbnail.
+		$media = Media::for_posts( wp_list_pluck( $rows, 'id' ) );
+		$first = function ( $id ) use ( $media ) {
+			$m = $media[ (int) $id ][0] ?? null;
+			if ( ! $m ) {
+				return array( null, false );
+			}
+			$video = in_array( $m['kind'], array( 'video', 'embed' ), true ) || ! empty( $m['stream'] ); // embeds are always videos (YouTube, Vimeo)
+			return array( $m['poster'] ?: ( 'image' === $m['kind'] ? $m['url'] : null ), $video );
+		};
 		return array_values(
 			array_filter(
 				array_map(
@@ -205,6 +215,8 @@ class Search {
 						'kind'       => 'reel' === $r['type'] ? 'reel' : 'post',
 						'id'         => (int) $r['id'],
 						'user'       => $users[ (int) $r['user_id'] ],
+						'thumb'      => $first( $r['id'] )[0],
+						'video'      => 'reel' === $r['type'] || $first( $r['id'] )[1],
 						'snippet'    => self::snippet( $r['content'], $words ),
 						'reactions'  => (int) $r['reactions_count'],
 						'comments'   => (int) $r['comments_count'],

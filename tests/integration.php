@@ -750,6 +750,16 @@ $res = $find( $finder, 'zebrafruit' );
 mbcom_check( 'finds posts and comments by their words', in_array( $sp['id'], $kinds( $res, 'posts' ), true ) && in_array( $sc['id'], $kinds( $res, 'comments' ), true ) );
 mbcom_check( '…every word has to match', ! in_array( $sp['id'], $kinds( $find( $finder, 'zebrafruit banana' ), 'posts' ), true ) && in_array( $sp['id'], $kinds( $find( $finder, 'pricing zebrafruit' ), 'posts' ), true ) );
 mbcom_check( 'results quote the text around the match and link to the post', str_contains( $res['groups']['posts']['items'][0]['snippet'], 'zebrafruit' ) && array( 'post' => $sp['id'] ) === $res['groups']['posts']['items'][0]['link']['query'] );
+$pic = mbcom_upload( $author, 'image/png', base64_decode( 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' ), 'zebrafruit.png' );
+list( , $ip ) = mbcom_call( $author, 'POST', '/posts', array( 'content' => 'zebrafruit orchard photo', 'media_ids' => array( $pic['id'] ?? 0 ) ) );
+// A reel with a video whose poster is known, written straight in (uploads of real video are tested elsewhere).
+$now = gmdate( 'Y-m-d H:i:s' );
+$wpdb->insert( \MemBuild\Community\Install::table( 'posts' ), array( 'user_id' => $author, 'type' => 'reel', 'content' => 'zebrafruit harvest short', 'status' => 'published', 'created_at' => $now, 'updated_at' => $now ) );
+$ir = (int) $wpdb->insert_id;
+$wpdb->insert( \MemBuild\Community\Install::table( 'media' ), array( 'user_id' => $author, 'post_id' => $ir, 'kind' => 'video', 'url' => home_url( '/zebrafruit.mp4' ), 'poster_url' => home_url( '/zebrafruit-poster.jpg' ), 'mime' => 'video/mp4', 'width' => 720, 'height' => 1280, 'created_at' => $now ) );
+$by_id = array_column( $find( $finder, 'zebrafruit' )['groups']['posts']['items'], null, 'id' );
+mbcom_check( 'a post with a photo shows it in the results; a plain post has no picture and isn’t video', ( $by_id[ $ip['id'] ]['thumb'] ?? '' ) === $pic['url'] && false === $by_id[ $ip['id'] ]['video'] && null === $by_id[ $sp['id'] ]['thumb'] && false === $by_id[ $sp['id'] ]['video'], wp_json_encode( $by_id[ $ip['id'] ] ?? null ) );
+mbcom_check( '…and a reel shows its poster and is marked as video', 'reel' === ( $by_id[ $ir ]['kind'] ?? '' ) && true === $by_id[ $ir ]['video'] && home_url( '/zebrafruit-poster.jpg' ) === $by_id[ $ir ]['thumb'] );
 mbcom_check( 'members are found by name', in_array( $author, $kinds( $find( $finder, 'quokka' ), 'members' ), true ) );
 mbcom_check( '…never by login name or email', ! in_array( $author, $kinds( $find( $finder, 'mbct_writer' ), 'members' ), true ) );
 mbcom_check( 'a single letter searches nothing', ! array_filter( wp_list_pluck( $find( $finder, 'z' )['groups'], 'items' ) ) );

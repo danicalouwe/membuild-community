@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.8.1
+Stable tag: 1.8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -261,6 +261,9 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.8.2 =
+* Search results show the post's picture: a photo, or a video's still with a play badge (reels in their tall shape), with who posted it on the corner. Plain posts keep the author's avatar.
 
 = 1.8.1 =
 * On wide screens the Reels page keeps the left column (Home, Classroom, Members and the rest), with the dark stage filling the space beside it; it used to leave an empty strip where the column belonged.
