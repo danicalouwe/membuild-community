@@ -1,5 +1,6 @@
 import { reactive } from 'vue'
 import { api } from '../api.js'
+import { shiftCounts } from '../lib/comments.js'
 import { cfg } from '../config.js'
 
 /**
@@ -205,7 +206,7 @@ export function removePost(idOrKey) {
  * then applied, or the change is rolled back if the request fails.
  */
 export async function setReaction(post, type) {
-  const before = { my_reaction: post.my_reaction, reactions_count: post.reactions_count, top_reactions: [...post.top_reactions] }
+  const before = { my_reaction: post.my_reaction, reactions_count: post.reactions_count, top_reactions: [...post.top_reactions], reaction_counts: { ...(post.reaction_counts || {}) } }
   const removing = type === null
   const optimistic = {
     my_reaction: type,
@@ -213,6 +214,7 @@ export async function setReaction(post, type) {
     top_reactions: removing
       ? before.top_reactions
       : [type, ...before.top_reactions.filter((r) => r !== type)].slice(0, 3),
+    reaction_counts: shiftCounts(before.reaction_counts, before.my_reaction, type),
   }
   updatePost(post.id, optimistic)
   try {

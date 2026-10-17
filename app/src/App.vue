@@ -73,7 +73,7 @@ watch(
   { immediate: true },
 )
 function closeLinked() {
-  const { post, ...query } = route.query
+  const { post, comment, ...query } = route.query
   router.replace({ query })
 }
 
@@ -173,7 +173,7 @@ const isActive = (tab) =>
       </RouterLink>
     </nav>
 
-    <PostDialog v-if="linked" :key="linked.id" :post="linked" @close="closeLinked" />
+    <PostDialog v-if="linked" :key="linked.id" :post="linked" :highlight="Number(route.query.comment) || 0" @close="closeLinked" />
     <ChatDock v-if="showDock" />
     <VideoDock v-if="video.media" />
     <LevelUpToast />
@@ -275,24 +275,36 @@ const isActive = (tab) =>
 
 /* Tablets: seven words don't fit in a row, so each tab is an icon with its word underneath. */
 @media (min-width: 768px) and (max-width: 999px) {
+  /* Tablets: every tab the same width, so the row reads as an even strip rather
+     than words of different lengths jammed together. */
   .top-tabs {
-    gap: 2px;
+    gap: 4px;
   }
 
   .top-tab {
+    flex: 1 1 0;
     flex-direction: column;
-    gap: 2px;
+    justify-content: center;
+    gap: 3px;
     min-width: 44px;
+    max-width: 78px;
     min-height: 50px;
-    padding: 4px 4px;
+    padding: 5px 4px;
     border-radius: 12px;
     font-size: 10.5px;
     line-height: 1.1;
+    white-space: nowrap;
   }
 
   .topbar-inner {
     gap: 10px;
     padding: 0 10px;
+    /* The sides keep what their logo and icons need; the tabs take the rest and shrink first. */
+    grid-template-columns: minmax(max-content, 1fr) minmax(0, auto) minmax(max-content, 1fr);
+  }
+
+  .top-tabs {
+    min-width: 0;
   }
 
   .top-tab :deep(svg) {

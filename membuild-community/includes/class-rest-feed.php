@@ -535,6 +535,7 @@ class Rest_Feed {
 			'reactions_count' => $count,
 			'my_reaction'     => $wpdb->get_var( $wpdb->prepare( "SELECT type FROM %i WHERE object_type = 'post' AND object_id = %d AND user_id = %d", $reacts, $post_id, get_current_user_id() ) ),
 			'top_reactions'   => array_slice( wp_list_pluck( $types, 'type' ), 0, 3 ),
+			'reaction_counts' => (object) array_combine( wp_list_pluck( $types, 'type' ), array_map( 'intval', wp_list_pluck( $types, 'n' ) ) ),
 		);
 	}
 
@@ -624,7 +625,7 @@ class Rest_Feed {
 		);
 		$summary = array();
 		foreach ( $wpdb->get_results( $wpdb->prepare( "SELECT object_id, type, COUNT(*) AS n FROM %i WHERE object_type = 'post' AND object_id IN (" . implode( ',', array_fill( 0, count( $ids ), '%d' ) ) . ') GROUP BY object_id, type ORDER BY n DESC', array_merge( array( $reacts ), $ids ) ), ARRAY_A ) as $r ) {
-			$summary[ (int) $r['object_id'] ][] = $r['type'];
+			$summary[ (int) $r['object_id'] ][ $r['type'] ] = (int) $r['n'];
 		}
 		$course = self::course_details( $rows );
 		$events = Events::details( array_filter( $rows, fn( $r ) => ! empty( $r['event_at'] ) ) );
@@ -645,7 +646,8 @@ class Rest_Feed {
 					'comments_count'  => (int) $row['comments_count'],
 					'shares_count'    => (int) ( $row['shares_count'] ?? 0 ),
 					'my_reaction'     => isset( $mine[ $id ] ) ? $mine[ $id ]->type : null,
-					'top_reactions'   => array_slice( $summary[ $id ] ?? array(), 0, 3 ),
+					'top_reactions'   => array_slice( array_keys( $summary[ $id ] ?? array() ), 0, 3 ),
+					'reaction_counts' => (object) ( $summary[ $id ] ?? array() ), // {like: 3, haha: 1}, most-used first; shown when hovering the pill
 					'can_delete'      => (int) $row['user_id'] === $me || Helpers::can_moderate(),
 					'can_edit'        => (int) $row['user_id'] === $me,
 					'pinned'          => ! empty( $row['is_pinned'] ),

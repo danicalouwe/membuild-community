@@ -50,7 +50,7 @@ const shareCount = (n) => t.sprintf(/* translators: %s: number of shares, e.g. "
   <div class="actions" :class="{ disabled: post.pending }">
     <div v-if="post.reactions_count || post.comments_count || post.shares_count || post.helpful_count" class="summary">
       <button v-if="post.reactions_count" class="who" :aria-label="t.__('See who reacted', 'membuild-community')" @click="showReactions = true">
-        <ReactionStack :types="post.top_reactions" :size="18" />
+        <ReactionStack :types="post.top_reactions" :counts="post.reaction_counts" :size="18" />
         <span>{{ fmt(post.reactions_count) }}</span>
       </button>
       <span class="counts">

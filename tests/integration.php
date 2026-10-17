@@ -101,8 +101,11 @@ mbcom_check( 'signed-out visitors get nothing', in_array( $s, array( 401, 403 ),
 /* ---------------------------------------------------------------- */
 mbcom_section( 'Comments, reactions, points and notifications' );
 $before = \MemBuild\Community\Points::stats_for( array( $ana ) )[ $ana ]['points'] ?? 0;
-list( $s ) = mbcom_call( $ben, 'PUT', "/posts/{$pid}/reaction", array( 'type' => 'love' ) );
+list( $s, $rs ) = mbcom_call( $ben, 'PUT', "/posts/{$pid}/reaction", array( 'type' => 'love' ) );
 mbcom_check( 'a member can react', 200 === $s, (string) $s );
+mbcom_check( '…and gets each kind’s count back', 1 === ( (array) $rs['reaction_counts'] )['love'] && 'love' === $rs['my_reaction'] );
+list( , $rs ) = mbcom_call( $ben, 'PUT', "/posts/{$pid}/reaction", array( 'type' => 'haha' ) );
+mbcom_check( 'a second reaction replaces the first, never adds', 1 === $rs['reactions_count'] && ! isset( ( (array) $rs['reaction_counts'] )['love'] ) && 1 === ( (array) $rs['reaction_counts'] )['haha'] );
 $after = \MemBuild\Community\Points::stats_for( array( $ana ) )[ $ana ]['points'] ?? 0;
 mbcom_check( 'the author earns a point', $after === $before + 1, "{$before} → {$after}" );
 mbcom_call( $ben, 'DELETE', "/posts/{$pid}/reaction" );
@@ -111,6 +114,19 @@ list( $s, $c ) = mbcom_call( $ben, 'POST', "/posts/{$pid}/comments", array( 'con
 mbcom_check( 'a member can comment', 201 === $s, (string) $s );
 list( $s, $reply ) = mbcom_call( $ana, 'POST', "/posts/{$pid}/comments", array( 'content' => 'Thanks!', 'parent_id' => $c['id'] ) );
 mbcom_check( 'replies thread under the comment', 201 === $s && (int) $reply['parent_id'] === (int) $c['id'] );
+mbcom_call( $ana, 'PUT', "/comments/{$c['id']}/reaction", array( 'type' => 'like' ) );
+list( , $cr ) = mbcom_call( $ben, 'PUT', "/comments/{$c['id']}/reaction", array( 'type' => 'haha' ) );
+list( , $cr ) = mbcom_call( $ben, 'PUT', "/comments/{$c['id']}/reaction", array( 'type' => 'wow' ) );
+mbcom_check( 'comments carry each kind’s count, one reaction per person', 2 === $cr['reactions_count'] && array( 'like' => 1, 'wow' => 1 ) == (array) $cr['reaction_counts'] && 'wow' === $cr['my_reaction'] );
+list( , $listed ) = mbcom_call( $ben, 'GET', "/posts/{$pid}/comments" );
+$listed_c = array_values( array_filter( $listed['items'] ?? $listed, fn( $x ) => (int) $x['id'] === (int) $c['id'] ) )[0] ?? null;
+mbcom_check( '…and the counts come with the list', $listed_c && array( 'like' => 1, 'wow' => 1 ) == (array) $listed_c['reaction_counts'] );
+mbcom_call( $ben, 'DELETE', "/comments/{$c['id']}/reaction" );
+mbcom_call( $ana, 'DELETE', "/comments/{$c['id']}/reaction" );
+list( $s, $one ) = mbcom_call( $ben, 'GET', "/comments/{$reply['id']}" );
+mbcom_check( 'one comment can be fetched for a shared link, with its parent', 200 === $s && (int) $one['parent_id'] === (int) $c['id'] && (int) $one['post_id'] === (int) $pid );
+list( $s ) = mbcom_call( 0, 'GET', "/comments/{$reply['id']}" );
+mbcom_check( '…not by visitors', in_array( $s, array( 401, 403 ), true ) );
 list( , $n_ana ) = mbcom_call( $ana, 'GET', '/notifications' );
 mbcom_check( 'the author is notified of the comment', in_array( 'post_comment', array_column( $n_ana['items'], 'type' ), true ) );
 list( , $n_ben ) = mbcom_call( $ben, 'GET', '/notifications' );

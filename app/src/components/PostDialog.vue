@@ -16,6 +16,7 @@ import { t } from '../lib/i18n.js'
 const props = defineProps({
   post: { type: Object, required: true },
   focusComment: { type: Boolean, default: false },
+  highlight: { type: Number, default: 0 }, // a comment to scroll to and flash (a shared link)
 })
 const emit = defineEmits(['close'])
 
@@ -46,7 +47,7 @@ watch(() => route.path, () => emit('close'))
       <PostActions :post="post" class="actions" @comment="thread?.focus()" />
 
       <div class="comments">
-        <CommentThread ref="thread" :post="post" :autofocus="focusComment" />
+        <CommentThread ref="thread" :post="post" :autofocus="focusComment" :highlight="highlight" />
       </div>
     </div>
   </BaseDialog>

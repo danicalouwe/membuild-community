@@ -3,12 +3,22 @@ import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, ref, watch }
 import GifMedia from './GifMedia.vue'
 import { api } from '../api.js'
 import { cfg } from '../config.js'
-import { watchChat, pulseNow } from '../stores/messages.js'
+import { watchChat, pulseNow, takeShareDraft } from '../stores/messages.js'
 import { startAttachment, startGif } from '../lib/attachments.js'
 import { giphyOn } from '../lib/giphy.js'
 import { emojiFor } from '../lib/reactions.js'
 import ReactionPicker from './ReactionPicker.vue'
 import { BACKGROUNDS } from '../lib/postStyle.js'
+import { sharedIn } from '../lib/links.js'
+
+// The message's text once its community link became a card: the URL comes out, the words stay.
+function textBesideCard(m) {
+  if (!m.content) return ''
+  const shared = sharedIn(m.content)
+  if (!shared || !m.sharedOk) return m.content
+  return m.content.replace(shared.href, '').replace(/[ \t]+/g, ' ').trim()
+}
+import SharedPost from './SharedPost.vue'
 import Avatar from './Avatar.vue'
 import Icon from './Icon.vue'
 import RichText from './RichText.vue'
@@ -130,6 +140,11 @@ async function load() {
     hasMore.value = history.has_more
     scrollToBottom()
     markRead()
+    const shared = takeShareDraft() // a link handed over by "Send in a message"
+    if (shared) {
+      draft.value = draft.value ? `${draft.value}\n${shared}` : shared
+      nextTick(() => input.value?.focus())
+    }
     stopWatching = watchChat(props.threadId, lastRealId, onPulse)
     nextTick(() => input.value?.focus())
   } catch (err) {
@@ -468,7 +483,9 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
                   <div v-if="row.m.media.length" class="photos" :class="`n${Math.min(row.m.media.length, 3)}`">
                     <a v-for="(p, i) in row.m.media" :key="i" :href="p.url" target="_blank" rel="noopener"><GifMedia v-if="p.mp4" :src="p.url" :mp4="p.mp4" :width="p.width || 0" :height="p.height || 0" /><img v-else :src="p.url" alt="" loading="lazy" /></a>
                   </div>
-                  <div v-if="row.m.content" class="bubble"><RichText :text="row.m.content" /></div>
+                  <!-- A link into this community shows as a preview card in place of the URL; any words around it follow in a bubble. -->
+                  <SharedPost v-if="sharedIn(row.m.content)" :post="sharedIn(row.m.content).post" :comment="sharedIn(row.m.content).comment" class="card" @ready="(ok) => (row.m.sharedOk = ok)" />
+                  <div v-if="textBesideCard(row.m)" class="bubble"><RichText :text="textBesideCard(row.m)" /></div>
                   <span v-if="row.m.reactions.length" class="reacts">
                     <span v-for="[type, n] in reactionSummary(row.m)" :key="type">{{ emojiFor(type) }}<b v-if="n > 1">{{ n }}</b></span>
                   </span>
@@ -837,6 +854,14 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
   font-size: 15px;
   line-height: 1.35;
   overflow-wrap: anywhere;
+}
+
+.card {
+  margin-top: 4px;
+}
+
+.card + .bubble {
+  margin-top: 4px;
 }
 
 .mine .bubble {

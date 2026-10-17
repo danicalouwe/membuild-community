@@ -10,6 +10,7 @@ import Icon from '../components/Icon.vue'
 import ChatView from '../components/ChatView.vue'
 import NewChatDialog from '../components/NewChatDialog.vue'
 import { t } from '../lib/i18n.js'
+import { sharedIn } from '../lib/links.js'
 
 const props = defineProps({ threadId: { type: Number, default: null } })
 const route = useRoute()
@@ -67,13 +68,21 @@ function started(chat) {
   open(chat.id)
 }
 
+// A message that was a shared link reads as "Shared a post" in the list, not as the URL.
+function words(lm) {
+  const shared = sharedIn(lm.preview)
+  if (!shared) return lm.preview
+  const rest = lm.preview.replace(shared.href, '').trim()
+  const what = shared.comment ? t.__('Shared a comment', 'membuild-community') : t.__('Shared a post', 'membuild-community')
+  return rest ? `${what} · ${rest}` : what
+}
 function preview(th) {
   const lm = th.last_message
   if (!lm) return t.__('No messages yet', 'membuild-community')
-  if (lm.user_id === cfg.user.id) return t.sprintf(/* translators: %s: the latest message */ t.__('You: %s', 'membuild-community'), lm.preview)
-  if (th.type !== 'group') return lm.preview
+  if (lm.user_id === cfg.user.id) return t.sprintf(/* translators: %s: the latest message */ t.__('You: %s', 'membuild-community'), words(lm))
+  if (th.type !== 'group') return words(lm)
   const name = th.others.find((o) => o.id === lm.user_id)?.name.split(' ')[0] || t.__('Someone', 'membuild-community')
-  return t.sprintf(/* translators: 1: sender's first name or file name, 2: the latest message or error message */ t.__('%1$s: %2$s', 'membuild-community'), name, lm.preview)
+  return t.sprintf(/* translators: 1: sender's first name or file name, 2: the latest message or error message */ t.__('%1$s: %2$s', 'membuild-community'), name, words(lm))
 }
 const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messages */ t._n('%d unread', '%d unread', n, 'membuild-community'), n)
 </script>

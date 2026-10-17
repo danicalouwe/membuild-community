@@ -12,6 +12,15 @@ import { api } from '../api.js'
  */
 export const messages = reactive({ unread: 0, inboxVersion: 0, notifications: 0, reports: 0, newPosts: 0 })
 
+// "Send in a message" (a comment's Share) leaves text here; the next chat that opens starts with it.
+let shareDraft = ''
+export const setShareDraft = (text) => (shareDraft = text || '')
+export function takeShareDraft() {
+  const text = shareDraft
+  shareDraft = ''
+  return text
+}
+
 const FAST = 3000
 const SLOW = 15000
 const IDLE = 30000

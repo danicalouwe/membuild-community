@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.8.2
+Stable tag: 1.8.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -261,6 +261,12 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.8.3 =
+* Reactions: hover the reaction pill on a post or a comment to see how many of each kind, like Facebook. After you react, the button shows your reaction (a filled thumb for Like, otherwise its face) instead of the plain thumb. One reaction per person, as before.
+* Comments follow Facebook groups, not pages: Like · Reply on the row, everything else behind ⋯ (Copy link, Send in a message, Share… on phones, Report, Delete). The thumbs-down is gone; old dislikes were never counted and stay that way.
+* A comment's link opens the post with that comment scrolled to and highlighted. In a chat, a link to a post or comment shows as a preview card (who wrote it, the start of it, its picture) that opens it in place; the chat list says "Shared a post" instead of the address.
+* Tablets: the section tabs are seven equal cells, icon over word, and never push the right-hand icons off the bar.
 
 = 1.8.2 =
 * Search results show the post's picture: a photo, or a video's still with a play badge (reels in their tall shape), with who posted it on the corner. Plain posts keep the author's avatar.

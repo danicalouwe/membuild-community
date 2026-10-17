@@ -19,6 +19,7 @@ const props = defineProps({
   post: { type: Object, required: true },
   dark: { type: Boolean, default: false },
   autofocus: { type: Boolean, default: false },
+  highlight: { type: Number, default: 0 }, // a comment id from a shared link: scrolled to and flashed once loaded
 })
 
 const SORTS = { relevant: t.__('Most relevant', 'membuild-community'), newest: t.__('Newest', 'membuild-community') }
@@ -115,10 +116,29 @@ watch(sort, () => {
   load(true)
 })
 
-onMounted(() => {
-  load(true)
+onMounted(async () => {
+  await load(true)
   if (props.autofocus) nextTick(() => input.value?.focus())
+  if (props.highlight) reveal(props.highlight)
 })
+
+// A shared comment: open its replies if it's one, scroll it into view, flash it.
+const flash = ref(0)
+async function reveal(id) {
+  let target = items.value.find((c) => c.id === id)
+  if (!target) {
+    const found = await api.comment(id).catch(() => null)
+    const parent = found?.parent_id && items.value.find((c) => c.id === found.parent_id)
+    if (!parent) return // not on this page of comments: the post is open, which is the best we can do
+    if (!parent.showReplies) await toggleReplies(parent)
+    target = parent.replies.find((r) => r.id === id)
+    if (!target) return
+  }
+  await nextTick()
+  document.getElementById(`c-${id}`)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  flash.value = id
+  setTimeout(() => (flash.value = 0), 2500)
+}
 
 async function toggleReplies(c) {
   c.showReplies = !c.showReplies
@@ -287,14 +307,14 @@ const viewReplies = (n) => t.sprintf(/* translators: %d: number of replies */ t.
     <p v-else-if="!items.length" class="empty">{{ t.__('No comments yet. Be the first to comment.', 'membuild-community') }}</p>
 
     <div v-for="c in items" :key="c.id" class="item">
-      <CommentItem :comment="c" :can-choose-best="!!post.can_choose_best" :in-course="!!post.course" @reply="startReply" @delete="remove" @best="toggleBest" />
+      <CommentItem :comment="c" :can-choose-best="!!post.can_choose_best" :in-course="!!post.course" :highlight="flash === c.id" @reply="startReply" @delete="remove" @best="toggleBest" />
 
       <div v-if="c.replies_count || c.replies.length" class="replies">
         <button v-if="!c.showReplies" class="view-replies" @click="toggleReplies(c)">
           <Icon name="chevronDown" :size="16" /> {{ viewReplies(c.replies_count) }}
         </button>
         <template v-else>
-          <CommentItem v-for="r in c.replies" :key="r.id" :comment="r" reply :in-course="!!post.course" @reply="startReply" @delete="remove" />
+          <CommentItem v-for="r in c.replies" :key="r.id" :comment="r" reply :in-course="!!post.course" :highlight="flash === r.id" @reply="startReply" @delete="remove" />
           <button class="view-replies" @click="toggleReplies(c)">{{ t.__('Hide replies', 'membuild-community') }}</button>
         </template>
       </div>

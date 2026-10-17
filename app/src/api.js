@@ -155,6 +155,7 @@ export const api = {
   clearBest: (postId) => request(`/posts/${postId}/best`, { method: 'DELETE' }),
   comments: (postId, { sort = 'relevant', page = 1 } = {}) => request(`/posts/${postId}/comments`, { params: { sort, page } }),
   replies: (commentId) => request(`/comments/${commentId}/replies`),
+  comment: (id) => request(`/comments/${id}`),
   createComment: (postId, content, { parentId, replyToUserId, mediaId } = {}) =>
     request(`/posts/${postId}/comments`, {
       method: 'POST',

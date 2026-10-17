@@ -61,9 +61,16 @@ class Rest_Comments {
 			MEMBUILD_COMMUNITY_REST_NS,
 			'/comments/(?P<id>\d+)',
 			array(
-				'methods'             => 'DELETE',
-				'callback'            => array( __CLASS__, 'delete' ),
-				'permission_callback' => $auth,
+				array(
+					'methods'             => 'GET',
+					'callback'            => array( __CLASS__, 'one' ),
+					'permission_callback' => $auth,
+				),
+				array(
+					'methods'             => 'DELETE',
+					'callback'            => array( __CLASS__, 'delete' ),
+					'permission_callback' => $auth,
+				),
 			)
 		);
 		register_rest_route(
@@ -252,8 +259,8 @@ class Rest_Comments {
 		global $wpdb;
 		$id   = (int) $req['id'];
 		$type = (string) $req['type'];
-		if ( 'down' !== $type && ! in_array( $type, Helpers::REACTIONS, true ) ) {
-			$type = 'like';
+		if ( ! in_array( $type, Helpers::REACTIONS, true ) ) {
+			$type = 'like'; // (the old "down" dislike is gone since 1.8.3; its rows stay uncounted)
 		}
 		$comment = self::get( $id );
 		if ( ! $comment || ! Rest_Feed::row( (int) $comment['post_id'] ) ) {
@@ -280,6 +287,17 @@ class Rest_Comments {
 		 */
 		do_action( 'membuild_community/reaction_changed', 'comment', $id, get_current_user_id(), $type );
 		return self::reaction_state( $id );
+	}
+
+	/** One comment, for a shared link: the app needs its parent to open the right replies. */
+	public static function one( \WP_REST_Request $req ) {
+		$row  = self::get( (int) $req['id'] );
+		$post = $row ? Rest_Feed::row( (int) $row['post_id'] ) : null;
+		if ( ! $post ) {
+			return new \WP_Error( 'mbcom_not_found', __( 'Comment not found.', 'membuild-community' ), array( 'status' => 404 ) );
+		}
+		$out = self::format( Blocks::filter( array( $row ) ), (int) $post['user_id'] );
+		return $out ? $out[0] : new \WP_Error( 'mbcom_not_found', __( 'Comment not found.', 'membuild-community' ), array( 'status' => 404 ) );
 	}
 
 	public static function unreact( \WP_REST_Request $req ) {
@@ -327,7 +345,7 @@ class Rest_Comments {
 		$row  = self::get( $id );
 		$post = Rest_Feed::row( (int) $row['post_id'] );
 		$full = self::format( array( $row ), (int) ( $post['user_id'] ?? 0 ) )[0];
-		return array_intersect_key( $full, array_flip( array( 'reactions_count', 'my_reaction', 'top_reactions', 'liked_by_author' ) ) );
+		return array_intersect_key( $full, array_flip( array( 'reactions_count', 'my_reaction', 'top_reactions', 'reaction_counts', 'liked_by_author' ) ) );
 	}
 
 	/**
@@ -447,6 +465,7 @@ class Rest_Comments {
 						'replies_count'   => (int) $row['replies_count'],
 						'my_reaction'     => isset( $mine[ $id ] ) ? $mine[ $id ]->type : null,
 						'top_reactions'   => array_slice( array_keys( $tops ), 0, 3 ),
+						'reaction_counts' => (object) $tops, // {like: 3, haha: 1}, most-used first; shown when hovering the pill
 						'liked_by_author' => $by_author[ $id ] ?? null,
 						'staff_role'      => Helpers::staff_role( (int) $row['user_id'] ), // shown as "Instructor" in courses
 						'can_delete'      => (int) $row['user_id'] === $me || Helpers::can_moderate(),
