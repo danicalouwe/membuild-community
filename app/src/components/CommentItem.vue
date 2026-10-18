@@ -57,13 +57,26 @@ async function shareSheet() {
   }
 }
 async function copyLink() {
+  const url = shareUrl()
   try {
-    await navigator.clipboard.writeText(shareUrl())
-    copied.value = true
-    setTimeout(() => (copied.value = false), 1600)
+    await navigator.clipboard.writeText(url)
   } catch {
-    window.prompt(t.__('Copy this link', 'membuild-community'), shareUrl())
+    // No clipboard API (plain http) or no permission: the old way, which works everywhere.
+    try {
+      const ta = Object.assign(document.createElement('textarea'), { value: url, readOnly: true })
+      ta.style.cssText = 'position:fixed;top:-100px;opacity:0'
+      document.body.append(ta)
+      ta.select()
+      const ok = document.execCommand('copy')
+      ta.remove()
+      if (!ok) throw new Error('copy failed')
+    } catch {
+      alert(url) // last resort: at least the link is on screen to copy by hand
+      return
+    }
   }
+  copied.value = true
+  setTimeout(() => (copied.value = false), 1600)
 }
 
 function react(type) {

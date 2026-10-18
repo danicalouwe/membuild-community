@@ -94,6 +94,8 @@ class Problems {
 	public static function scrub( $text ) {
 		$text = (string) $text;
 		$text = preg_replace( '/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/', '…', $text );
+		// Browser stack frames: keep the script's name (without its build hash) and the line, drop the address.
+		$text = preg_replace( '#https?://\S*?/([A-Za-z0-9_.-]+?)(?:-[A-Za-z0-9_-]{8})?\.js(:\d+(?::\d+)?)?#i', '$1.js$2', $text );
 		$text = preg_replace( '#https?://\S+#i', '…', $text );
 		$text = preg_replace( '/(["\'`])(?:(?!\1).){4,}\1/', '…', $text ); // quoted strings of any length past a few characters
 		$text = preg_replace( '#(?:[A-Za-z]:)?(?:/[^/\s:]+){2,}/(membuild-community/[^\s:]+)#', '$1', $text ); // absolute paths to our files
@@ -217,10 +219,10 @@ class Problems {
 			return '';
 		}
 		return sprintf(
-			'<li class="mbcom-alert"><span class="dashicons dashicons-warning" aria-hidden="true"></span> %s <a href="%s">%s</a></li>',
+			'<a class="mb-badge mb-badge--warn" href="%s">%s · %s</a>',
+			esc_url( Admin::url( 'problems' ) ),
 			/* translators: %s: a number */
 			esc_html( sprintf( _n( '%s problem in the last 7 days', '%s problems in the last 7 days', $n, 'membuild-community' ), number_format_i18n( $n ) ) ),
-			esc_url( Admin::url( 'problems' ) ),
 			esc_html__( 'See what', 'membuild-community' )
 		);
 	}
@@ -231,26 +233,30 @@ class Problems {
 		}
 		$all   = self::all();
 		$share = Usage::state()['share'];
-		echo '<div class="wrap mbcom-admin">';
-		printf( '<h1>%s</h1>', esc_html__( 'Problems', 'membuild-community' ) );
-		printf(
-			'<p class="mbcom-intro">%s</p>',
-			esc_html__( 'Errors in the Community plugin’s own code, caught on this site: PHP crashes in its files, and errors the community app hit in the browser. Each line is one place in the code, with how often it happened. Nothing here is a member’s doing, and nothing from this page leaves the site unless “Share usage” is on, which sends the lines below without the stack or the site’s address.', 'membuild-community' )
+		$state = $share
+			? '<span class="mb-badge mb-badge--ok">' . esc_html__( 'Share usage is on', 'membuild-community' ) . '</span>'
+			: '<a class="mb-badge mb-badge--neutral" href="' . esc_url( Admin::app_url( 'settings#s-updates' ) ) . '">' . esc_html__( 'Share usage is off · Settings', 'membuild-community' ) . '</a>';
+		Admin::shell_open(
+			'problems',
+			__( 'Problems', 'membuild-community' ),
+			__( 'Errors in the Community plugin’s own code, caught on this site: PHP crashes in its files, and errors the community app hit in the browser. Each line is one place in the code, with how often it happened. Nothing here is a member’s doing, and nothing from this page leaves the site unless “Share usage” is on, which sends the lines below without the stack or the site’s address.', 'membuild-community' ),
+			$state
 		);
 		if ( ! $all ) {
-			printf( '<section class="mbcom-panel mbcom-problems-empty"><span class="mbcom-stat-icon"><span class="dashicons dashicons-yes-alt" aria-hidden="true"></span></span><h2>%s</h2><p class="mbcom-muted">%s</p></section></div>', esc_html__( 'No problems caught', 'membuild-community' ), esc_html__( 'If something goes wrong in the plugin’s code, it shows up here.', 'membuild-community' ) );
+			printf( '<section class="mb-card mbcom-problems-empty"><span class="mbcom-empty-icon"><svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3 3 7-7"/></svg></span><h2 class="mb-card__title">%s</h2><p class="mb-help">%s</p></section>', esc_html__( 'No problems caught', 'membuild-community' ), esc_html__( 'If something goes wrong in the plugin’s code, it shows up here with the file, the line and a count.', 'membuild-community' ) );
+			Admin::shell_close();
 			return;
 		}
 		$dump = '';
-		echo '<section class="mbcom-panel mbcom-problems"><div class="mbcom-problems-head">';
-		printf( '<h2>%s</h2>', esc_html( sprintf( /* translators: %s: a number */ _n( '%s problem', '%s problems', count( $all ), 'membuild-community' ), number_format_i18n( count( $all ) ) ) ) );
+		echo '<section class="mb-card mbcom-problems"><div class="mb-card__head">';
+		printf( '<h2 class="mb-card__title">%s</h2>', esc_html( sprintf( /* translators: %s: a number */ _n( '%s problem', '%s problems', count( $all ), 'membuild-community' ), number_format_i18n( count( $all ) ) ) ) );
 		printf(
-			'<form method="post" action="%s">%s<input type="hidden" name="action" value="mbcom_problems"><button class="button" name="do" value="clear">%s</button></form></div>',
+			'<form method="post" action="%s">%s<input type="hidden" name="action" value="mbcom_problems"><button class="mb-btn mb-btn--quiet mb-btn--sm" name="do" value="clear">%s</button></form></div>',
 			esc_url( admin_url( 'admin-post.php' ) ),
 			wp_nonce_field( 'mbcom_problems', '_wpnonce', true, false ),
 			esc_html__( 'Clear the list', 'membuild-community' )
 		);
-		echo '<div class="mbcom-table-wrap"><table class="widefat striped mbcom-problem-table"><thead><tr>';
+		echo '<div class="mbcom-table-wrap"><table class="mb-table mbcom-problem-table"><thead><tr>';
 		foreach ( array( __( 'Last seen', 'membuild-community' ), __( 'What happened', 'membuild-community' ), __( 'Where', 'membuild-community' ), __( 'Times', 'membuild-community' ), __( 'Versions', 'membuild-community' ) ) as $h ) {
 			echo '<th>' . esc_html( $h ) . '</th>';
 		}
@@ -260,15 +266,15 @@ class Problems {
 			/* translators: %s: how long ago, e.g. "3 hours" */
 			$ago = sprintf( __( '%s ago', 'membuild-community' ), human_time_diff( $p['last'] ) );
 			printf(
-				'<tr><td class="mbcom-nowrap"><abbr title="%s">%s</abbr></td><td><span class="mbcom-tag %s">%s</span> <strong>%s</strong>%s</td><td><code>%s</code>%s</td><td>%s</td><td class="mbcom-muted mbcom-nowrap">%s</td></tr>',
+				'<tr><td class="mbcom-nowrap"><abbr title="%s">%s</abbr></td><td><span class="mb-badge %s">%s</span> <strong>%s</strong>%s</td><td><span class="mb-code">%s</span>%s</td><td class="mb-num">%s</td><td class="mb-sub mbcom-nowrap">%s</td></tr>',
 				esc_attr( wp_date( 'Y-m-d H:i', $p['last'] ) ),
 				esc_html( $ago ),
-				'js' === $p['kind'] ? 'warn' : 'bad',
+				'js' === $p['kind'] ? 'mb-badge--warn' : 'mb-badge--danger',
 				'js' === $p['kind'] ? esc_html__( 'Browser', 'membuild-community' ) : esc_html__( 'Server', 'membuild-community' ),
 				esc_html( $p['message'] ),
 				$p['stack'] ? '<details class="mbcom-stack"><summary>' . esc_html__( 'Stack', 'membuild-community' ) . '</summary><pre>' . esc_html( $p['stack'] ) . '</pre></details>' : '',
 				esc_html( $place ),
-				$p['where'] ? '<br><small class="mbcom-muted">' . esc_html( $p['where'] ) . '</small>' : '',
+				$p['where'] ? '<br><small class="mb-sub">' . esc_html( $p['where'] ) . '</small>' : '',
 				esc_html( number_format_i18n( $p['count'] ) ),
 				esc_html( 'Community ' . $p['plugin'] . ' · WP ' . $p['wp'] . ' · PHP ' . $p['php'] )
 			);
@@ -276,11 +282,12 @@ class Problems {
 		}
 		echo '</tbody></table></div>';
 		printf(
-			'<details class="mbcom-copy"><summary>%s</summary><p class="mbcom-muted">%s</p><textarea readonly rows="10" onclick="this.select()">%s</textarea></details></section></div>',
+			'<details class="mbcom-copy"><summary>%s</summary><p class="mb-help">%s</p><textarea readonly rows="10" onclick="this.select()">%s</textarea></details></section>',
 			esc_html__( 'Copy for support', 'membuild-community' ),
 			esc_html__( 'Paste this when you write to MemBuild or your developer. It holds the lines above and nothing about your members.', 'membuild-community' ),
 			esc_textarea( $dump )
 		);
+		Admin::shell_close();
 	}
 
 	public static function handle_clear() {

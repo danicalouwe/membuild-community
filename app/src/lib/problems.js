@@ -20,6 +20,7 @@ export function reportProblem(err, source = '', line = 0, info = '') {
     seen.add(key)
     left--
     const route = router.currentRoute.value?.name ? String(router.currentRoute.value.name) : ''
+    if (info && /^https?:/.test(info)) info = info.split('#').pop() // Vue's production info is a docs link; its hash is the code
     api
       .reportProblem({
         message,

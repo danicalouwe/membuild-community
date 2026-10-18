@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.8.3
+Stable tag: 1.9.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -261,6 +261,13 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.9.0 =
+* The wp-admin pages redesigned on the MemBuild Product System, the look shared with MemBuild's other plugins: one panel with the product tile, the version ("up to date", or the newer version on offer), nine pill tabs, the page's title and one line, cards, and a one-line footer. Stat tiles, a pill strip, the 30-day chart with its totals as the legend and a hover card per day, the activity list, Export and Problems all on the same components. Members, Posts, Comments, Files and Courses keep WordPress's tables (sorting, bulk actions, Screen Options) in the new look; the Posts table loses the Type column, which the thumbnail already said.
+* DM Sans and DM Mono ship inside the plugin (SIL Open Font License), so the admin pages never load a font from Google.
+* The "save a copy of your key" reminder now lives on the Community overview only, inside the panel; the "messages are paused" error still shows on every admin screen.
+* Settings ↗ and Open community ↗ open the community in a new tab.
+* The Problems page's browser stacks keep the file and line; "Copy link" on a comment can no longer throw.
 
 = 1.8.3 =
 * Reactions: hover the reaction pill on a post or a comment to see how many of each kind, like Facebook. After you react, the button shows your reaction (a filled thumb for Like, otherwise its face) instead of the plain thumb. One reaction per person, as before.

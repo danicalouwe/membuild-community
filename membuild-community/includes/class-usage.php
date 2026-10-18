@@ -359,10 +359,9 @@ class Usage {
 		if ( ! Helpers::can_manage() || ! self::card_due() ) {
 			return;
 		}
-		echo '<form class="mbcom-panel mbcom-setup" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		echo '<form class="mb-card mbcom-setup" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 		wp_nonce_field( 'mbcom_usage' );
 		echo '<input type="hidden" name="action" value="mbcom_usage">';
-		echo '<span class="mbcom-setup-icon"><span class="dashicons dashicons-megaphone" aria-hidden="true"></span></span>';
 		printf(
 			'<h2>%s</h2><p class="mbcom-muted">%s</p>',
 			esc_html__( 'Get the next features before anyone else', 'membuild-community' ),
@@ -389,7 +388,7 @@ class Usage {
 			esc_html__( 'Which features are on and how many members, posts, courses and events there are, refreshed weekly. Never member names, emails, posts or messages.', 'membuild-community' )
 		);
 		printf(
-			'<p class="mbcom-setup-actions"><button class="button button-primary" name="do" value="save">%s</button> <button class="button-link" name="do" value="skip" formnovalidate>%s</button></p>',
+			'<p class="mbcom-setup-actions"><button class="mb-btn mb-btn--accent" name="do" value="save">%s</button> <button class="mb-btn mb-btn--quiet" name="do" value="skip" formnovalidate>%s</button></p>',
 			esc_html__( 'Keep me updated', 'membuild-community' ),
 			esc_html__( 'Not now', 'membuild-community' )
 		);

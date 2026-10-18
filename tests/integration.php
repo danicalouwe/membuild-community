@@ -361,7 +361,7 @@ foreach ( array( 'posts', 'comments', 'files', 'courses' ) as $screen ) {
 ob_start();
 \MemBuild\Community\Admin::page_overview();
 $html = ob_get_clean();
-mbcom_check( 'the overview renders its numbers and chart', false !== strpos( $html, 'mbcom-card-value' ) && false !== strpos( $html, '<svg' ) );
+mbcom_check( 'the overview renders its numbers and chart', false !== strpos( $html, 'mb-stat__n' ) && false !== strpos( $html, 'mbcom-chart' ) );
 
 $export = \MemBuild\Community\Privacy::export( 'mbct_ana@example.test', 1 );
 $groups = array_unique( array_column( $export['data'], 'group_id' ) );
@@ -1239,6 +1239,7 @@ mbcom_check( '…and the stack has no email, URL or server path', ! str_contains
 $P::from_php( array( 'type' => E_ERROR, 'file' => '/srv/wp/wp-content/plugins/membuild-community/includes/class-events.php', 'line' => 42, 'message' => "Uncaught TypeError: count(): Argument #1 must be of type Countable in /srv/wp/wp-content/plugins/membuild-community/includes/class-events.php:42\nStack trace:\n#0 {main}\n  thrown" ) );
 mbcom_check( 'the same place again counts, not duplicates', 1 === count( $P::all() ) && 2 === $P::all()[ $sig ]['count'] );
 $scrubbed = $P::scrub( 'Member ana@example.test opened https://example.test/community/post/9 with key "sk_live_abcdef" and id 1234567 at /var/www/html/wp-content/plugins/membuild-community/includes/class-feed.php' );
+mbcom_check( 'a browser stack keeps the file and line, not the address or build hash', 'at O (index.js:17:2000)' === $P::scrub( 'at O (http://localhost:8891/wp-content/plugins/membuild-community/assets/build/assets/index-D61fuWQ_.js:17:2000)' ) );
 mbcom_check( 'scrubbing drops emails, links, quoted text, long numbers and server paths', ! str_contains( $scrubbed, '@' ) && ! str_contains( $scrubbed, 'http' ) && ! str_contains( $scrubbed, 'sk_live' ) && ! str_contains( $scrubbed, '1234567' ) && ! str_contains( $scrubbed, '/var/www' ) && str_contains( $scrubbed, 'membuild-community/includes/class-feed.php' ), $scrubbed );
 
 list( $code ) = mbcom_call( 0, 'POST', '/problems', array( 'message' => 'x' ) );

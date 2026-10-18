@@ -1,0 +1,5 @@
+DM Sans and DM Mono are licensed under the SIL Open Font License, Version 1.1.
+DM Sans: Copyright 2014-2024 Indian Type Foundry (info@indiantypefoundry.com), Jonny Pinhorn, with Reserved Font Name "Poppins" (DM Sans is derived from Poppins).
+DM Mono: Copyright 2020 The DM Mono Project Authors (https://github.com/googlefonts/dm-mono).
+Full licence text: https://openfontlicense.org/open-font-license-official-text/
+The files here are the Latin subsets as served by Google Fonts, bundled so no request leaves the site when the admin pages load.

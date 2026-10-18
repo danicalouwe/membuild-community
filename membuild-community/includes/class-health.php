@@ -194,17 +194,20 @@ class Health {
 			$notice( 'error', 'warning', __( 'Community messages are paused.', 'membuild-community' ), self::key_problem(), self::key_settings_url(), __( 'Restore the key', 'membuild-community' ), __( 'Members can’t read or send private messages until this is done.', 'membuild-community' ) );
 			return;
 		}
-		if ( 'constant' === Vault::key_source() || get_option( Vault::SAVED_OPTION ) ) {
-			return;
+		// The "save a copy" reminder is the Community overview's, inside its panel (key_card()).
+	}
+
+	/** The "save a copy of your key" card for the Community overview, until someone confirms they kept one. */
+	public static function key_card() {
+		if ( ! current_user_can( 'manage_options' ) || ! Vault::ready() || 'constant' === Vault::key_source() || get_option( Vault::SAVED_OPTION ) ) {
+			return '';
 		}
-		$notice(
-			'warning',
-			'lock',
-			__( 'Save a copy of your community’s encryption key.', 'membuild-community' ),
-			__( 'Private messages are encrypted with a key kept on your server. Keep a copy somewhere safe, like a password manager. If the site is ever moved or restored without it, members’ messages can’t be read.', 'membuild-community' ),
-			self::key_settings_url(),
-			__( 'Save the key', 'membuild-community' ),
-			__( 'Takes a minute. This note goes away once you’ve confirmed you have a copy.', 'membuild-community' )
+		return sprintf(
+			'<div class="mb-notice mb-notice--warn mbcom-key-card"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 016 0v2"/></svg><div class="mb-notice__body"><div class="mb-notice__title">%s</div><div class="mb-notice__text">%s</div></div><a class="mb-btn mb-btn--quiet mb-btn--sm" href="%s">%s</a></div>',
+			esc_html__( 'Save a copy of your community’s encryption key.', 'membuild-community' ),
+			esc_html__( 'Private messages are encrypted with a key kept on your server. Keep a copy somewhere safe, like a password manager. If the site is ever moved or restored without it, members’ messages can’t be read.', 'membuild-community' ),
+			esc_url( self::key_settings_url() ),
+			esc_html__( 'Save the key', 'membuild-community' )
 		);
 	}
 
