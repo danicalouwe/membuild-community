@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.9.0
+Stable tag: 1.9.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -261,6 +261,9 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.9.1 =
+* The row checkboxes in the admin tables were clipped by WordPress's em-sized column; they have their own room now.
 
 = 1.9.0 =
 * The wp-admin pages redesigned on the MemBuild Product System, the look shared with MemBuild's other plugins: one panel with the product tile, the version ("up to date", or the newer version on offer), nine pill tabs, the page's title and one line, cards, and a one-line footer. Stat tiles, a pill strip, the 30-day chart with its totals as the legend and a hover card per day, the activity list, Export and Problems all on the same components. Members, Posts, Comments, Files and Courses keep WordPress's tables (sorting, bulk actions, Screen Options) in the new look; the Posts table loses the Type column, which the thumbnail already said.

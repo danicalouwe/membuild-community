@@ -927,7 +927,9 @@ JS;
 .mbcom-admin .wp-list-table thead th a:hover{color:var(--ink);text-decoration:none}
 .mbcom-admin .wp-list-table thead th.sorted a,.mbcom-admin .wp-list-table thead th.sortable a{padding:0}
 .mbcom-admin .wp-list-table thead th .sorting-indicators{margin-left:2px}
-.mbcom-admin .wp-list-table thead td.check-column,.mbcom-admin .wp-list-table tbody th.check-column{padding:var(--space-3) 0 var(--space-3) var(--space-3);width:36px;vertical-align:middle}
+/* WordPress sizes this column in em and clips it; the box needs its own room. */
+.mbcom-admin .wp-list-table thead td.check-column,.mbcom-admin .wp-list-table tbody th.check-column,.mbcom-admin .wp-list-table tbody td.check-column{padding:var(--space-3) 0 var(--space-3) var(--space-4)!important;width:44px!important;vertical-align:middle!important;overflow:visible!important;white-space:nowrap}
+.mbcom-admin .wp-list-table .check-column input[type=checkbox]{margin:0;position:static}
 .mbcom-admin .wp-list-table tfoot{display:none}
 .mbcom-admin .wp-list-table tbody td,.mbcom-admin .wp-list-table tbody th{padding:var(--space-3) var(--space-4);border-bottom:1px solid var(--line-100);vertical-align:middle;font:500 14px/20px var(--font-sans);color:var(--ink-body);box-shadow:none;background:transparent}
 .mbcom-admin .wp-list-table tbody tr:last-child td,.mbcom-admin .wp-list-table tbody tr:last-child th{border-bottom:0}
