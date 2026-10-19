@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.9.2
+Stable tag: 1.9.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -261,6 +261,9 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.9.3 =
+* On a slow host a message you had just sent could show twice in the chat for a moment, until the send came back. The copy the chat picks up on its own now replaces the pending one straight away.
 
 = 1.9.2 =
 * GIFs in posts showed as a blank box until you scrolled or reloaded: GIPHY sends no still image for the picker, so posts saved without a first frame. New GIF posts now save one, older ones load their first frame, and a GIF starts as soon as a sliver of it is on screen.

@@ -180,6 +180,13 @@ function onPulse(thread) {
   const known = new Set(items.value.map((m) => m.id))
   const fresh = thread.messages.filter((m) => !known.has(m.id))
   if (fresh.length) {
+    // One of mine arriving while its send is still in flight replaces the pending bubble,
+    // so a slow send (a busy host, mail going out in the same request) never shows it twice.
+    for (const m of fresh) {
+      if (!m.mine) continue
+      const i = items.value.findIndex((p) => p.pending && (p.content || null) === (m.content || null) && p.media.length === (m.media || []).length)
+      if (i >= 0) items.value.splice(i, 1)
+    }
     items.value.push(...fresh)
     if (stick) scrollToBottom(true)
     if (fresh.some((m) => !m.mine)) markRead()
@@ -265,8 +272,13 @@ async function send() {
     })
     // The pulse may have delivered it already; keep exactly one copy.
     const i = items.value.indexOf(temp)
-    if (items.value.some((m) => m.id === saved.id)) items.value.splice(i, 1)
-    else items.value.splice(i, 1, saved)
+    if (items.value.some((m) => m.id === saved.id)) {
+      if (i >= 0) items.value.splice(i, 1)
+    } else if (i >= 0) {
+      items.value.splice(i, 1, saved)
+    } else {
+      items.value.push(saved)
+    }
     pics.forEach((p) => p.release()) // the saved photos show now, not the local previews
     pulseNow()
   } catch (err) {
