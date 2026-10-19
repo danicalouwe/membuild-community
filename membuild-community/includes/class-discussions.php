@@ -132,6 +132,41 @@ class Discussions {
 	}
 
 	/**
+	 * SQL for the Home feed: community posts, plus questions from courses the
+	 * member has started (completed a lesson in, or posted in). A lesson question
+	 * is the highest-intent post a member makes; in Home the whole class sees it
+	 * and can answer, instead of only whoever opens that lesson. Admins see every
+	 * course they can open. Course posts never show on profiles (see Rest_Feed).
+	 *
+	 * @return array{0:string,1:array} Fixed SQL with %d placeholders, and its values.
+	 */
+	public static function home_sql() {
+		global $wpdb;
+		list( $vis, $vals ) = self::visible_sql();
+		if ( ! $vals || Helpers::can_manage() ) {
+			return array( $vis, $vals );
+		}
+		$me      = get_current_user_id();
+		$started = array_map(
+			'intval',
+			$wpdb->get_col(
+				$wpdb->prepare(
+					'SELECT DISTINCT course_id FROM %i WHERE user_id = %d UNION SELECT DISTINCT course_id FROM %i WHERE user_id = %d AND course_id <> 0',
+					Install::table( 'lesson_progress' ),
+					$me,
+					Install::table( 'posts' ),
+					$me
+				)
+			)
+		);
+		if ( ! $started ) {
+			return array( 'course_id = 0', array() );
+		}
+		$in = implode( ',', array_fill( 0, count( $started ), '%d' ) );
+		return array( "(course_id = 0 OR (course_id IN ({$in}) AND {$vis}))", array_merge( $started, $vals ) );
+	}
+
+	/**
 	 * Where a new post goes when the composer names a lesson or a course:
 	 * array( course_id, lesson_id ), or an error when the member can't post there.
 	 */

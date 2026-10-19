@@ -124,6 +124,9 @@ async function remove() {
         <RouterLink v-if="showPlace && post.lesson" class="place" :to="{ name: 'course', params: { courseId: post.course.id, lessonId: post.lesson.id } }">
           <Icon name="cap" :size="13" /> {{ post.lesson.title }}
         </RouterLink>
+        <RouterLink v-else-if="showPlace && post.course" class="place" :to="{ name: 'course', params: { courseId: post.course.id } }">
+          <Icon name="cap" :size="13" /> {{ post.course.title }}
+        </RouterLink>
       </div>
       <span v-if="post.pinned" class="pin" :title="t.__('Pinned by an admin', 'membuild-community')"><Icon name="pin" :size="14" /> {{ pinLabel }}</span>
       <div v-if="!post.pending" :ref="menuRoot" class="menu-wrap">

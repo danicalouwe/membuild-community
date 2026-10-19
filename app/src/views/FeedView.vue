@@ -96,7 +96,7 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
 
     <PostCard v-for="post in list.pinned" :key="`pin-${post.id}`" :post="post" />
     <template v-for="(post, i) in list.items" :key="post.localKey || post.id">
-      <PostCard :post="post" />
+      <PostCard :post="post" show-place />
       <!-- Reels are grouped into one tray in the feed, after the third post. -->
       <ReelsTray v-if="feature('reels') && i === Math.min(2, list.items.length - 1)" />
     </template>

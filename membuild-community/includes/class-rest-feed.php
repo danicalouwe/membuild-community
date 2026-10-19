@@ -138,11 +138,13 @@ class Rest_Feed {
 		global $wpdb;
 		$posts = Install::table( 'posts' );
 		// $where only ever holds fixed SQL with placeholders; the values go in $args, in order.
-		// Posts inside courses stay in their course: never in the feed or on profiles.
-		// Events for one member group show only to that group.
+		// Home shows community posts plus questions from courses the member has started
+		// (Discussions::home_sql); profiles show community posts only. Events for one
+		// member group show only to that group.
 		list( $seen, $seen_vals ) = Events::visible_sql();
-		$where = "status = 'published' AND course_id = 0 AND {$seen}";
-		$args  = array_merge( array( $posts ), $seen_vals );
+		list( $home, $home_vals ) = empty( $req['author'] ) ? Discussions::home_sql() : array( 'course_id = 0', array() );
+		$where = "status = 'published' AND {$home} AND {$seen}";
+		$args  = array_merge( array( $posts ), $home_vals, $seen_vals );
 		if ( in_array( $req['type'], array( 'post', 'reel' ), true ) ) {
 			$where .= ' AND type = %s';
 			$args[] = $req['type'];
@@ -152,11 +154,12 @@ class Rest_Feed {
 			$where .= ' AND user_id = %d'; // one member's profile
 			$args[] = (int) $req['author'];
 		} elseif ( 'reel' !== $req['type'] ) {
-			// Pinned posts sit above the feed, once, instead of in the timeline.
+			// Pinned posts sit above the feed, once, instead of in the timeline. Course
+			// posts pin inside their course, so in Home they stay in the timeline.
 			if ( ! (int) $req['cursor'] && (int) $req['page'] <= 1 ) {
-				$pinned = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM %i WHERE {$where} AND is_pinned = 1 ORDER BY id DESC LIMIT %d", array_merge( $args, array( Moderation::MAX_PINS ) ) ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where is built only from fixed SQL fragments with %s/%d placeholders; every value is bound through $args in this prepare().
+				$pinned = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM %i WHERE {$where} AND course_id = 0 AND is_pinned = 1 ORDER BY id DESC LIMIT %d", array_merge( $args, array( Moderation::MAX_PINS ) ) ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $where is built only from fixed SQL fragments with %s/%d placeholders; every value is bound through $args in this prepare().
 			}
-			$where .= ' AND is_pinned = 0';
+			$where .= ' AND (is_pinned = 0 OR course_id <> 0)';
 		}
 		if ( ! Settings::feature( 'reels' ) ) {
 			$where .= " AND type = 'post'"; // reels switched off: hide them everywhere

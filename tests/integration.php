@@ -1004,7 +1004,15 @@ list( $s, $q ) = mbcom_call( $asker, 'POST', '/posts', array( 'content' => 'How 
 mbcom_check( 'members post under a lesson like on the feed', 201 === $s && $tcid === ( $q['course']['id'] ?? 0 ) && $ta['id'] === ( $q['lesson']['id'] ?? 0 ), (string) $s );
 list( , $feed ) = mbcom_call( $asker, 'GET', '/feed' );
 list( , $prof ) = mbcom_call( $asker, 'GET', '/feed', array( 'author' => $asker ) );
-mbcom_check( '…which stays in the course: not in the feed or on their profile', ! in_array( $q['id'], wp_list_pluck( $feed['items'], 'id' ), true ) && ! in_array( $q['id'], wp_list_pluck( $prof['items'], 'id' ), true ) );
+$in_feed = wp_list_pluck( $feed['items'], 'id' );
+mbcom_check( '…which shows in the asker’s Home with its lesson, never on their profile', in_array( $q['id'], $in_feed, true ) && $ta['id'] === ( $feed['items'][ array_search( $q['id'], $in_feed, true ) ]['lesson']['id'] ?? 0 ) && ! in_array( $q['id'], wp_list_pluck( $prof['items'], 'id' ), true ) );
+list( , $feed ) = mbcom_call( $helper, 'GET', '/feed' );
+mbcom_check( '…and not in the Home of someone who hasn’t started that course', ! in_array( $q['id'], wp_list_pluck( $feed['items'], 'id' ), true ) );
+mbcom_call( $helper, 'POST', "/lessons/{$ta['id']}/complete" );
+list( , $feed ) = mbcom_call( $helper, 'GET', '/feed' );
+mbcom_check( '…until they complete a lesson in it', in_array( $q['id'], wp_list_pluck( $feed['items'], 'id' ), true ) );
+list( , $feed ) = mbcom_call( $admin, 'GET', '/feed' );
+mbcom_check( '…admins see every course’s questions in Home', in_array( $q['id'], wp_list_pluck( $feed['items'], 'id' ), true ) );
 list( , $lp ) = mbcom_call( $helper, 'GET', "/lessons/{$ta['id']}/posts" );
 list( , $cp ) = mbcom_call( $helper, 'GET', "/courses/{$tcid}/posts" );
 mbcom_check( 'it shows under the lesson and in the course’s Discussion tab', in_array( $q['id'], wp_list_pluck( $lp['items'], 'id' ), true ) && in_array( $q['id'], wp_list_pluck( $cp['items'], 'id' ), true ) && 'Open lesson' === $cp['items'][0]['lesson']['title'] );

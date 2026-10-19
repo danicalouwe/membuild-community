@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.9.3
+Stable tag: 1.9.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -261,6 +261,9 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.9.4 =
+* Lesson questions now show in Home for everyone who has started that course, with the lesson named on the card, so the whole class can answer instead of only whoever opens that lesson. Admins see every course's questions. Course posts still stay off profiles, and pins inside a course stay inside the course.
 
 = 1.9.3 =
 * On a slow host a message you had just sent could show twice in the chat for a moment, until the send came back. The copy the chat picks up on its own now replaces the pending one straight away.
