@@ -21,7 +21,11 @@ import { useMenu } from '../lib/useMenu.js'
 const props = defineProps({
   post: { type: Object, required: true },
   showPlace: { type: Boolean, default: false }, // a course post outside its lesson: say which lesson
+  courseHeader: { type: Boolean, default: false }, // Home: lead with the course, author on its corner
 })
+
+// A course without a cover gets the same gradient the Classroom grid gives it.
+const coverFallback = (id) => `linear-gradient(135deg, hsl(${(id * 67) % 360} 65% 55%), hsl(${(id * 67 + 50) % 360} 60% 38%))`
 
 const { open: menu, root: menuRoot, trigger: menuTrigger, list: menuList, toggle: toggleMenu, close: closeMenu, onKeydown: onMenuKey } = useMenu()
 const editing = ref(false)
@@ -102,7 +106,41 @@ async function remove() {
 
 <template>
   <article class="post card" :class="{ pending: post.pending }">
+    <!-- In Home, a course question leads with the course (its cover as the picture, the author
+         tucked on its corner), the way a group post reads in a Facebook home feed. -->
     <header class="head">
+      <template v-if="courseHeader && post.course">
+      <RouterLink class="course-pic" :to="{ name: 'course', params: { courseId: post.course.id } }" :aria-label="post.course.title">
+        <img v-if="post.course.cover" :src="post.course.cover" alt="" />
+        <span v-else class="course-fallback" :style="{ background: coverFallback(post.course.id) }"><Icon name="cap" :size="18" /></span>
+        <Avatar :user="post.author" :size="22" class="mini" />
+      </RouterLink>
+      <div class="who">
+        <div class="name-line">
+          <RouterLink class="name" :to="{ name: 'course', params: { courseId: post.course.id } }">{{ post.course.title }}</RouterLink>
+        </div>
+        <span class="byline">
+          <template v-for="(p, i) in nameParts" :key="i">
+            <template v-if="p.slot === 1">
+              <RouterLink v-if="post.author" :to="{ name: 'member', params: { id: post.author.id } }" class="by">{{ post.author.name }}</RouterLink>
+            </template>
+            <span v-else class="feeling"
+              ><template v-if="p.slot === 2">{{ feeling.emoji }}</template
+              ><strong v-else-if="p.slot === 3">{{ feeling.label }}</strong
+              ><template v-else>{{ p.text }}</template></span
+            >
+          </template>
+          <em v-if="post.author?.level" class="lvl" :aria-label="t.sprintf(t.__('Level %d', 'membuild-community'), post.author.level)">{{ post.author.level }}</em>
+          <em v-if="staffLabel" class="staff">{{ staffLabel }}</em>
+          · {{ post.pending ? t.__('Posting…', 'membuild-community') : timeAgo(post.created_at) }}<template v-if="post.edited"> · {{ t.__('Edited', 'membuild-community') }}</template>
+          <template v-if="post.lesson">
+            · {{ t.__('in', 'membuild-community') }}
+            <RouterLink class="in-lesson" :to="{ name: 'course', params: { courseId: post.course.id, lessonId: post.lesson.id } }">{{ post.lesson.title }}</RouterLink>
+          </template>
+        </span>
+      </div>
+      </template>
+      <template v-else>
       <Avatar :user="post.author" :size="40" badge link />
       <div class="who">
         <div class="name-line">
@@ -128,6 +166,7 @@ async function remove() {
           <Icon name="cap" :size="13" /> {{ post.course.title }}
         </RouterLink>
       </div>
+      </template>
       <span v-if="post.pinned" class="pin" :title="t.__('Pinned by an admin', 'membuild-community')"><Icon name="pin" :size="14" /> {{ pinLabel }}</span>
       <div v-if="!post.pending" :ref="menuRoot" class="menu-wrap">
         <button :ref="menuTrigger" class="icon-btn" :aria-label="t.__('Post options', 'membuild-community')" aria-haspopup="menu" :aria-expanded="menu" @click="toggleMenu"><Icon name="more" /></button>
@@ -201,6 +240,77 @@ async function remove() {
 
 .place:hover {
   color: var(--text);
+}
+
+/* Home: the course is the picture, the author sits on its corner. */
+.course-pic {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  overflow: visible;
+}
+
+.course-pic img,
+.course-fallback {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  object-fit: cover;
+  color: #fff;
+}
+
+.course-pic .mini {
+  position: absolute;
+  right: -6px;
+  bottom: -5px;
+  box-shadow: 0 0 0 2px var(--surface);
+  border-radius: 999px;
+}
+
+.byline {
+  display: block;
+  font-size: 13px;
+  color: var(--text-3);
+  line-height: 1.35;
+}
+
+.byline .by {
+  color: var(--text);
+  font-weight: 650;
+}
+
+.byline .in-lesson {
+  color: var(--text-2);
+  font-weight: 650;
+}
+
+.byline .in-lesson:hover,
+.byline .by:hover {
+  text-decoration: underline;
+}
+
+.byline .lvl {
+  display: inline-grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  margin: 0 2px 0 4px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 800;
+  vertical-align: 1px;
+}
+
+.byline .staff {
+  margin: 0 2px;
 }
 
 .pin {

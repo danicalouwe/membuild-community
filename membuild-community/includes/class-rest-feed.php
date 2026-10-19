@@ -561,7 +561,7 @@ class Rest_Feed {
 		$lessons = array_values( array_unique( array_filter( array_map( 'intval', wp_list_pluck( $rows, 'lesson_id' ) ) ) ) );
 		$courses = array_values( array_unique( array_map( 'intval', wp_list_pluck( $rows, 'course_id' ) ) ) );
 		$titles  = $lessons ? $wpdb->get_results( $wpdb->prepare( 'SELECT id, title FROM %i WHERE id IN (' . implode( ',', array_fill( 0, count( $lessons ), '%d' ) ) . ')', array_merge( array( Install::table( 'lessons' ) ), $lessons ) ), OBJECT_K ) : array();
-		$names   = $wpdb->get_results( $wpdb->prepare( 'SELECT id, title FROM %i WHERE id IN (' . implode( ',', array_fill( 0, count( $courses ), '%d' ) ) . ')', array_merge( array( Install::table( 'courses' ) ), $courses ) ), OBJECT_K );
+		$names   = $wpdb->get_results( $wpdb->prepare( 'SELECT id, title, cover_url FROM %i WHERE id IN (' . implode( ',', array_fill( 0, count( $courses ), '%d' ) ) . ')', array_merge( array( Install::table( 'courses' ) ), $courses ) ), OBJECT_K );
 		$voted   = array_flip(
 			array_map(
 				'intval',
@@ -573,7 +573,7 @@ class Rest_Feed {
 			$id         = (int) $row['id'];
 			$lesson     = (int) $row['lesson_id'];
 			$out[ $id ] = array(
-				'course'          => array( 'id' => (int) $row['course_id'], 'title' => $names[ $row['course_id'] ]->title ?? '' ),
+				'course'          => array( 'id' => (int) $row['course_id'], 'title' => $names[ $row['course_id'] ]->title ?? '', 'cover' => $names[ $row['course_id'] ]->cover_url ?? null ),
 				'lesson'          => $lesson && isset( $titles[ $lesson ] ) ? array( 'id' => $lesson, 'title' => $titles[ $lesson ]->title ) : null,
 				'helpful_count'   => (int) $row['helpful_count'],
 				'my_helpful'      => isset( $voted[ $id ] ),
