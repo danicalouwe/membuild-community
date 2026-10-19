@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.9.1
+Stable tag: 1.9.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -261,6 +261,10 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.9.2 =
+* GIFs in posts showed as a blank box until you scrolled or reloaded: GIPHY sends no still image for the picker, so posts saved without a first frame. New GIF posts now save one, older ones load their first frame, and a GIF starts as soon as a sliver of it is on screen.
+* Links into the community can open a chat window directly (?chat=ID), used by the demo site to greet new guests.
 
 = 1.9.1 =
 * The row checkboxes in the admin tables were clipped by WordPress's em-sized column; they have their own room now.

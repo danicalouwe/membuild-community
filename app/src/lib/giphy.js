@@ -44,7 +44,10 @@ function chosen(images) {
   const original = images.original || {}
   // The video version is what plays (like Facebook); the image is the fallback.
   const mp4 = original.mp4 || images.downsized_small?.mp4 || images.fixed_width?.mp4 || ''
-  const still = images.original_still?.url || ''
+  // The first frame, as the poster while the video hasn't started. The messaging bundle
+  // sends no still renditions, but GIPHY serves one at the same address with _s in the name.
+  const stillFromUrl = /\/giphy\.(gif|webp)(\?|$)/.test(original.url || '') ? original.url.replace(/\/giphy\.(gif|webp)(\?|$)/, '/giphy_s.gif$2') : ''
+  const still = images.original_still?.url || stillFromUrl
   if (original.webp && Number(original.webp_size || 0) <= 4 * 1024 * 1024) {
     return { url: original.webp, mp4, still, width: Number(original.width), height: Number(original.height) }
   }

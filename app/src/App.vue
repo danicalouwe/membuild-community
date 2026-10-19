@@ -12,6 +12,7 @@ import SearchBox from './components/SearchBox.vue'
 import LevelUpToast from './components/LevelUpToast.vue'
 import Toast from './components/Toast.vue'
 import { refreshStats } from './stores/me.js'
+import { openChat } from './stores/chatDock.js'
 import { messages, startPulse } from './stores/messages.js'
 import { t, locale } from './lib/i18n.js'
 import { useLatest } from './lib/useLatest.js'
@@ -55,6 +56,19 @@ const sideLinks = computed(() =>
     cfg.community.canManage && { to: '/settings', icon: 'settings', label: t.__('Community settings', 'membuild-community') },
     cfg.community.isStaff && { to: '/moderation', icon: 'shield', label: t.__('Moderation', 'membuild-community'), badge: messages.reports },
   ].filter(Boolean),
+)
+
+// ?chat=ID opens that chat in the dock once (a welcome message, say). Phones have no
+// dock and keep the unread badge instead; either way the address is cleaned up.
+watch(
+  () => route.query.chat,
+  (id) => {
+    if (!id) return
+    if (showDock.value) openChat({ id: Number(id), title: '', type: 'direct', others: [] })
+    const { chat, ...query } = route.query
+    router.replace({ query })
+  },
+  { immediate: true },
 )
 
 // Any page can open a post on top of itself with ?post=ID (used by notifications).

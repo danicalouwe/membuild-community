@@ -37,7 +37,7 @@ onMounted(() => {
       visible = entry.isIntersecting
       sync()
     },
-    { threshold: 0.25 },
+    { threshold: 0.1 },
   )
   observer.observe(el.value)
 })
@@ -66,7 +66,7 @@ function toggle(e) {
       loop
       playsinline
       disablepictureinpicture
-      preload="none"
+      :preload="still ? 'none' : 'metadata'"
       aria-hidden="true"
       @error="video = false"
       @click="toggle"

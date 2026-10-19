@@ -4,7 +4,7 @@
  * Description:       A simple, free community for WordPress: feed, reels, courses and gamification.
  * Plugin URI:        https://github.com/danicalouwe/membuild-community
  * Update URI:        https://github.com/danicalouwe/membuild-community
- * Version:           1.9.1
+ * Version:           1.9.2
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            MemBuild
@@ -31,7 +31,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'MEMBUILD_COMMUNITY_VERSION', '1.9.1' );
+define( 'MEMBUILD_COMMUNITY_VERSION', '1.9.2' );
 define( 'MEMBUILD_COMMUNITY_DB_VERSION', '26' );
 define( 'MEMBUILD_COMMUNITY_FILE', __FILE__ );
 define( 'MEMBUILD_COMMUNITY_DIR', plugin_dir_path( __FILE__ ) );
