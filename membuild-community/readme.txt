@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.9.5
+Stable tag: 1.9.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -261,6 +261,9 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.9.6 =
+* GIFs in comments and messages now show at sticker size, no more than 240px on their longest side, the same as a photo in a comment. Tap one to see it full size. GIFs in posts are unchanged.
 
 = 1.9.5 =
 * In Home, a lesson question now leads with its course: the course cover is the picture, the member's face sits on its corner, and the line under the course name says who asked, when, and in which lesson. Same card everywhere else.

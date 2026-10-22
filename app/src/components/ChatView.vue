@@ -1,6 +1,7 @@
 <script setup>
 import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import GifMedia from './GifMedia.vue'
+import { gifBox } from '../lib/gifBox.js'
 import { api } from '../api.js'
 import { cfg } from '../config.js'
 import { watchChat, pulseNow, takeShareDraft } from '../stores/messages.js'
@@ -492,7 +493,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
               <div class="bubble-row">
                 <div v-if="row.m.unsent" class="bubble unsent">{{ row.m.mine ? t.__('You unsent a message', 'membuild-community') : t.__('Message unsent', 'membuild-community') }}</div>
                 <div v-else class="bubble-wrap">
-                  <div v-if="row.m.media.length" class="photos" :class="`n${Math.min(row.m.media.length, 3)}`">
+                  <div v-if="row.m.media.length" class="photos" :class="[`n${Math.min(row.m.media.length, 3)}`, { gif: row.m.media.length === 1 && row.m.media[0].mp4 }]" :style="row.m.media.length === 1 && row.m.media[0].mp4 ? gifBox(row.m.media[0]) : null">
                     <a v-for="(p, i) in row.m.media" :key="i" :href="p.url" target="_blank" rel="noopener"><GifMedia v-if="p.mp4" :src="p.url" :mp4="p.mp4" :width="p.width || 0" :height="p.height || 0" /><img v-else :src="p.url" alt="" loading="lazy" /></a>
                   </div>
                   <!-- A link into this community shows as a preview card in place of the URL; any words around it follow in a bubble. -->
@@ -916,6 +917,11 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
   border-radius: 16px;
   overflow: hidden;
   max-width: 320px;
+}
+
+/* A lone GIF keeps the comment size (gifBox), not the photo width. */
+.photos.gif {
+  max-width: 100%;
 }
 
 .photos.n2 {

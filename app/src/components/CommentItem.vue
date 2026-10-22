@@ -1,6 +1,7 @@
 <script setup>
 import { computed, defineAsyncComponent, ref, onMounted } from 'vue'
 import GifMedia from './GifMedia.vue'
+import { gifBox } from '../lib/gifBox.js'
 import { cfg } from '../config.js'
 import { timeAgo } from '../lib/time.js'
 import { emojiFor } from '../lib/reactions.js'
@@ -107,7 +108,7 @@ function react(type) {
         <RouterLink v-if="c.reply_to" class="mention" :to="{ name: 'member', params: { id: c.reply_to.id } }">{{ c.reply_to.name }}</RouterLink>
         <RichText :text="c.content" class="inline" />
       </div>
-      <a v-if="c.image" class="pic" :href="c.image.url" target="_blank" rel="noopener">
+      <a v-if="c.image" class="pic" :class="{ gif: c.image.mp4 }" :style="c.image.mp4 ? gifBox(c.image) : null" :href="c.image.url" target="_blank" rel="noopener">
         <GifMedia v-if="c.image.mp4" :src="c.image.url" :mp4="c.image.mp4" :width="c.image.width || 0" :height="c.image.height || 0" />
         <img v-else :src="c.image.url" alt="" loading="lazy" :width="c.image.width || null" :height="c.image.height || null" />
       </a>
@@ -288,6 +289,13 @@ function react(type) {
 .pic {
   display: block;
   margin: 6px 0 2px;
+}
+
+/* A GIF sits at the same size as a comment photo, like a sticker in Facebook comments. */
+.pic.gif {
+  max-width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
 }
 
 .pic img {
