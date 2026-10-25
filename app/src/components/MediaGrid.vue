@@ -34,6 +34,17 @@ const singleRatio = computed(() => {
   const r = Math.min(1.91, Math.max(0.8, m.width / m.height))
   return String(r)
 })
+// A GIF on its own keeps its own shape and size, like Facebook: never taller than
+// 360px and never stretched past its real size, so a small GIF doesn't fill the post.
+const isGif = (m) => !!(m?.mp4 || m?.via === 'giphy' || /\.gif(\?|$)/i.test(m?.url || ''))
+const singleStyle = computed(() => {
+  const m = images.value[0]
+  if (!isGif(m)) return { aspectRatio: singleRatio.value }
+  const w = m.width || 480
+  const h = m.height || 360
+  const scale = Math.min(1, 360 / h)
+  return { aspectRatio: `${w} / ${h}`, width: `${Math.round(w * scale)}px` }
+})
 const position = (n, total) => t.sprintf(/* translators: 1: number of the photo shown, 2: total number of photos */ t.__('%1$d / %2$d', 'membuild-community'), n, total)
 </script>
 
@@ -41,7 +52,7 @@ const position = (n, total) => t.sprintf(/* translators: 1: number of the photo 
   <FeedVideo v-if="video" :media="video" :to="reelLink" />
   <FeedEmbed v-else-if="embed" :media="embed" />
 
-  <button v-else-if="images.length === 1" class="single" :style="{ aspectRatio: singleRatio }" :aria-label="t.__('Open photo', 'membuild-community')" @click="viewer = 0">
+  <button v-else-if="images.length === 1" class="single" :class="{ gif: isGif(images[0]) }" :style="singleStyle" :aria-label="t.__('Open photo', 'membuild-community')" @click="viewer = 0">
     <GifMedia v-if="images[0].mp4" :src="images[0].url" :mp4="images[0].mp4" :still="images[0].poster || ''" :width="images[0].width" :height="images[0].height" />
     <img v-else :src="images[0].url" :width="images[0].width" :height="images[0].height" alt="" loading="lazy" decoding="async" />
     <span v-if="images[0].via === 'giphy'" class="via">GIPHY</span>
@@ -78,6 +89,12 @@ const position = (n, total) => t.sprintf(/* translators: 1: number of the photo 
   background: var(--surface-2);
   cursor: zoom-in;
   overflow: hidden;
+}
+
+.single.gif {
+  max-width: calc(100% - 28px);
+  margin: 4px 14px 8px;
+  border-radius: 12px;
 }
 
 .single img,

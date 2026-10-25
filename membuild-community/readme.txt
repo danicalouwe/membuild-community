@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.9.6
+Stable tag: 1.9.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -261,6 +261,9 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.9.7 =
+* A GIF posted on its own in Home now keeps its real size and shape (never taller than 360px) instead of stretching across the whole post. Photos are unchanged.
 
 = 1.9.6 =
 * GIFs in comments and messages now show at sticker size, no more than 240px on their longest side, the same as a photo in a comment. Tap one to see it full size. GIFs in posts are unchanged.
