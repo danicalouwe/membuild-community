@@ -17,6 +17,21 @@
   --shadow: 0 1px 2px rgb(16 24 40 / 6%), 0 1px 3px rgb(16 24 40 / 8%);
   --header-h: 56px;
   --tabbar-h: 60px;
+  /* Soft status colours (pills, tips, warnings, the Danger zone), with dark versions below. */
+  --ok-soft: #e3f5ea;
+  --ok-text: #1f7a49;
+  --warn-soft: #fff3d6;
+  --warn-text: #7a4e00;
+  --tip-soft: #fff1e8;
+  --tip-text: #7c2d12;
+  --tip-strong: #c2410c;
+  --info-soft: #e8eefc;
+  --info-text: #2346c4;
+  --danger-soft: #fdf1ef;
+  --danger-line: #f3b4ad;
+  --danger-text: #b42318;
+  --danger-ink: #7a271a;
+  --border-strong: #c9ced6;
   --font: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   color-scheme: light;
 }
@@ -33,6 +48,20 @@
     --accent: #6f88ff;
     --accent-ink: #0b0d14;
     --accent-soft: #1e2440;
+    --ok-soft: #14301f;
+    --ok-text: #6fd69a;
+    --warn-soft: #3a2c0c;
+    --warn-text: #f3c96b;
+    --tip-soft: #3a2113;
+    --tip-text: #ffc7a3;
+    --tip-strong: #ff9a5c;
+    --info-soft: #1b2645;
+    --info-text: #9db4ff;
+    --danger-soft: #3a1714;
+    --danger-line: #6b2a24;
+    --danger-text: #ff8a7e;
+    --danger-ink: #f3b4ad;
+    --border-strong: #3d4048;
     --shadow: none;
     color-scheme: dark;
   }
@@ -139,6 +168,20 @@ video {
   background: var(--surface-2);
 }
 
+/* The big button (design system rule: 52px for every action owners and members press). */
+.btn-lg {
+  height: 52px;
+  padding: 0 24px;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+/* The one main action on a lesson (Mark Complete, Next lesson, Continue): dark, like the design. */
+.btn-dark {
+  background: var(--text);
+  color: var(--surface);
+}
+
 .btn:disabled {
   opacity: 0.45;
   cursor: default;
@@ -172,6 +215,12 @@ video {
   font-size: 16px;
   line-height: 1.65;
   overflow-wrap: anywhere;
+}
+
+.md img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px;
 }
 
 .md h2,

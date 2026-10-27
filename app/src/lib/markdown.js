@@ -1,6 +1,6 @@
 /**
  * A tiny, safe Markdown subset for lesson text: ## headings, paragraphs,
- * - and 1. lists, **bold**, *italic*, `code` and links. Everything is
+ * - and 1. lists, **bold**, *italic*, `code`, links and ![pictures](https://…). Everything is
  * HTML-escaped first, and links only allow http(s), so stored text can never
  * inject markup or scripts.
  */
@@ -14,6 +14,7 @@ function inline(text) {
   const keep = (html) => `\u0000${links.push(html) - 1}\u0000`
   const anchor = (href, label) => keep(`<a href="${href}" target="_blank" rel="noopener nofollow">${label}</a>`)
   return escape(text.replace(/\u0000/g, ''))
+    .replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g, (_, alt, src) => keep(`<img src="${src}" alt="${alt}" loading="lazy">`))
     .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, label, href) => anchor(href, label))
     .replace(/(^|[\s(])(https?:\/\/[^\s<\u0000]+[^\s<.,:;"')\]!?\u0000])/g, (_, pre, href) => pre + anchor(href, href))
     .replace(/`([^`]+)`/g, '<code>$1</code>')

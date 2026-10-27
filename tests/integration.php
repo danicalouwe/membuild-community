@@ -1106,7 +1106,7 @@ mbcom_check( 'the outline counts each lesson’s posts', 5 <= $first['posts'] &&
 mbcom_check( '…and names the instructor and who’s taking it, for the overview', $admin === ( $outline['instructor']['id'] ?? 0 ) && 1 <= $outline['learners'] && in_array( $asker, wp_list_pluck( $outline['faces'], 'id' ), true ) );
 mbcom_call( $admin, 'PUT', "/lessons/{$ta['id']}", array( 'content' => str_repeat( 'word ', 900 ) ) );
 list( , $one ) = mbcom_call( $helper, 'GET', "/lessons/{$ta['id']}" );
-mbcom_check( 'a lesson says where it sits and about how long it takes', 1 === $one['number'] && 2 === $one['total'] && 'Module 1' === $one['module_title'] && 4 === $one['minutes'], wp_json_encode( array( $one['number'], $one['total'], $one['minutes'] ) ) );
+mbcom_check( 'a lesson says where it sits and about how long it takes', 1 === $one['number'] && 2 === $one['total'] && 'Getting started' === $one['module_title'] && 4 === $one['minutes'], wp_json_encode( array( $one['number'], $one['total'], $one['minutes'] ) ) );
 
 // Resources
 $guide = mbcom_upload( $admin, 'text/plain', str_repeat( "A line of the guide.\n", 100 ), 'guide.txt' );
@@ -1413,6 +1413,67 @@ remove_filter( 'pre_http_request', $stand_in, 10 );
 delete_option( \MemBuild\Community\Usage::OPTION );
 wp_clear_scheduled_hook( \MemBuild\Community\Usage::HOOK . '_now' );
 \MemBuild\Community\Problems::clear();
+
+/* ---------------------------------------------------------------- */
+mbcom_section( 'Drip from the day a member starts, and the Course map' );
+list( , $dc ) = mbcom_call( $admin, 'POST', '/courses', array( 'title' => 'Drip course' ) );
+$dcid         = $dc['id'];
+mbcom_check( 'a new course starts with a “Getting started” section', 'Getting started' === ( $dc['modules'][0]['title'] ?? '' ) );
+list( , $da ) = mbcom_call( $admin, 'POST', "/modules/{$dc['modules'][0]['id']}/lessons", array( 'title' => 'Day one' ) );
+list( , $db ) = mbcom_call( $admin, 'POST', "/modules/{$dc['modules'][0]['id']}/lessons", array( 'title' => 'Day three' ) );
+mbcom_call( $admin, 'PUT', "/lessons/{$db['id']}", array( 'drip_days' => 3 ) );
+mbcom_call( $admin, 'PUT', "/courses/{$dcid}", array( 'status' => 'published' ) );
+$dripper = mbcom_user( 'mbct_dripper' );
+$starts  = \MemBuild\Community\Install::table( 'course_starts' );
+$cache   = new ReflectionProperty( \MemBuild\Community\Rest_Courses::class, 'starts' );
+$cache->setAccessible( true );
+
+list( , $view ) = mbcom_call( $dripper, 'GET', "/courses/{$dcid}" );
+$later          = $view['modules'][0]['lessons'][1];
+mbcom_check( 'before starting, a dripped lesson opens its days after today', $later['locked'] && strtotime( $later['unlock_at'] ) > time() + 2.9 * DAY_IN_SECONDS );
+mbcom_check( '…and looking at the course doesn’t start it', ! $wpdb->get_var( $wpdb->prepare( 'SELECT 1 FROM %i WHERE user_id = %d AND course_id = %d', $starts, $dripper, $dcid ) ) );
+list( $s ) = mbcom_call( $dripper, 'GET', "/lessons/{$da['id']}" );
+mbcom_check( 'opening the first lesson starts the course', 200 === $s && $wpdb->get_var( $wpdb->prepare( 'SELECT 1 FROM %i WHERE user_id = %d AND course_id = %d', $starts, $dripper, $dcid ) ) );
+list( $s ) = mbcom_call( $dripper, 'GET', "/lessons/{$db['id']}" );
+mbcom_check( '…the day-three lesson is still closed on day one', 403 === $s );
+$wpdb->update( $starts, array( 'started_at' => gmdate( 'Y-m-d H:i:s', time() - 4 * DAY_IN_SECONDS ) ), array( 'user_id' => $dripper, 'course_id' => $dcid ) );
+$cache->setValue( null, array() );
+list( $s ) = mbcom_call( $dripper, 'GET', "/lessons/{$db['id']}" );
+mbcom_check( '…and open once three days have passed since they started', 200 === $s, (string) $s );
+
+list( $s ) = mbcom_call( $dripper, 'GET', "/courses/{$dcid}/map" );
+mbcom_check( 'members can’t open the Course map', 403 === $s || 401 === $s, (string) $s );
+list( , $map ) = mbcom_call( $admin, 'GET', "/courses/{$dcid}/map" );
+$step = fn( $m, $id ) => array_values( array_filter( $m['lessons'], fn( $x ) => $x['lesson_id'] === $id ) )[0];
+mbcom_check( 'the Course map counts who started and who is on the first lesson', 1 === $map['started'] && 1 === $step( $map, $da['id'] )['on'] && $dripper === ( $step( $map, $da['id'] )['people'][0]['id'] ?? 0 ) );
+mbcom_call( $dripper, 'POST', "/lessons/{$da['id']}/complete" );
+list( , $map ) = mbcom_call( $admin, 'GET', "/courses/{$dcid}/map" );
+mbcom_check( '…moves them on when they finish it', 0 === $step( $map, $da['id'] )['on'] && 1 === $step( $map, $db['id'] )['on'] );
+$wpdb->update( $starts, array( 'started_at' => gmdate( 'Y-m-d H:i:s' ) ), array( 'user_id' => $dripper, 'course_id' => $dcid ) );
+list( , $map ) = mbcom_call( $admin, 'GET', "/courses/{$dcid}/map" );
+mbcom_check( '…and shows them waiting when the next lesson hasn’t opened for them yet', 0 === $step( $map, $db['id'] )['on'] && 1 === $step( $map, $db['id'] )['waiting'] );
+// On a date you pick: the same day for everyone, whenever they started.
+list( , $dl ) = mbcom_call( $admin, 'PUT', "/lessons/{$db['id']}", array( 'open_on' => gmdate( 'Y-m-d', time() + 5 * DAY_IN_SECONDS ) ) );
+$cache->setValue( null, array() );
+list( $s ) = mbcom_call( $dripper, 'GET', "/lessons/{$db['id']}" );
+mbcom_check( 'a lesson set to open on a date stays closed until that day', 403 === $s && gmdate( 'Y-m-d', time() + 5 * DAY_IN_SECONDS ) === ( $dl['open_on'] ?? '' ), (string) $s );
+mbcom_call( $admin, 'PUT', "/lessons/{$db['id']}", array( 'open_on' => gmdate( 'Y-m-d', time() - 2 * DAY_IN_SECONDS ) ) );
+list( $s ) = mbcom_call( $dripper, 'GET', "/lessons/{$db['id']}" );
+mbcom_check( '…and opens for everyone once the day has come', 200 === $s, (string) $s );
+list( , $dl ) = mbcom_call( $admin, 'PUT', "/lessons/{$db['id']}", array( 'open_on' => 'not a date' ) );
+mbcom_check( '…a date that isn’t one is cleared', null === $dl['open_on'] );
+
+// About this course, and questions off for one course.
+list( , $dcv ) = mbcom_call( $admin, 'PUT', "/courses/{$dcid}", array( 'about' => "## What you'll learn\n\n- One\n- Two", 'questions' => 'off' ) );
+mbcom_check( 'a course keeps its About text and its questions switch', str_contains( $dcv['about'], 'What you' ) && 'off' === $dcv['questions'] );
+list( $s ) = mbcom_call( $dripper, 'POST', '/posts', array( 'content' => 'A question with questions off', 'lesson_id' => $da['id'] ) );
+mbcom_check( '…and with questions off, nobody can post under its lessons', 403 === $s, (string) $s );
+mbcom_call( $admin, 'PUT', "/courses/{$dcid}", array( 'questions' => 'on' ) );
+list( $s ) = mbcom_call( $dripper, 'POST', '/posts', array( 'content' => 'A question with questions on', 'lesson_id' => $da['id'] ) );
+mbcom_check( '…until they’re back on', 201 === $s, (string) $s );
+
+mbcom_call( $admin, 'DELETE', "/courses/{$dcid}" );
+mbcom_check( 'deleting a course removes its start dates', ! $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE course_id = %d', $starts, $dcid ) ) );
 
 /* ---------------------------------------------------------------- */
 echo "\n{$GLOBALS['mbcom_passed']} passed, {$GLOBALS['mbcom_failed']} failed\n";

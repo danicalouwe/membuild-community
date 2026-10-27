@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.9.8
+Stable tag: 1.10.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -261,6 +261,15 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.10.0 =
+* A new Classroom: bigger course cards with members, posts, progress and what to do next, 52px filters, "Continue where you left off", and Show more after 12 courses. Owners see Published or Draft and an Edit button on every card, name a new course before it opens, and can see the Classroom as a member.
+* A new lesson page: the course is its own space with Overview, Lesson and All posts, previous and next, and one Mark Complete button that turns into Next lesson. Files have their own Download buttons, and you can search the discussion under a lesson.
+* A new course Overview: the cover beside what the course is, every lesson with its type, time and files, About this course, and what people are saying.
+* A new course builder: Lessons, Course settings and a Course map. It saves by itself and always says so, has a visual text editor (Heading, Bold, Italic, List, Link, Picture), changes the order by dragging or with Move up and Move down, and asks before publishing or deleting in its own boxes.
+* The Course map shows the course the way members travel it, with how many are on each lesson right now, who may be stuck, a Message button, and "Show me how it plays out".
+* Lessons that wait now count their days from the day a member starts the course, not the day they joined. Members already part-way through keep their dates. A lesson can also open on a date you pick, the same day for everyone.
+* Each course can turn questions off, and can have an About this course text.
 
 = 1.9.8 =
 * Long messages in a chat now use the width of the chat window, like Messenger. The React and Reply buttons float beside the message when you point at it instead of taking space from it.

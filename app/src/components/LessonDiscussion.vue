@@ -20,7 +20,7 @@ const props = defineProps({
 const emit = defineEmits(['posted'])
 
 const whole = computed(() => !props.lesson)
-const sort = ref(whole.value ? 'newest' : 'top')
+const sort = ref('top')
 const query = ref('')
 const typed = ref('')
 const place = computed(() => ({ course: props.course.id, lesson: props.lesson?.id || 0 }))
@@ -63,6 +63,22 @@ const empty = computed(() =>
       ? t.__('No posts yet. Say hi, or ask the first question.', 'membuild-community')
       : t.__('Be the first to post about this lesson.', 'membuild-community'),
 )
+// A one-time tip under a lesson: what Helpful does. Remembered in this browser once dismissed.
+const TIP = 'mbcom_helpful_tip'
+const tip = ref(false)
+try {
+  tip.value = !whole.value && !localStorage.getItem(TIP)
+} catch {
+  tip.value = false
+}
+function hideTip() {
+  tip.value = false
+  try {
+    localStorage.setItem(TIP, '1')
+  } catch {
+    // the tip simply shows again next time
+  }
+}
 const SORTS = { top: t.__('Most helpful', 'membuild-community'), newest: t.__('Newest', 'membuild-community') }
 
 // Infinite scroll: the next page loads as the end comes into view.
@@ -78,20 +94,28 @@ onBeforeUnmount(() => observer?.disconnect())
 <template>
   <section class="talk" :aria-label="whole ? t.__('Course discussion', 'membuild-community') : t.__('Lesson discussion', 'membuild-community')">
     <div class="talk-head">
-      <h3 v-if="!whole">{{ t.__('Discussion', 'membuild-community') }}</h3>
-      <div v-else class="search">
+      <h3>{{ whole ? t.__('All posts in this course', 'membuild-community') : t.__('Discussion', 'membuild-community') }}</h3>
+      <div class="search">
         <Icon name="search" :size="18" />
-        <input v-model="typed" type="search" :placeholder="t.__('Search this course’s posts and replies', 'membuild-community')" :aria-label="t.__('Search this course’s posts and replies', 'membuild-community')" />
+        <input v-model="typed" type="search" :placeholder="whole ? t.__('Search all posts', 'membuild-community') : t.__('Search this discussion', 'membuild-community')" :aria-label="whole ? t.__('Search all posts', 'membuild-community') : t.__('Search this discussion', 'membuild-community')" />
       </div>
       <div class="sorts" role="radiogroup" :aria-label="t.__('Sort posts', 'membuild-community')">
         <button v-for="(label, key) in SORTS" :key="key" role="radio" :aria-checked="sort === key" :class="{ on: sort === key }" @click="sort = key">{{ label }}</button>
       </div>
     </div>
 
-    <button v-if="!cfg.community.restriction" class="bar card" @click="open()">
-      <Avatar :user="cfg.user" :size="36" />
+    <!-- Questions are asked inside the lesson they're about, so the next person finds the answer there. -->
+    <p v-if="whole" class="ask-note card"><Icon name="comment" :size="20" /><span><strong>{{ t.__('Have a question?', 'membuild-community') }}</strong> {{ t.__('Open the lesson it’s about and ask there, so the next person finds the answer too.', 'membuild-community') }}</span></p>
+    <button v-else-if="!cfg.community.restriction" class="bar card" @click="open()">
+      <Avatar :user="cfg.user" :size="40" />
       <span class="pill">{{ prompt }}</span>
     </button>
+
+    <p v-if="tip && (list.items.length || list.pinned.length)" class="tip">
+      <span class="tip-icon"><Icon name="arrowUp" :size="18" /></span>
+      <span><strong>{{ t.__('Did a post help you?', 'membuild-community') }}</strong> {{ t.__('Tap Helpful. The most helpful posts move to the top for everyone.', 'membuild-community') }}</span>
+      <button @click="hideTip">{{ t.__('Got it', 'membuild-community') }}</button>
+    </p>
 
     <div class="posts">
       <PostCard v-for="p in list.pinned" :key="`pin-${p.id}`" :post="p" :show-place="whole" />
@@ -129,17 +153,67 @@ onBeforeUnmount(() => observer?.disconnect())
 }
 
 .talk-head h3 {
+  margin: 0 auto 0 0;
+  font-size: 21px;
+}
+
+.ask-note {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin: 0;
-  font-size: 18px;
+  padding: 14px 16px;
+  font-size: 16px;
+  color: var(--text-2);
+}
+
+.ask-note strong {
+  color: var(--text);
+}
+
+.tip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: var(--tip-soft);
+  color: var(--tip-text);
+  font-size: 16px;
+}
+
+.tip span:nth-child(2) {
+  flex: 1;
+}
+
+.tip-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--tip-strong);
+}
+
+.tip button {
+  flex: none;
+  min-height: 44px;
+  padding: 0 6px;
+  font-weight: 700;
+  text-decoration: underline;
+  color: inherit;
 }
 
 .search {
-  flex: 1;
+  flex: 0 1 300px;
   min-width: 200px;
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 40px;
+  height: 48px;
   padding: 0 14px;
   border-radius: 999px;
   background: var(--surface);
@@ -153,23 +227,23 @@ onBeforeUnmount(() => observer?.disconnect())
   border: 0;
   background: transparent;
   color: var(--text);
-  font-size: 15px;
+  font-size: 16px;
   outline: none;
 }
 
 .sorts {
   display: flex;
   gap: 4px;
-  margin-left: auto;
   padding: 3px;
   border-radius: 999px;
   background: var(--surface-2);
 }
 
 .sorts button {
-  padding: 6px 12px;
+  height: 42px;
+  padding: 0 16px;
   border-radius: 999px;
-  font-size: 13px;
+  font-size: 15.5px;
   font-weight: 650;
   color: var(--text-2);
 }
@@ -195,7 +269,7 @@ onBeforeUnmount(() => observer?.disconnect())
   border-radius: 999px;
   background: var(--surface-2);
   color: var(--text-3);
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .bar:hover .pill {
@@ -236,7 +310,17 @@ onBeforeUnmount(() => observer?.disconnect())
     padding: 0 12px;
   }
 
-  .bar {
+  .talk-head .search {
+    flex: 1 1 100%;
+    order: 3;
+  }
+
+  .tip {
+    border-radius: 0;
+  }
+
+  .bar,
+  .ask-note {
     border-radius: 0;
     border-left: 0;
     border-right: 0;

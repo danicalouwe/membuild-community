@@ -162,7 +162,7 @@ class Privacy {
 		// Last pass: messages (text removed, the conversation's shape kept for the other people), stories, reactions and the rest.
 		$removed += (int) $wpdb->query( $wpdb->prepare( "UPDATE %i SET content = NULL, media = NULL, story = NULL, status = 'unsent' WHERE user_id = %d AND status <> 'unsent'", Install::table( 'messages' ), $id ) );
 		$removed += (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE user_id = %d', Install::table( 'stories' ), $id ) );
-		foreach ( array( 'reactions', 'story_views', 'notifications', 'lesson_progress', 'points', 'member_stats', 'group_members' ) as $table ) {
+		foreach ( array( 'reactions', 'story_views', 'notifications', 'lesson_progress', 'course_starts', 'points', 'member_stats', 'group_members' ) as $table ) {
 			$removed += (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE user_id = %d', Install::table( $table ), $id ) );
 		}
 		$removed += (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE reporter_id = %d', Install::table( 'reports' ), $id ) );

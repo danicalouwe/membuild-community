@@ -302,7 +302,7 @@ class Search {
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- fixed fragments with one placeholder per word or ID; every value is bound.
 		$lessons = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT id, course_id, title, content, drip_days, ({$title_sql}) AS by_title FROM %i
+				"SELECT id, course_id, title, content, drip_days, open_on, ({$title_sql}) AS by_title FROM %i
 				WHERE course_id IN ({$in}) AND (({$title_sql}) OR (course_id IN ({$in_open}) AND {$text_sql}))
 				ORDER BY by_title DESC, course_id ASC, sort_order ASC, id ASC LIMIT 200",
 				array_merge( $likes, array( Install::table( 'lessons' ) ), $ids, $likes, $open, $likes )
@@ -312,7 +312,7 @@ class Search {
 		// phpcs:enable
 		foreach ( $lessons as $l ) {
 			$course = $courses[ (int) $l['course_id'] ];
-			$unlock = $course['lock'] ? null : Rest_Courses::unlock_at( (int) $l['drip_days'] );
+			$unlock = $course['lock'] ? null : Rest_Courses::unlock_at( (int) $l['drip_days'], (int) $l['course_id'], $l['open_on'] );
 			if ( ! $l['by_title'] && $unlock ) {
 				continue; // matched only by text the member can't read yet
 			}

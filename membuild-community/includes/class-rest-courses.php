@@ -22,6 +22,7 @@ defined( 'ABSPATH' ) || exit;
  *   POST /courses · PUT|DELETE /courses/{id} · PUT /courses/{id}/structure
  *   POST /courses/{id}/modules · PUT|DELETE /modules/{id}
  *   POST /modules/{id}/lessons · PUT|DELETE /lessons/{id}
+ *   GET /courses/{id}/map   where members are in the course right now (Course_Map)
  *
  * Fires membuild_community/lesson_completed and membuild_community/course_completed for gamification.
  */
@@ -42,6 +43,7 @@ class Rest_Courses {
 			"/modules/{$id}/lessons"       => array( array( 'POST', 'create_lesson', $admin ) ),
 			"/lessons/{$id}"               => array( array( 'GET', 'get_lesson', $member ), array( 'PUT', 'update_lesson', $admin ), array( 'DELETE', 'delete_lesson', $admin ) ),
 			"/lessons/{$id}/complete"      => array( array( 'POST', 'complete', $member ), array( 'DELETE', 'uncomplete', $member ) ),
+			"/courses/{$id}/map"           => array( array( 'GET', 'map', $admin ) ),
 		);
 		foreach ( $routes as $path => $handlers ) {
 			register_rest_route(
@@ -53,6 +55,14 @@ class Rest_Courses {
 				)
 			);
 		}
+	}
+
+	public static function map( \WP_REST_Request $req ) {
+		$course = self::course_row( (int) $req['id'] );
+		if ( ! $course ) {
+			return new \WP_Error( 'mbcom_not_found', __( 'Course not found.', 'membuild-community' ), array( 'status' => 404 ) );
+		}
+		return Course_Map::build( $course );
 	}
 
 	/* ---------- Reading ---------- */
@@ -129,7 +139,10 @@ class Rest_Courses {
 		if ( $lock ) {
 			return new \WP_Error( 'mbcom_group_locked', __( 'This course is for members of a group.', 'membuild-community' ), array( 'status' => 403, 'groups' => $lock['groups'] ) );
 		}
-		$unlock = self::unlock_at( (int) $lesson['drip_days'] );
+		$unlock = self::unlock_at( (int) $lesson['drip_days'], (int) $lesson['course_id'], $lesson['open_on'] );
+		if ( ! $unlock ) {
+			self::mark_started( (int) $lesson['course_id'] );
+		}
 		if ( $unlock ) {
 			return new \WP_Error(
 				'mbcom_locked',
@@ -147,9 +160,10 @@ class Rest_Courses {
 		global $wpdb;
 		$lesson = self::lesson_row( (int) $req['id'] );
 		$course = $lesson ? self::course_row( (int) $lesson['course_id'] ) : null;
-		if ( ! $lesson || ! $course || Access::lock( $course ) || self::unlock_at( (int) $lesson['drip_days'] ) ) {
+		if ( ! $lesson || ! $course || Access::lock( $course ) || self::unlock_at( (int) $lesson['drip_days'], (int) $lesson['course_id'], $lesson['open_on'] ) ) {
 			return new \WP_Error( 'mbcom_not_available', __( 'This lesson is not available.', 'membuild-community' ), array( 'status' => 403 ) );
 		}
+		self::mark_started( (int) $lesson['course_id'] );
 		$me       = get_current_user_id();
 		$inserted = $wpdb->query(
 			$wpdb->prepare(
@@ -225,7 +239,7 @@ class Rest_Courses {
 		);
 		$course_id = (int) $wpdb->insert_id;
 		// Every course starts with one module, so a first lesson can be added right away.
-		$wpdb->insert( Install::table( 'modules' ), array( 'course_id' => $course_id, 'title' => __( 'Module 1', 'membuild-community' ), 'sort_order' => 0 ) );
+		$wpdb->insert( Install::table( 'modules' ), array( 'course_id' => $course_id, 'title' => __( 'Getting started', 'membuild-community' ), 'sort_order' => 0 ) );
 		$response = rest_ensure_response( self::outline( self::course_row( $course_id ) ) );
 		$response->set_status( 201 );
 		return $response;
@@ -247,6 +261,12 @@ class Rest_Courses {
 		if ( isset( $req['unlock_level'] ) ) {
 			$data['unlock_level'] = max( 0, min( count( Points::thresholds() ), (int) $req['unlock_level'] ) );
 		}
+		if ( isset( $req['about'] ) ) {
+			$data['about'] = Helpers::clean_text( $req['about'], 20000 );
+		}
+		if ( isset( $req['questions'] ) ) {
+			$data['questions_off'] = 'off' === $req['questions'] ? 1 : 0;
+		}
 		$data = array_merge( $data, Access::course_update( $req->get_params(), $course ) );
 		if ( isset( $req['status'] ) && in_array( $req['status'], array( 'draft', 'published' ), true ) ) {
 			$data['status'] = $req['status'];
@@ -263,7 +283,7 @@ class Rest_Courses {
 		global $wpdb;
 		$id = (int) $req['id'];
 		Discussions::remove_for( 'course_id', array( $id ) );
-		foreach ( array( 'lesson_progress' => 'course_id', 'lessons' => 'course_id', 'modules' => 'course_id', 'courses' => 'id' ) as $table => $col ) {
+		foreach ( array( 'lesson_progress' => 'course_id', 'course_starts' => 'course_id', 'lessons' => 'course_id', 'modules' => 'course_id', 'courses' => 'id' ) as $table => $col ) {
 			$wpdb->delete( Install::table( $table ), array( $col => $id ) );
 		}
 		return array( 'deleted' => true );
@@ -305,7 +325,7 @@ class Rest_Courses {
 		$max = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT MAX(sort_order) FROM %i WHERE course_id = %d', Install::table( 'modules' ), $course['id'] ) );
 		$wpdb->insert(
 			Install::table( 'modules' ),
-			array( 'course_id' => $course['id'], 'title' => sanitize_text_field( $req['title'] ?? '' ) ?: __( 'New module', 'membuild-community' ), 'sort_order' => $max + 1 )
+			array( 'course_id' => $course['id'], 'title' => sanitize_text_field( $req['title'] ?? '' ) ?: __( 'New section', 'membuild-community' ), 'sort_order' => $max + 1 )
 		);
 		return self::outline( $course );
 	}
@@ -381,6 +401,10 @@ class Rest_Courses {
 		if ( isset( $params['drip_days'] ) ) {
 			$data['drip_days'] = max( 0, min( 3650, (int) $params['drip_days'] ) );
 		}
+		if ( array_key_exists( 'open_on', $params ) ) {
+			$date            = (string) $params['open_on'];
+			$data['open_on'] = preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) && self::date_ts( $date ) ? $date : null;
+		}
 		if ( array_key_exists( 'media_id', $params ) ) {
 			$media            = $params['media_id'] ? self::claim_media( (int) $params['media_id'], array( 'video', 'embed' ) ) : null;
 			$data['media_id'] = $media['id'] ?? null;
@@ -425,7 +449,7 @@ class Rest_Courses {
 	public static function can_open_lesson( $lesson_id ) {
 		$lesson = self::lesson_row( (int) $lesson_id );
 		$course = $lesson ? self::course_row( (int) $lesson['course_id'] ) : null;
-		return $lesson && $course && ! Access::hidden( $course ) && ! Access::lock( $course ) && ! self::unlock_at( (int) $lesson['drip_days'] );
+		return $lesson && $course && ! Access::hidden( $course ) && ! Access::lock( $course ) && ! self::unlock_at( (int) $lesson['drip_days'], (int) $lesson['course_id'], $lesson['open_on'] );
 	}
 
 
@@ -451,13 +475,64 @@ class Rest_Courses {
 	 * When a dripped lesson unlocks for the current member, or null if it is
 	 * already open. Counted from the day they joined; admins see everything.
 	 */
-	public static function unlock_at( $drip_days ) {
-		if ( $drip_days <= 0 || Helpers::can_manage() ) {
+	/**
+	 * When a dripped lesson opens for the current member, or null when it's open.
+	 * Days count from the day they started the course (first opened one of its
+	 * lessons); before that, from today, so the Overview can say "7 days after you start".
+	 */
+	public static function unlock_at( $drip_days, $course_id = 0, $open_on = null ) {
+		if ( Helpers::can_manage() ) {
 			return null;
 		}
-		$joined = strtotime( wp_get_current_user()->user_registered . ' UTC' );
-		$unlock = $joined + $drip_days * DAY_IN_SECONDS;
+		// "On a date you pick": the same day for everyone, from midnight in the site's time zone.
+		if ( $open_on ) {
+			$at = self::date_ts( $open_on );
+			return $at > time() ? $at : null;
+		}
+		if ( $drip_days <= 0 ) {
+			return null;
+		}
+		$start  = $course_id ? self::started_at( (int) $course_id ) : null;
+		$from   = $start ?: ( $course_id ? time() : strtotime( wp_get_current_user()->user_registered . ' UTC' ) );
+		$unlock = $from + $drip_days * DAY_IN_SECONDS;
 		return $unlock > time() ? $unlock : null;
+	}
+
+	/** Midnight of a Y-m-d date in the site's time zone, as a timestamp. */
+	public static function date_ts( $date ) {
+		try {
+			return ( new \DateTimeImmutable( $date . ' 00:00:00', wp_timezone() ) )->getTimestamp();
+		} catch ( \Exception $e ) {
+			return 0;
+		}
+	}
+
+	private static $starts = array();
+
+	/** The day the current member started a course (a timestamp), or null. */
+	public static function started_at( $course_id ) {
+		global $wpdb;
+		$me = get_current_user_id();
+		if ( ! $me ) {
+			return null;
+		}
+		if ( ! array_key_exists( "{$me}:{$course_id}", self::$starts ) ) {
+			$at = $wpdb->get_var( $wpdb->prepare( 'SELECT started_at FROM %i WHERE user_id = %d AND course_id = %d', Install::table( 'course_starts' ), $me, $course_id ) );
+			self::$starts[ "{$me}:{$course_id}" ] = $at ? strtotime( $at . ' UTC' ) : null;
+		}
+		return self::$starts[ "{$me}:{$course_id}" ];
+	}
+
+	/** Opening a lesson starts the course (once): its dripped lessons count from today. */
+	public static function mark_started( $course_id ) {
+		global $wpdb;
+		$me = get_current_user_id();
+		if ( ! $me || Helpers::can_manage() || self::started_at( $course_id ) ) {
+			return;
+		}
+		$now = Helpers::now();
+		$wpdb->query( $wpdb->prepare( 'INSERT IGNORE INTO %i (user_id, course_id, started_at) VALUES (%d, %d, %s)', Install::table( 'course_starts' ), $me, $course_id, $now ) );
+		self::$starts[ "{$me}:{$course_id}" ] = strtotime( $now . ' UTC' );
 	}
 
 	/** Uses an upload the admin made (image, video, embed or file) and marks it as taken. */
@@ -505,6 +580,7 @@ class Rest_Courses {
 			'unlock_level' => (int) ( $row['unlock_level'] ?? 0 ),
 			'lock'         => $lock,
 			'locked_level' => $lock && 'level' === $lock['reason'] ? $lock['level'] : 0,
+			'questions'    => empty( $row['questions_off'] ) ? 'on' : 'off',
 		);
 		if ( Helpers::can_manage() ) {
 			$groups               = Access::groups();
@@ -522,7 +598,7 @@ class Rest_Courses {
 		$modules = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE course_id = %d ORDER BY sort_order ASC, id ASC', Install::table( 'modules' ), $course['id'] ), ARRAY_A );
 		$lessons = $wpdb->get_results(
 			$wpdb->prepare(
-				'SELECT l.id, l.module_id, l.title, l.media_id, l.drip_days, l.resources, CHAR_LENGTH(l.content) AS chars, md.duration, md.meta
+				'SELECT l.id, l.module_id, l.title, l.media_id, l.drip_days, l.open_on, l.resources, CHAR_LENGTH(l.content) AS chars, md.duration, md.meta
 				FROM %i l LEFT JOIN %i md ON md.id = l.media_id WHERE l.course_id = %d ORDER BY l.sort_order ASC, l.id ASC',
 				Install::table( 'lessons' ),
 				Install::table( 'media' ),
@@ -541,7 +617,7 @@ class Rest_Courses {
 		$level_locked = (bool) Access::lock( $course );
 		$files_total  = 0;
 		foreach ( $lessons as $l ) {
-			$unlock                               = self::unlock_at( (int) $l['drip_days'] );
+			$unlock                               = self::unlock_at( (int) $l['drip_days'], (int) $course['id'], $l['open_on'] );
 			$files                                = count( json_decode( (string) $l['resources'], true ) ?: array() );
 			$files_total                         += $files;
 			$by_module[ (int) $l['module_id'] ][] = array(
@@ -552,6 +628,7 @@ class Rest_Courses {
 				'unlock_at' => $unlock ? gmdate( 'c', $unlock ) : null,
 				'has_video' => (bool) $l['media_id'],
 				'drip_days' => (int) $l['drip_days'],
+				'open_on'   => $l['open_on'] ?: null,
 				'minutes'   => self::minutes( (int) $l['chars'], $l['media_id'] ? $l : null ),
 				'files'     => $files,
 				'posts'     => (int) ( $talk[ $l['id'] ]->n ?? 0 ),
@@ -571,6 +648,7 @@ class Rest_Courses {
 			'learners'        => $life['learners'],
 			'faces'           => $life['faces'],
 			'can_manage'      => Helpers::can_manage(),
+			'about'           => (string) ( $course['about'] ?? '' ),
 			'modules'         => array_map(
 				fn( $m ) => array( 'id' => (int) $m['id'], 'title' => $m['title'], 'lessons' => $by_module[ (int) $m['id'] ] ?? array() ),
 				$modules
@@ -608,6 +686,7 @@ class Rest_Courses {
 			'media'        => $media ? Media::format( $media ) : null,
 			'resources'    => self::files( json_decode( (string) $lesson['resources'], true ) ?: array(), true ),
 			'drip_days'    => (int) $lesson['drip_days'],
+			'open_on'      => $lesson['open_on'] ?: null,
 			'completed'    => $completed,
 			'prev_id'   => false !== $pos && $pos > 0 ? (int) $order[ $pos - 1 ] : null,
 			'next_id'      => false !== $pos && $pos < count( $order ) - 1 ? (int) $order[ $pos + 1 ] : null,
@@ -676,7 +755,7 @@ class Rest_Courses {
 		$in      = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
 		$lessons = $wpdb->get_results(
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $in is a list of %d placeholders; values are bound.
-			$wpdb->prepare( "SELECT l.id, l.course_id, l.title, l.drip_days FROM %i l JOIN %i m ON m.id = l.module_id WHERE l.course_id IN ({$in}) ORDER BY l.course_id ASC, m.sort_order ASC, m.id ASC, l.sort_order ASC, l.id ASC", array_merge( array( Install::table( 'lessons' ), Install::table( 'modules' ) ), $ids ) ),
+			$wpdb->prepare( "SELECT l.id, l.course_id, l.title, l.drip_days, l.open_on FROM %i l JOIN %i m ON m.id = l.module_id WHERE l.course_id IN ({$in}) ORDER BY l.course_id ASC, m.sort_order ASC, m.id ASC, l.sort_order ASC, l.id ASC", array_merge( array( Install::table( 'lessons' ), Install::table( 'modules' ) ), $ids ) ),
 			ARRAY_A
 		);
 		$done    = $wpdb->get_results(
@@ -700,7 +779,7 @@ class Rest_Courses {
 		foreach ( $lessons as $l ) {
 			$c              = (int) $l['course_id'];
 			$number[ $c ]   = ( $number[ $c ] ?? 0 ) + 1;
-			if ( ! isset( $out[ $c ]['next'] ) && ! isset( $finished[ (int) $l['id'] ] ) && ! self::unlock_at( (int) $l['drip_days'] ) ) {
+			if ( ! isset( $out[ $c ]['next'] ) && ! isset( $finished[ (int) $l['id'] ] ) && ! self::unlock_at( (int) $l['drip_days'], $c, $l['open_on'] ) ) {
 				$out[ $c ]['next'] = array( 'id' => (int) $l['id'], 'title' => $l['title'], 'number' => $number[ $c ] );
 			}
 		}
@@ -761,7 +840,7 @@ class Rest_Courses {
 		$locked  = (bool) Access::lock( $course );
 		$lessons = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT l.id, l.title, l.drip_days, l.resources, m.title AS module_title FROM %i l JOIN %i m ON m.id = l.module_id
+				"SELECT l.id, l.title, l.drip_days, l.open_on, l.resources, m.title AS module_title FROM %i l JOIN %i m ON m.id = l.module_id
 				WHERE l.course_id = %d AND l.resources IS NOT NULL AND l.resources NOT IN ('', '[]')
 				ORDER BY m.sort_order ASC, m.id ASC, l.sort_order ASC, l.id ASC",
 				Install::table( 'lessons' ),
@@ -778,7 +857,7 @@ class Rest_Courses {
 			if ( ! $files ) {
 				continue;
 			}
-			$unlock  = $locked ? null : self::unlock_at( (int) $l['drip_days'] );
+			$unlock  = $locked ? null : self::unlock_at( (int) $l['drip_days'], (int) $course['id'], $l['open_on'] );
 			$items[] = array(
 				'lesson_id'    => (int) $l['id'],
 				'lesson_title' => $l['title'],

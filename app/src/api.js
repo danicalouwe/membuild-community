@@ -124,6 +124,7 @@ export const api = {
 
   courses: () => request('/courses'),
   course: (id) => request(`/courses/${id}`),
+  courseMap: (id) => request(`/courses/${id}/map`),
   createCourse: (body) => request('/courses', { method: 'POST', body }),
   updateCourse: (id, body) => request(`/courses/${id}`, { method: 'PUT', body }),
   deleteCourse: (id) => request(`/courses/${id}`, { method: 'DELETE' }),

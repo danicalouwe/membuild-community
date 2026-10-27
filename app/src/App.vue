@@ -30,6 +30,11 @@ const route = useRoute()
 const initials = computed(() => initialsOf(cfg.siteName))
 const router = useRouter()
 const immersive = computed(() => route.name === 'reels')
+// A course being taken (not edited) is its own space, like Skool: no community column,
+// and on phones a lesson's own bar (previous, Mark Complete, next) takes the tab bar's place.
+const inCourse = computed(() => route.name === 'course' && !route.query.edit)
+const building = computed(() => route.name === 'course' && !!route.query.edit)
+const inLesson = computed(() => inCourse.value && !!route.params.lessonId && !route.query.tab)
 // Single-column pages sit at the exact centre of the window, as on Facebook: the right side
 // reserves the same width as the left column. Grids and maps use the full width beside it.
 const centred = computed(() => ['feed', 'event', 'member', 'me', 'notifications', 'search'].includes(route.name))
@@ -120,7 +125,7 @@ const isActive = (tab) =>
 </script>
 
 <template>
-  <div class="shell" :class="{ immersive }">
+  <div class="shell" :class="{ immersive, 'in-course': inCourse, 'in-lesson': inLesson, building }">
     <header class="topbar">
       <div class="topbar-inner">
         <div class="start">
@@ -370,6 +375,16 @@ const isActive = (tab) =>
     padding-right: 272px;
   }
 
+  .in-course .side,
+  .building .side {
+    display: none;
+  }
+
+  .in-course .main,
+  .building .main {
+    padding-left: 0;
+  }
+
   /* Reels keep the column (navigation never disappears); the stage fills the rest. */
   .immersive .side {
     background: var(--surface);
@@ -577,6 +592,15 @@ const isActive = (tab) =>
 
   .tab.active {
     color: var(--text);
+  }
+
+  /* In a course the page brings its own bottom bar (the lesson's, or Continue). */
+  .in-course .tabbar {
+    display: none;
+  }
+
+  .in-course .main {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
   }
 
   /* Reels take the whole screen, with a dark tab bar over the video. */

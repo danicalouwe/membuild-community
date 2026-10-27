@@ -80,7 +80,7 @@ const fetchPage = (list, params) =>
     ? api.events({ when: list.events, page: params.page })
     : list.place
     ? list.place.lesson
-      ? api.lessonPosts(list.place.lesson, { sort: params.sort, page: params.page })
+      ? api.lessonPosts(list.place.lesson, { sort: params.sort, q: params.q || undefined, page: params.page })
       : api.coursePosts(list.place.course, { sort: params.sort, q: params.q || undefined, page: params.page })
     : api.feed(params)
 const paged = (list) => !!list.place || !!list.events || list.params.sort === 'hot'

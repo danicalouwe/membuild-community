@@ -18,7 +18,7 @@ defined( 'ABSPATH' ) || exit;
  * lesson. Only members who can open that course (and that lesson, while it
  * drips) can read them; they never show in the main feed or on profiles.
  *
- *   GET        /lessons/{id}/posts ?sort=top|newest&page=        a lesson's posts
+ *   GET        /lessons/{id}/posts ?sort=top|newest&q=&page=     a lesson's posts, searchable
  *   GET        /courses/{id}/posts ?sort=newest|top&q=&page=     the whole course, searchable
  *   PUT|DELETE /posts/{id}/helpful                               "Helpful" vote (not on your own post)
  *   PUT        /posts/{id}/best {comment_id}   DELETE            Best answer (staff or the post's author)
@@ -98,11 +98,11 @@ class Discussions {
 		}
 		if ( $out['courses'] ) {
 			$lessons = $wpdb->get_results(
-				$wpdb->prepare( 'SELECT id, drip_days FROM %i WHERE course_id IN (' . implode( ',', array_fill( 0, count( $out['courses'] ), '%d' ) ) . ')', array_merge( array( Install::table( 'lessons' ) ), $out['courses'] ) ),
+				$wpdb->prepare( 'SELECT id, course_id, drip_days, open_on FROM %i WHERE course_id IN (' . implode( ',', array_fill( 0, count( $out['courses'] ), '%d' ) ) . ')', array_merge( array( Install::table( 'lessons' ) ), $out['courses'] ) ),
 				ARRAY_A
 			);
 			foreach ( $lessons as $l ) {
-				if ( ! Rest_Courses::unlock_at( (int) $l['drip_days'] ) ) {
+				if ( ! Rest_Courses::unlock_at( (int) $l['drip_days'], (int) $l['course_id'], $l['open_on'] ) ) {
 					$out['lessons'][] = (int) $l['id'];
 				}
 			}
@@ -184,6 +184,9 @@ class Discussions {
 		if ( ! $ok ) {
 			return new \WP_Error( 'mbcom_not_available', __( 'You can post here once you can open this lesson.', 'membuild-community' ), array( 'status' => 403 ) );
 		}
+		if ( $wpdb->get_var( $wpdb->prepare( 'SELECT questions_off FROM %i WHERE id = %d', Install::table( 'courses' ), $course_id ) ) ) {
+			return new \WP_Error( 'mbcom_questions_off', __( 'Questions are turned off for this course.', 'membuild-community' ), array( 'status' => 403 ) );
+		}
 		return array( (int) $course_id, (int) $lesson_id );
 	}
 
@@ -194,7 +197,26 @@ class Discussions {
 		if ( ! Rest_Courses::can_open_lesson( $lesson_id ) ) {
 			return new \WP_Error( 'mbcom_not_available', __( 'This lesson is not available.', 'membuild-community' ), array( 'status' => 403 ) );
 		}
-		return self::page( 'lesson_id = %d', array( $lesson_id ), $req, 'is_pinned > 0' );
+		$where = 'lesson_id = %d';
+		$args  = array( $lesson_id );
+		$words = self::search_words( $req );
+		if ( $words ) {
+			list( $where, $args ) = self::with_search( $where, $args, $words );
+			return self::page( $where, $args, $req, null );
+		}
+		return self::page( $where, $args, $req, 'is_pinned > 0' );
+	}
+
+	private static function search_words( \WP_REST_Request $req ) {
+		return Search::words( Search::clean_query( (string) $req['q'] ) );
+	}
+
+	/** Narrows a list to posts whose words, or whose replies' words, match. */
+	private static function with_search( $where, array $args, array $words ) {
+		list( $in_post, $post_vals )   = Search::match( 'posts', 'content', $words );
+		list( $in_reply, $reply_vals ) = Search::match( 'comments', 'content', $words );
+		$where .= " AND ({$in_post} OR id IN (SELECT post_id FROM " . esc_sql( Install::table( 'comments' ) ) . " WHERE {$in_reply}))";
+		return array( $where, array_merge( $args, $post_vals, $reply_vals ) );
 	}
 
 	/** The course's Discussion tab: posts from every lesson the member can open, and posts made in the tab. */
@@ -210,13 +232,10 @@ class Discussions {
 		$where   = 'course_id = %d AND (lesson_id = 0' . ( $lessons ? ' OR lesson_id IN (' . implode( ',', array_fill( 0, count( $lessons ), '%d' ) ) . ')' : '' ) . ')';
 		$args    = array_merge( array( $course_id ), $lessons );
 
-		$words = Search::words( Search::clean_query( (string) $req['q'] ) );
+		$words = self::search_words( $req );
 		if ( $words ) {
 			// The post's words, or the words of a reply to it.
-			list( $in_post, $post_vals )   = Search::match( 'posts', 'content', $words );
-			list( $in_reply, $reply_vals ) = Search::match( 'comments', 'content', $words );
-			$where .= " AND ({$in_post} OR id IN (SELECT post_id FROM " . esc_sql( Install::table( 'comments' ) ) . " WHERE {$in_reply}))";
-			$args   = array_merge( $args, $post_vals, $reply_vals );
+			list( $where, $args ) = self::with_search( $where, $args, $words );
 			return self::page( $where, $args, $req, null );
 		}
 		return self::page( $where, $args, $req, 'is_pinned = 2' );

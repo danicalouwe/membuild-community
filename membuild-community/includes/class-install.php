@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) || exit;
 class Install {
 
 	/** Every table the plugin owns, without the "{prefix}mbcom_" part. */
-	const TABLES = array( 'posts', 'media', 'comments', 'reactions', 'stories', 'story_views', 'courses', 'groups', 'group_members', 'modules', 'lessons', 'lesson_progress', 'points', 'member_stats', 'threads', 'thread_members', 'messages', 'notifications', 'reports', 'blocks', 'places' );
+	const TABLES = array( 'posts', 'media', 'comments', 'reactions', 'stories', 'story_views', 'courses', 'groups', 'group_members', 'modules', 'lessons', 'lesson_progress', 'course_starts', 'points', 'member_stats', 'threads', 'thread_members', 'messages', 'notifications', 'reports', 'blocks', 'places' );
 
 	/** Data migrations: the version each one brings a site to => method. */
 	const STEPS = array(
@@ -29,6 +29,7 @@ class Install {
 		17 => 'schedule_private_files',
 		19 => 'schedule_message_encryption',
 		20 => 'schedule_search_index',
+		27 => 'backfill_course_starts',
 	);
 
 	/** Hourly maintenance (the name is kept from 0.1 so existing schedules carry on). */
@@ -92,6 +93,25 @@ class Install {
 		$wpdb->query( $wpdb->prepare( "UPDATE %i SET access = 'level' WHERE unlock_level > 1 AND access = 'everyone'", self::table( 'courses' ) ) );
 	}
 
+	/**
+	 * 27: lessons now open counted from the day a member starts the course, not the
+	 * day they joined. Members already part-way through keep their old dates (their
+	 * start is the day they joined), so nothing that was open for them closes.
+	 */
+	private static function backfill_course_starts() {
+		global $wpdb;
+		$wpdb->query(
+			$wpdb->prepare(
+				'INSERT IGNORE INTO %i (user_id, course_id, started_at)
+				SELECT p.user_id, p.course_id, LEAST(MIN(p.completed_at), COALESCE(u.user_registered, MIN(p.completed_at)))
+				FROM %i p LEFT JOIN %i u ON u.ID = p.user_id GROUP BY p.user_id, p.course_id',
+				self::table( 'course_starts' ),
+				self::table( 'lesson_progress' ),
+				$wpdb->users
+			)
+		);
+	}
+
 	/** 19: messages saved before encryption existed are encrypted, in batches. */
 	private static function schedule_message_encryption() {
 		if ( ! wp_next_scheduled( Vault::MIGRATE_HOOK ) ) {
@@ -124,6 +144,7 @@ class Install {
 		$modules  = self::table( 'modules' );
 		$lessons  = self::table( 'lessons' );
 		$progress = self::table( 'lesson_progress' );
+		$starts   = self::table( 'course_starts' );
 		$groups   = self::table( 'groups' );
 		$grouped  = self::table( 'group_members' );
 		$points   = self::table( 'points' );
@@ -279,6 +300,8 @@ class Install {
 			hide_locked tinyint(1) NOT NULL DEFAULT 0,
 			access_cta_label varchar(60) NULL,
 			access_cta_url varchar(500) NULL,
+			about mediumtext NULL,
+			questions_off tinyint(1) NOT NULL DEFAULT 0,
 			sort_order int(10) NOT NULL DEFAULT 0,
 			created_by bigint(20) unsigned NOT NULL,
 			created_at datetime NOT NULL,
@@ -322,6 +345,7 @@ class Install {
 			media_id bigint(20) unsigned NULL,
 			resources text NULL,
 			drip_days int(10) unsigned NOT NULL DEFAULT 0,
+			open_on date NULL,
 			sort_order int(10) NOT NULL DEFAULT 0,
 			created_at datetime NOT NULL,
 			updated_at datetime NOT NULL,
@@ -341,6 +365,14 @@ class Install {
 			KEY user_course (user_id, course_id),
 			KEY course_user (course_id, user_id),
 			KEY course_done (course_id, completed_at)
+			) {$charset};
+
+			CREATE TABLE {$starts} (
+			user_id bigint(20) unsigned NOT NULL,
+			course_id bigint(20) unsigned NOT NULL,
+			started_at datetime NOT NULL,
+			PRIMARY KEY  (user_id, course_id),
+			KEY course_id (course_id)
 			) {$charset};
 
 			CREATE TABLE {$points} (
