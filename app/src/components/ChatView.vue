@@ -824,7 +824,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  max-width: min(72%, 520px);
+  max-width: min(80%, 560px);
   min-width: 0;
 }
 
@@ -850,6 +850,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 
 .bubble-wrap {
   position: relative;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: inherit;
@@ -964,8 +965,15 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
   color: var(--text-2);
 }
 
+/* Like Messenger, the buttons float in the empty space beside the bubble, so
+   they never take width from the message itself. */
 .actions {
-  position: relative;
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  margin-left: 4px;
+  transform: translateY(-50%);
+  z-index: 2;
   display: flex;
   opacity: 0;
   transition: opacity 0.1s ease;
@@ -1008,6 +1016,10 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 /* Yours: the smiley nearest the bubble, then reply, then ⋮. */
 .mine .actions {
   flex-direction: row-reverse;
+  left: auto;
+  right: 100%;
+  margin-left: 0;
+  margin-right: 4px;
 }
 
 .actions.open {
