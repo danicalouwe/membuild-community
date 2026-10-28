@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.10.0
+Stable tag: 1.10.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -261,6 +261,9 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.10.1 =
+* Fixed: in the course builder, Publish course, Delete lesson and Delete section couldn't be pressed in their "Are you sure?" boxes. They work again.
 
 = 1.10.0 =
 * A new Classroom: bigger course cards with members, posts, progress and what to do next, 52px filters, "Continue where you left off", and Show more after 12 courses. Owners see Published or Draft and an Edit button on every card, name a new course before it opens, and can see the Classroom as a member.

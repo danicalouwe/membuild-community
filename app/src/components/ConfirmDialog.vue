@@ -36,7 +36,7 @@ const ticked = ref(false)
       </label>
       <div class="actions">
         <button type="button" class="btn btn-lg btn-ghost" @click="emit('close')">{{ cancel || t.__('Cancel', 'membuild-community') }}</button>
-        <button type="button" class="btn btn-lg" :class="danger ? 'red' : 'btn-primary'" :disabled="busy || (tick && !ticked)" @click="emit('confirm')">{{ confirm }}</button>
+        <button type="button" class="btn btn-lg" :class="danger ? 'red' : 'btn-primary'" :disabled="busy || (!!tick && !ticked)" @click="emit('confirm')">{{ confirm }}</button>
       </div>
     </div>
   </BaseDialog>
