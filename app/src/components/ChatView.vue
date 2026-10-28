@@ -270,6 +270,7 @@ function pickPhotos(e) {
 }
 
 const showGifs = ref(false)
+const popGifs = window.matchMedia('(min-width: 768px)').matches
 function addGif(gif) {
   if (photos.value.length < 10) photos.value.push(startGif(gif))
   nextTick(() => input.value?.focus())
@@ -594,8 +595,9 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
       <div class="bar">
         <button type="button" class="icon tool" :aria-label="t.__('Add photo', 'membuild-community')" @click="photoInput.click()"><Icon name="image" :size="22" /></button>
         <input ref="photoInput" class="sr-only" type="file" accept="image/*" multiple @change="pickPhotos" />
-        <button v-if="giphyOn()" type="button" class="icon tool" :aria-label="t.__('Add a GIF', 'membuild-community')" @click="showGifs = true"><span class="gif-badge" aria-hidden="true">GIF</span></button>
-        <GifPicker v-if="showGifs" @pick="addGif" @close="showGifs = false" />
+        <button v-if="giphyOn()" type="button" class="icon tool" :aria-label="t.__('Add a GIF', 'membuild-community')" data-pop-trigger @click="showGifs = !showGifs"><span class="gif-badge" aria-hidden="true"><b>GIF</b></span></button>
+        <!-- Computers: a small box above the message bar (like Facebook); phones: the sheet. -->
+        <GifPicker v-if="showGifs" :pop="popGifs" @pick="addGif" @close="showGifs = false" />
         <div class="field">
           <textarea ref="input" v-auto-grow v-model="draft" rows="1" :placeholder="t.__('Aa', 'membuild-community')" :aria-label="t.__('Write a message', 'membuild-community')" @input="onInput" @keydown="onKey" />
           <div class="emoji-wrap">
@@ -1248,6 +1250,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 }
 
 .composer {
+  position: relative; /* the GIF box pops up from here */
   flex: none;
   padding: 8px 10px 10px;
   border-top: 1px solid var(--border);

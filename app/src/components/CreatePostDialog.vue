@@ -419,7 +419,7 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
                   <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="16" height="14" rx="2.5" fill="#2f9e5b" opacity=".55" /><rect x="2.5" y="6" width="16" height="15" rx="2.5" fill="#45bd62" /><circle cx="8" cy="11" r="1.8" fill="#fff" /><path d="M4.5 19l4.5-4.5 3 3 2.5-2.5 3 3.5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round" /></svg>
                 </button>
                 <button v-if="!edit && giphyOn()" class="add-icon gif" :aria-label="t.__('GIF', 'membuild-community')" :title="t.__('GIF', 'membuild-community')" @click="showGifs = true">
-                  <span class="gif-badge" aria-hidden="true">GIF</span>
+                  <span class="gif-badge" aria-hidden="true"><b>GIF</b></span>
                 </button>
                 <button class="add-icon" :class="{ on: feeling }" :aria-label="t.__('Feeling or activity', 'membuild-community')" :title="t.__('Feeling/activity', 'membuild-community')" @click="view = 'feeling'">
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9.5" stroke="#f7932f" stroke-width="2" /><path d="M8 14c1 1.6 2.4 2.4 4 2.4s3-.8 4-2.4" stroke="#f7932f" stroke-width="2" stroke-linecap="round" /><circle cx="9" cy="9.6" r="1.3" fill="#f7932f" /><circle cx="15" cy="9.6" r="1.3" fill="#f7932f" /></svg>

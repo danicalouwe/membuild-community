@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.11.0
+Stable tag: 1.11.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -261,6 +261,13 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.11.1 =
+* Reels: the video gets the whole width (no sidebar), Like, Comments and Share sit beside the video, round up and down arrows move between reels, and one "+ New reel" button sits at the top right.
+* Reels: on a computer, comments open in a panel on the right while the reel keeps playing.
+* New message opens as a small chat window at the bottom right, like Facebook, instead of a big box in the middle.
+* GIFs in a chat open in a small box above the message bar, and the GIF button is a simple filled square.
+* Moderation: every tab shows how many are in it, and muting or banning someone from a report about their profile closes the report as "Muted by" or "Banned by".
 
 = 1.11.0 =
 * A new Members page: cards with each member's cover photo, where they live and when they joined, a green dot on who's online, and more members as you scroll.

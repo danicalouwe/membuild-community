@@ -4,10 +4,14 @@ import { api } from '../api.js'
 import Avatar from './Avatar.vue'
 import Icon from './Icon.vue'
 import BaseDialog from './BaseDialog.vue'
+import DockWindow from './DockWindow.vue'
 import { useLatest } from '../lib/useLatest.js'
 import { t } from '../lib/i18n.js'
 
 // Pick one person for a direct chat, or several for a group (with an optional name).
+// `docked`: a chat window in the bottom-right dock (computers, like Facebook) instead of
+// a box in the middle of the screen.
+defineProps({ docked: { type: Boolean, default: false } })
 const emit = defineEmits(['close', 'started'])
 
 const query = ref('')
@@ -62,7 +66,7 @@ const startGroup = (n) => t.sprintf(/* translators: %d: number of people in the 
 </script>
 
 <template>
-  <BaseDialog :title="t.__('New message', 'membuild-community')" :width="480" max-height="640px" phone="full" @close="emit('close')">
+  <component :is="docked ? DockWindow : BaseDialog" :title="t.__('New message', 'membuild-community')" v-bind="docked ? {} : { width: 480, maxHeight: '640px', phone: 'full' }" @close="emit('close')">
     <div class="to">
       <span class="label">{{ t.__('To:', 'membuild-community') }}</span>
       <span v-for="p in picked" :key="p.id" class="chip">
@@ -91,7 +95,7 @@ const startGroup = (n) => t.sprintf(/* translators: %d: number of people in the 
         {{ starting ? t.__('Opening…', 'membuild-community') : isGroup ? startGroup(picked.length + 1) : t.__('Chat', 'membuild-community') }}
       </button>
     </template>
-  </BaseDialog>
+  </component>
 </template>
 
 <style scoped>

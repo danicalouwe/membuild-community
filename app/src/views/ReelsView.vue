@@ -166,7 +166,7 @@ function go(delta) {
 // Escape for the sheets comes from useDialog; these keys only drive the reels themselves.
 function onKey(e) {
   const typing = e.target instanceof Element && e.target.closest('input, textarea, [contenteditable]')
-  if (commentsFor.value || composer.value || typing) return
+  if ((commentsFor.value && !wide.value) || composer.value || typing) return
   if (e.key === 'ArrowDown' || e.key === 'j') (e.preventDefault(), go(1))
   else if (e.key === 'ArrowUp' || e.key === 'k') (e.preventDefault(), go(-1))
   else if (e.key === ' ') (e.preventDefault(), togglePause())
@@ -190,6 +190,16 @@ const fileInput = ref(null)
 const composer = ref(null) // { step: 'upload', item, caption, error, posting }
 
 const commentsSheet = ref(null)
+// Computers: comments open as a panel on the right and the reel keeps playing; moving to
+// another reel shows its comments. Phones: a sheet from the bottom, and the reel waits.
+const wideQuery = window.matchMedia('(min-width: 768px)')
+const wide = ref(wideQuery.matches)
+const onWide = (e) => (wide.value = e.matches)
+wideQuery.addEventListener('change', onWide)
+onBeforeUnmount(() => wideQuery.removeEventListener('change', onWide))
+watch(active, () => {
+  if (commentsFor.value && wide.value && current.value) commentsFor.value = current.value
+})
 const composerSheet = ref(null)
 useDialog(commentsSheet, { open: () => !!commentsFor.value, onClose: () => (commentsFor.value = null) })
 useDialog(composerSheet, { open: () => !!composer.value, onClose: () => closeComposer() })
@@ -291,7 +301,7 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
 </script>
 
 <template>
-  <div class="stage" :style="{ '--active-ar': activeRatio }">
+  <div class="stage" :class="{ 'comments-open': commentsFor && wide, 'on-youtube': activeIsEmbed }" :style="{ '--active-ar': activeRatio }">
     <div ref="scroller" class="reels" @scroll.passive="onScroll">
       <section v-for="(post, i) in list.items" :key="post.localKey || post.id" class="reel" :class="{ embed: isEmbed(post) }" :data-index="i">
         <!-- YouTube: their player on top, our caption and buttons below it (never over it). -->
@@ -300,7 +310,7 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
             <YouTubeReel
               v-if="inWindow(i)"
               :embed="post.media[0].embed"
-              :active="i === active && !composer && !commentsFor"
+              :active="i === active && !composer && !(commentsFor && !wide)"
               :muted="muted"
               @unmuted="muted = false"
             />
@@ -326,7 +336,8 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
                 <span class="ic"><Icon name="comment" :size="23" /></span><span>{{ compactNumber(post.comments_count) }}</span>
               </button>
               <button class="rail-btn" :aria-label="t._x('Share', 'verb', 'membuild-community')" @click="share"><span class="ic"><Icon name="share" :size="23" /></span></button>
-              <button class="rail-btn" :aria-label="t.__('Create a reel', 'membuild-community')" @click="startCreate"><span class="ic"><Icon name="plus" :size="23" /></span></button>
+              <!-- Phones only: the round + at the top would sit on YouTube's own buttons. -->
+              <button class="rail-btn phone-new" :aria-label="t.__('New reel', 'membuild-community')" @click="startCreate"><span class="ic"><Icon name="plus" :size="23" /></span><span>{{ t.__('New reel', 'membuild-community') }}</span></button>
             </div>
           </div>
         </template>
@@ -398,18 +409,25 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
 
     <div class="progress" aria-hidden="true"><i ref="bar" /></div>
 
-    <button v-if="!activeIsEmbed" class="create" :aria-label="t.__('Create a reel', 'membuild-community')" @click="startCreate"><Icon name="plus" :size="24" /></button>
+    <!-- Computers: previous and next reel, big round buttons at the far right (like Facebook). -->
+    <div v-if="list.items.length > 1" class="nav">
+      <button :aria-label="t.__('Previous reel', 'membuild-community')" :title="t.__('Previous reel', 'membuild-community')" :disabled="active === 0" @click="go(-1)"><Icon name="chevronUp" :size="30" /></button>
+      <button :aria-label="t.__('Next reel', 'membuild-community')" :title="t.__('Next reel', 'membuild-community')" :disabled="active >= list.items.length - 1" @click="go(1)"><Icon name="chevronDown" :size="30" /></button>
+    </div>
+
+    <!-- One place to add a reel, the same for every reel: "+ New reel" top right (a round + on phones). -->
+    <button class="create btn btn-lg btn-primary" :aria-label="t.__('New reel', 'membuild-community')" @click="startCreate"><Icon name="plus" :size="20" /> <span class="create-label">{{ t.__('New reel', 'membuild-community') }}</span></button>
     <input ref="fileInput" class="sr-only" type="file" accept="video/*" @change="pickVideo" />
 
     <!-- Comments sheet -->
     <Transition name="sheet">
-      <div v-if="commentsFor" class="sheet-backdrop" @click.self="commentsFor = null">
+      <div v-if="commentsFor" class="sheet-backdrop" :class="{ side: wide }" @click.self="commentsFor = null">
         <div ref="commentsSheet" class="sheet" role="dialog" aria-modal="true" :aria-label="t.__('Comments', 'membuild-community')">
           <header>
             <strong>{{ commentCount(commentsFor.comments_count) }}</strong>
             <button :aria-label="t.__('Close', 'membuild-community')" @click="commentsFor = null"><Icon name="close" /></button>
           </header>
-          <div class="sheet-body"><CommentThread :post="commentsFor" dark autofocus /></div>
+          <div class="sheet-body"><CommentThread :key="commentsFor.id" :post="commentsFor" dark autofocus /></div>
         </div>
       </div>
     </Transition>
@@ -692,17 +710,10 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
 
 .create {
   position: absolute;
-  top: 14px;
-  right: max(14px, calc(50% - min(calc(100cqw - 168px), calc((var(--reel-h) - 24px) * var(--active-ar))) / 2 + 14px));
+  top: 20px;
+  right: 28px;
   z-index: 3;
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 50%;
-  color: #fff;
-  background: rgb(255 255 255 / 16%);
-  backdrop-filter: blur(10px);
+  gap: 8px;
 }
 
 .empty {
@@ -962,9 +973,25 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
     border-radius: 0;
   }
 
+  /* Phones: a small round + at the top instead of the word. */
   .create {
     right: 14px;
     top: calc(14px + env(safe-area-inset-top));
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border-radius: 50%;
+    background: rgb(255 255 255 / 16%);
+    color: #fff;
+    backdrop-filter: blur(10px);
+  }
+
+  .create-label {
+    display: none;
+  }
+
+  .stage.on-youtube .create {
+    display: none;
   }
 
   .overlay {
@@ -978,6 +1005,126 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
 
   .new-side {
     width: 100%;
+  }
+}
+/* ---------- Computers: buttons beside the video, comments on the right, up and down ---------- */
+.nav {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .phone-new {
+    display: none;
+  }
+}
+
+@media (min-width: 768px) {
+  /* YouTube reels: Like, Comments, Share and + in a column right of the player, like uploads. */
+  .reel.embed {
+    overflow: visible;
+  }
+
+  .reel.embed .rail.row {
+    position: absolute;
+    left: calc(100% + 16px);
+    bottom: 18px;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .reel.embed .rail.row .rail-btn .ic :deep(svg) {
+    width: 27px;
+    height: 27px;
+  }
+
+  .nav {
+    position: absolute;
+    top: 50%;
+    right: 28px;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    transform: translateY(-50%);
+    transition: right 0.2s;
+  }
+
+  .nav button {
+    display: grid;
+    place-items: center;
+    width: 60px;
+    height: 60px;
+    border: 3px solid #fff;
+    border-radius: 50%;
+    background: rgb(0 0 0 / 35%);
+    color: #fff;
+  }
+
+  .nav button:hover:not(:disabled) {
+    background: rgb(255 255 255 / 14%);
+  }
+
+  .nav button:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  /* The comments panel takes the right side; the reel and the arrows move over. */
+  .stage {
+    transition: padding 0.2s;
+  }
+
+  .stage.comments-open {
+    padding-right: 440px;
+  }
+
+  .stage.comments-open .nav {
+    right: 468px;
+  }
+
+  .stage.comments-open .create {
+    display: none;
+  }
+
+  .sheet-backdrop.side {
+    top: var(--header-h);
+    left: auto;
+    width: 440px;
+    align-items: stretch;
+    background: none;
+  }
+
+  .sheet-backdrop.side .sheet {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    border-left: 1px solid #2c2c30;
+    border-radius: 0;
+  }
+
+  .sheet-backdrop.side .sheet-body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  /* The comment box stays at the bottom of the panel. */
+  .sheet-backdrop.side .sheet-body :deep(.thread) {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+  }
+
+  .sheet-backdrop.side .sheet-body :deep(.composer) {
+    margin-top: auto;
+  }
+
+  .sheet-enter-from.side .sheet,
+  .sheet-leave-to.side .sheet {
+    transform: translateX(100%);
   }
 }
 </style>

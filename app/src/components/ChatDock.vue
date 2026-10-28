@@ -40,6 +40,8 @@ const closeLabel = (c) => t.sprintf(/* translators: %s: the chat's name or the p
 <template>
   <div class="dock" data-chat-dock>
     <div class="windows">
+      <!-- New message opens as a chat window, rightmost, like Facebook. -->
+      <div v-if="dock.composing" class="window card"><NewChatDialog docked @close="dock.composing = false" @started="started" /></div>
       <div v-for="c in windows" :key="c.id" class="window card">
         <ChatView
           :thread-id="c.id"
@@ -66,7 +68,6 @@ const closeLabel = (c) => t.sprintf(/* translators: %s: the chat's name or the p
       <button class="compose" :aria-label="t.__('New message', 'membuild-community')" :title="t.__('New message', 'membuild-community')" @click="dock.composing = true"><Icon name="compose" :size="22" /></button>
     </div>
 
-    <NewChatDialog v-if="dock.composing" @close="dock.composing = false" @started="started" />
   </div>
 </template>
 

@@ -202,13 +202,24 @@ class Moderation {
 		return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(DISTINCT object_type, object_id) FROM %i WHERE status = %s', Install::table( 'reports' ), 'open' ) );
 	}
 
+	/** The number on each Moderation tab: to review, resolved, and muted or banned now. */
+	public static function counts() {
+		global $wpdb;
+		$resolved = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT object_type, object_id) FROM %i WHERE status IN ('kept','removed','muted','banned')", Install::table( 'reports' ) ) );
+		$members  = 0;
+		foreach ( get_users( array( 'meta_key' => self::META, 'meta_compare' => 'EXISTS', 'fields' => 'ID', 'number' => 200 ) ) as $id ) { // phpcs:ignore WordPress.DB.SlowDBQuery -- small set, staff only
+			$members += self::restriction( (int) $id ) ? 1 : 0; // expired mutes don't count
+		}
+		return array( 'open' => self::open_count(), 'resolved' => $resolved, 'members' => $members );
+	}
+
 	/* ---------- The queue ---------- */
 
 	public static function queue( \WP_REST_Request $req ) {
 		global $wpdb;
 		$table  = Install::table( 'reports' );
 		$open     = 'open' === $req['status'];
-		$statuses = $open ? array( 'open' ) : array( 'kept', 'removed' );
+		$statuses = $open ? array( 'open' ) : array( 'kept', 'removed', 'muted', 'banned' );
 		$limit    = self::PAGE_SIZE + 1;
 		$offset   = ( (int) $req['page'] - 1 ) * self::PAGE_SIZE;
 
@@ -230,7 +241,7 @@ class Moderation {
 				$wpdb->prepare(
 					"SELECT object_type, object_id, MAX(post_id) AS post_id, MAX(author_id) AS author_id, COUNT(*) AS reports,
 						MAX(created_at) AS last_at, MAX(resolved_at) AS resolved_at, MAX(resolved_by) AS resolved_by, MAX(status) AS status
-					FROM %i WHERE status IN ('kept','removed') GROUP BY object_type, object_id ORDER BY resolved_at DESC LIMIT %d OFFSET %d",
+					FROM %i WHERE status IN ('kept','removed','muted','banned') GROUP BY object_type, object_id ORDER BY resolved_at DESC LIMIT %d OFFSET %d",
 					$table,
 					$limit,
 					$offset
@@ -268,7 +279,7 @@ class Moderation {
 				),
 			);
 		}
-		return array( 'items' => $items, 'next_page' => $more ? (int) $req['page'] + 1 : null, 'open' => self::open_count() );
+		return array( 'items' => $items, 'next_page' => $more ? (int) $req['page'] + 1 : null, 'open' => self::open_count(), 'counts' => self::counts() );
 	}
 
 	/** What the moderator needs to judge: the words, a thumbnail and whether it's still up. */
@@ -334,7 +345,7 @@ class Moderation {
 				$id
 			)
 		);
-		return array( 'resolved' => true, 'action' => $action, 'open' => self::open_count() );
+		return array( 'resolved' => true, 'action' => $action, 'open' => self::open_count(), 'counts' => self::counts() );
 	}
 
 	/* ---------- Muting and banning ---------- */
@@ -371,7 +382,13 @@ class Moderation {
 		 * @param string $status  "muted", "banned" or "none".
 		 */
 		do_action( 'membuild_community/member_restricted', $id, $status );
-		return array( 'restriction' => self::restriction( $id ) );
+		// Muting or banning someone settles the reports about their profile: they move to
+		// Resolved as "Muted by …" / "Banned by …". Post and comment reports still need Keep or Remove.
+		if ( 'none' !== $status ) {
+			global $wpdb;
+			$wpdb->query( $wpdb->prepare( "UPDATE %i SET status = %s, resolved_by = %d, resolved_at = %s WHERE object_type = 'member' AND object_id = %d AND status = 'open'", Install::table( 'reports' ), $status, get_current_user_id(), Helpers::now(), $id ) );
+		}
+		return array( 'restriction' => self::restriction( $id ), 'open' => self::open_count(), 'counts' => self::counts() );
 	}
 
 	public static function restricted() {
@@ -398,7 +415,7 @@ class Moderation {
 				);
 			}
 		}
-		return array( 'items' => $out );
+		return array( 'items' => $out, 'counts' => self::counts() );
 	}
 
 	/* ---------- Pinned posts ---------- */

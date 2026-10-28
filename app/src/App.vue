@@ -390,22 +390,19 @@ const isActive = (tab) =>
     padding-right: 272px;
   }
 
+  /* Reels too: the video gets the whole width; the top bar still leads everywhere. */
   .in-course .side,
   .building .side,
-  .on-profile .side {
+  .on-profile .side,
+  .immersive .side {
     display: none;
   }
 
   .in-course .main,
   .building .main,
-  .on-profile .main {
+  .on-profile .main,
+  .immersive .main {
     padding-left: 0;
-  }
-
-  /* Reels keep the column (navigation never disappears); the stage fills the rest. */
-  .immersive .side {
-    background: var(--surface);
-    border-right: 1px solid var(--border);
   }
 }
 

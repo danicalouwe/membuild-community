@@ -54,7 +54,20 @@ function resolvedBy(res) {
   if (res.action === 'removed') {
     return name ? t.sprintf(/* translators: %s: name of the moderator */ t.__('Removed by %s', 'membuild-community'), name) : t.__('Removed by a moderator', 'membuild-community')
   }
+  if (res.action === 'muted') {
+    return name ? t.sprintf(/* translators: %s: name of the moderator */ t.__('Muted by %s', 'membuild-community'), name) : t.__('Muted by a moderator', 'membuild-community')
+  }
+  if (res.action === 'banned') {
+    return name ? t.sprintf(/* translators: %s: name of the moderator */ t.__('Banned by %s', 'membuild-community'), name) : t.__('Banned by a moderator', 'membuild-community')
+  }
   return name ? t.sprintf(/* translators: %s: name of the moderator */ t.__('Kept by %s', 'membuild-community'), name) : t.__('Kept by a moderator', 'membuild-community')
+}
+
+// The number on each tab (hidden at 0); To review is the red one, the others plain.
+const counts = ref({ open: 0, resolved: 0, members: 0 })
+const countOf = (key) => (key === 'open' ? messages.reports : counts.value[key] || 0)
+function takeCounts(res) {
+  if (res?.counts) counts.value = res.counts
 }
 
 async function load(reset = true) {
@@ -62,12 +75,15 @@ async function load(reset = true) {
   error.value = ''
   try {
     if (tab.value === 'members') {
-      people.value = (await api.restricted()).items
+      const res = await api.restricted()
+      people.value = res.items
+      takeCounts(res)
     } else {
       const res = await api.modReports(tab.value, reset ? 1 : nextPage.value)
       items.value = reset ? res.items : [...items.value, ...res.items]
       nextPage.value = res.next_page
       messages.reports = res.open
+      takeCounts(res)
     }
   } catch (err) {
     error.value = err.message
@@ -85,6 +101,7 @@ async function decide(it, action) {
   try {
     const res = await api.resolveReport(it.object_type, it.object_id, action)
     messages.reports = res.open
+    takeCounts(res)
     items.value = items.value.filter((x) => x !== it)
     if (action === 'remove' && it.object_type === 'post') removePost(it.object_id)
   } catch (err) {
@@ -111,6 +128,10 @@ async function restrict(user, status, days = 0, it = null) {
   try {
     const res = await api.restrict(user.id, { status, days })
     if (it) it.author_restriction = res.restriction ? { status: res.restriction.status, until: res.restriction.until } : null
+    if (typeof res.open === 'number') messages.reports = res.open
+    takeCounts(res)
+    // A profile report is settled by muting or banning: it moves to Resolved.
+    if (it && it.object_type === 'member' && status !== 'none' && tab.value === 'open') items.value = items.value.filter((x) => x !== it)
     if (tab.value === 'members') load()
   } catch (err) {
     alert(err.message)
@@ -127,7 +148,7 @@ const reportCount = (n) => t.sprintf(/* translators: %d: number of reports */ t.
       <div class="tabs" role="tablist">
         <button v-for="tb in TABS" :key="tb.key" role="tab" :aria-selected="tab === tb.key" :class="{ on: tab === tb.key }" @click="tab = tb.key">
           {{ tb.label }}
-          <span v-if="tb.key === 'open' && messages.reports" class="count">{{ messages.reports }}</span>
+          <span v-if="countOf(tb.key)" class="count" :class="{ plain: tb.key !== 'open' }">{{ countOf(tb.key) }}</span>
         </button>
       </div>
     </header>
@@ -250,6 +271,16 @@ const reportCount = (n) => t.sprintf(/* translators: %d: number of reports */ t.
 
 .tabs button.on {
   background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.count.plain {
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+
+.on .count.plain {
+  background: var(--surface);
   color: var(--accent-text);
 }
 

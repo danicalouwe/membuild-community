@@ -1,6 +1,7 @@
 <script setup>
 import { nextTick, onMounted, ref, watch } from 'vue'
 import BaseDialog from './BaseDialog.vue'
+import PopFrame from './PopFrame.vue'
 import Icon from './Icon.vue'
 import { gifs } from '../lib/giphy.js'
 import { t } from '../lib/i18n.js'
@@ -10,6 +11,8 @@ import { t } from '../lib/i18n.js'
  * scroll. Emits `pick` with the GIF (see lib/giphy.js). GIPHY's terms: results
  * in their order, untouched, and "Powered by GIPHY" in view.
  */
+// `pop`: a small box above the button that opened it (chats on a computer), not a dialog.
+const props = defineProps({ pop: { type: Boolean, default: false } })
 const emit = defineEmits(['pick', 'close'])
 
 const query = ref('')
@@ -64,7 +67,7 @@ function pick(gif) {
 </script>
 
 <template>
-  <BaseDialog :title="t.__('Choose a GIF', 'membuild-community')" :width="520" max-height="680px" phone="sheet" :z="120" @close="emit('close')">
+  <component :is="pop ? PopFrame : BaseDialog" :title="t.__('Choose a GIF', 'membuild-community')" v-bind="pop ? {} : { width: 520, maxHeight: '680px', phone: 'sheet', z: 120 }" @close="emit('close')">
     <div class="gif-picker">
       <label class="search">
         <Icon name="search" :size="18" />
@@ -90,12 +93,24 @@ function pick(gif) {
         <strong>GIPHY</strong>
       </p>
     </template>
-  </BaseDialog>
+  </component>
 </template>
 
 <style scoped>
 .gif-picker {
   padding: 12px 14px 4px;
+}
+
+/* In the small pop-up box: a tighter fit, the search stays in view. */
+.pop .gif-picker {
+  padding: 8px 8px 2px;
+}
+
+.pop .search {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin-bottom: 8px;
 }
 
 .search {

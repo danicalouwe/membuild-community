@@ -311,15 +311,21 @@ video {
 
 /* The "GIF" button in the composers, the way Facebook draws it. */
 .gif-badge {
+  /* Facebook's GIF icon: a filled rounded square with the letters cut out. */
   display: inline-grid;
   place-items: center;
-  min-width: 26px;
-  height: 18px;
-  padding: 0 3px;
-  border: 2px solid currentColor;
-  border-radius: 4px;
-  font-size: 10px;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: currentColor;
+  font-size: 8.5px;
   font-weight: 900;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   line-height: 1;
+}
+
+/* The letters take the colour behind the button, so they read as cut out. */
+.gif-badge b {
+  color: var(--surface);
+  font-weight: 900;
 }
