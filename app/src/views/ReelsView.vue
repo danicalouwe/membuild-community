@@ -404,7 +404,18 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
         <p>{{ t.__('Share a short video, up to 60 seconds.', 'membuild-community') }}</p>
         <button class="btn btn-primary" @click="startCreate"><Icon name="plus" :size="18" /> {{ t.__('Create a reel', 'membuild-community') }}</button>
       </section>
-      <section v-else-if="!list.loaded" class="reel"><div class="spinner" /></section>
+      <!-- Loading: a reel's shape in dark grey (video, name and caption, the buttons down the side). -->
+      <section v-else-if="!list.loaded" class="reel" aria-busy="true">
+        <div class="box reel-sk" style="--ar: 9 / 16">
+          <div class="sk-dark frame-sk" />
+          <div class="sk-cap">
+            <div class="sk-row"><span class="sk-dark sk-face" /><span class="sk-dark" style="width: 120px; height: 14px" /></div>
+            <span class="sk-dark" style="width: 78%; height: 12px" />
+            <span class="sk-dark" style="width: 52%; height: 12px" />
+          </div>
+          <div class="sk-rail"><span v-for="n in 4" :key="n" class="sk-dark" /></div>
+        </div>
+      </section>
     </div>
 
     <div class="progress" aria-hidden="true"><i ref="bar" /></div>
@@ -1125,6 +1136,71 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   .sheet-enter-from.side .sheet,
   .sheet-leave-to.side .sheet {
     transform: translateX(100%);
+  }
+}
+
+/* Loading a reel: dark grey shapes with a slow shine, like the light skeletons elsewhere. */
+.sk-dark {
+  display: block;
+  background: linear-gradient(90deg, #1d2026 25%, #2b2f37 50%, #1d2026 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 8px;
+}
+
+.frame-sk {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+}
+
+.sk-cap {
+  position: absolute;
+  right: 72px;
+  bottom: 22px;
+  left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sk-cap .sk-dark {
+  background: linear-gradient(90deg, #343943 25%, #444a55 50%, #343943 75%);
+  background-size: 200% 100%;
+}
+
+.sk-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sk-face {
+  width: 36px;
+  height: 36px;
+  border-radius: 50% !important;
+}
+
+.sk-rail {
+  position: absolute;
+  right: 12px;
+  bottom: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sk-rail .sk-dark {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(90deg, #343943 25%, #444a55 50%, #343943 75%);
+  background-size: 200% 100%;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
   }
 }
 </style>

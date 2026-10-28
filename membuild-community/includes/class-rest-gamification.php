@@ -108,17 +108,51 @@ class Rest_Gamification {
 
 		$users = Helpers::users( wp_list_pluck( $rows, 'user_id' ) );
 		$items = array();
+		$rank  = 0;
+		$prev  = null;
 		foreach ( $rows as $i => $r ) {
+			// Equal points share a place (1, 1, 1, 4…), the same way "You're #1" is worked out.
+			if ( (int) $r['points'] !== $prev ) {
+				$rank = $i + 1;
+				$prev = (int) $r['points'];
+			}
 			if ( isset( $users[ (int) $r['user_id'] ] ) ) {
-				$items[] = array( 'rank' => $i + 1, 'user' => $users[ (int) $r['user_id'] ], 'points' => (int) $r['points'] );
+				$items[] = array( 'rank' => $rank, 'user' => $users[ (int) $r['user_id'] ], 'points' => (int) $r['points'] );
 			}
 		}
+		// People you blocked (or who blocked you) aren't listed; everyone keeps their true place.
+		$items = array_values( array_filter( $items, fn( $i ) => Blocks::filter( array( array( 'user_id' => $i['user']['id'] ) ) ) ) );
 
+		$days   = 'all' === $period ? null : (int) $period;
+		$mine   = self::period_points( $me, $days );
+		$rank   = self::rank( $me, $days );
+		$ahead  = $rank && $rank > 1 ? self::just_ahead( $mine, $days ) : null;
+		$stats  = $wpdb->get_row( $wpdb->prepare( 'SELECT points, level FROM %i WHERE user_id = %d', Install::table( 'member_stats' ), $me ), ARRAY_A );
+		$total  = (int) ( $stats['points'] ?? 0 );
+		$level  = (int) ( $stats['level'] ?? 1 );
+		$levels = Points::thresholds();
+		$next   = $levels[ $level ] ?? null;
+		$floor  = $levels[ $level - 1 ] ?? 0;
 		return array(
-			'period' => $period,
-			'items'  => $items,
-			'me'     => array( 'rank' => self::rank( $me, 'all' === $period ? null : (int) $period ), 'points' => self::period_points( $me, 'all' === $period ? null : (int) $period ) ),
-			'levels' => self::distribution(),
+			'period'   => $period,
+			'items'    => $items,
+			'me'       => array(
+				'rank'   => $rank,
+				'points' => $mine,
+				'user'   => Helpers::users( array( $me ) )[ $me ] ?? null,
+				// "7 more points to pass Emma": the member just above you.
+				'ahead'  => $ahead,
+			),
+			// Your level and how far to the next, for the Levels card.
+			'progress' => array(
+				'points'     => $total,
+				'level'      => $level,
+				'next_level' => $next ? $level + 1 : null,
+				'to_next'    => $next ? max( 0, $next - $total ) : 0,
+				'percent'    => $next ? (int) floor( 100 * ( $total - $floor ) / max( 1, $next - $floor ) ) : 100,
+			),
+			'rules'    => array_map( fn( $reason, $rule ) => array( 'reason' => $reason, 'points' => $rule[0], 'daily_cap' => $rule[1] ), array_keys( Points::rules() ), Points::rules() ),
+			'levels'   => self::distribution(),
 		);
 	}
 
@@ -147,6 +181,20 @@ class Rest_Gamification {
 			set_transient( $key, $standings, self::STANDINGS_TTL );
 		}
 		return $standings;
+	}
+
+	/** The member with the fewest points still above $mine: who you'd pass next, and by how much. */
+	private static function just_ahead( $mine, $days ) {
+		global $wpdb;
+		$row = null === $days
+			? $wpdb->get_row( $wpdb->prepare( 'SELECT user_id, points FROM %i WHERE points > %d ORDER BY points ASC, user_id DESC LIMIT 1', Install::table( 'member_stats' ), $mine ), ARRAY_A )
+			: $wpdb->get_row( $wpdb->prepare( 'SELECT user_id, SUM(points) AS points FROM %i WHERE created_at >= UTC_TIMESTAMP() - INTERVAL %d DAY GROUP BY user_id HAVING points > %d ORDER BY points ASC, user_id DESC LIMIT 1', Install::table( 'points' ), $days, $mine ), ARRAY_A );
+		if ( ! $row ) {
+			return null;
+		}
+		$shown = Blocks::filter( array( array( 'user_id' => (int) $row['user_id'] ) ) ); // not someone you blocked
+		$user  = $shown ? ( Helpers::users( array( (int) $row['user_id'] ) )[ (int) $row['user_id'] ] ?? null ) : null;
+		return array( 'name' => $user['name'] ?? null, 'needed' => (int) $row['points'] - $mine + 1 );
 	}
 
 	private static function period_points( $user_id, $days ) {
@@ -186,6 +234,7 @@ class Rest_Gamification {
 		}
 		$counts = $wpdb->get_results( $wpdb->prepare( 'SELECT level, COUNT(*) n FROM %i GROUP BY level', Install::table( 'member_stats' ) ), OBJECT_K );
 		$ranked = array_sum( array_map( fn( $c ) => (int) $c->n, $counts ) );
+		$total  = max( $total, $ranked ); // a remembered member count can lag behind new sign-ups
 		$out    = array();
 		foreach ( Points::thresholds() as $i => $min ) {
 			$level = $i + 1;
@@ -194,7 +243,7 @@ class Rest_Gamification {
 				'level'   => $level,
 				'min'     => $min,
 				'members' => $n,
-				'percent' => (int) round( 100 * $n / $total ),
+				'percent' => (int) min( 100, round( 100 * $n / $total ) ),
 				'courses' => $titles[ $level ] ?? array(),
 			);
 		}

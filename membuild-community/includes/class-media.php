@@ -452,7 +452,9 @@ class Media {
 		if ( ! $row ) {
 			return;
 		}
-		if ( $row['attachment_id'] ) {
+		// A repeating event's copies share one cover file: it goes only with the last one.
+		$shared = $row['attachment_id'] && (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE attachment_id = %d AND id <> %d', Install::table( 'media' ), $row['attachment_id'], $row['id'] ) );
+		if ( $row['attachment_id'] && ! $shared ) {
 			wp_delete_attachment( (int) $row['attachment_id'], true );
 		}
 		if ( 'video/bunny' === $row['mime'] ) {

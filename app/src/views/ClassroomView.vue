@@ -121,7 +121,6 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
     <header class="head">
       <h1>{{ t.__('Classroom', 'membuild-community') }}</h1>
       <div v-if="owner" class="owner-actions">
-        <button class="btn btn-lg btn-ghost" @click="asMember = true"><Icon name="eye" :size="20" /> {{ t.__('See it as a member', 'membuild-community') }}</button>
         <button class="btn btn-lg btn-primary" @click="startNew"><Icon name="plus" :size="20" /> {{ t.__('New course', 'membuild-community') }}</button>
       </div>
       <div v-else-if="counts.going || counts.done" class="filters" role="radiogroup" :aria-label="t.__('Show courses', 'membuild-community')">

@@ -65,6 +65,7 @@ class Privacy {
 					array( 'name' => __( 'Profile photo', 'membuild-community' ), 'value' => (string) get_user_meta( $id, 'mbcom_avatar_url', true ) ),
 					array( 'name' => __( 'Cover picture', 'membuild-community' ), 'value' => (string) get_user_meta( $id, 'mbcom_cover_url', true ) ),
 					array( 'name' => __( 'Where you live', 'membuild-community' ), 'value' => (string) get_user_meta( $id, 'mbcom_location', true ) ),
+					array( 'name' => __( 'Shown on the map at', 'membuild-community' ), 'value' => (string) ( get_user_meta( $id, Rest_Places::MAP_META, true )['city'] ?? '' ) ),
 					array( 'name' => __( 'Level', 'membuild-community' ), 'value' => (string) $stats['level'] ),
 					array( 'name' => __( 'Points', 'membuild-community' ), 'value' => (string) $stats['points'] ),
 					array( 'name' => __( 'Private messages sent', 'membuild-community' ), 'value' => (string) $sent ),
@@ -164,12 +165,12 @@ class Privacy {
 		// Last pass: messages (text removed, the conversation's shape kept for the other people), stories, reactions and the rest.
 		$removed += (int) $wpdb->query( $wpdb->prepare( "UPDATE %i SET content = NULL, media = NULL, story = NULL, status = 'unsent' WHERE user_id = %d AND status <> 'unsent'", Install::table( 'messages' ), $id ) );
 		$removed += (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE user_id = %d', Install::table( 'stories' ), $id ) );
-		foreach ( array( 'reactions', 'story_views', 'notifications', 'lesson_progress', 'course_starts', 'points', 'member_stats', 'group_members' ) as $table ) {
+		foreach ( array( 'reactions', 'story_views', 'notifications', 'lesson_progress', 'course_starts', 'points', 'member_stats', 'group_members', 'place_news' ) as $table ) {
 			$removed += (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE user_id = %d', Install::table( $table ), $id ) );
 		}
 		$removed += (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE reporter_id = %d', Install::table( 'reports' ), $id ) );
 		$removed += (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE user_id = %d OR blocked_id = %d', Install::table( 'blocks' ), $id, $id ) );
-		foreach ( array( 'mbcom_bio', 'mbcom_avatar_url', 'mbcom_cover_url', 'mbcom_location', 'mbcom_seen_at', 'mbcom_hide_online', 'mbcom_email_prefs', 'mbcom_email_last', 'mbcom_last_active', Moderation::META ) as $key ) {
+		foreach ( array( 'mbcom_bio', 'mbcom_avatar_url', 'mbcom_cover_url', 'mbcom_location', Rest_Places::MAP_META, 'mbcom_seen_at', 'mbcom_hide_online', 'mbcom_email_prefs', 'mbcom_email_last', 'mbcom_last_active', Moderation::META ) as $key ) {
 			$removed += delete_user_meta( $id, $key ) ? 1 : 0;
 		}
 		return array(

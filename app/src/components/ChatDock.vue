@@ -7,6 +7,8 @@ import { dock, openChat, minimizeChat, closeChat, describeChat } from '../stores
 import Avatar from './Avatar.vue'
 import Icon from './Icon.vue'
 import ChatView from './ChatView.vue'
+import MemberViewToggle from './MemberViewToggle.vue'
+import { canSeeAsMember } from '../lib/preview.js'
 import { t } from '../lib/i18n.js'
 
 const NewChatDialog = defineAsyncComponent(() => import('./NewChatDialog.vue'))
@@ -57,6 +59,8 @@ const closeLabel = (c) => t.sprintf(/* translators: %s: the chat's name or the p
     </div>
 
     <div class="rail">
+      <!-- Admins: See it as a member, at the top of the right-hand column. -->
+      <MemberViewToggle v-if="canSeeAsMember" docked :compact="windows.length > 0 || dock.composing" :class="{ mv: !(windows.length > 0 || dock.composing) }" />
       <div v-for="c in heads" :key="c.id" class="head-wrap">
         <button class="head" :aria-label="openLabel(c)" :title="nameOf(c)" @click="openChat(c)">
           <span class="faces" :class="{ group: c.others.length > 1 }">
@@ -84,6 +88,8 @@ const closeLabel = (c) => t.sprintf(/* translators: %s: the chat's name or the p
 }
 
 .windows {
+  position: relative;
+  z-index: 2; /* an open chat sits over the See it as a member switch */
   display: flex;
   flex-direction: row-reverse;
   align-items: flex-end;
@@ -103,12 +109,24 @@ const closeLabel = (c) => t.sprintf(/* translators: %s: the chat's name or the p
 }
 
 .rail {
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
+  position: relative;
   gap: 10px;
   padding: 0 16px 16px 0;
   pointer-events: auto;
+}
+
+.rail:has(.pick) {
+  z-index: 3; /* the See it as a member picker opens over the chat */
+}
+
+.mv {
+  position: absolute !important;
+  right: 16px;
+  bottom: calc(100% + 10px);
 }
 
 .head-wrap {

@@ -130,6 +130,21 @@ const roleLabel = (role) => (role === 'admin' ? t.__('Admin', 'membuild-communit
           </footer>
         </article>
       </li>
+      <!-- Loading (first page or the next): member cards in grey, the shape of what's coming. -->
+      <template v-if="loading && (!refreshing || !items.length)">
+        <li v-for="n in items.length ? 3 : 9" :key="`sk${n}`" aria-hidden="true">
+          <div class="card sk-person">
+            <div v-if="covers" class="skeleton sk-cover" />
+            <div class="skeleton sk-pic" />
+            <div class="sk-lines">
+              <div class="skeleton" style="width: 55%; height: 16px" />
+              <div class="skeleton" style="width: 35%; height: 12px" />
+              <div class="skeleton sk-wide" style="width: 85%; height: 12px" />
+            </div>
+            <div class="skeleton sk-btn" />
+          </div>
+        </li>
+      </template>
     </ul>
     <div v-if="!loading && !items.length && sort === 'online'" class="card nobody">
       <span class="nobody-icon"><Icon name="users" :size="30" /></span>
@@ -138,8 +153,7 @@ const roleLabel = (role) => (role === 'admin' ? t.__('Admin', 'membuild-communit
       <button class="btn btn-lg btn-ghost" @click="sort = 'active'">{{ t.__('See everyone', 'membuild-community') }}</button>
     </div>
     <p v-else-if="!loading && !items.length" class="card state">{{ t.__('No members yet.', 'membuild-community') }}</p>
-    <p v-else-if="loading && !items.length" class="card state">{{ t.__('Loading…', 'membuild-community') }}</p>
-    <p v-if="loading && !refreshing && items.length" class="loading-more" role="status">{{ t.__('Loading more members…', 'membuild-community') }}</p>
+    <p v-if="loading" class="sr-only" role="status">{{ t.__('Loading members', 'membuild-community') }}</p>
     <div ref="end" class="end" aria-hidden="true" />
   </div>
 </template>
@@ -433,12 +447,6 @@ const roleLabel = (role) => (role === 'admin' ? t.__('Admin', 'membuild-communit
   font-weight: 650;
 }
 
-.loading-more {
-  margin: 18px 0 0;
-  text-align: center;
-  color: var(--text-2);
-}
-
 .end {
   height: 1px;
 }
@@ -534,6 +542,76 @@ const roleLabel = (role) => (role === 'admin' ? t.__('Admin', 'membuild-communit
   .chev {
     align-self: center;
     color: var(--text-3);
+  }
+}
+
+/* Loading cards: the member card's shape in grey. */
+.sk-person {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  height: 100%;
+  min-height: 250px;
+  padding: 24px 18px 18px;
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+}
+
+.sk-cover {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 64px;
+  border-radius: 0;
+}
+
+.sk-pic {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border: 3px solid var(--surface);
+  border-radius: 50%;
+}
+
+.sk-lines {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.sk-btn {
+  width: 120px;
+  height: 44px;
+  margin-top: auto;
+  border-radius: 999px;
+}
+
+@media (max-width: 767px) {
+  .sk-person {
+    flex-direction: row;
+    min-height: 0;
+    padding: 14px 16px;
+  }
+
+  .sk-cover,
+  .sk-btn,
+  .sk-wide {
+    display: none;
+  }
+
+  .sk-pic {
+    flex: none;
+    width: 56px;
+    height: 56px;
+  }
+
+  .sk-lines {
+    align-items: flex-start;
   }
 }
 </style>

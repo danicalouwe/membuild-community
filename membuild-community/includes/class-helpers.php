@@ -58,7 +58,35 @@ class Helpers {
 
 	/** Who can create and edit courses. */
 	public static function can_manage() {
-		return current_user_can( 'manage_options' );
+		return current_user_can( 'manage_options' ) && ! self::as_member();
+	}
+
+	/**
+	 * "See it as a member": an admin who turned it on (the floating button) is treated
+	 * as a plain member everywhere until they go back: no owner buttons, counts, drafts
+	 * or admin menus, on every page and every request. It only ever takes rights away.
+	 * The choice is a cookie for the browser session, so the first page load knows it too.
+	 */
+	public static function as_member() {
+		return null !== self::as_member_pick();
+	}
+
+	/**
+	 * Who the admin is seeing it as: array( 'group' => membership id or 0 for none,
+	 * 'level' => 1–99 ), or null when not in member view. The cookie is "m{group}.{level}"
+	 * ("m.1" = a new member with no membership); "1" from before means the same as "m.1".
+	 */
+	public static function as_member_pick() {
+		$raw  = isset( $_COOKIE['mbcom_as_member'] ) ? (string) wp_unslash( $_COOKIE['mbcom_as_member'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- parsed strictly below; can only remove rights
+		$pick = null;
+		if ( current_user_can( 'manage_options' ) ) {
+			if ( '1' === $raw ) {
+				$pick = array( 'group' => 0, 'level' => 1 );
+			} elseif ( preg_match( '/^m(\d{0,10})\.(\d{1,2})$/', $raw, $m ) ) {
+				$pick = array( 'group' => (int) $m[1], 'level' => max( 1, (int) $m[2] ) );
+			}
+		}
+		return $pick;
 	}
 
 	/** Admins, editors and the moderators picked in settings. */

@@ -325,7 +325,6 @@ const counter = computed(() => `${form.value.description.length} / 160`)
     <div class="cb-head">
       <span class="cb-status" :class="{ live: course.status === 'published' }">{{ course.status === 'published' ? t.__('Published: members can see it', 'membuild-community') : t.__('Draft: only you can see it', 'membuild-community') }}</span>
       <h1>{{ course.title }}</h1>
-      <button class="btn btn-lg btn-ghost" @click="emit('preview')"><Icon name="eye" :size="20" /> {{ t.__('See it as a member', 'membuild-community') }}</button>
     </div>
 
     <nav class="cb-tabs" role="tablist" :aria-label="t.__('Course builder', 'membuild-community')">

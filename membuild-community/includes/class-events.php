@@ -159,12 +159,89 @@ class Events {
 		if ( isset( $p['description'] ) || ! $row ) {
 			$data['content'] = Helpers::clean_text( $p['description'] ?? '', 5000 );
 		}
+		// Where: online (a link), in person (a place), or both.
+		if ( isset( $p['where'] ) || ! $row ) {
+			$where              = in_array( $p['where'] ?? 'online', array( 'online', 'person', 'both' ), true ) ? ( $p['where'] ?? 'online' ) : 'online';
+			$data['event_where'] = $where;
+		}
+		$where = $data['event_where'] ?? ( $row['event_where'] ?? 'online' );
+		if ( 'online' !== $where ) {
+			if ( array_key_exists( 'place_id', $p ) ) {
+				$place = (int) $p['place_id'] ? self::place_row( (int) $p['place_id'] ) : null;
+				$data['event_place_id'] = $place ? (int) $place['id'] : 0;
+				if ( $place ) { // one of the community's Places: its name, address and pin
+					$data['event_venue']   = $place['name'];
+					$data['event_address'] = $place['address'];
+					$data['event_lat']     = $place['lat'];
+					$data['event_lng']     = $place['lng'];
+				}
+			}
+			if ( empty( $data['event_place_id'] ) ) {
+				foreach ( array( 'venue' => 200, 'address' => 255 ) as $k => $max ) {
+					if ( array_key_exists( $k, $p ) ) {
+						$data[ "event_{$k}" ] = mb_substr( sanitize_text_field( (string) $p[ $k ] ), 0, $max ) ?: null;
+					}
+				}
+				foreach ( array( 'lat' => 90, 'lng' => 180 ) as $k => $lim ) {
+					if ( array_key_exists( $k, $p ) ) {
+						$v                    = is_numeric( $p[ $k ] ) ? (float) $p[ $k ] : null;
+						$data[ "event_{$k}" ] = null !== $v && abs( $v ) <= $lim ? round( $v, 6 ) : null;
+					}
+				}
+			}
+			$venue = $data['event_venue'] ?? ( $row['event_venue'] ?? '' );
+			if ( '' === (string) $venue ) {
+				return new \WP_Error( 'mbcom_invalid_event', __( 'Say where it is: the name of the place.', 'membuild-community' ), array( 'status' => 400 ) );
+			}
+		} elseif ( isset( $p['where'] ) ) {
+			$data += array( 'event_place_id' => 0, 'event_venue' => null, 'event_address' => null, 'event_lat' => null, 'event_lng' => null );
+		}
+		// The time zone the event is held in (the host's, or the place's), for "10:00 AM CT (Austin time)".
+		if ( array_key_exists( 'tz', $p ) ) {
+			$tz              = (string) $p['tz'];
+			$data['event_tz'] = in_array( $tz, timezone_identifiers_list(), true ) ? $tz : null;
+		}
 		if ( array_key_exists( 'group', $p ) && Helpers::can_manage() ) {
 			$group               = (int) $p['group'];
 			$data['event_group'] = isset( Access::groups()[ $group ] ) ? $group : 0;
 		}
 		return $data;
 	}
+
+	/** The first event held at a place teaches it its time zone, so the next one is filled in. */
+	private static function remember_zone( array $ev ) {
+		global $wpdb;
+		$place = (int) ( $ev['event_place_id'] ?? 0 );
+		$tz    = (string) ( $ev['event_tz'] ?? '' );
+		if ( $place && '' !== $tz && 'online' !== ( $ev['event_where'] ?? 'online' ) ) {
+			$wpdb->query( $wpdb->prepare( "UPDATE %i SET tz = %s WHERE id = %d AND ( tz IS NULL OR tz = '' )", Install::table( 'places' ), $tz, $place ) );
+		}
+	}
+
+	/** A published place from Places, for an in-person event held there. */
+	private static function place_row( $id ) {
+		global $wpdb;
+		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM %i WHERE id = %d AND status = 'published'", Install::table( 'places' ), $id ), ARRAY_A );
+	}
+
+	/** A repeat gets the same cover: another media row pointing at the same file. */
+	private static function copy_cover( $media_id, $post_id ) {
+		global $wpdb;
+		$m = Media::get( (int) $media_id );
+		if ( ! $m ) {
+			return;
+		}
+		unset( $m['id'] );
+		$m['post_id'] = $post_id;
+		$wpdb->insert( Install::table( 'media' ), $m );
+	}
+
+	/** How many to make for a repeating event, about three months ahead: interval => count. */
+	const REPEATS = array(
+		'week'   => array( '+1 week', 12 ),
+		'2weeks' => array( '+2 weeks', 6 ),
+		'month'  => array( '+1 month', 3 ),
+	);
 
 	public static function create( \WP_REST_Request $req ) {
 		global $wpdb;
@@ -180,6 +257,7 @@ class Events {
 		$now = Helpers::now();
 		$wpdb->insert( Install::table( 'posts' ), $data + array( 'user_id' => $me, 'type' => 'post', 'status' => 'published', 'created_at' => $now, 'updated_at' => $now ) );
 		$post_id = (int) $wpdb->insert_id;
+		self::remember_zone( $data );
 		$cover   = (int) ( $req['cover_media_id'] ?? 0 );
 		if ( $cover ) {
 			Media::attach( $me, $post_id, array( $cover ) );
@@ -187,6 +265,22 @@ class Events {
 		/** This action is documented in includes/class-rest-feed.php */
 		do_action( 'membuild_community/post_created', $post_id, $me );
 		self::tell_everyone( $post_id, (int) ( $data['event_group'] ?? 0 ) );
+		// Repeats: each one its own event (own page, reminders and replay), same series. Members
+		// are told about the first only. Times repeat in the event's own time zone (summer time).
+		$repeat = self::REPEATS[ (string) $req['repeat'] ] ?? null;
+		if ( $repeat ) {
+			$wpdb->update( Install::table( 'posts' ), array( 'event_series' => $post_id ), array( 'id' => $post_id ) );
+			$tz   = new \DateTimeZone( $data['event_tz'] ?? wp_timezone_string() );
+			$when = ( new \DateTimeImmutable( $data['event_at'], new \DateTimeZone( 'UTC' ) ) )->setTimezone( $tz );
+			for ( $i = 1; $i <= $repeat[1]; $i++ ) {
+				$when = $when->modify( $repeat[0] );
+				$copy = array( 'event_at' => $when->setTimezone( new \DateTimeZone( 'UTC' ) )->format( 'Y-m-d H:i:s' ), 'event_series' => $post_id );
+				$wpdb->insert( Install::table( 'posts' ), $copy + $data + array( 'user_id' => $me, 'type' => 'post', 'status' => 'published', 'created_at' => $now, 'updated_at' => $now ) );
+				if ( $cover ) {
+					self::copy_cover( $cover, (int) $wpdb->insert_id );
+				}
+			}
+		}
 		$res = rest_ensure_response( Rest_Feed::format_posts( array( self::row( $post_id ) ) )[0] );
 		$res->set_status( 201 );
 		return $res;
@@ -207,6 +301,7 @@ class Events {
 			$data['event_reminded'] = 0; // reminders follow the new time
 		}
 		$wpdb->update( Install::table( 'posts' ), $data + array( 'edited_at' => Helpers::now() ), array( 'id' => $row['id'] ) );
+		self::remember_zone( $data + $row );
 		if ( array_key_exists( 'cover_media_id', $req->get_params() ) ) {
 			$wpdb->update( Install::table( 'media' ), array( 'post_id' => null ), array( 'post_id' => $row['id'] ) ); // the old cover goes back to being unused
 			if ( (int) $req['cover_media_id'] ) {
@@ -225,9 +320,17 @@ class Events {
 		if ( ! $row ) {
 			return new \WP_Error( 'mbcom_not_found', __( 'Event not found.', 'membuild-community' ), array( 'status' => 404 ) );
 		}
-		if ( 'cancelled' !== $row['event_status'] ) {
-			$wpdb->update( Install::table( 'posts' ), array( 'event_status' => 'cancelled', 'edited_at' => Helpers::now() ), array( 'id' => $row['id'] ) );
-			self::tell_attendees( (int) $row['id'], 'event_cancelled' );
+		// "all": this one and every later one in its series that hasn't happened yet.
+		$ids = array( (int) $row['id'] );
+		if ( 'all' === $req['which'] && (int) $row['event_series'] ) {
+			$ids = array_map( 'intval', $wpdb->get_col( $wpdb->prepare( "SELECT id FROM %i WHERE event_series = %d AND event_at >= %s AND status = 'published'", Install::table( 'posts' ), $row['event_series'], $row['event_at'] ) ) );
+		}
+		foreach ( $ids as $id ) {
+			$one = self::row( $id );
+			if ( $one && 'cancelled' !== $one['event_status'] ) {
+				$wpdb->update( Install::table( 'posts' ), array( 'event_status' => 'cancelled', 'edited_at' => Helpers::now() ), array( 'id' => $id ) );
+				self::tell_attendees( $id, 'event_cancelled' );
+			}
 		}
 		return Rest_Feed::format_posts( array( self::row( (int) $row['id'] ) ) )[0];
 	}
@@ -327,6 +430,7 @@ class Events {
 		// phpcs:enable
 		$users  = Helpers::users( array_merge( array(), ...array_values( $faces ) ) );
 		$groups = Access::groups();
+		$hidden = array_flip( Rest_Places::hidden_ids( array_column( $rows, 'event_place_id' ) ) ); // a members-only place: name and address, no link
 		$out    = array();
 		foreach ( $rows as $row ) {
 			$id         = (int) $row['id'];
@@ -348,6 +452,16 @@ class Events {
 					'status'    => $row['event_status'] ?: 'scheduled',
 					'group'     => $group ? array( 'id' => $group, 'name' => $groups[ $group ]['name'] ?? '' ) : null,
 					'can_edit'  => Settings::is_staff( get_current_user_id() ),
+					'where'     => $row['event_where'] ?? 'online',
+					'place'     => 'online' === ( $row['event_where'] ?? 'online' ) ? null : array(
+						'id'      => (int) ( $row['event_place_id'] ?? 0 ) && ! isset( $hidden[ (int) $row['event_place_id'] ] ) ? (int) $row['event_place_id'] : null,
+						'name'    => (string) ( $row['event_venue'] ?? '' ),
+						'address' => (string) ( $row['event_address'] ?? '' ),
+						'lat'     => isset( $row['event_lat'] ) ? (float) $row['event_lat'] : null,
+						'lng'     => isset( $row['event_lng'] ) ? (float) $row['event_lng'] : null,
+					),
+					'tz'        => $row['event_tz'] ?? null,
+					'series'    => (int) ( $row['event_series'] ?? 0 ) ?: null,
 				);
 			}
 		}

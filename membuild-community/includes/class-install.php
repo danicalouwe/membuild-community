@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) || exit;
 class Install {
 
 	/** Every table the plugin owns, without the "{prefix}mbcom_" part. */
-	const TABLES = array( 'posts', 'media', 'comments', 'reactions', 'stories', 'story_views', 'courses', 'groups', 'group_members', 'modules', 'lessons', 'lesson_progress', 'course_starts', 'points', 'member_stats', 'threads', 'thread_members', 'messages', 'notifications', 'reports', 'blocks', 'places' );
+	const TABLES = array( 'posts', 'media', 'comments', 'reactions', 'stories', 'story_views', 'courses', 'groups', 'group_members', 'modules', 'lessons', 'lesson_progress', 'course_starts', 'points', 'member_stats', 'threads', 'thread_members', 'messages', 'notifications', 'reports', 'blocks', 'places', 'place_news' );
 
 	/** Data migrations: the version each one brings a site to => method. */
 	const STEPS = array(
@@ -31,6 +31,7 @@ class Install {
 		20 => 'schedule_search_index',
 		27 => 'backfill_course_starts',
 		29 => 'move_access_buttons',
+		32 => 'backfill_place_zones',
 	);
 
 	/** Hourly maintenance (the name is kept from 0.1 so existing schedules carry on). */
@@ -99,6 +100,20 @@ class Install {
 	 * day they joined. Members already part-way through keep their old dates (their
 	 * start is the day they joined), so nothing that was open for them closes.
 	 */
+	/** 32: each place learns its time zone from the latest in-person event already held there. */
+	public static function backfill_place_zones() {
+		global $wpdb;
+		$wpdb->query(
+			$wpdb->prepare(
+				"UPDATE %i pl JOIN ( SELECT event_place_id, SUBSTRING_INDEX( GROUP_CONCAT( event_tz ORDER BY event_at DESC SEPARATOR ',' ), ',', 1 ) AS tz
+					FROM %i WHERE event_place_id > 0 AND event_tz IS NOT NULL AND event_tz <> '' AND event_where <> 'online' GROUP BY event_place_id ) e
+				ON e.event_place_id = pl.id SET pl.tz = e.tz WHERE pl.tz IS NULL OR pl.tz = ''",
+				self::table( 'places' ),
+				self::table( 'posts' )
+			)
+		);
+	}
+
 	private static function backfill_course_starts() {
 		global $wpdb;
 		$wpdb->query(
@@ -160,6 +175,7 @@ class Install {
 		$charset  = $wpdb->get_charset_collate();
 		$posts    = self::table( 'posts' );
 		$media    = self::table( 'media' );
+		$news     = self::table( 'place_news' ); // What's new at a place: a short note with an end date, checked by staff
 		$comments = self::table( 'comments' );
 		$reacts   = self::table( 'reactions' );
 		$stories  = self::table( 'stories' );
@@ -207,6 +223,14 @@ class Install {
 			event_status varchar(12) NOT NULL DEFAULT '',
 			event_group bigint(20) unsigned NOT NULL DEFAULT 0,
 			event_reminded tinyint(1) unsigned NOT NULL DEFAULT 0,
+			event_where varchar(10) NOT NULL DEFAULT 'online',
+			event_place_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			event_venue varchar(200) NULL,
+			event_address varchar(255) NULL,
+			event_lat decimal(9,6) NULL,
+			event_lng decimal(9,6) NULL,
+			event_tz varchar(64) NULL,
+			event_series bigint(20) unsigned NOT NULL DEFAULT 0,
 			edited_at datetime NULL,
 			created_at datetime NOT NULL,
 			updated_at datetime NOT NULL,
@@ -219,7 +243,23 @@ class Install {
 			KEY user_status_created (user_id, status, created_at),
 			KEY course_status_id (course_id, status, id),
 			KEY lesson_status_id (lesson_id, status, id),
-			KEY event_at (event_at, status)
+			KEY event_at (event_at, status),
+			KEY event_place (event_place_id, event_at),
+			KEY event_series (event_series)
+			) {$charset};
+
+			CREATE TABLE {$news} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			place_id bigint(20) unsigned NOT NULL,
+			user_id bigint(20) unsigned NOT NULL,
+			content varchar(200) NOT NULL,
+			ends_on date NOT NULL,
+			status varchar(10) NOT NULL DEFAULT 'pending',
+			resolved_by bigint(20) unsigned NOT NULL DEFAULT 0,
+			created_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			KEY place_status (place_id, status, ends_on),
+			KEY status_created (status, created_at)
 			) {$charset};
 
 			CREATE TABLE {$media} (
@@ -532,7 +572,11 @@ class Install {
 			lng decimal(9,6) NOT NULL,
 			website varchar(300) NOT NULL DEFAULT '',
 			phone varchar(40) NOT NULL DEFAULT '',
+			phone_country char(2) NOT NULL DEFAULT '',
 			hours varchar(200) NOT NULL DEFAULT '',
+			tz varchar(64) NULL,
+			week text NULL,
+			access_group bigint(20) unsigned NOT NULL DEFAULT 0,
 			cover_url varchar(500) NULL,
 			status varchar(20) NOT NULL DEFAULT 'pending',
 			created_by bigint(20) unsigned NOT NULL,

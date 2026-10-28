@@ -32,6 +32,10 @@ class Access {
 	private static $courses = null;
 
 	public static function register_hooks() {
+		// Someone joins or leaves: the member count (Levels' "% of members") is worked out again.
+		foreach ( array( 'user_register', 'deleted_user' ) as $hook ) {
+			add_action( $hook, fn() => array_map( 'delete_transient', array( 'mbcom_member_total', 'mbcom_level_distribution' ) ) );
+		}
 		// A deleted WordPress account leaves its groups too.
 		add_action(
 			'deleted_user',
@@ -105,6 +109,10 @@ class Access {
 	/** Every group the member is in: added by hand, through a role, or as a filter decides. */
 	public static function member_groups( $user_id ) {
 		$user_id = (int) $user_id;
+		$pick    = get_current_user_id() === $user_id ? Helpers::as_member_pick() : null;
+		if ( $pick ) {
+			return isset( self::groups()[ $pick['group'] ] ) ? array( $pick['group'] ) : array(); // the membership picked in member view
+		}
 		if ( isset( self::$mine[ $user_id ] ) ) {
 			return self::$mine[ $user_id ];
 		}
@@ -144,13 +152,15 @@ class Access {
 	 */
 	public static function lock( $course, $user_id = null ) {
 		$user_id = null === $user_id ? get_current_user_id() : (int) $user_id;
-		if ( user_can( $user_id, 'manage_options' ) || Settings::is_staff( $user_id ) ) {
+		// An admin seeing it as a member meets the locks of the member they picked.
+		$pick = get_current_user_id() === $user_id ? Helpers::as_member_pick() : null;
+		if ( ! $pick && ( user_can( $user_id, 'manage_options' ) || Settings::is_staff( $user_id ) ) ) {
 			return null;
 		}
 		$mode = $course['access'] ?? 'everyone';
 		if ( 'level' === $mode ) {
 			$need = max( 2, (int) $course['unlock_level'] );
-			return Points::level_of( $user_id ) >= $need ? null : array( 'reason' => 'level', 'level' => $need );
+			return ( $pick ? $pick['level'] : Points::level_of( $user_id ) ) >= $need ? null : array( 'reason' => 'level', 'level' => $need );
 		}
 		if ( 'groups' === $mode ) {
 			$open = self::course_groups( $course );

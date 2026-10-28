@@ -137,6 +137,9 @@ class Settings {
 
 	/** Admins, WordPress editors (moderate_comments) and members picked in settings. */
 	public static function is_staff( $user_id ) {
+		if ( (int) $user_id === get_current_user_id() && Helpers::as_member() ) {
+			return false; // an admin seeing it as a member
+		}
 		return user_can( $user_id, 'moderate_comments' ) || in_array( (int) $user_id, array_map( 'intval', self::get( 'moderators' ) ), true );
 	}
 
@@ -186,6 +189,9 @@ class Settings {
 			'isStaff'     => self::is_staff( get_current_user_id() ),
 			'reportReasons' => Moderation::reasons(),
 			'canManage'   => Helpers::can_manage(),
+			'canSeeAsMember' => current_user_can( 'manage_options' ), // the floating "See it as a member" button
+			'asMember'    => Helpers::as_member_pick(), // { group, level } while seeing it as a member
+			'memberships' => current_user_can( 'manage_options' ) ? array_values( array_map( fn( $g ) => array( 'id' => $g['id'], 'name' => $g['name'] ), Access::groups() ) ) : array(), // the picker's choices
 			'levelNames'  => $s['level_names'],
 			'restriction' => Moderation::my_restriction(),
 			'video'       => Bunny::enabled() ? 'bunny' : 'local',

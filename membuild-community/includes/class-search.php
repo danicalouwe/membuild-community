@@ -341,6 +341,9 @@ class Search {
 			$like     = '%' . $wpdb->esc_like( $w ) . '%';
 			array_push( $args, $like, $like, $like );
 		}
+		list( $seen, $vals ) = Rest_Places::access_sql(); // members-only places stay out of everyone else's results
+		$fields[]            = $seen;
+		array_push( $args, ...$vals );
 		array_push( $args, $limit + 1, $offset );
 		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- one fixed fragment with placeholders per word; every value is bound.
 		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT id, name, category, perk, address, cover_url FROM %i WHERE status = 'published' AND " . implode( ' AND ', $fields ) . ' ORDER BY name ASC LIMIT %d OFFSET %d', $args ), ARRAY_A );

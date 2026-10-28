@@ -60,7 +60,7 @@ const tiles = computed(() => {
 <template>
   <span ref="el" class="map-thumb" aria-hidden="true">
     <img v-for="tile in tiles" :key="tile.key" :src="tile.src" alt="" loading="lazy" decoding="async" draggable="false" :style="{ left: `${tile.left}px`, top: `${tile.top}px` }" />
-    <span class="pin" :style="{ '--pin': color }"><span>{{ emoji }}</span></span>
+    <span class="pin"><span><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" /><circle cx="12" cy="9.5" r="2.5" /></svg></span></span>
   </span>
 </template>
 
@@ -99,14 +99,15 @@ const tiles = computed(() => {
   margin: -24px 0 0 -13px; /* the tip of the pin on the point */
   border-radius: 50% 50% 50% 4px;
   transform: rotate(-45deg);
-  background: var(--pin);
+  background: var(--accent);
+  color: var(--accent-ink, #16181d);
   border: 2px solid #fff;
   box-shadow: 0 2px 6px rgb(0 0 0 / 35%);
 }
 
 .pin > span {
+  display: grid;
   transform: rotate(45deg);
-  font-size: 12px;
   line-height: 1;
 }
 </style>

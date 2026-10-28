@@ -4,6 +4,7 @@ import { cfg, feature } from '../config.js'
 import { lists, loadMore, refresh } from '../stores/feed.js'
 import { messages, pulseNow, watchFeed } from '../stores/messages.js'
 import Composer from '../components/Composer.vue'
+import PostSkeleton from '../components/PostSkeleton.vue'
 import PostCard from '../components/PostCard.vue'
 import ReelsTray from '../components/ReelsTray.vue'
 import StoriesStrip from '../components/StoriesStrip.vue'
@@ -101,20 +102,7 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
       <ReelsTray v-if="feature('reels') && i === Math.min(2, list.items.length - 1)" />
     </template>
 
-    <template v-if="!list.loaded">
-      <div v-for="n in 3" :key="n" class="card skeleton-card">
-        <div class="row">
-          <div class="skeleton" style="width: 40px; height: 40px; border-radius: 50%" />
-          <div style="flex: 1">
-            <div class="skeleton" style="width: 40%; height: 12px; margin-bottom: 8px" />
-            <div class="skeleton" style="width: 20%; height: 10px" />
-          </div>
-        </div>
-        <div class="skeleton" style="height: 14px; margin: 14px 0 8px" />
-        <div class="skeleton" style="height: 14px; width: 70%" />
-        <div class="skeleton" style="height: 220px; margin-top: 14px; border-radius: 12px" />
-      </div>
-    </template>
+    <template v-if="!list.loaded"><PostSkeleton v-for="n in 3" :key="n" /></template>
 
     <p v-if="list.error" class="status">
       {{ t.__("Couldn't load posts.", 'membuild-community') }} <button class="retry" @click="loadMore(list)">{{ t.__('Try again', 'membuild-community') }}</button>
@@ -155,16 +143,6 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
 .sort button.on {
   background: var(--text);
   color: var(--surface);
-}
-
-.skeleton-card {
-  padding: 14px;
-}
-
-.skeleton-card .row {
-  display: flex;
-  gap: 10px;
-  align-items: center;
 }
 
 .status {

@@ -10,15 +10,22 @@ import Icon from '../components/Icon.vue'
 import RichText from '../components/RichText.vue'
 import PostActions from '../components/PostActions.vue'
 import CommentThread from '../components/CommentThread.vue'
-import { calendarLinks, downloadIcs, playerUrl, serviceName, stateOf, untilLabel, whenLong, zoneName } from '../lib/events.js'
+import { calendarLinks, cityOfAddress, dateBadge, downloadIcs, otherZone, plainCover, playerUrl, serviceName, startOf, stateOf, timeRange, timeRangeIn, untilLabel } from '../lib/events.js'
+import { directionsUrl } from '../lib/places.js'
+import { useRoute } from 'vue-router'
+import BaseDialog from '../components/BaseDialog.vue'
+import { locale } from '../lib/i18n.js'
 import { t } from '../lib/i18n.js'
 import { useMenu } from '../lib/useMenu.js'
-const EventDialog = defineAsyncComponent(() => import('../components/EventDialog.vue'))
+const EventForm = defineAsyncComponent(() => import('../components/EventForm.vue'))
 
 /**
- * One event: when, who's going, Going / Interested, add to calendar, the
- * Join button (or the stream itself, playing here), the details and the
- * conversation underneath. Staff edit, cancel or duplicate it from ⋯.
+ * One event, in two columns (Version 2): the cover (or the stream / replay playing
+ * here), how soon, the title, the host, About this event and the questions on the
+ * left; a card on the right with the date, time, where, one I'm going button, Join
+ * (from 15 minutes before) and Add to calendar. The host also gets a bar with Edit
+ * and Duplicate, how many are going (only they see it), Join any time, Cancel, and on
+ * a past event a box to add the replay. Phones: one column, I'm going at the bottom.
  */
 const props = defineProps({ id: { type: Number, required: true } })
 const router = useRouter()
@@ -52,9 +59,90 @@ watch(() => props.id, load, { immediate: true })
 const e = computed(() => post.value?.event)
 const state = computed(() => (e.value ? stateOf(e.value, now.value) : 'upcoming'))
 const cover = computed(() => post.value?.media.find((m) => m.kind === 'image')?.url || null)
-const fallback = computed(() => `linear-gradient(135deg, hsl(${(props.id * 67) % 360} 65% 50%), hsl(${(props.id * 67 + 50) % 360} 60% 36%))`)
+const host = computed(() => !!e.value?.can_edit)
+const badge = computed(() => (e.value ? dateBadge(e.value) : null))
+// In person somewhere else in the world: the day and time where it's held ("Austin time"), and yours under it.
+const here = computed(() => !!e.value && otherZone(e.value))
+const placeCity = computed(() => cityOfAddress(e.value?.place?.address))
+const longDay = computed(() => (e.value ? new Intl.DateTimeFormat(locale, { weekday: 'long', month: 'long', day: 'numeric', timeZone: here.value ? e.value.tz : undefined }).format(startOf(e.value)) : ''))
+const inPerson = computed(() => !!e.value?.place && e.value.where !== 'online')
+const mapsUrl = computed(() => (inPerson.value ? (e.value.place.lat !== null ? directionsUrl({ lat: e.value.place.lat, lng: e.value.place.lng, name: e.value.place.name, address: e.value.place.address }) : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([e.value.place.name, e.value.place.address].filter(Boolean).join(', '))}`) : ''))
+async function cancelAll() {
+  if (!(await askConfirm({ title: t.__('Cancel every one still to come?', 'membuild-community'), text: t.__('This one and all the later ones in the series are cancelled. Everyone who said they’re going is told.', 'membuild-community'), confirm: t.__('Cancel them all', 'membuild-community'), cancel: t.__('Keep them', 'membuild-community'), danger: true }))) return
+  try {
+    const saved = await api.cancelEvent(props.id, 'all')
+    post.value = saved
+    updatePost(props.id, saved)
+  } catch (err) {
+    alert(err.message)
+  }
+}
+const joinAt = computed(() => (e.value ? new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }).format(new Date(startOf(e.value).getTime() - 15 * 60000)) : ''))
+const ago = (days) => (days < 1 ? t.__('Ended today', 'membuild-community') : t.sprintf(/* translators: %d: days */ t._n('Ended %d day ago', 'Ended %d days ago', days, 'membuild-community'), days))
+// The pill over the title: how soon, live, replay, ended, cancelled.
+const pill = computed(() => {
+  if (!e.value) return null
+  if (state.value === 'cancelled') return { cls: 'off', text: t.__('Cancelled', 'membuild-community') }
+  if (state.value === 'live') return { cls: 'live', text: `● ${t.__('Live now', 'membuild-community')}` }
+  if (state.value === 'past') {
+    if (e.value.recording) return { cls: 'ok', text: t.__('Replay available', 'membuild-community') }
+    return { cls: 'grey', text: ago(Math.floor((now.value - startOf(e.value).getTime()) / 86400000)) }
+  }
+  const s = untilLabel(e.value, now.value)
+  return { cls: '', text: t.sprintf(/* translators: %s: e.g. "in 2 days" */ t.__('Starts %s', 'membuild-community'), s) }
+})
+const isStream = computed(() => ['youtube', 'vimeo', 'twitch'].includes(e.value?.kind))
+const whereTitle = computed(() => {
+  if (state.value === 'past') return e.value?.recording ? t.__('Recorded online', 'membuild-community') : service.value ? t.sprintf(/* translators: %s: Zoom, Google Meet… */ t.__('Was online, on %s', 'membuild-community'), service.value) : t.__('Was online', 'membuild-community')
+  return service.value ? t.sprintf(/* translators: %s: Zoom, Google Meet… */ t.__('Online, on %s', 'membuild-community'), service.value) : t.__('Online', 'membuild-community')
+})
+const whereNote = computed(() => {
+  if (state.value === 'past') return e.value?.recording ? t.__('Watch any time', 'membuild-community') : t.__('No replay yet', 'membuild-community')
+  if (state.value === 'live') return isStream.value ? t.__('Playing on this page', 'membuild-community') : t.__('It’s open now', 'membuild-community')
+  return isStream.value ? t.__('The stream plays on this page', 'membuild-community') : t.__('The Join button appears here', 'membuild-community')
+})
+
+/* ---------- Host: who's going, the replay ---------- */
+const route = useRoute()
+const goingOpen = ref(false)
+const goingList = ref(null)
+async function openGoing() {
+  goingOpen.value = true
+  goingList.value = null
+  try {
+    goingList.value = (await api.eventGoing(props.id)).items.filter((r) => r.status === 'going')
+  } catch {
+    goingList.value = []
+  }
+}
+const replayUrl = ref('')
+const replayBusy = ref(false)
+const replayError = ref('')
+const replayInput = ref(null)
+watch(
+  () => [post.value, route.query.replay],
+  () => route.query.replay && post.value && setTimeout(() => replayInput.value?.focus(), 50),
+)
+async function saveReplay() {
+  const url = replayUrl.value.trim()
+  if (!url) return
+  replayBusy.value = true
+  replayError.value = ''
+  try {
+    const saved = await api.updateEvent(props.id, { recording: url })
+    post.value = saved
+    updatePost(props.id, saved)
+    replayUrl.value = ''
+  } catch (err) {
+    replayError.value = err.message
+  } finally {
+    replayBusy.value = false
+  }
+}
 const pageUrl = computed(() => location.origin + router.resolve({ name: 'event', params: { id: props.id } }).href)
-const links = computed(() => (e.value ? calendarLinks({ ...e.value, description: post.value.content }, pageUrl.value) : null))
+// The event as a calendar entry: its own id (so two events never replace each other), the words trimmed.
+const calEvent = computed(() => (e.value ? { ...e.value, id: post.value.id, description: (post.value.content || '').trim() } : null))
+const links = computed(() => (calEvent.value ? calendarLinks(calEvent.value, pageUrl.value) : null))
 // The stream plays here from 15 minutes before until it ends; afterwards the recording does (when it's YouTube or Vimeo).
 const player = computed(() => {
   if (!e.value) return null
@@ -115,125 +203,228 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
     <RouterLink :to="{ name: 'events' }" class="btn btn-ghost">{{ t.__('All events', 'membuild-community') }}</RouterLink>
   </div>
 
-  <div v-else-if="post" class="event">
-    <RouterLink :to="{ name: 'events' }" class="back"><Icon name="chevronLeft" :size="16" /> {{ t.__('Events', 'membuild-community') }}</RouterLink>
+  <EventForm v-else-if="post && dialog" :event="post" :copy="dialog.copy" @close="dialog = null" @saved="saved" />
 
-    <article class="card main">
-      <!-- The stream or the replay, playing here; otherwise the cover. -->
-      <div v-if="player && (watching || state === 'live')" class="player">
-        <iframe :src="player" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen :title="e.title" />
-      </div>
-      <div v-else class="hero" :style="cover ? { backgroundImage: `url(${cover})` } : { background: fallback }">
-        <button v-if="player" class="play" :aria-label="t.__('Play the recording', 'membuild-community')" @click="watching = true"><Icon name="play" :size="30" /></button>
-        <span v-if="state === 'cancelled'" class="badge off">{{ t.__('Cancelled', 'membuild-community') }}</span>
-        <span v-else-if="state === 'past'" class="badge off">{{ t.__('Past event', 'membuild-community') }}</span>
-      </div>
+  <div v-else-if="post" class="event page-in" :class="{ hosting: host }">
+    <RouterLink :to="{ name: 'events' }" class="back"><Icon name="chevronLeft" :size="18" /> {{ t.__('Events', 'membuild-community') }}</RouterLink>
 
-      <div class="body">
-        <p class="when">
-          {{ whenLong(e) }} <span class="zone">({{ zoneName() }})</span>
-          <em v-if="state === 'live'" class="now">● {{ t.__('Live now', 'membuild-community') }}</em>
-          <em v-else-if="state === 'soon' || state === 'upcoming'" class="until">· {{ startsIn(e) }}</em>
-        </p>
-        <div class="title-row">
-          <h1>{{ e.title }}</h1>
-          <div v-if="e.can_edit" :ref="menuRoot" class="menu-wrap">
-            <button :ref="menuTrigger" class="icon-btn" :aria-label="t.__('Event options', 'membuild-community')" aria-haspopup="menu" :aria-expanded="menu" @click="toggleMenu"><Icon name="more" /></button>
-            <div v-if="menu" :ref="menuList" class="menu" role="menu" @keydown="onMenuKey">
-              <button role="menuitem" @click="closeMenu(); dialog = { copy: false }"><Icon name="compose" :size="18" /> {{ t.__('Edit event', 'membuild-community') }}</button>
-              <button role="menuitem" @click="closeMenu(); dialog = { copy: true }"><Icon name="plus" :size="18" /> {{ t.__('Duplicate', 'membuild-community') }}</button>
-              <button v-if="state !== 'cancelled' && state !== 'past'" role="menuitem" class="danger" @click="cancel"><Icon name="close" :size="18" /> {{ t.__('Cancel event', 'membuild-community') }}</button>
-              <button role="menuitem" class="danger" @click="remove"><Icon name="trash" :size="18" /> {{ t.__('Delete', 'membuild-community') }}</button>
-            </div>
-          </div>
+    <!-- The host's own bar. -->
+    <div v-if="host" class="host-bar card">
+      <p><strong>{{ t.__('You’re hosting this event.', 'membuild-community') }}</strong> {{ t.__('Only you see this bar.', 'membuild-community') }}</p>
+      <button class="btn btn-lg btn-ghost" @click="dialog = { copy: false }"><Icon name="pencil" :size="18" /> {{ t.__('Edit event', 'membuild-community') }}</button>
+      <button class="btn btn-lg btn-ghost" @click="dialog = { copy: true }">{{ t.__('Duplicate', 'membuild-community') }}</button>
+    </div>
+
+    <div class="cols">
+      <div class="left">
+        <!-- The stream or the replay, playing here; otherwise the cover. -->
+        <div v-if="player && (watching || state === 'live')" class="media player">
+          <iframe :src="player" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen :title="e.title" />
+        </div>
+        <div v-else class="media hero" :style="cover ? { backgroundImage: `url(${cover})` } : plainCover()">
+          <button v-if="player" class="play" :aria-label="t.__('Watch the replay', 'membuild-community')" @click="watching = true"><Icon name="play" :size="30" /></button>
         </div>
 
-        <div class="host">
-          <Avatar :user="post.author" :size="32" link />
-          <span>{{ t.sprintf(/* translators: %s: the host's name */ t.__('Hosted by %s', 'membuild-community'), post.author?.name) }}<template v-if="e.group"> · {{ e.group.name }}</template></span>
+        <span v-if="pill" class="pill" :class="pill.cls">{{ pill.text }}</span>
+        <h1>{{ e.title }}</h1>
+        <div class="hosted">
+          <Avatar :user="post.author" :size="48" link />
+          <span><small>{{ t.__('Hosted by', 'membuild-community') }}</small><strong>{{ post.author?.name }}</strong></span>
         </div>
 
-        <!-- One row of actions: RSVP, calendar, join. -->
-        <div v-if="state !== 'cancelled' && state !== 'past'" class="actions">
-          <button class="btn" :class="e.my_rsvp === 'going' ? 'btn-primary' : 'btn-ghost'" :aria-pressed="e.my_rsvp === 'going'" @click="rsvp('going')">
-            <Icon v-if="e.my_rsvp === 'going'" name="check" :size="16" /> {{ t.__('Going', 'membuild-community') }}
-          </button>
-          <button class="btn btn-ghost" :class="{ on: e.my_rsvp === 'interested' }" :aria-pressed="e.my_rsvp === 'interested'" @click="rsvp('interested')">
-            <span aria-hidden="true">★</span> {{ t.__('Interested', 'membuild-community') }}
-          </button>
-          <div class="cal-wrap">
-            <button class="btn btn-ghost" aria-haspopup="menu" :aria-expanded="calOpen" @click="calOpen = !calOpen"><Icon name="calendar" :size="16" /> {{ t.__('Add to calendar', 'membuild-community') }}</button>
-            <div v-if="calOpen" class="menu cal" role="menu" @click="calOpen = false">
-              <a :href="links.google" target="_blank" rel="noopener" role="menuitem">Google Calendar</a>
-              <button role="menuitem" @click="downloadIcs({ ...e, description: post.content }, pageUrl, cfg.siteName)">Apple Calendar</button>
-              <a :href="links.outlook" target="_blank" rel="noopener" role="menuitem">Outlook</a>
-              <button role="menuitem" @click="downloadIcs({ ...e, description: post.content }, pageUrl, cfg.siteName)">{{ t.__('Other (.ics file)', 'membuild-community') }}</button>
-            </div>
-          </div>
-          <a v-if="e.url && state === 'live' && !player" :href="e.url" class="btn btn-primary join" target="_blank" rel="noopener">
-            <Icon name="external" :size="16" /> {{ joinLabel }}
-          </a>
-          <span v-else-if="e.url && state !== 'live'" class="join-note">
-            <Icon name="clock" :size="14" />
-            {{ player || e.kind === 'youtube' || e.kind === 'vimeo' || e.kind === 'twitch' ? t.__('The stream plays here 15 minutes before the start.', 'membuild-community') : t.sprintf(/* translators: %s: Zoom, Google Meet… or "the link" */ t.__('The %s button appears 15 minutes before the start.', 'membuild-community'), service || t.__('Join', 'membuild-community')) }}
+        <section v-if="post.content" class="card box">
+          <h2>{{ t.__('About this event', 'membuild-community') }}</h2>
+          <RichText class="desc" :text="post.content" />
+        </section>
+
+        <section class="card box talk">
+          <h2>{{ state === 'past' ? t.__('Comments', 'membuild-community') : t.__('Questions before the event?', 'membuild-community') }}</h2>
+          <CommentThread :post="post" />
+        </section>
+      </div>
+
+      <!-- The card: when, where, and what to do. -->
+      <aside class="side card">
+        <div class="when">
+          <span class="tile"><small>{{ badge.month }}</small><strong>{{ badge.day }}</strong></span>
+          <span>
+            <strong>{{ longDay }}</strong>
+            <span>{{ here ? timeRangeIn(e) : timeRange(e) }}<template v-if="here && placeCity"> ({{ t.sprintf(/* translators: %s: a city */ t.__('%s time', 'membuild-community'), placeCity) }})</template></span>
+            <small v-if="here" class="yours">{{ t.sprintf(/* translators: %s: a time range */ t.__('Your time: %s', 'membuild-community'), timeRange(e)) }}</small>
           </span>
         </div>
-        <a v-else-if="state === 'past' && e.recording && !player" :href="e.recording" class="btn btn-primary" target="_blank" rel="noopener"><Icon name="play" :size="16" /> {{ t.__('Watch the recording', 'membuild-community') }}</a>
-        <p v-else-if="state === 'cancelled'" class="cancelled">{{ t.__('This event was cancelled.', 'membuild-community') }}</p>
 
-        <div v-if="e.going_count || e.interested_count" class="people">
-          <span v-if="e.faces.length" class="faces"><Avatar v-for="u in e.faces" :key="u.id" :user="u" :size="28" /></span>
-          <span>{{ goingLabel(e.going_count) }}<template v-if="e.interested_count"> · {{ t.sprintf(/* translators: %d: number interested */ t.__('%d interested', 'membuild-community'), e.interested_count) }}</template></span>
+        <div v-if="inPerson" class="row">
+          <span class="ic"><Icon name="mapPin" :size="20" /></span>
+          <span>
+            <RouterLink v-if="e.place.id" :to="{ name: 'places', params: { placeId: e.place.id } }" class="place-link">{{ e.place.name }} <Icon name="chevronRight" :size="16" /></RouterLink>
+            <strong v-else>{{ e.place.name }}</strong>
+            <small v-if="e.place.address">{{ e.place.address }}</small>
+            <a :href="mapsUrl" target="_blank" rel="noopener" class="maps">{{ t.__('Open in Maps', 'membuild-community') }} <Icon name="external" :size="14" /></a>
+          </span>
         </div>
 
-        <RichText v-if="post.content" class="desc" :text="post.content" />
-      </div>
+        <div v-if="e.where !== 'person'" class="row">
+          <span class="ic"><Icon name="video" :size="20" /></span>
+          <span><strong>{{ whereTitle }}</strong><small>{{ whereNote }}</small></span>
+        </div>
 
-      <PostActions :post="post" class="post-actions" />
-      <div class="comments">
-        <CommentThread :post="post" />
-      </div>
-    </article>
+        <div v-if="host && state !== 'cancelled'" class="row">
+          <span class="ic"><Icon name="users" :size="20" /></span>
+          <span>
+            <strong>{{ state === 'past' ? t.sprintf(/* translators: %d: members who went */ t._n('%d went', '%d went', e.going_count, 'membuild-community'), e.going_count) : goingLabel(e.going_count) }}</strong>
+            <small><button v-if="e.going_count" class="link" @click="openGoing">{{ state === 'past' ? t.__('See who came', 'membuild-community') : t.__('See who’s going', 'membuild-community') }}</button><template v-if="e.going_count"> · </template>{{ t.__('only you see this', 'membuild-community') }}</small>
+          </span>
+        </div>
 
-    <EventDialog v-if="dialog" :event="post" :copy="dialog.copy" @close="dialog = null" @saved="saved" />
+        <!-- Upcoming / live -->
+        <template v-if="state !== 'past' && state !== 'cancelled'">
+          <a v-if="e.url && !player && (state === 'live' || host)" :href="e.url" class="btn btn-lg btn-primary main" target="_blank" rel="noopener"><Icon name="video" :size="18" /> {{ joinLabel }}</a>
+          <button v-if="!host" class="btn btn-lg main rsvp" :class="e.my_rsvp === 'going' ? 'btn-ghost going' : 'btn-primary'" :aria-pressed="e.my_rsvp === 'going'" @click="rsvp('going')">
+            <template v-if="e.my_rsvp === 'going'"><Icon :key="'going'" class="pop-once" name="check" :size="18" /> {{ t.__('You’re going', 'membuild-community') }}</template>
+            <template v-else>{{ t.__('I’m going', 'membuild-community') }}</template>
+          </button>
+          <p v-if="host && e.url && !isStream" class="note">{{ t.sprintf(/* translators: %s: a time, e.g. "12:45 PM ET" */ t.__('You can open it any time. Members’ button turns on at %s.', 'membuild-community'), joinAt) }}</p>
+          <p v-else-if="e.url && state !== 'live'" class="note">
+            <template v-if="isStream">{{ t.__('The stream plays on this page 15 minutes before it starts.', 'membuild-community') }}</template>
+            <template v-else>{{ t.sprintf(/* translators: 1: "Join on Google Meet", 2: a time */ t.__('%1$s turns on at %2$s, 15 minutes before.', 'membuild-community'), joinLabel, joinAt) }}</template>
+          </p>
+          <div class="cal-wrap">
+            <button class="cal" aria-haspopup="menu" :aria-expanded="calOpen" @click="calOpen = !calOpen"><Icon name="calendar" :size="18" /> {{ t.__('Add to calendar', 'membuild-community') }}</button>
+            <div v-if="calOpen" class="menu cal-menu" role="menu" @click="calOpen = false">
+              <a :href="links.google" target="_blank" rel="noopener" role="menuitem">Google Calendar</a>
+              <button role="menuitem" @click="downloadIcs(calEvent, pageUrl, cfg.siteName)">Apple Calendar</button>
+              <a :href="links.outlook" target="_blank" rel="noopener" role="menuitem">Outlook</a>
+              <button role="menuitem" @click="downloadIcs(calEvent, pageUrl, cfg.siteName)">{{ t.__('Other (.ics file)', 'membuild-community') }}</button>
+            </div>
+          </div>
+          <template v-if="host">
+            <hr />
+            <button class="link danger" @click="cancel">{{ t.__('Cancel this event…', 'membuild-community') }}</button>
+            <button v-if="e.series" class="link danger" @click="cancelAll">{{ t.__('Cancel all still to come…', 'membuild-community') }}</button>
+          </template>
+        </template>
+
+        <!-- Past -->
+        <template v-else-if="state === 'past'">
+          <template v-if="e.recording">
+            <button v-if="player" class="btn btn-lg btn-primary main" @click="watching = true"><Icon name="play" :size="18" class="play-ic" /> {{ t.__('Watch the replay', 'membuild-community') }}</button>
+            <a v-else :href="e.recording" class="btn btn-lg btn-primary main" target="_blank" rel="noopener"><Icon name="play" :size="18" class="play-ic" /> {{ t.__('Watch the replay', 'membuild-community') }}</a>
+            <p class="note">{{ t.sprintf(/* translators: %s: a day, e.g. "Monday, October 12" */ t.__('Recorded %s', 'membuild-community'), longDay) }}</p>
+          </template>
+          <form v-else-if="host" class="replay" @submit.prevent="saveReplay">
+            <label for="replay-url">{{ t.__('Add the replay', 'membuild-community') }}</label>
+            <input id="replay-url" ref="replayInput" v-model="replayUrl" type="url" inputmode="url" :placeholder="t.__('Paste the video link (YouTube, Vimeo…)', 'membuild-community')" />
+            <button class="btn btn-lg btn-primary main" :disabled="!replayUrl.trim() || replayBusy">{{ replayBusy ? t.__('Saving…', 'membuild-community') : t.__('Save the replay', 'membuild-community') }}</button>
+            <p v-if="replayError" class="err">{{ replayError }}</p>
+            <p class="note">{{ t.__('It shows on this page and in Past events. YouTube and Vimeo play right here.', 'membuild-community') }}</p>
+          </form>
+          <p v-else class="note">{{ t.__('There’s no replay for this one.', 'membuild-community') }}</p>
+        </template>
+
+        <p v-else class="note">{{ t.__('This event was cancelled.', 'membuild-community') }}</p>
+
+        <template v-if="host && (state === 'past' || state === 'cancelled')">
+          <hr />
+          <button class="link danger" @click="remove">{{ t.__('Delete this event…', 'membuild-community') }}</button>
+        </template>
+      </aside>
+    </div>
+
+    <BaseDialog v-if="goingOpen" :title="state === 'past' ? t.__('Who came', 'membuild-community') : t.__('Who’s going', 'membuild-community')" :width="440" max-height="560px" @close="goingOpen = false">
+      <p v-if="!goingList" class="going-empty">{{ t.__('Loading…', 'membuild-community') }}</p>
+      <ul v-else class="going-list">
+        <li v-for="r in goingList" :key="r.user.id"><Avatar :user="r.user" :size="40" link /><strong>{{ r.user.name }}</strong></li>
+        <li v-if="!goingList.length" class="going-empty">{{ t.__('Nobody yet.', 'membuild-community') }}</li>
+      </ul>
+    </BaseDialog>
+
+  </div>
+
+  <!-- Loading: the page's shape, so nothing jumps when it arrives. -->
+  <div v-else class="event ev-loading" aria-busy="true">
+    <div class="skeleton" style="width: 90px; height: 18px; margin: 12px 0 18px" />
+    <div class="ev-sk-grid">
+      <div>
+        <div class="skeleton" style="aspect-ratio: 16 / 9; border-radius: 16px" />
+        <div class="skeleton" style="width: 60%; height: 30px; margin-top: 22px" />
+        <div class="skeleton" style="width: 35%; height: 16px; margin-top: 12px" />
+      </div>
+      <div class="skeleton" style="height: 260px; border-radius: 16px" />
+    </div>
   </div>
 </template>
 
 <style scoped>
+.ev-sk-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 24px;
+}
+
+@media (max-width: 767px) {
+  .ev-sk-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .event {
-  max-width: 760px;
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 20px 16px 48px;
+}
+
+.state {
+  padding: 60px 16px;
+  text-align: center;
 }
 
 .back {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  margin-bottom: 10px;
-  font-size: 13px;
-  font-weight: 600;
+  gap: 6px;
+  min-height: 44px;
+  margin-bottom: 8px;
+  color: var(--text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.host-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 10px 12px 10px 18px;
+  border-radius: 16px;
+}
+
+.host-bar p {
+  flex: 1;
+  margin: 0;
   color: var(--text-2);
 }
 
-.main {
-  overflow: hidden;
+.host-bar strong {
+  color: var(--text);
 }
 
-.hero,
-.player {
+.cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 32px;
+  align-items: start;
+}
+
+.media {
   position: relative;
-  aspect-ratio: 16 / 7;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 16px;
   background: #000 center / cover no-repeat;
 }
 
-.player {
-  aspect-ratio: 16 / 9;
-}
-
 .player iframe {
-  position: absolute;
-  inset: 0;
   width: 100%;
   height: 100%;
   border: 0;
@@ -241,243 +432,413 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
 
 .play {
   position: absolute;
-  inset: 0;
-  margin: auto;
+  top: 50%;
+  left: 50%;
   display: grid;
   place-items: center;
-  width: 68px;
-  height: 68px;
+  width: 84px;
+  height: 84px;
   border-radius: 50%;
-  background: rgb(0 0 0 / 60%);
-  color: #fff;
+  background: rgb(255 255 255 / 94%);
+  color: #16181d;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 4px 18px rgb(0 0 0 / 25%);
 }
 
-.badge {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  padding: 5px 12px;
+.play :deep(path),
+.side .play-ic :deep(path) {
+  fill: currentColor;
+}
+
+.pill {
+  display: inline-block;
+  margin-top: 20px;
+  padding: 6px 14px;
   border-radius: 999px;
-  background: rgb(0 0 0 / 65%);
-  color: #fff;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.body {
-  padding: 18px 20px 6px;
-}
-
-.when {
-  margin: 0 0 4px;
+  background: var(--accent-soft);
   color: var(--accent-text);
+  font-size: 15px;
   font-weight: 700;
-  font-size: 14px;
 }
 
-.zone {
-  color: var(--text-3);
-  font-weight: 500;
+.pill.ok {
+  background: var(--ok-soft);
+  color: var(--ok-text);
 }
 
-.now {
-  margin-left: 6px;
-  color: #e5484d;
-  font-style: normal;
+.pill.grey {
+  background: var(--surface-2);
+  color: var(--text-2);
 }
 
-.until {
-  color: var(--text-3);
-  font-style: normal;
-  font-weight: 600;
+.pill.off {
+  background: var(--danger-soft);
+  color: var(--danger-text);
 }
 
-.title-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
+.pill.live {
+  background: #e5484d;
+  color: #fff;
 }
 
 h1 {
-  flex: 1;
-  margin: 0;
-  font-size: 24px;
+  margin: 14px 0 18px;
+  font-size: 34px;
   line-height: 1.2;
 }
 
-.menu-wrap,
-.cal-wrap {
-  position: relative;
-}
-
-.icon-btn {
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  color: var(--text-2);
-}
-
-.icon-btn:hover {
-  background: var(--surface-2);
-}
-
-.menu {
-  position: absolute;
-  right: 0;
-  top: 100%;
-  z-index: 5;
-  min-width: 190px;
-  padding: 6px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 14%);
-}
-
-.menu.cal {
-  left: 0;
-  right: auto;
-}
-
-.menu button,
-.menu a {
+.hosted {
   display: flex;
   align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 8px 10px;
-  border-radius: 8px;
-  color: var(--text);
-  font-weight: 600;
-  text-align: left;
+  gap: 12px;
+  margin-bottom: 26px;
 }
 
-.menu button:hover,
-.menu a:hover {
-  background: var(--surface-2);
-}
-
-.menu .danger {
-  color: var(--danger);
-}
-
-.host {
+.hosted span {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 10px;
+  flex-direction: column;
+}
+
+.hosted small {
   color: var(--text-2);
   font-size: 14px;
 }
 
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-top: 16px;
+.hosted strong {
+  font-size: 17px;
 }
 
-.actions .btn-ghost {
-  color: var(--text);
+.box {
+  margin-bottom: 24px;
+  padding: 22px 20px;
+  border-radius: 16px;
 }
 
-.actions .btn-ghost.on {
-  background: var(--accent-soft);
-  color: var(--accent-text);
+.box h2 {
+  margin: 0 0 12px;
+  font-size: 20px;
 }
 
-.join {
-  margin-left: auto;
-}
-
-.join-note {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  width: 100%;
-  color: var(--text-3);
-  font-size: 13px;
-}
-
-.cancelled {
-  margin: 14px 0 0;
-  color: var(--danger);
-  font-weight: 650;
-}
-
-.people {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 14px;
-  color: var(--text-2);
-  font-size: 14px;
-}
-
-.faces {
-  display: flex;
-}
-
-.faces > * + * {
-  margin-left: -8px;
-}
-
-.faces :deep(img),
-.faces :deep(.avatar) {
-  box-shadow: 0 0 0 2px var(--surface);
-  border-radius: 50%;
+/* On this page the comment box sits after the questions, not stuck to the bottom. */
+.talk :deep(.composer) {
+  position: static;
+  margin: 4px -20px -22px;
+  padding: 14px 20px 18px;
+  border-radius: 0 0 16px 16px;
 }
 
 .desc {
-  margin-top: 16px;
-  font-size: 15.5px;
+  font-size: 16px;
+  line-height: 1.6;
 }
 
-.post-actions {
-  margin-top: 8px;
+/* The card on the right stays in view while the page scrolls. */
+.side {
+  position: sticky;
+  top: calc(var(--header-h) + 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px;
+  border-radius: 18px;
 }
 
-.comments {
-  padding: 4px 16px 16px;
+.when {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
 }
 
-.state {
-  max-width: 480px;
-  margin: 60px auto;
-  text-align: center;
+.tile {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 78px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  line-height: 1.05;
+}
+
+.tile small {
+  color: #e5484d;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.tile strong {
+  font-size: 30px;
+}
+
+.when > span:last-child,
+.row > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.when strong {
+  font-size: 18px;
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.row .ic {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.row strong {
+  font-size: 17px;
+}
+
+.row small {
   color: var(--text-2);
+  font-size: 15px;
 }
 
-@media (max-width: 899px) {
-  .event {
-    padding: 10px 0;
+.yours {
+  color: var(--text-2);
+  font-size: 14px;
+}
+
+.place-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.place-link:hover {
+  text-decoration: underline;
+}
+
+.maps {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+.main {
+  width: 100%;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.main.going {
+  background: var(--ok-soft);
+  color: var(--ok-text);
+}
+
+.note {
+  margin: -6px 0 0;
+  color: var(--text-2);
+  font-size: 14px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.cal-wrap {
+  position: relative;
+  align-self: center;
+}
+
+.cal {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.cal-menu {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 16%);
+  transform: translateX(-50%);
+}
+
+.cal-menu a,
+.cal-menu button {
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: none;
+}
+
+.cal-menu a:hover,
+.cal-menu button:hover {
+  background: var(--surface-2);
+}
+
+.side hr {
+  width: 100%;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.link {
+  padding: 0;
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.link.danger {
+  align-self: center;
+  color: var(--danger);
+  font-size: 16px;
+}
+
+.replay {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.replay label {
+  font-weight: 700;
+}
+
+.replay input {
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.replay .note {
+  margin: 0;
+}
+
+.err {
+  margin: 0;
+  color: var(--danger-text);
+}
+
+.going-list {
+  margin: 0;
+  padding: 8px 16px 16px;
+  list-style: none;
+}
+
+.going-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.going-empty {
+  padding: 16px;
+  color: var(--text-2);
+  text-align: center;
+}
+
+/* Phones: one column; I'm going stays at the bottom, above the tab bar. */
+@media (max-width: 900px) {
+  .cols {
+    grid-template-columns: 1fr;
+    gap: 0;
   }
 
-  .back {
-    margin-left: 12px;
+  .side {
+    position: static;
+    order: 2;
+    margin-bottom: 20px;
   }
 
-  .main {
-    border-radius: 0;
-    border-left: 0;
-    border-right: 0;
+  .left {
+    display: contents;
   }
 
-  .body {
-    padding: 16px 16px 6px;
+  .media {
+    order: 0;
   }
 
+  .pill,
   h1 {
-    font-size: 21px;
+    order: 1;
   }
 
-  .join {
-    width: 100%;
-    justify-content: center;
-    margin-left: 0;
+  .hosted,
+  .box {
+    order: 3;
+  }
+
+  .pill {
+    justify-self: start;
+  }
+}
+
+@media (max-width: 600px) {
+  h1 {
+    font-size: 26px;
+  }
+
+  .host-bar {
+    flex-wrap: wrap;
+  }
+
+  .host-bar p {
+    flex: 1 1 100%;
+  }
+
+  .host-bar .btn {
+    flex: 1;
+  }
+
+  .side .rsvp:not(.going) {
+    position: fixed;
+    right: 16px;
+    bottom: calc(var(--tabbar-h) + 12px + env(safe-area-inset-bottom));
+    left: 16px;
+    z-index: 15;
+    width: auto;
+    box-shadow: 0 6px 18px rgb(0 0 0 / 20%);
+  }
+
+  .event {
+    padding-bottom: 110px;
   }
 }
 </style>

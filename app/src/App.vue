@@ -12,6 +12,8 @@ import SearchBox from './components/SearchBox.vue'
 import LevelUpToast from './components/LevelUpToast.vue'
 import Toast from './components/Toast.vue'
 import ConfirmHost from './components/ConfirmHost.vue'
+import MemberViewToggle from './components/MemberViewToggle.vue'
+import { canSeeAsMember } from './lib/preview.js'
 import { refreshStats } from './stores/me.js'
 import { openChat } from './stores/chatDock.js'
 import { messages, startPulse } from './stores/messages.js'
@@ -40,12 +42,12 @@ const building = computed(() => route.name === 'course' && !!route.query.edit)
 const phoneMenuOpen = ref(false)
 window.addEventListener('mbcom:phone-menu-state', (e) => (phoneMenuOpen.value = e.detail))
 const openPhoneMenu = () => window.dispatchEvent(new CustomEvent('mbcom:phone-menu'))
-// Pages without the left sidebar: profiles, your settings pages and Messages (its own chat list is the side column).
-const onProfile = computed(() => ['member', 'me', 'profile-edit', 'privacy', 'emails', 'messages'].includes(route.name))
+// Pages without the left sidebar: profiles, your settings pages, Messages (its own chat list is the side column), an event (its own two columns), Places and the Leaderboard.
+const onProfile = computed(() => ['member', 'me', 'profile-edit', 'privacy', 'emails', 'messages', 'event', 'places', 'leaderboard', 'levels'].includes(route.name))
 const inLesson = computed(() => inCourse.value && !!route.params.lessonId && !route.query.tab)
 // Single-column pages sit at the exact centre of the window, as on Facebook: the right side
 // reserves the same width as the left column. Grids and maps use the full width beside it.
-const centred = computed(() => ['feed', 'event', 'notifications', 'search'].includes(route.name))
+const centred = computed(() => ['feed', 'notifications', 'search'].includes(route.name))
 // Tabs follow the features switched on in settings (the lists update after a save).
 const shown = computed(() => tabs.filter((tab) => !tab.feature || feature(tab.feature)))
 const desktopTabs = computed(() => shown.value.filter((tab) => tab.name !== 'me' && !tab.mobileOnly))
@@ -133,7 +135,7 @@ const isActive = (tab) =>
 </script>
 
 <template>
-  <div class="shell" :class="{ immersive, 'in-course': inCourse, 'in-lesson': inLesson, building, 'on-profile': onProfile }">
+  <div class="shell" :class="{ immersive, 'in-course': inCourse, 'in-lesson': inLesson, building, 'on-profile': onProfile, 'no-tabbar': route.name === 'levels' }">
     <header class="topbar">
       <div class="topbar-inner">
         <div class="start">
@@ -182,7 +184,7 @@ const isActive = (tab) =>
 
     <main class="main" :class="{ flush: route.name === 'places', centred }">
       <RouterView v-slot="{ Component }">
-        <KeepAlive include="FeedView">
+        <KeepAlive :include="['FeedView', 'PlacesView']">
           <component :is="Component" />
         </KeepAlive>
       </RouterView>
@@ -208,6 +210,7 @@ const isActive = (tab) =>
 
     <PostDialog v-if="linked" :key="linked.id" :post="linked" :highlight="Number(route.query.comment) || 0" @close="closeLinked" />
     <ChatDock v-if="showDock" />
+    <MemberViewToggle v-else-if="canSeeAsMember" />
     <VideoDock v-if="video.media" />
     <LevelUpToast />
     <Toast />
@@ -594,6 +597,15 @@ const isActive = (tab) =>
     background: color-mix(in srgb, var(--surface) 92%, transparent);
     backdrop-filter: saturate(1.6) blur(14px);
     border-top: 1px solid var(--border);
+  }
+
+  /* Levels & points: its own page with a back row, no bottom bar. */
+  .no-tabbar .tabbar {
+    display: none;
+  }
+
+  .no-tabbar .main {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   .tab {

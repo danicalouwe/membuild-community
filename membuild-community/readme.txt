@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.11.1
+Stable tag: 1.12.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -261,6 +261,16 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.12.0 =
+* Events: a new event page with the time where it's held and in your own time, Add to calendar, and a full-page New event form. Events can be online, in person or both, held at one of your Places, and repeat every week, every 2 weeks or every month.
+* Places: one big map with the list in a box at the bottom. Members can show themselves on the map by city, faces in the same city group together, and a place's card opens right by its pin. Search finds cities, members and places, and works with the arrow keys.
+* Places: share "What's new" at a place (checked by an admin first), see "Coming up here" for events held there, set opening hours day by day, a phone number with its country code, and who can see a place (everyone or a membership). The map opens on the busiest part of your community.
+* See it as a member: admins can switch to a member's view, with any membership and level, from the button at the bottom right.
+* Leaderboard: This week, This month and All time, where you stand and how many points to pass the next person, your own row when you're further down, more members as you scroll, and Levels & points with the real point rules.
+* Pages show a soft grey outline of what's coming while they load, instead of "Loading…", and move in gently.
+* Courses: the owner bar is gone; Course settings and All lessons sit beside "Classroom".
+* Fixes: grey buttons have dark text everywhere, removing a place keeps its events, ties on the Leaderboard share a place, and many smaller fixes on phones.
 
 = 1.11.1 =
 * Reels: the video gets the whole width (no sidebar), Like, Comments and Share sit beside the video, round up and down arrows move between reels, and one "+ New reel" button sits at the top right.

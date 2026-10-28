@@ -10,6 +10,7 @@ import { canDock, openChat } from '../stores/chatDock.js'
 import { timeAgo } from '../lib/time.js'
 import Avatar from '../components/Avatar.vue'
 import Icon from '../components/Icon.vue'
+import PostSkeleton from '../components/PostSkeleton.vue'
 import PostCard from '../components/PostCard.vue'
 import Composer from '../components/Composer.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
@@ -280,6 +281,12 @@ const dailyCap = (n) => t.sprintf(/* translators: %d: how many times a day this 
                 </div>
               </template>
             </div>
+            <div v-else-if="!error" class="who who-sk" aria-hidden="true">
+              <div class="skeleton" style="width: 220px; height: 30px" />
+              <div class="skeleton" style="width: 120px; height: 14px; margin-top: 12px" />
+              <div class="skeleton" style="width: 320px; max-width: 100%; height: 14px; margin-top: 14px" />
+              <div class="who-sk-btns"><div class="skeleton" /><div class="skeleton" /></div>
+            </div>
           </div>
         </div>
       </section>
@@ -290,6 +297,17 @@ const dailyCap = (n) => t.sprintf(/* translators: %d: how many times a day this 
         <p>{{ t.__('You won’t see each other’s posts, comments or stories, and you can’t message each other. They aren’t told.', 'membuild-community') }}</p>
         <button class="btn btn-lg btn-ghost" @click="setBlocked(false)">{{ t.__('Unblock', 'membuild-community') }}</button>
       </section>
+
+      <!-- Loading: About and posts in grey. -->
+      <div v-else-if="!member && !error" class="cols" aria-hidden="true">
+        <aside class="left">
+          <section class="card box">
+            <div class="skeleton" style="width: 40%; height: 18px" />
+            <div v-for="n in 3" :key="n" class="skeleton" style="height: 14px; margin-top: 16px" :style="{ width: `${85 - n * 12}%` }" />
+          </section>
+        </aside>
+        <div class="right"><PostSkeleton v-for="n in 2" :key="n" /></div>
+      </div>
 
       <div v-else-if="member" class="cols">
         <aside class="left">
@@ -357,6 +375,7 @@ const dailyCap = (n) => t.sprintf(/* translators: %d: how many times a day this 
 
           <section class="card posts-head"><h2>{{ t.__('Posts', 'membuild-community') }}</h2></section>
           <PostCard v-for="p in list.items" :key="p.id" :post="p" />
+          <template v-if="!list.loaded"><PostSkeleton v-for="n in 2" :key="`sk${n}`" /></template>
 
           <section v-if="list.loaded && !list.items.length" class="card none">
             <span class="none-icon"><Icon name="pencil" :size="26" /></span>
@@ -371,8 +390,9 @@ const dailyCap = (n) => t.sprintf(/* translators: %d: how many times a day this 
               <button v-if="member.can_message" class="btn btn-lg btn-ghost" :disabled="messaging" @click="message">{{ t.__('Send a message', 'membuild-community') }}</button>
             </template>
           </section>
+          <PostSkeleton v-if="list.loading && list.loaded" />
           <button v-if="list.hasMore && list.loaded" class="btn btn-lg btn-ghost more" :disabled="list.loading" @click="loadMore(list)">
-            {{ list.loading ? t.__('Loading…', 'membuild-community') : t.__('See more posts', 'membuild-community') }}
+            {{ t.__('See more posts', 'membuild-community') }}
           </button>
         </div>
       </div>
@@ -1021,5 +1041,17 @@ h1 {
     grid-template-columns: 1fr;
     margin-top: 10px;
   }
+}
+
+.who-sk-btns {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.who-sk-btns .skeleton {
+  width: 140px;
+  height: 52px;
+  border-radius: 999px;
 }
 </style>

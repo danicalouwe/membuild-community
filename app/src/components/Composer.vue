@@ -1,6 +1,6 @@
 <script setup>
-import { defineAsyncComponent, onBeforeUnmount, onMounted, ref, shallowRef } from 'vue'
-import { useRouter } from 'vue-router'
+import { defineAsyncComponent, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { cfg, feature } from '../config.js'
 import { pendingReelFile } from '../lib/pending.js'
 import Avatar from './Avatar.vue'
@@ -11,6 +11,7 @@ const CreatePostDialog = defineAsyncComponent(() => import('./CreatePostDialog.v
 // except the camera, which goes straight to making a reel.
 const emit = defineEmits(['posted'])
 const router = useRouter()
+const route = useRoute()
 
 const dialog = shallowRef(null) // null | { start, files, draft }
 const photoInput = ref(null)
@@ -19,6 +20,16 @@ const firstName = cfg.user.name.split(' ')[0]
 const prompt = t.sprintf(/* translators: %s: the person's first name */ t.__("What's on your mind, %s?", 'membuild-community'), firstName)
 
 const open = (opts = {}) => (dialog.value = { start: '', files: [], draft: null, ...opts })
+// "Write a post" from elsewhere (the Leaderboard's empty week): Home with ?write=1 opens this.
+watch(
+  () => route.query.write,
+  (w) => {
+    if (!w) return
+    open()
+    router.replace({ query: { ...route.query, write: undefined } })
+  },
+  { immediate: true },
+)
 
 // File pickers must open directly from the click, so the bar owns its own inputs.
 function pickedPhotos(e) {

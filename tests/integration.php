@@ -347,9 +347,12 @@ set_current_screen( 'dashboard' );
 $secret = 'Top secret message ' . wp_generate_password( 6, false );
 mbcom_call( $ana, 'POST', "/messages/threads/{$tid}/messages", array( 'content' => $secret ) );
 wp_set_current_user( $admin );
+$_GET['s']     = 'Ana'; // test members pile up across runs: find her, not page one
+$_REQUEST['s'] = 'Ana';
 ob_start();
 \MemBuild\Community\Admin::page_table( 'members' );
 $html = ob_get_clean();
+unset( $_GET['s'], $_REQUEST['s'] );
 mbcom_check( 'the Members screen lists members with message counts', false !== strpos( $html, 'Ana' ) && (bool) preg_match( '/in \d+ chats?/', $html ) );
 mbcom_check( '…but never message text', false === strpos( $html, $secret ) );
 foreach ( array( 'posts', 'comments', 'files', 'courses' ) as $screen ) {
@@ -967,7 +970,7 @@ $geo_stand  = function ( $pre, $args, $url ) use ( &$geo_calls ) {
 	return array( 'response' => array( 'code' => 200 ), 'body' => wp_json_encode( array( array( 'display_name' => '1 Lake St, Seattle', 'lat' => '47.61', 'lon' => '-122.33' ) ) ), 'headers' => array() );
 };
 add_filter( 'pre_http_request', $geo_stand, 10, 3 );
-delete_transient( 'mbcom_geo_' . md5( '1 lake st, seattle' ) );
+delete_transient( 'mbcom_geo2_' . md5( '1 lake st, seattle' ) );
 list( $s, $geo ) = mbcom_call( $guide, 'GET', '/places/geocode', array( 'q' => '1 Lake St, Seattle' ) );
 mbcom_call( $guide, 'GET', '/places/geocode', array( 'q' => '1 Lake St, Seattle' ) );
 mbcom_check( 'an address is looked up once, then remembered', 200 === $s && 47.61 === $geo['items'][0]['lat'] && 1 === count( $geo_calls ) );
@@ -1609,6 +1612,220 @@ mbcom_call( $admin, 'PUT', '/settings', array( 'courses' => array( 'helpful' => 
 
 mbcom_call( $admin, 'DELETE', "/courses/{$dcid}" );
 mbcom_check( 'deleting a course removes its start dates', ! $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE course_id = %d', $starts, $dcid ) ) );
+
+mbcom_section( 'Events and Places, step 2' );
+list( $s, $ev ) = mbcom_call( $admin, 'POST', '/events', array( 'title' => 'T in person', 'at' => gmdate( 'c', strtotime( '+10 days' ) ), 'where' => 'person', 'venue' => 'Hall', 'address' => 'Main St, Austin, TX', 'tz' => 'America/Chicago', 'repeat' => 'week' ) );
+global $wpdb;
+$series = (int) ( $ev['event']['series'] ?? 0 );
+mbcom_check( 'an in-person event keeps its place and time zone', 201 === $s && 'Hall' === ( $ev['event']['place']['name'] ?? '' ) && 'America/Chicago' === ( $ev['event']['tz'] ?? '' ), wp_json_encode( $ev['event'] ?? $ev ) );
+mbcom_check( '…every week makes 13 (about three months)', 13 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE event_series = %d', $wpdb->prefix . 'mbcom_posts', $series ) ) );
+mbcom_call( $admin, 'POST', "/events/{$ev['id']}/cancel", array( 'which' => 'all' ) );
+mbcom_check( '…and Cancel all cancels them all', 13 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE event_series = %d AND event_status = 'cancelled'", $wpdb->prefix . 'mbcom_posts', $series ) ) );
+list( $s ) = mbcom_call( $admin, 'POST', '/events', array( 'title' => 'x', 'at' => gmdate( 'c', strtotime( '+3 days' ) ), 'where' => 'person' ) );
+mbcom_check( 'in person needs a place name', 400 === $s );
+mbcom_call( $admin, 'PUT', '/settings', array( 'features' => array( 'places' => true ) ) );
+$wpdb->insert( $wpdb->prefix . 'mbcom_places', array( 'name' => 'T place', 'category' => 'meetup', 'address' => 'A, B', 'lat' => 1, 'lng' => 1, 'status' => 'published', 'created_by' => $admin, 'created_at' => current_time( 'mysql', true ), 'updated_at' => current_time( 'mysql', true ) ) );
+$tp = (int) $wpdb->insert_id;
+list( $s, $n ) = mbcom_call( $member, 'POST', "/places/{$tp}/news", array( 'text' => 'Half price', 'ends_on' => gmdate( 'Y-m-d', strtotime( '+5 days' ) ) ) );
+list( , $seen ) = mbcom_call( $ana, 'GET', "/places/{$tp}" );
+mbcom_check( 'a member’s What’s new waits for a check (others don’t see it)', 'pending' === ( $n['status'] ?? '' ) && ! count( $seen['news'] ?? array() ), wp_json_encode( $n ) );
+mbcom_call( $admin, 'PUT', "/places/news/{$n['id']}" );
+list( , $seen ) = mbcom_call( $ana, 'GET', "/places/{$tp}" );
+mbcom_check( '…and shows once approved', 1 === count( $seen['news'] ?? array() ) );
+list( $s ) = mbcom_call( $ana, 'GET', '/places/news' );
+mbcom_check( 'members can’t list What’s new waiting for a check', 403 === $s );
+list( , $me ) = mbcom_call( $member, 'PUT', '/places/me', array( 'lat' => 30.267153, 'lng' => -97.743057, 'city' => 'Austin, TX' ) );
+mbcom_check( 'Show me on the map keeps only the city, rounded to about a kilometre', 30.27 === (float) ( $me['me']['lat'] ?? 0 ) && 'Austin, TX' === ( $me['me']['city'] ?? '' ) );
+mbcom_call( $member, 'DELETE', '/places/me' );
+list( , $all ) = mbcom_call( $ana, 'GET', '/places/members' );
+mbcom_check( '…and Take me off the map removes it', ! in_array( $member, array_map( fn( $m ) => $m['user']['id'], $all['items'] ?? array() ), true ) );
+$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE event_series = %d', $wpdb->prefix . 'mbcom_posts', $series ) );
+$wpdb->delete( $wpdb->prefix . 'mbcom_places', array( 'id' => $tp ) );
+$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE place_id = %d', $wpdb->prefix . 'mbcom_place_news', $tp ) );
+mbcom_call( $admin, 'PUT', '/settings', array( 'features' => array( 'places' => false ) ) );
+
+mbcom_section( 'Leaderboard' );
+$lb_a = mbcom_user( 'mbct_lb_ann' );
+$lb_b = mbcom_user( 'mbct_lb_bob' );
+$stats = $wpdb->prefix . 'mbcom_member_stats';
+foreach ( array( $lb_a => 9000, $lb_b => 8990 ) as $u => $pts ) {
+	$wpdb->replace( $stats, array( 'user_id' => $u, 'points' => $pts, 'level' => 8 ) );
+}
+delete_transient( 'mbcom_level_distribution' );
+list( $s, $lb ) = mbcom_call( $lb_b, 'GET', '/leaderboard', array( 'period' => 'all' ) );
+$top = array_slice( wp_list_pluck( wp_list_pluck( $lb['items'], 'user' ), 'id' ), 0, 2 );
+mbcom_check( 'the all-time board lists the most points first', 200 === $s && array( $lb_a, $lb_b ) === $top, wp_json_encode( $top ) );
+mbcom_check( '…says where you stand and who you’d pass next, by how much', 2 === $lb['me']['rank'] && 11 === ( $lb['me']['ahead']['needed'] ?? 0 ) && 'Lb_ann' === ( $lb['me']['ahead']['name'] ?? '' ), wp_json_encode( $lb['me'] ) );
+list( , $lb ) = mbcom_call( $lb_a, 'GET', '/leaderboard', array( 'period' => 'all' ) );
+mbcom_check( '…and nobody to pass when you’re first', 1 === $lb['me']['rank'] && null === $lb['me']['ahead'] );
+mbcom_check( '…with your level progress and the real point rules', 8 === $lb['progress']['level'] && 9 === $lb['progress']['next_level'] && 33015 - 9000 === $lb['progress']['to_next'] && in_array( 'post', wp_list_pluck( $lb['rules'], 'reason' ), true ), wp_json_encode( $lb['progress'] ) );
+$wpdb->replace( $stats, array( 'user_id' => $lb_b, 'points' => 9000, 'level' => 8 ) );
+delete_transient( 'mbcom_level_distribution' );
+list( , $lb ) = mbcom_call( $lb_b, 'GET', '/leaderboard', array( 'period' => 'all' ) );
+$tied = array_values( array_filter( $lb['items'], fn( $i ) => in_array( $i['user']['id'], array( $lb_a, $lb_b ), true ) ) );
+mbcom_check( 'members with the same points share a place, in the list and in “You’re #”', 1 === $tied[0]['rank'] && 1 === $tied[1]['rank'] && 1 === $lb['me']['rank'] && null === $lb['me']['ahead'], wp_json_encode( wp_list_pluck( $tied, 'rank' ) ) );
+mbcom_call( $lb_b, 'PUT', "/members/{$lb_a}/block" );
+list( , $lb ) = mbcom_call( $lb_b, 'GET', '/leaderboard', array( 'period' => 'all' ) );
+mbcom_check( 'someone you blocked isn’t on your leaderboard', ! in_array( $lb_a, wp_list_pluck( wp_list_pluck( $lb['items'], 'user' ), 'id' ), true ) );
+mbcom_call( $lb_b, 'DELETE', "/members/{$lb_a}/block" );
+set_transient( 'mbcom_member_total', 1, HOUR_IN_SECONDS ); // a remembered count that's out of date
+delete_transient( 'mbcom_level_distribution' );
+list( , $lb ) = mbcom_call( $lb_b, 'GET', '/leaderboard', array( 'period' => 'all' ) );
+mbcom_check( '…and a level’s share of members never goes over 100%', max( wp_list_pluck( $lb['levels'], 'percent' ) ) <= 100 );
+$lb_new = mbcom_user( 'mbct_lb_new_' . wp_generate_password( 6, false, false ) );
+mbcom_check( '…a new member refreshes the member count', false === get_transient( 'mbcom_member_total' ) );
+require_once ABSPATH . 'wp-admin/includes/user.php';
+wp_delete_user( $lb_new );
+$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE user_id IN (%d, %d)', $stats, $lb_a, $lb_b ) );
+delete_transient( 'mbcom_level_distribution' );
+
+mbcom_section( 'Places and Events together' );
+mbcom_call( $admin, 'PUT', '/settings', array( 'features' => array( 'places' => true ) ) );
+$pa  = mbcom_user( 'mbct_pe_ann' );
+$pb  = mbcom_user( 'mbct_pe_bob' );
+$pt  = $wpdb->prefix . 'mbcom_posts';
+$at  = fn( $days ) => gmdate( 'c', strtotime( "+{$days} days" ) );
+// A member suggests a place: it waits, and can't hold an event until it's approved.
+list( $s, $sug ) = mbcom_call( $pa, 'POST', '/places', array( 'name' => 'Corner Studio', 'category' => 'venue', 'address' => '5th St, Austin, TX', 'lat' => 30.27, 'lng' => -97.74 ) );
+mbcom_check( 'a suggested place waits for a check', 201 === $s && 'pending' === $sug['status'], (string) $s );
+list( , $staff ) = mbcom_call( $admin, 'GET', '/places' );
+mbcom_check( '…and staff see it in their list, marked pending', 'pending' === ( array_column( $staff['items'], 'status', 'id' )[ $sug['id'] ] ?? '' ) );
+list( $s ) = mbcom_call( $admin, 'POST', '/events', array( 'title' => 'Too soon', 'at' => $at( 5 ), 'where' => 'person', 'place_id' => $sug['id'] ) );
+mbcom_check( '…an event can’t be held at a place still waiting (no place, no name: refused)', 400 === $s, (string) $s );
+list( $s ) = mbcom_call( $pb, 'DELETE', "/places/{$sug['id']}" );
+mbcom_check( '…another member can’t remove someone’s suggestion', 404 === $s || 403 === $s, (string) $s );
+list( , $ok ) = mbcom_call( $admin, 'PUT', "/places/{$sug['id']}", array( 'status' => 'published' ) );
+mbcom_check( 'once approved it’s published', 'published' === $ok['status'] );
+// An event at the place copies its name, address and pin, and the place lists it.
+list( $s, $ev ) = mbcom_call( $admin, 'POST', '/events', array( 'title' => 'Studio night', 'at' => $at( 4 ), 'where' => 'person', 'place_id' => $sug['id'], 'tz' => 'America/Chicago' ) );
+$e1 = (int) $ev['id'];
+mbcom_check( 'an event at one of your Places carries its name, address and link', 201 === $s && $sug['id'] === ( $ev['event']['place']['id'] ?? 0 ) && 'Corner Studio' === $ev['event']['place']['name'] && '5th St, Austin, TX' === $ev['event']['place']['address'], wp_json_encode( $ev['event']['place'] ?? $s ) );
+list( , $pl ) = mbcom_call( $pb, 'GET', "/places/{$sug['id']}" );
+mbcom_check( '…and the place shows it under Coming up here', array( $e1 ) === wp_list_pluck( $pl['events'] ?? array(), 'id' ), wp_json_encode( $pl['events'] ?? null ) );
+// A group-only event at the place stays hidden from everyone outside the group.
+$pe_club = mbcom_call( $admin, 'POST', '/groups', array( 'name' => 'Studio club' ) )[1];
+list( , $gev ) = mbcom_call( $admin, 'POST', '/events', array( 'title' => 'Club studio', 'at' => $at( 6 ), 'where' => 'person', 'place_id' => $sug['id'], 'group' => $pe_club['id'] ) );
+$fresh->setValue( null, array() );
+list( , $pl ) = mbcom_call( $pb, 'GET', "/places/{$sug['id']}" );
+mbcom_check( 'a group-only event doesn’t show on the place for people outside the group', ! in_array( (int) $gev['id'], wp_list_pluck( $pl['events'] ?? array(), 'id' ), true ) );
+list( , $pl ) = mbcom_call( $admin, 'GET', "/places/{$sug['id']}" );
+mbcom_check( '…but does for staff', in_array( (int) $gev['id'], wp_list_pluck( $pl['events'] ?? array(), 'id' ), true ) );
+// Cancelled and past events drop off; a weekly series shows only the next three.
+mbcom_call( $admin, 'POST', "/events/{$gev['id']}/cancel" );
+list( , $wk ) = mbcom_call( $admin, 'POST', '/events', array( 'title' => 'Weekly studio', 'at' => $at( 1 ), 'where' => 'person', 'place_id' => $sug['id'], 'repeat' => 'week' ) );
+$wser = (int) ( $wk['event']['series'] ?? 0 );
+list( , $pl ) = mbcom_call( $admin, 'GET', "/places/{$sug['id']}" );
+$ids = wp_list_pluck( $pl['events'] ?? array(), 'id' );
+mbcom_check( 'Coming up here lists the next three, soonest first, without cancelled ones', 3 === count( $ids ) && (int) $wk['id'] === $ids[0] && ! in_array( (int) $gev['id'], $ids, true ), wp_json_encode( $ids ) );
+$wpdb->update( $pt, array( 'event_at' => gmdate( 'Y-m-d H:i:s', strtotime( '-3 days' ) ) ), array( 'id' => (int) $wk['id'] ) );
+list( , $pl ) = mbcom_call( $admin, 'GET', "/places/{$sug['id']}" );
+mbcom_check( '…and a past one drops off', ! in_array( (int) $wk['id'], wp_list_pluck( $pl['events'] ?? array(), 'id' ), true ) );
+// Changing the place changes its events; removing it leaves the events standing.
+mbcom_call( $admin, 'PUT', "/places/{$sug['id']}", array( 'name' => 'Corner Studio B', 'address' => '6th St, Austin, TX', 'lat' => 30.26, 'lng' => -97.75 ) );
+list( , $after ) = mbcom_call( $pb, 'GET', "/posts/{$e1}" );
+mbcom_check( 'renaming or moving a place updates the events held there', 'Corner Studio B' === ( $after['event']['place']['name'] ?? '' ) && '6th St, Austin, TX' === $after['event']['place']['address'], wp_json_encode( $after['event']['place'] ?? null ) );
+list( , $n ) = mbcom_call( $pa, 'POST', "/places/{$sug['id']}/news", array( 'text' => 'Open mic Friday', 'ends_on' => gmdate( 'Y-m-d', strtotime( '+3 days' ) ) ) );
+list( , $mine ) = mbcom_call( $pa, 'GET', "/places/{$sug['id']}" );
+list( , $other ) = mbcom_call( $pb, 'GET', "/places/{$sug['id']}" );
+mbcom_check( 'your own What’s new shows to you while it waits, to nobody else', 1 === count( $mine['news'] ?? array() ) && 'pending' === $mine['news'][0]['status'] && ! count( $other['news'] ?? array() ) );
+$wpdb->update( $wpdb->prefix . 'mbcom_place_news', array( 'status' => 'published', 'ends_on' => gmdate( 'Y-m-d', strtotime( '-1 day' ) ) ), array( 'id' => $n['id'] ) );
+list( , $other ) = mbcom_call( $pb, 'GET', "/places/{$sug['id']}" );
+mbcom_check( 'What’s new disappears after the day it ends', ! count( $other['news'] ?? array() ) );
+list( $s ) = mbcom_call( $admin, 'DELETE', "/places/{$sug['id']}" );
+list( , $after ) = mbcom_call( $pb, 'GET', "/posts/{$e1}" );
+mbcom_check( 'removing a place keeps its events, with the name and address, no longer linked', 200 === $s && null === ( $after['event']['place']['id'] ?? null ) && 'Corner Studio B' === ( $after['event']['place']['name'] ?? '' ), wp_json_encode( $after['event']['place'] ?? null ) );
+mbcom_check( '…and its What’s new goes with it', 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE place_id = %d', $wpdb->prefix . 'mbcom_place_news', $sug['id'] ) ) );
+// Time zone: the first event teaches the place; owners can change it, moving events still to come.
+list( , $zp ) = mbcom_call( $admin, 'POST', '/places', array( 'name' => 'Zone Hall', 'category' => 'venue', 'address' => 'Elm St, Denver, CO', 'lat' => 39.7, 'lng' => -104.9 ) );
+mbcom_check( 'a new place has no time zone yet', null === $zp['tz'] );
+list( , $ze ) = mbcom_call( $admin, 'POST', '/events', array( 'title' => 'Zone talk', 'at' => $at( 8 ), 'where' => 'person', 'place_id' => $zp['id'], 'tz' => 'America/Denver' ) );
+list( , $zp2 ) = mbcom_call( $pb, 'GET', "/places/{$zp['id']}" );
+mbcom_check( '…the first event held there gives it one', 'America/Denver' === $zp2['tz'], wp_json_encode( $zp2['tz'] ) );
+mbcom_call( $admin, 'POST', '/events', array( 'title' => 'Zone later', 'at' => $at( 9 ), 'where' => 'person', 'place_id' => $zp['id'], 'tz' => 'Asia/Manila' ) );
+list( , $zp2 ) = mbcom_call( $pb, 'GET', "/places/{$zp['id']}" );
+mbcom_check( '…and a later event doesn’t overwrite it', 'America/Denver' === $zp2['tz'] );
+list( , $zold ) = mbcom_call( $admin, 'POST', '/events', array( 'title' => 'Zone past', 'at' => $at( 7 ), 'where' => 'person', 'place_id' => $zp['id'], 'tz' => 'America/Denver' ) );
+$wpdb->update( $pt, array( 'event_at' => gmdate( 'Y-m-d H:i:s', strtotime( '-2 days' ) ) ), array( 'id' => (int) $zold['id'] ) );
+list( $s ) = mbcom_call( $pb, 'PUT', "/places/{$zp['id']}", array( 'tz' => 'America/Chicago' ) );
+mbcom_check( 'members can’t change a place’s time zone', 403 === $s, (string) $s );
+mbcom_call( $admin, 'PUT', "/places/{$zp['id']}", array( 'tz' => 'America/Chicago' ) );
+$ztz = fn( $id ) => $wpdb->get_var( $wpdb->prepare( 'SELECT event_tz FROM %i WHERE id = %d', $pt, $id ) );
+mbcom_check( 'an owner changing it moves the events still to come, not past ones', 'America/Chicago' === $ztz( (int) $ze['id'] ) && 'America/Denver' === $ztz( (int) $zold['id'] ) );
+mbcom_call( $admin, 'PUT', "/places/{$zp['id']}", array( 'tz' => 'Mars/Olympus' ) );
+list( , $zp2 ) = mbcom_call( $pb, 'GET', "/places/{$zp['id']}" );
+mbcom_check( '…and a made-up zone is ignored (it keeps its own)', 'America/Chicago' === $zp2['tz'] );
+$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE event_place_id = %d', $pt, $zp['id'] ) );
+mbcom_call( $admin, 'DELETE', "/places/{$zp['id']}" );
+// Who can see a place: everyone, or one membership.
+$vip = mbcom_call( $admin, 'POST', '/groups', array( 'name' => 'Place VIPs' ) )[1];
+list( , $vp ) = mbcom_call( $admin, 'POST', '/places', array( 'name' => 'VIP Lounge', 'category' => 'venue', 'address' => 'Oak St, Austin, TX', 'lat' => 30.3, 'lng' => -97.7, 'access_group' => $vip['id'] ) );
+$fresh->setValue( null, array() );
+list( , $plist ) = mbcom_call( $pb, 'GET', '/places' );
+list( $s1 ) = mbcom_call( $pb, 'GET', "/places/{$vp['id']}" );
+list( $s2 ) = mbcom_call( $pb, 'PUT', "/places/{$vp['id']}/going" );
+list( , $found ) = mbcom_call( $pb, 'GET', '/search', array( 'q' => 'VIP Lounge', 'type' => 'places' ) );
+mbcom_check( 'a members-only place is hidden from everyone else: list, page, I go here and search', ! in_array( (int) $vp['id'], wp_list_pluck( $plist['items'], 'id' ), true ) && 404 === $s1 && 404 === $s2 && ! in_array( (int) $vp['id'], wp_list_pluck( $found['groups']['places']['items'] ?? $found['items'] ?? array(), 'id' ), true ), "$s1 $s2" );
+mbcom_check( '…staff see it, with a lock tag naming the membership', 'Place VIPs' === ( $vp['access']['name'] ?? '' ) );
+list( , $vev ) = mbcom_call( $admin, 'POST', '/events', array( 'title' => 'Open night at the lounge', 'at' => $at( 5 ), 'where' => 'person', 'place_id' => $vp['id'] ) );
+$fresh->setValue( null, array() );
+list( , $seen_ev ) = mbcom_call( $pb, 'GET', "/posts/{$vev['id']}" );
+mbcom_check( '…an event for everyone held there shows the name and address, without a link to the place', 'VIP Lounge' === ( $seen_ev['event']['place']['name'] ?? '' ) && null === $seen_ev['event']['place']['id'] );
+mbcom_call( $admin, 'POST', "/groups/{$vip['id']}/members", array( 'user_ids' => array( $pb ) ) );
+$fresh->setValue( null, array() );
+list( $s1, $vin ) = mbcom_call( $pb, 'GET', "/places/{$vp['id']}" );
+mbcom_check( '…members with the membership see it, with no lock tag', 200 === $s1 && null === $vin['access'], (string) $s1 );
+list( $s ) = mbcom_call( $pb, 'PUT', "/places/{$vp['id']}", array( 'access_group' => 0 ) );
+mbcom_check( '…and only staff can change who sees it', 403 === $s, (string) $s );
+// The phone's country.
+list( , $hp ) = mbcom_call( $admin, 'PUT', "/places/{$vp['id']}", array( 'phone' => '032 412 5678', 'phone_country' => 'ph' ) );
+mbcom_check( 'a place’s phone keeps the number as typed and its country', '032 412 5678' === $hp['phone'] && 'PH' === $hp['phone_country'] );
+list( , $hp ) = mbcom_call( $admin, 'PUT', "/places/{$vp['id']}", array( 'phone_country' => 'Philippines' ) );
+mbcom_check( '…and anything but a two-letter country is dropped', null === $hp['phone_country'] );
+// Hours by day.
+list( , $hp ) = mbcom_call( $admin, 'PUT', "/places/{$vp['id']}", array( 'hours' => 'Thursdays 9–11am', 'week' => array( 'thu' => array( array( '09:00', '11:00' ) ), 'sat' => array( array( '10:00', '12:00' ), array( '13:00', '17:00' ) ), 'xyz' => array( array( '01:00', '02:00' ) ), 'mon' => array( array( '18:00', '09:00' ), array( '7am', '9am' ) ) ) ) );
+mbcom_check( 'hours by day keep good times (two on one day), drop bad ones, and replace the typed hours', array( 'thu' => array( array( '09:00', '11:00' ) ), 'sat' => array( array( '10:00', '12:00' ), array( '13:00', '17:00' ) ) ) === $hp['week'] && '' === $hp['hours'], wp_json_encode( array( $hp['week'], $hp['hours'] ) ) );
+list( , $hp ) = mbcom_call( $admin, 'PUT', "/places/{$vp['id']}", array( 'week' => array() ) );
+mbcom_check( '…and no days means no set hours', null === $hp['week'] );
+$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE id = %d', $pt, $vev['id'] ) );
+mbcom_call( $admin, 'DELETE', "/places/{$vp['id']}" );
+mbcom_call( $admin, 'DELETE', "/groups/{$vip['id']}" );
+// Muted members can't suggest; blocked members aren't on your map.
+mbcom_call( $admin, 'POST', "/members/{$pb}/restriction", array( 'status' => 'muted', 'days' => 1 ) );
+list( $s1 ) = mbcom_call( $pb, 'POST', '/places', array( 'name' => 'Muted spot', 'category' => 'venue', 'address' => 'X, Y', 'lat' => 1, 'lng' => 1 ) );
+list( , $cafe_list ) = mbcom_call( $admin, 'GET', '/places' );
+$any = (int) ( $cafe_list['items'][0]['id'] ?? 0 );
+list( $s2 ) = $any ? mbcom_call( $pb, 'POST', "/places/{$any}/news", array( 'text' => 'x', 'ends_on' => gmdate( 'Y-m-d', strtotime( '+2 days' ) ) ) ) : array( 403 );
+mbcom_check( 'muted members can’t suggest a place or a What’s new', 403 === $s1 && 403 === $s2, "$s1 $s2" );
+mbcom_call( $admin, 'POST', "/members/{$pb}/restriction", array( 'status' => 'none' ) );
+mbcom_call( $pb, 'PUT', '/places/me', array( 'lat' => 30.2, 'lng' => -97.7, 'city' => 'Austin, TX' ) );
+mbcom_call( $pa, 'PUT', "/members/{$pb}/block" );
+list( , $map ) = mbcom_call( $pa, 'GET', '/places/members' );
+mbcom_check( 'someone you blocked isn’t on your map', ! in_array( $pb, array_map( fn( $m ) => $m['user']['id'], $map['items'] ?? array() ), true ) );
+mbcom_call( $pa, 'DELETE', "/members/{$pb}/block" );
+mbcom_call( $pb, 'DELETE', '/places/me' );
+$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE id IN (%d, %d) OR event_series = %d', $pt, $e1, (int) $gev['id'], $wser ) );
+$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE post_id IN (%d, %d) OR type LIKE 'event%%'", $wpdb->prefix . 'mbcom_notifications', $e1, (int) $gev['id'] ) );
+mbcom_call( $admin, 'PUT', '/settings', array( 'features' => array( 'places' => false ) ) );
+
+mbcom_section( 'See it as a member' );
+$_COOKIE['mbcom_as_member'] = '1';
+wp_set_current_user( $admin );
+mbcom_check( 'an admin seeing it as a member isn’t an admin or staff', ! \MemBuild\Community\Helpers::can_manage() && ! \MemBuild\Community\Settings::is_staff( $admin ) && \MemBuild\Community\Helpers::as_member() );
+list( $s ) = mbcom_call( $admin, 'GET', '/settings' );
+mbcom_check( '…so the owner-only settings are closed', 403 === $s || 401 === $s, (string) $s );
+wp_set_current_user( $member );
+mbcom_check( '…and the same cookie does nothing for a member', ! \MemBuild\Community\Helpers::as_member() );
+$_COOKIE['mbcom_as_member'] = 'm.1';
+wp_set_current_user( $admin );
+$lvl_course = array( 'id' => 0, 'access' => 'level', 'unlock_level' => 3 );
+mbcom_check( 'seeing it as a new member (level 1): a level 3 course is locked', 'level' === ( \MemBuild\Community\Access::lock( $lvl_course )['reason'] ?? '' ) );
+$_COOKIE['mbcom_as_member'] = 'm.3';
+mbcom_check( '…and at level 3 it opens', null === \MemBuild\Community\Access::lock( $lvl_course ) );
+$_COOKIE['mbcom_as_member'] = 'mbad';
+mbcom_check( '…a broken choice is ignored (owner view)', ! \MemBuild\Community\Helpers::as_member() );
+unset( $_COOKIE['mbcom_as_member'] );
+wp_set_current_user( $admin );
+mbcom_check( 'back to your view: an admin again', \MemBuild\Community\Helpers::can_manage() && \MemBuild\Community\Settings::is_staff( $admin ) );
 
 /* ---------------------------------------------------------------- */
 echo "\n{$GLOBALS['mbcom_passed']} passed, {$GLOBALS['mbcom_failed']} failed\n";

@@ -202,6 +202,7 @@ video {
 
 .btn-ghost {
   background: var(--surface-2);
+  color: var(--text); /* dark words, also when the button is a link */
 }
 
 /* The big button (design system rule: 52px for every action owners and members press). */
@@ -233,6 +234,66 @@ video {
 @keyframes shimmer {
   to {
     background-position: -200% 0;
+  }
+}
+
+/* Phones: an admin's “See it as a member” button moves up over a page's own action bar
+   (New event's Publish bar), so it never covers Publish or Cancel. */
+@media (max-width: 767px) {
+  body:has(.ef .bar) .mvt-wrap:not(.docked) {
+    bottom: calc(var(--tabbar-h) + 100px + env(safe-area-inset-bottom));
+  }
+}
+
+/* Motion, shared so every page moves the same way: quick, small and calm.
+   page-in: a page or column fades in (opacity only, so fixed bars stay put).
+   rise-in: cards come up 8px and fade in, one after another (--i is the card's place). */
+.page-in {
+  animation: page-in 0.22s ease-out both;
+}
+
+.rise-in {
+  animation: rise-in 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(min(var(--i, 0), 8) * 35ms);
+}
+
+/* Cards you can click lift a little under the mouse and press in when tapped. */
+.lift {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+@media (hover: hover) {
+  .lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgb(0 0 0 / 8%);
+  }
+}
+
+.lift:active {
+  transform: scale(0.985);
+}
+
+/* A button that just changed (I go here → You go here): a small pop. */
+.pop-once {
+  animation: pop-once 0.28s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes pop-once {
+  40% {
+    transform: scale(1.06);
   }
 }
 

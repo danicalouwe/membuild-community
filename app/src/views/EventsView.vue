@@ -2,23 +2,40 @@
 import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { cfg } from '../config.js'
 import { eventList, loadMore, refresh } from '../stores/feed.js'
-import EventCard from '../components/EventCard.vue'
+import EventRow from '../components/EventRow.vue'
 import Icon from '../components/Icon.vue'
-import { stateOf, zoneName } from '../lib/events.js'
+import { monthOf, stateOf } from '../lib/events.js'
+import { useRouter } from 'vue-router'
 import { t } from '../lib/i18n.js'
-const EventDialog = defineAsyncComponent(() => import('../components/EventDialog.vue'))
+const EventForm = defineAsyncComponent(() => import('../components/EventForm.vue'))
 
-// The calendar: what's coming up, and what already happened (with replays).
+// The calendar, as a list grouped by month: what's coming up (soonest first), and what
+// already happened (newest first, with replays). Owners also see how many are going.
 const when = ref('upcoming')
 const list = computed(() => eventList(when.value))
 watch(list, (l) => (l.loaded ? refresh(l) : loadMore(l)), { immediate: true })
 
+const owner = !!cfg.community.isStaff
+const router = useRouter()
 const live = computed(() => list.value.items.filter((p) => stateOf(p.event) === 'live'))
-const rest = computed(() => list.value.items.filter((p) => stateOf(p.event) !== 'live'))
+// Months in order, each with its events: [{ month, items }].
+const months = computed(() => {
+  const out = []
+  for (const p of list.value.items) {
+    if (stateOf(p.event) === 'live') continue
+    const m = monthOf(p.event)
+    if (out.at(-1)?.month !== m) out.push({ month: m, items: [] })
+    out.at(-1).items.push(p)
+  }
+  return out
+})
+// "+ Add the replay" on a past event: its page asks for the link.
+const addReplay = (p) => router.push({ name: 'event', params: { id: p.id }, query: { replay: 1 } })
 const creating = ref(false)
 function created(post) {
-  // Straight into the list, soonest first.
   const l = eventList('upcoming')
+  // A repeating event made several: load the list again. One: straight in, soonest first.
+  if (post.event?.series) return refresh(l)
   l.items = [...l.items, post].sort((a, b) => new Date(a.event.at) - new Date(b.event.at))
 }
 
@@ -32,30 +49,29 @@ onBeforeUnmount(() => observer?.disconnect())
 </script>
 
 <template>
-  <div class="events">
+  <EventForm v-if="creating" @close="creating = false" @saved="created" />
+  <div v-else class="events page-in">
     <header class="head">
       <h1>{{ t.__('Events', 'membuild-community') }}</h1>
-      <span class="zone">{{ t.sprintf(/* translators: %s: time zone, e.g. "PDT" */ t.__('Times in your time zone (%s)', 'membuild-community'), zoneName()) }}</span>
       <div class="tabs" role="tablist">
         <button role="tab" :aria-selected="when === 'upcoming'" :class="{ on: when === 'upcoming' }" @click="when = 'upcoming'">{{ t.__('Upcoming', 'membuild-community') }}</button>
         <button role="tab" :aria-selected="when === 'past'" :class="{ on: when === 'past' }" @click="when = 'past'">{{ t.__('Past', 'membuild-community') }}</button>
       </div>
-      <button v-if="cfg.community.isStaff" class="btn btn-primary" @click="creating = true"><Icon name="plus" :size="16" /> {{ t.__('New event', 'membuild-community') }}</button>
+      <button v-if="owner" class="btn btn-primary new" @click="creating = true"><Icon name="plus" :size="16" /> {{ t.__('New event', 'membuild-community') }}</button>
     </header>
 
-    <section v-if="live.length" class="section">
+    <section v-if="live.length && when === 'upcoming'" class="month">
       <h2 class="live-h">● {{ t.__('Happening now', 'membuild-community') }}</h2>
-      <div class="grid">
-        <EventCard v-for="p in live" :key="p.id" :post="p" />
-      </div>
+      <EventRow v-for="(p, i) in live" :key="p.id" class="rise-in" :style="{ '--i': i }" :post="p" :owner="owner" />
     </section>
 
-    <div class="grid">
-      <EventCard v-for="p in rest" :key="p.id" :post="p" />
-    </div>
+    <section v-for="g in months" :key="g.month" class="month">
+      <h2>{{ g.month }}</h2>
+      <EventRow v-for="(p, i) in g.items" :key="p.id" class="rise-in" :style="{ '--i': i }" :post="p" :owner="owner" @add-replay="addReplay" />
+    </section>
 
-    <div v-if="list.loading && !list.items.length" class="grid">
-      <div v-for="n in 3" :key="n" class="card sk"><div class="skeleton" style="aspect-ratio: 16 / 7" /><div style="padding: 14px"><div class="skeleton" style="height: 12px; width: 40%; margin-bottom: 8px" /><div class="skeleton" style="height: 16px; width: 70%" /></div></div>
+    <div v-if="list.loading && !list.items.length" class="month">
+      <div v-for="n in 3" :key="n" class="card sk"><div class="skeleton" style="width: 208px; aspect-ratio: 16 / 9; border-radius: 10px" /><div style="flex: 1"><div class="skeleton" style="height: 12px; width: 30%; margin-bottom: 10px" /><div class="skeleton" style="height: 18px; width: 70%" /></div></div>
     </div>
     <div v-else-if="list.loaded && !list.items.length" class="empty card">
       <Icon name="calendar" :size="36" />
@@ -66,76 +82,80 @@ onBeforeUnmount(() => observer?.disconnect())
     <p v-if="list.error && !list.items.length" class="empty">{{ list.error }}</p>
     <div ref="sentinel" class="sentinel" aria-hidden="true" />
 
-    <EventDialog v-if="creating" @close="creating = false" @saved="created" />
   </div>
 </template>
 
 <style scoped>
 .events {
-  max-width: 1080px;
+  max-width: 808px;
   margin: 0 auto;
-  padding: 20px 16px;
+  padding: 20px 16px 40px;
 }
 
 .head {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 10px 14px;
-  margin-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
 .head h1 {
-  margin: 0;
-  font-size: 24px;
-}
-
-.zone {
-  color: var(--text-3);
-  font-size: 13px;
+  margin: 0 auto 0 0;
+  font-size: 26px;
 }
 
 .tabs {
   display: flex;
-  gap: 4px;
-  margin-left: auto;
-  padding: 3px;
-  border-radius: 999px;
-  background: var(--surface-2);
+  gap: 6px;
 }
 
 .tabs button {
-  padding: 7px 14px;
+  height: 36px;
+  padding: 0 16px;
   border-radius: 999px;
-  font-size: 14px;
-  font-weight: 650;
+  background: var(--surface-2);
   color: var(--text-2);
+  font-size: 15px;
+  font-weight: 650;
 }
 
 .tabs button.on {
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 12%);
+  background: var(--accent-soft);
+  color: var(--accent-text);
 }
 
-.section {
-  margin-bottom: 20px;
+.new {
+  margin-left: 12px;
 }
 
-.live-h {
-  margin: 0 0 10px;
-  font-size: 15px;
+.month {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 26px;
+}
+
+.month h2 {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.month h2.live-h {
   color: #e5484d;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 16px;
+  letter-spacing: 0;
+  text-transform: none;
+  font-size: 15px;
 }
 
 .sk {
-  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 14px;
 }
 
 .empty {
@@ -159,13 +179,14 @@ onBeforeUnmount(() => observer?.disconnect())
   height: 1px;
 }
 
-@media (max-width: 640px) {
-  .tabs {
-    margin-left: 0;
+@media (max-width: 600px) {
+  .head {
+    flex-wrap: wrap;
   }
 
-  .head .btn {
+  .new {
     width: 100%;
+    margin-left: 0;
     justify-content: center;
   }
 }

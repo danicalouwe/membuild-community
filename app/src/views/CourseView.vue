@@ -329,26 +329,35 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
     <RouterLink to="/classroom" class="btn btn-ghost">{{ t.__('Back to Classroom', 'membuild-community') }}</RouterLink>
   </div>
 
+  <!-- Loading: the course page's shape in grey. -->
+  <div v-else-if="!course" class="lv lv-loading" aria-busy="true">
+    <div class="skeleton" style="width: 110px; height: 18px; margin: 12px 0 18px" />
+    <div class="lv-sk">
+      <div class="card lv-sk-side"><div class="skeleton" style="aspect-ratio: 16 / 9; border-radius: 12px" /><div class="skeleton" style="width: 70%; height: 20px; margin-top: 16px" /><div v-for="n in 5" :key="n" class="skeleton" style="height: 14px; margin-top: 14px" :style="{ width: `${90 - n * 8}%` }" /></div>
+      <div><div class="skeleton" style="height: 52px; border-radius: 14px" /><div class="skeleton" style="height: 340px; margin-top: 16px; border-radius: 16px" /><div class="skeleton" style="width: 50%; height: 22px; margin-top: 20px" /><div class="skeleton" style="width: 80%; height: 14px; margin-top: 12px" /></div>
+    </div>
+  </div>
+
   <!-- Editing (owners): the Version 2 course builder -->
   <CourseBuilder v-else-if="course && editing" :course="course" :lesson-id="lessonId" @update:course="(c) => (course = c)" @exit="setEditing(false)" @preview="asMember = true; setEditing(false)" />
 
   <!-- Taking the course: Overview · Lesson · All posts, the course as its own space. -->
   <div v-else-if="course" class="lv" :class="`on-${tab}`">
-    <RouterLink to="/classroom" class="lv-back"><Icon name="chevronLeft" :size="18" /> {{ t.__('Classroom', 'membuild-community') }}</RouterLink>
+    <!-- Back to Classroom; owners get Course settings and All lessons on the same line (the old owner bar is gone:
+         the See it as a member switch shows the members' view). -->
+    <div class="lv-top">
+      <RouterLink to="/classroom" class="lv-back"><Icon name="chevronLeft" :size="18" /> {{ t.__('Classroom', 'membuild-community') }}</RouterLink>
+      <span v-if="ownerView" class="owner-links">
+        <button @click="setEditing(true, 'settings')"><Icon name="settings" :size="18" /> <span>{{ t.__('Course settings', 'membuild-community') }}</span></button>
+        <button @click="setEditing(true)"><Icon name="list" :size="18" /> <span>{{ t.__('All lessons', 'membuild-community') }}</span></button>
+      </span>
+    </div>
 
     <div v-if="course.can_manage && asMember" class="preview-bar">
       <Icon name="eye" :size="20" />
       <span class="pv-long">{{ t.__('You’re seeing this course the way members see it. Marking lessons done here counts for you.', 'membuild-community') }}</span>
       <span class="pv-short">{{ t.__('Member view', 'membuild-community') }}</span>
       <button class="btn btn-lg btn-ghost" @click="asMember = false">{{ t.__('Back to your view', 'membuild-community') }}</button>
-    </div>
-    <div v-if="ownerView" class="owner-bar">
-      <strong>{{ t.__('You’re the owner.', 'membuild-community') }}</strong>
-      <span>{{ lesson && tab === 'lesson' ? t.__('Members see this lesson exactly like this, without this bar.', 'membuild-community') : t.__('Members see this course exactly like this, without this bar.', 'membuild-community') }}</span>
-      <span class="owner-links">
-        <button @click="setEditing(true, 'settings')"><Icon name="settings" :size="18" /> {{ t.__('Course settings', 'membuild-community') }}</button>
-        <button @click="setEditing(true)"><Icon name="list" :size="18" /> {{ t.__('All lessons', 'membuild-community') }}</button>
-      </span>
     </div>
     <p v-if="course.status === 'draft'" class="lv-draft">{{ t.__('Draft: only you can see this course.', 'membuild-community') }}</p>
 
@@ -793,28 +802,42 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
   color: var(--text-2);
 }
 
-.owner-bar {
+.lv-top {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 8px 14px;
-  margin: 6px 0 14px;
-  padding: 10px 12px 10px 18px;
-  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
-  border-radius: 14px;
-  background: var(--accent-soft);
-  font-size: 16px;
-}
-
-.owner-bar > span:not(.owner-links) {
-  flex: 1;
-  min-width: 220px;
-  color: var(--text-2);
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
 }
 
 .owner-links {
   display: flex;
   gap: 4px;
+}
+
+.lv-sk {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.lv-sk-side {
+  padding: 14px;
+}
+
+@media (max-width: 767px) {
+  .lv-sk {
+    grid-template-columns: 1fr;
+  }
+
+  .lv-sk-side {
+    display: none;
+  }
+
+  /* Phones: just the icons beside Classroom. */
+  .owner-links button span {
+    display: none;
+  }
 }
 
 .owner-links button {
@@ -1195,8 +1218,10 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
     display: none;
   }
 
-  .owner-bar {
-    margin: 10px 12px;
+  .lv-top {
+    justify-content: flex-end;
+    margin: 0;
+    padding: 6px 12px 0;
   }
 
   .lv-grid,
