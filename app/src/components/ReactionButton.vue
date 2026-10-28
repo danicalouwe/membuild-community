@@ -74,6 +74,7 @@ function onPointerDown(e) {
   if (e.pointerType === 'mouse') return
   pressTimer = setTimeout(() => {
     longPressed = true
+    window.getSelection?.()?.removeAllRanges() // iPhone may already have started selecting the word
     open.value = true
     navigator.vibrate?.(10)
   }, 400)
@@ -219,6 +220,14 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* Holding the button opens the reactions: nothing in here should start a text selection. */
+.react,
+.react * {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
 .react {
   position: relative;
   display: inline-flex;
@@ -234,7 +243,9 @@ onBeforeUnmount(() => {
   color: var(--text-2);
   font-weight: 600;
   user-select: none;
-  -webkit-touch-callout: none;
+  -webkit-user-select: none; /* Safari on iPhone ignores the unprefixed one */
+  -webkit-touch-callout: none; /* no Copy / Look Up bar on a long press */
+  touch-action: manipulation;
 }
 
 .trigger:hover {
@@ -414,8 +425,8 @@ onBeforeUnmount(() => {
 /* Phones: seven reactions still fit next to an indented comment. */
 @media (max-width: 480px) {
   .picker {
-    gap: 0;
-    padding: 4px 6px;
+    gap: 2px;
+    padding: 4px 8px;
   }
 
   .choice {
@@ -424,8 +435,12 @@ onBeforeUnmount(() => {
   }
 
   .face :deep(.badge) {
-    width: 34px !important;
-    height: 34px !important;
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .face :deep(.emoji) {
+    font-size: 34px !important; /* the faces match the round like and love badges */
   }
 }
 

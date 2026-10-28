@@ -1,5 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
+import { askConfirm } from '../lib/confirm.js'
 import { useRoute } from 'vue-router'
 import { onBeforeRouteLeave } from 'vue-router'
 import { api } from '../api.js'
@@ -36,7 +37,7 @@ const SECTIONS = [
   { id: 'email', label: t.__('Email', 'membuild-community'), component: EmailSection },
   { id: 'features', label: t.__('Features', 'membuild-community'), component: FeaturesSection },
   { id: 'permissions', label: t.__('Who can do what', 'membuild-community'), component: PermissionsSection },
-  { id: 'access', label: t.__('Member groups', 'membuild-community'), component: AccessSection, isolated: true },
+  { id: 'access', label: t.__('Memberships', 'membuild-community'), component: AccessSection, isolated: true },
   { id: 'points', label: t.__('Points & levels', 'membuild-community'), component: PointsSection },
   { id: 'video', label: t.__('Video', 'membuild-community'), component: VideoSection },
   { id: 'gifs', label: t.__('GIFs', 'membuild-community'), component: GifsSection },
@@ -119,7 +120,7 @@ function warnUnsaved(e) {
 }
 window.addEventListener('beforeunload', warnUnsaved)
 onBeforeUnmount(() => window.removeEventListener('beforeunload', warnUnsaved))
-onBeforeRouteLeave(() => !dirty.value || confirm(t.__('Leave without saving your changes?', 'membuild-community')))
+onBeforeRouteLeave(async () => !dirty.value || (await askConfirm({ title: t.__('Leave without saving your changes?', 'membuild-community'), confirm: t.__('Leave without saving', 'membuild-community'), cancel: t.__('Stay here', 'membuild-community'), danger: true })))
 
 const scrollTo = (id) => document.getElementById(`s-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 </script>

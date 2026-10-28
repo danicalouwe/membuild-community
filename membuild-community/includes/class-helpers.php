@@ -51,6 +51,8 @@ class Helpers {
 			'name'   => $user->display_name,
 			'avatar' => get_avatar_url( $user->ID, array( 'size' => 96 ) ),
 			'level'  => $level ?? Points::level_of( $user->ID ),
+			// When they were last really here, if the viewer may see it (the green dot, "Active now").
+			'active_at' => Online::active_at( $user->ID ),
 		);
 	}
 

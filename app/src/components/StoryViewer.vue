@@ -1,5 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { askConfirm } from '../lib/confirm.js'
 import { api } from '../api.js'
 import { stories, markSeen, removeStory } from '../stores/stories.js'
 import { timeAgo } from '../lib/time.js'
@@ -201,9 +202,9 @@ async function openViewers() {
   viewers.value = await api.storyViewers(story.value.id).catch(() => ({ count: 0, items: [] }))
 }
 
-function remove() {
+async function remove() {
   menu.value = false
-  if (!confirm(t.__('Delete this story?', 'membuild-community'))) return
+  if (!(await askConfirm({ title: t.__('Delete this story?', 'membuild-community'), confirm: t.__('Delete story', 'membuild-community'), danger: true }))) return
   const g = group.value
   const s = story.value
   const wasLast = g.stories.length === 1

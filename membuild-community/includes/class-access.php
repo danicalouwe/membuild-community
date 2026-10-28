@@ -24,10 +24,12 @@ defined( 'ABSPATH' ) || exit;
  */
 class Access {
 
-	const MODES = array( 'everyone', 'level', 'groups' );
+	const MODES   = array( 'everyone', 'level', 'groups' );
+	const PERIODS = array( 'once', 'month', 'year' );
 
 	private static $groups = null;
-	private static $mine   = array();
+	private static $mine    = array();
+	private static $courses = null;
 
 	public static function register_hooks() {
 		// A deleted WordPress account leaves its groups too.
@@ -68,9 +70,16 @@ class Access {
 			self::$groups = array();
 			foreach ( $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i ORDER BY name ASC', Install::table( 'groups' ) ), ARRAY_A ) as $g ) {
 				self::$groups[ (int) $g['id'] ] = array(
-					'id'    => (int) $g['id'],
-					'name'  => $g['name'],
-					'roles' => array_values( array_filter( (array) json_decode( (string) $g['roles'], true ) ) ),
+					'id'     => (int) $g['id'],
+					'name'   => $g['name'],
+					'roles'  => array_values( array_filter( (array) json_decode( (string) $g['roles'], true ) ) ),
+					// How people get it: one button for every course in the membership (no button = invite only).
+					'offer'  => empty( $g['cta_url'] ) ? null : array(
+						'label'  => (string) ( $g['cta_label'] ?: __( 'Get access', 'membuild-community' ) ),
+						'url'    => (string) $g['cta_url'],
+						'price'  => (string) $g['price'],
+						'period' => in_array( $g['period'], self::PERIODS, true ) ? $g['period'] : 'once',
+					),
 				);
 			}
 		}
@@ -78,7 +87,8 @@ class Access {
 	}
 
 	private static function forget( $user_id = null ) {
-		self::$groups = null;
+		self::$groups  = null;
+		self::$courses = null;
 		if ( null === $user_id ) {
 			self::$mine = array();
 		} else {
@@ -148,7 +158,32 @@ class Access {
 				return null;
 			}
 			$groups = self::groups();
-			return array( 'reason' => 'groups', 'groups' => array_values( array_map( fn( $id ) => $groups[ $id ]['name'], $open ) ) );
+			// The membership members are offered: the first one with a button, else the first one (invite only).
+			$pick = null;
+			foreach ( $open as $gid ) {
+				if ( $groups[ $gid ]['offer'] ) {
+					$pick = $gid;
+					break;
+				}
+			}
+			$pick = $pick ?? ( $open[0] ?? null );
+			$more = array();
+			if ( $pick ) {
+				foreach ( self::all_courses() as $c ) {
+					if ( (int) $c['id'] !== (int) ( $course['id'] ?? 0 ) && 'published' === ( $c['status'] ?? '' ) && 'groups' === $c['access'] && in_array( $pick, self::course_groups( $c ), true ) ) {
+						$more[] = $c['title'];
+					}
+				}
+			}
+			return array(
+				'reason'     => 'groups',
+				'groups'     => array_values( array_map( fn( $id ) => $groups[ $id ]['name'], $open ) ),
+				'membership' => $pick ? array(
+					'name'  => $groups[ $pick ]['name'],
+					'offer' => $groups[ $pick ]['offer'],
+					'more'  => $more, // the other courses it opens
+				) : null,
+			);
 		}
 		return null;
 	}
@@ -190,17 +225,24 @@ class Access {
 	private static function format_group( $g ) {
 		global $wpdb;
 		$names = wp_roles()->get_names();
+		$manual = array_map( 'intval', $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE group_id = %d', Install::table( 'group_members' ), $g['id'] ) ) );
+		$by_role = $g['roles'] ? array_map( 'intval', get_users( array( 'role__in' => $g['roles'], 'fields' => 'ID', 'number' => 5000 ) ) ) : array();
 		return $g + array(
 			'role_names'   => array_values( array_map( fn( $r ) => translate_user_role( $names[ $r ] ?? $r ), $g['roles'] ) ),
-			'member_count' => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE group_id = %d', Install::table( 'group_members' ), $g['id'] ) ),
-			'course_count' => count( array_filter( self::all_courses(), fn( $c ) => 'groups' === $c['access'] && in_array( $g['id'], self::course_groups( $c ), true ) ) ),
+			'member_count' => count( $manual ), // "People you added"
+			'total'        => count( array_unique( array_merge( $manual, $by_role ) ) ), // everyone in it, by hand or by role
+			'courses'      => array_values(
+				array_map(
+					fn( $c ) => array( 'id' => (int) $c['id'], 'title' => $c['title'] ),
+					array_filter( self::all_courses(), fn( $c ) => 'groups' === $c['access'] && in_array( $g['id'], self::course_groups( $c ), true ) )
+				)
+			),
 		);
 	}
 
 	private static function all_courses() {
 		global $wpdb;
-		static $rows = null;
-		return $rows ??= $wpdb->get_results( $wpdb->prepare( 'SELECT id, title, access, access_groups FROM %i', Install::table( 'courses' ) ), ARRAY_A );
+		return self::$courses ??= $wpdb->get_results( $wpdb->prepare( 'SELECT id, title, status, access, access_groups FROM %i ORDER BY sort_order ASC, id ASC', Install::table( 'courses' ) ), ARRAY_A );
 	}
 
 	/** The site's roles, for linking: key and translated name. */
@@ -218,9 +260,51 @@ class Access {
 
 	public static function rest_list() {
 		return array(
-			'items' => array_values( array_map( array( __CLASS__, 'format_group' ), self::groups() ) ),
-			'roles' => self::roles(),
+			'items'   => array_values( array_map( array( __CLASS__, 'format_group' ), self::groups() ) ),
+			'roles'   => self::roles(),
+			'courses' => array_values( array_map( fn( $c ) => array( 'id' => (int) $c['id'], 'title' => $c['title'] ), self::all_courses() ) ),
 		);
+	}
+
+	/** The "How people get it" fields from a request: button text, price, period and link. */
+	private static function offer_update( \WP_REST_Request $req ) {
+		$data = array();
+		if ( isset( $req['cta_label'] ) ) {
+			$data['cta_label'] = mb_substr( sanitize_text_field( (string) $req['cta_label'] ), 0, 60 ) ?: null;
+		}
+		if ( isset( $req['cta_url'] ) ) {
+			$data['cta_url'] = esc_url_raw( trim( (string) $req['cta_url'] ), array( 'http', 'https' ) ) ?: null;
+		}
+		if ( isset( $req['price'] ) ) {
+			$data['price'] = mb_substr( sanitize_text_field( (string) $req['price'] ), 0, 20 ) ?: null;
+		}
+		if ( isset( $req['period'] ) && in_array( $req['period'], self::PERIODS, true ) ) {
+			$data['period'] = $req['period'];
+		}
+		return $data;
+	}
+
+	/**
+	 * Which courses a membership opens. A course added to it becomes "Members with a
+	 * membership"; one taken out keeps its other memberships (with none left it stays
+	 * locked, opening only for admins and moderators, until the owner picks again).
+	 */
+	private static function set_courses( $group_id, $course_ids ) {
+		global $wpdb;
+		self::$courses = null; // read them fresh: a course may have just changed
+		$want = array_map( 'intval', (array) $course_ids );
+		foreach ( self::all_courses() as $c ) {
+			$ids  = array_map( 'intval', (array) json_decode( (string) $c['access_groups'], true ) );
+			$has  = 'groups' === $c['access'] && in_array( $group_id, $ids, true );
+			$adds = in_array( (int) $c['id'], $want, true );
+			if ( $adds && ! $has ) {
+				$ids = 'groups' === $c['access'] ? $ids : array();
+				$ids[] = $group_id;
+				$wpdb->update( Install::table( 'courses' ), array( 'access' => 'groups', 'access_groups' => wp_json_encode( array_values( array_unique( $ids ) ) ) ), array( 'id' => $c['id'] ) );
+			} elseif ( ! $adds && $has ) {
+				$wpdb->update( Install::table( 'courses' ), array( 'access_groups' => wp_json_encode( array_values( array_diff( $ids, array( $group_id ) ) ) ) ), array( 'id' => $c['id'] ) );
+			}
+		}
 	}
 
 	public static function rest_create( \WP_REST_Request $req ) {
@@ -229,8 +313,11 @@ class Access {
 		if ( '' === $name ) {
 			return new \WP_Error( 'mbcom_group_name', __( 'Give the group a name.', 'membuild-community' ), array( 'status' => 400 ) );
 		}
-		$wpdb->insert( Install::table( 'groups' ), array( 'name' => $name, 'roles' => wp_json_encode( self::clean_roles( $req['roles'] ) ), 'created_at' => Helpers::now() ) );
+		$wpdb->insert( Install::table( 'groups' ), array( 'name' => $name, 'roles' => wp_json_encode( self::clean_roles( $req['roles'] ) ), 'created_at' => Helpers::now() ) + self::offer_update( $req ) );
 		$id = (int) $wpdb->insert_id;
+		if ( isset( $req['course_ids'] ) ) {
+			self::set_courses( $id, $req['course_ids'] );
+		}
 		self::forget();
 		$res = rest_ensure_response( self::format_group( self::groups()[ $id ] ) );
 		$res->set_status( 201 );
@@ -254,8 +341,15 @@ class Access {
 		if ( isset( $req['roles'] ) ) {
 			$data['roles'] = wp_json_encode( self::clean_roles( $req['roles'] ) );
 		}
+		$data += self::offer_update( $req );
+		if ( isset( $req['offer'] ) && false === $req['offer'] ) {
+			$data = array_merge( $data, array( 'cta_url' => null, 'cta_label' => null, 'price' => null, 'period' => null ) ); // back to invite only
+		}
 		if ( $data ) {
 			$wpdb->update( Install::table( 'groups' ), $data, array( 'id' => $id ) );
+		}
+		if ( isset( $req['course_ids'] ) ) {
+			self::set_courses( $id, $req['course_ids'] );
 		}
 		self::forget();
 		return self::format_group( self::groups()[ $id ] );
@@ -340,18 +434,22 @@ class Access {
 		if ( ! $user ) {
 			return new \WP_Error( 'mbcom_not_found', __( 'Member not found.', 'membuild-community' ), array( 'status' => 404 ) );
 		}
+		global $wpdb;
 		$manual = array_flip( self::manual_groups( $user->ID ) );
+		$since  = $wpdb->get_results( $wpdb->prepare( 'SELECT group_id, added_at FROM %i WHERE user_id = %d', Install::table( 'group_members' ), $user->ID ), OBJECT_K );
 		$roles  = (array) $user->roles;
 		$names  = wp_roles()->get_names();
 		return array(
 			'items' => array_values(
 				array_map(
-					function ( $g ) use ( $manual, $roles, $names ) {
+					function ( $g ) use ( $manual, $roles, $names, $since ) {
 						$via = array_values( array_intersect( $g['roles'], $roles ) );
 						return array(
 							'id'      => $g['id'],
 							'name'    => $g['name'],
 							'manual'  => isset( $manual[ $g['id'] ] ),
+							'since'   => isset( $since[ $g['id'] ] ) ? Helpers::iso( $since[ $g['id'] ]->added_at ) : null,
+							'courses' => count( array_filter( self::all_courses(), fn( $c ) => 'groups' === $c['access'] && in_array( $g['id'], self::course_groups( $c ), true ) ) ),
 							'via_role' => $via ? translate_user_role( $names[ $via[0] ] ?? $via[0] ) : null,
 						);
 					},

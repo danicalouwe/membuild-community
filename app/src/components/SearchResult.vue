@@ -80,7 +80,7 @@ const quote = computed(() => (['course', 'lesson'].includes(props.item.kind) ? p
 
 <template>
   <RouterLink :to="to" class="result" @click="emit('open')">
-    <Avatar v-if="item.user && item.kind === 'member'" :user="item.user" :size="36" badge />
+    <Avatar v-if="item.user && item.kind === 'member'" :user="item.user" :size="36" badge online="top" />
     <!-- A post with a picture shows it; a reel or video post gets a play badge, so it reads as video at a glance. -->
     <span v-else-if="item.thumb" class="thumb" :class="{ tall: item.kind === 'reel', video: item.video }">
       <img :src="item.thumb" alt="" />

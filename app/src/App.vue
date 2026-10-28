@@ -11,6 +11,7 @@ import HeaderActions from './components/HeaderActions.vue'
 import SearchBox from './components/SearchBox.vue'
 import LevelUpToast from './components/LevelUpToast.vue'
 import Toast from './components/Toast.vue'
+import ConfirmHost from './components/ConfirmHost.vue'
 import { refreshStats } from './stores/me.js'
 import { openChat } from './stores/chatDock.js'
 import { messages, startPulse } from './stores/messages.js'
@@ -34,10 +35,17 @@ const immersive = computed(() => route.name === 'reels')
 // and on phones a lesson's own bar (previous, Mark Complete, next) takes the tab bar's place.
 const inCourse = computed(() => route.name === 'course' && !route.query.edit)
 const building = computed(() => route.name === 'course' && !!route.query.edit)
+// A profile spans the page (its cover is wide), like a course: no left column.
+// Phones: the last tab (your photo) opens the menu instead of going to your profile.
+const phoneMenuOpen = ref(false)
+window.addEventListener('mbcom:phone-menu-state', (e) => (phoneMenuOpen.value = e.detail))
+const openPhoneMenu = () => window.dispatchEvent(new CustomEvent('mbcom:phone-menu'))
+// Pages without the left sidebar: profiles, your settings pages and Messages (its own chat list is the side column).
+const onProfile = computed(() => ['member', 'me', 'profile-edit', 'privacy', 'emails', 'messages'].includes(route.name))
 const inLesson = computed(() => inCourse.value && !!route.params.lessonId && !route.query.tab)
 // Single-column pages sit at the exact centre of the window, as on Facebook: the right side
 // reserves the same width as the left column. Grids and maps use the full width beside it.
-const centred = computed(() => ['feed', 'event', 'member', 'me', 'notifications', 'search'].includes(route.name))
+const centred = computed(() => ['feed', 'event', 'notifications', 'search'].includes(route.name))
 // Tabs follow the features switched on in settings (the lists update after a save).
 const shown = computed(() => tabs.filter((tab) => !tab.feature || feature(tab.feature)))
 const desktopTabs = computed(() => shown.value.filter((tab) => tab.name !== 'me' && !tab.mobileOnly))
@@ -125,7 +133,7 @@ const isActive = (tab) =>
 </script>
 
 <template>
-  <div class="shell" :class="{ immersive, 'in-course': inCourse, 'in-lesson': inLesson, building }">
+  <div class="shell" :class="{ immersive, 'in-course': inCourse, 'in-lesson': inLesson, building, 'on-profile': onProfile }">
     <header class="topbar">
       <div class="topbar-inner">
         <div class="start">
@@ -182,14 +190,20 @@ const isActive = (tab) =>
 
     <nav class="tabbar" :aria-label="t.__('Sections', 'membuild-community')">
       <!-- A short word under each icon: easier for everyone than icons alone. -->
-      <RouterLink v-for="tab in mobileTabs" :key="tab.name" :to="tab.path" class="tab" :class="{ active: isActive(tab) }" :aria-label="tabLabel(tab)">
-        <span class="tab-icon">
-          <span v-if="tab.name === 'me'" class="tab-avatar"><Avatar :user="cfg.user" :size="24" /></span>
-          <Icon v-else :name="tab.icon" :size="24" />
-          <span v-if="tab.name === 'notifications' && messages.notifications" class="count">{{ messages.notifications > 9 ? '9+' : messages.notifications }}</span>
-        </span>
-        <span class="tab-label" aria-hidden="true">{{ tab.short || tab.label }}</span>
-      </RouterLink>
+      <template v-for="tab in mobileTabs" :key="tab.name">
+        <!-- Your photo opens the menu (your profile, settings, display, log out are in it). -->
+        <button v-if="tab.name === 'me'" type="button" data-phone-menu class="tab" :class="{ active: phoneMenuOpen || isActive(tab) }" :aria-label="t.__('Menu', 'membuild-community')" :aria-expanded="phoneMenuOpen" @click="openPhoneMenu">
+          <span class="tab-icon"><span class="tab-avatar"><Avatar :user="cfg.user" :size="24" /></span></span>
+          <span class="tab-label" aria-hidden="true">{{ t._x('Menu', 'phone tab', 'membuild-community') }}</span>
+        </button>
+        <RouterLink v-else :to="tab.path" class="tab" :class="{ active: isActive(tab) }" :aria-label="tabLabel(tab)">
+          <span class="tab-icon">
+            <Icon :name="tab.icon" :size="24" />
+            <span v-if="tab.name === 'notifications' && messages.notifications" class="count">{{ messages.notifications > 9 ? '9+' : messages.notifications }}</span>
+          </span>
+          <span class="tab-label" aria-hidden="true">{{ tab.short || tab.label }}</span>
+        </RouterLink>
+      </template>
     </nav>
 
     <PostDialog v-if="linked" :key="linked.id" :post="linked" :highlight="Number(route.query.comment) || 0" @close="closeLinked" />
@@ -197,6 +211,7 @@ const isActive = (tab) =>
     <VideoDock v-if="video.media" />
     <LevelUpToast />
     <Toast />
+    <ConfirmHost />
   </div>
 </template>
 
@@ -376,12 +391,14 @@ const isActive = (tab) =>
   }
 
   .in-course .side,
-  .building .side {
+  .building .side,
+  .on-profile .side {
     display: none;
   }
 
   .in-course .main,
-  .building .main {
+  .building .main,
+  .on-profile .main {
     padding-left: 0;
   }
 
@@ -587,7 +604,12 @@ const isActive = (tab) =>
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    padding: 0;
+    border: 0;
+    background: none;
     color: var(--text-3);
+    font: inherit;
+    cursor: pointer;
   }
 
   .tab.active {

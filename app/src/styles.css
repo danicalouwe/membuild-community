@@ -10,6 +10,8 @@
   --accent-ink: #ffffff;
   --accent-text: var(--accent); /* the accent used as text or icons on the page */
   --accent-soft: #e8edff;
+  /* A member without a cover picture: a soft gradient from the community's main colour into warm peach. */
+  --cover-default: linear-gradient(120deg, color-mix(in srgb, var(--accent) 55%, #ffffff), color-mix(in srgb, var(--accent) 12%, #f3d7b6));
   --danger: #d93a3a;
   --love: #f0384a;
   --radius: 14px;
@@ -48,6 +50,7 @@
     --accent: #6f88ff;
     --accent-ink: #0b0d14;
     --accent-soft: #1e2440;
+    --cover-default: linear-gradient(120deg, color-mix(in srgb, var(--accent) 38%, #18191c), color-mix(in srgb, var(--accent) 10%, #3b2e22));
     --ok-soft: #14301f;
     --ok-text: #6fd69a;
     --warn-soft: #3a2c0c;
@@ -92,6 +95,39 @@ textarea,
 select {
   font: inherit;
   color: inherit;
+}
+
+/* Phone sizes: on phones text and buttons are about 10% smaller, so more fits and
+   nothing wraps, while staying easy to read and tap. The build turns every font-size
+   of 15px or more into var(--mb-fs-N, Npx) and every 52px button into var(--mb-tap, 52px)
+   (vite.config.js, phoneSizes), so this table is the only place to change them.
+   Sizes under 15px stay the same. Drawn on the canvas board "Phone sizes". */
+@media (max-width: 600px) {
+  :root {
+    --mb-tap: 48px;
+    --mb-fs-15: 14.5px;
+    --mb-fs-15h: 14.5px;
+    --mb-fs-16: 15px;
+    --mb-fs-16h: 15.5px;
+    --mb-fs-17: 16px;
+    --mb-fs-17h: 16px;
+    --mb-fs-18: 16.5px;
+    --mb-fs-19: 17px;
+    --mb-fs-20: 18px;
+    --mb-fs-21: 18.5px;
+    --mb-fs-22: 19px;
+    --mb-fs-23: 20px;
+    --mb-fs-24: 21px;
+    --mb-fs-25: 22px;
+    --mb-fs-26: 22px;
+    --mb-fs-28: 24px;
+    --mb-fs-30: 26px;
+    --mb-fs-32: 27px;
+    --mb-fs-34: 29px;
+    --mb-fs-40: 34px;
+    --mb-fs-64: 54px;
+    --mb-fs-90: 76px;
+  }
 }
 
 /* iOS zooms the page into any field smaller than 16px; components set smaller

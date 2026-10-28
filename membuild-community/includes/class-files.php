@@ -111,6 +111,30 @@ class Files {
 	 * (X-Sendfile, X-Accel-Redirect) can take over through the
 	 * membuild_community/send_protected_file filter.
 	 */
+	/**
+	 * What a downloaded lesson file is called: "Course – Lesson – File name.pdf", so it
+	 * still makes sense in someone's Downloads folder. Other files keep their own name.
+	 */
+	private static function download_name( array $row, $path ) {
+		$ext  = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
+		$name = get_the_title( (int) $row['attachment_id'] ) ?: 'download';
+		if ( 'lesson' === $row['scope'] ) {
+			global $wpdb;
+			$lesson = $wpdb->get_row( $wpdb->prepare( 'SELECT l.title, l.resources, c.title AS course FROM %i l JOIN %i c ON c.id = l.course_id WHERE l.id = %d', Install::table( 'lessons' ), Install::table( 'courses' ), (int) $row['scope_id'] ), ARRAY_A );
+			if ( $lesson ) {
+				foreach ( (array) json_decode( (string) $lesson['resources'], true ) as $res ) {
+					if ( (int) ( $res['media_id'] ?? 0 ) === (int) $row['id'] && '' !== (string) ( $res['name'] ?? '' ) ) {
+						$name = pathinfo( (string) $res['name'], PATHINFO_FILENAME ) ?: (string) $res['name'];
+					}
+				}
+				$name = implode( ' – ', array_filter( array( $lesson['course'], $lesson['title'], $name ) ) );
+			}
+		}
+		// Characters no computer allows in a file name, and any line breaks.
+		$name = trim( preg_replace( '/\s+/', ' ', str_replace( array( '/', '\\', ':', '*', '?', '"', '<', '>', '|' ), ' ', wp_strip_all_tags( $name ) ) ) );
+		return mb_substr( $name ?: 'download', 0, 180 ) . ( $ext ? '.' . $ext : '' );
+	}
+
 	public static function serve( $media_id ) {
 		$row  = Media::get( (int) $media_id );
 		$path = $row && $row['attachment_id'] ? get_attached_file( (int) $row['attachment_id'] ) : '';
@@ -124,9 +148,16 @@ class Files {
 		header( 'Cache-Control: private, max-age=3600' );
 		header( 'X-Content-Type-Options: nosniff' );
 		header( 'Content-Type: ' . $row['mime'] );
+		// ?view=1 (Preview): PDFs and pictures show in the browser; everything else still downloads.
+		$inline = ! empty( $_GET['view'] ) && ( 'application/pdf' === $row['mime'] || 0 === strpos( (string) $row['mime'], 'image/' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- a read-only display choice; access is checked above.
 		if ( 'file' === $row['kind'] ) {
-			$name = sanitize_file_name( get_the_title( (int) $row['attachment_id'] ) ?: 'download' ) . '.' . pathinfo( $path, PATHINFO_EXTENSION );
-			header( 'Content-Disposition: attachment; filename="' . $name . '"' );
+			$name = self::download_name( $row, $path );
+			// A plain-letters copy for old browsers, then the real name (accents, dashes) for the rest.
+			$ascii = preg_replace( '/[^\x20-\x7E]/', '', remove_accents( str_replace( '–', '-', $name ) ) );
+			header( 'Content-Disposition: ' . ( $inline ? 'inline' : 'attachment' ) . '; filename="' . str_replace( '"', '', $ascii ) . '"; filename*=UTF-8\'\'' . rawurlencode( $name ) );
+			if ( $inline ) {
+				header( 'Content-Security-Policy: frame-ancestors \'self\'' ); // shown inside the community's own preview only
+			}
 		}
 
 		/**

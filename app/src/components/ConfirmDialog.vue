@@ -16,13 +16,14 @@ const props = defineProps({
   danger: { type: Boolean, default: false },
   tick: { type: String, default: '' }, // e.g. "I understand this can't be undone"
   busy: { type: Boolean, default: false },
+  z: { type: Number, default: 90 }, // above another dialog: the "ask first" box uses 210
 })
 const emit = defineEmits(['confirm', 'close'])
 const ticked = ref(false)
 </script>
 
 <template>
-  <BaseDialog :label="title" :width="520" @close="emit('close')">
+  <BaseDialog :label="title" :width="520" :z="z" @close="emit('close')">
     <template #header>
       <span />
     </template>

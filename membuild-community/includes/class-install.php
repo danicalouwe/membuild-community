@@ -30,6 +30,7 @@ class Install {
 		19 => 'schedule_message_encryption',
 		20 => 'schedule_search_index',
 		27 => 'backfill_course_starts',
+		29 => 'move_access_buttons',
 	);
 
 	/** Hourly maintenance (the name is kept from 0.1 so existing schedules carry on). */
@@ -110,6 +111,29 @@ class Install {
 				$wpdb->users
 			)
 		);
+	}
+
+	/**
+	 * 29: the "how to get access" button now belongs to the membership, set once for
+	 * all its courses. Each membership takes the button of the first course it opens
+	 * that had one, so what members see doesn't change.
+	 */
+	private static function move_access_buttons() {
+		global $wpdb;
+		$courses = $wpdb->get_results( $wpdb->prepare( "SELECT access_groups, access_cta_label, access_cta_url FROM %i WHERE access = 'groups' AND access_cta_url IS NOT NULL AND access_cta_url <> '' ORDER BY sort_order ASC, id ASC", self::table( 'courses' ) ), ARRAY_A );
+		foreach ( $courses as $c ) {
+			foreach ( array_map( 'intval', (array) json_decode( (string) $c['access_groups'], true ) ) as $gid ) {
+				$wpdb->query(
+					$wpdb->prepare(
+						"UPDATE %i SET cta_label = %s, cta_url = %s WHERE id = %d AND ( cta_url IS NULL OR cta_url = '' )",
+						self::table( 'groups' ),
+						$c['access_cta_label'] ?: __( 'Get access', 'membuild-community' ),
+						$c['access_cta_url'],
+						$gid
+					)
+				);
+			}
+		}
 	}
 
 	/** 19: messages saved before encryption existed are encrypted, in batches. */
@@ -206,7 +230,7 @@ class Install {
 			attachment_id bigint(20) unsigned NULL,
 			url varchar(500) NOT NULL,
 			poster_url varchar(500) NULL,
-			mime varchar(50) NOT NULL,
+			mime varchar(100) NOT NULL,
 			width int(10) unsigned NOT NULL DEFAULT 0,
 			height int(10) unsigned NOT NULL DEFAULT 0,
 			duration float NOT NULL DEFAULT 0,
@@ -314,6 +338,10 @@ class Install {
 			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
 			name varchar(80) NOT NULL,
 			roles text NULL,
+			cta_label varchar(60) NULL,
+			cta_url varchar(500) NULL,
+			price varchar(20) NULL,
+			period varchar(10) NULL,
 			created_at datetime NOT NULL,
 			PRIMARY KEY  (id)
 			) {$charset};

@@ -2,7 +2,8 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { api } from '../api.js'
 import { startAttachment } from '../lib/attachments.js'
-import { fileSize } from '../lib/files.js'
+import { extOfName, fileSize, kindName, niceName } from '../lib/files.js'
+import FileTile from './FileTile.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
 import Icon from './Icon.vue'
 import LessonPlayer from './LessonPlayer.vue'
@@ -184,10 +185,13 @@ function removeVideo() {
   pendingVideo.value = null
   media.value = null
 }
+const extOf = (r) => r.ext || extOfName(r.name)
+
 function pickFiles(e) {
   for (const file of e.target.files) {
     const item = startAttachment(file)
-    resources.value.push({ name: file.name, item })
+    // Starts as the file's own name, made readable; the owner can change it right here.
+    resources.value.push({ name: niceName(file.name) || file.name, ext: extOfName(file.name), item })
     item.promise.finally(() => later(100))
   }
   e.target.value = ''
@@ -289,12 +293,13 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
       <p class="sub">{{ t.__('Worksheets, checklists or PDFs.', 'membuild-community') }}</p>
       <ul v-if="resources.length" class="files">
         <li v-for="(r, i) in resources" :key="r.media_id || r.item?.key || i">
-          <Icon name="paperclip" :size="18" />
+          <FileTile :ext="extOf(r)" />
           <span class="fname">
-            <strong>{{ r.name }}</strong>
+            <!-- The name members see on the lesson. The file's type shows on its own, so no ".pdf". -->
+            <input v-model="r.name" type="text" maxlength="120" :aria-label="t.__('File name members see', 'membuild-community')" :placeholder="t.__('Name this file', 'membuild-community')" @blur="r.name = r.name.trim(); later(0)" @input="later(900)" />
             <small v-if="r.item?.status === 'working'">{{ uploadingLabel(r.item.progress) }}</small>
             <small v-else-if="r.item?.status === 'error'" class="err">{{ r.item.error }}</small>
-            <small v-else-if="r.size">{{ fileSize(r.size) }}</small>
+            <small v-else>{{ kindName(extOf(r)) }}<template v-if="r.size"> · {{ fileSize(r.size) }}</template></small>
           </span>
           <button class="btn btn-lg btn-ghost" type="button" @click="resources.splice(i, 1)">{{ t.__('Remove', 'membuild-community') }}</button>
         </li>
@@ -530,6 +535,25 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.fname input {
+  width: 100%;
+  min-height: 44px;
+  margin-bottom: 2px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 16.5px;
+  font-weight: 650;
+}
+
+.fname input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .pending small,

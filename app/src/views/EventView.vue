@@ -1,5 +1,6 @@
 <script setup>
 import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { askConfirm } from '../lib/confirm.js'
 import { useRouter } from 'vue-router'
 import { api } from '../api.js'
 import { cfg } from '../config.js'
@@ -73,7 +74,7 @@ function rsvp(status) {
 }
 async function cancel() {
   closeMenu()
-  if (!confirm(t.__('Cancel this event? Everyone who said they’re going will be told.', 'membuild-community'))) return
+  if (!(await askConfirm({ title: t.__('Cancel this event?', 'membuild-community'), text: t.__('Everyone who said they’re going will be told.', 'membuild-community'), confirm: t.__('Cancel event', 'membuild-community'), cancel: t.__('Keep it', 'membuild-community'), danger: true }))) return
   try {
     const saved = await api.cancelEvent(props.id)
     post.value = saved
@@ -84,7 +85,7 @@ async function cancel() {
 }
 async function remove() {
   closeMenu()
-  if (!confirm(t.__('Delete this event and its comments?', 'membuild-community'))) return
+  if (!(await askConfirm({ title: t.__('Delete this event and its comments?', 'membuild-community'), text: t.__('This can’t be undone.', 'membuild-community'), confirm: t.__('Delete event', 'membuild-community'), danger: true }))) return
   try {
     await api.deletePost(props.id)
     removePost(props.id)

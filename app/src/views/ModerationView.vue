@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, ref, watch } from 'vue'
+import { askConfirm } from '../lib/confirm.js'
 import { api } from '../api.js'
 import { messages } from '../stores/messages.js'
 import { removePost } from '../stores/feed.js'
@@ -79,7 +80,7 @@ watch(tab, () => load())
 
 async function decide(it, action) {
   const ask = it.object_type === 'post' ? t.__('Remove this post for everyone?', 'membuild-community') : t.__('Remove this comment for everyone?', 'membuild-community')
-  if (action === 'remove' && !confirm(ask)) return
+  if (action === 'remove' && !(await askConfirm({ title: ask, confirm: t.__('Remove', 'membuild-community'), danger: true }))) return
   busy.value = keyOf(it)
   try {
     const res = await api.resolveReport(it.object_type, it.object_id, action)
@@ -106,7 +107,7 @@ async function restrict(user, status, days = 0, it = null) {
   } else {
     what = t.sprintf(/* translators: %s: member's name */ t.__('Lift the restriction on %s?', 'membuild-community'), user.name)
   }
-  if (!confirm(what)) return
+  if (!(await askConfirm({ title: what, confirm: status === 'none' ? t.__('Lift it', 'membuild-community') : status === 'banned' ? t.__('Ban', 'membuild-community') : t.__('Mute', 'membuild-community'), danger: status !== 'none' }))) return
   try {
     const res = await api.restrict(user.id, { status, days })
     if (it) it.author_restriction = res.restriction ? { status: res.restriction.status, until: res.restriction.until } : null

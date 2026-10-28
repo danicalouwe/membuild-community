@@ -417,7 +417,8 @@ class Rest_Courses {
 			foreach ( array_slice( (array) $params['resources'], 0, 20 ) as $res ) {
 				$media = self::claim_media( (int) ( $res['media_id'] ?? 0 ), array( 'file', 'image' ) );
 				if ( $media ) {
-					$name        = sanitize_file_name( $res['name'] ?? '' ) ?: basename( wp_parse_url( $media['url'], PHP_URL_PATH ) );
+					// The name members see ("Platform cost worksheet"), as the owner typed it.
+					$name        = mb_substr( trim( sanitize_text_field( $res['name'] ?? '' ) ), 0, 120 ) ?: pathinfo( basename( wp_parse_url( $media['url'], PHP_URL_PATH ) ), PATHINFO_FILENAME );
 					$resources[] = array( 'media_id' => (int) $media['id'], 'name' => $name, 'url' => Files::protect( (int) $media['id'], 'lesson', (int) $lesson['id'] ), 'mime' => $media['mime'] );
 				}
 			}
@@ -523,6 +524,69 @@ class Rest_Courses {
 		return self::$starts[ "{$me}:{$course_id}" ];
 	}
 
+	const OPENED_OPTION = 'mbcom_lessons_opened_at';
+
+	/**
+	 * Hourly: tells members when a lesson that was waiting for them opens, as the
+	 * "not open yet" screen promises. Days-after-start lessons go to whoever started
+	 * the course that many days ago; date lessons to everyone who has started it.
+	 * Only lessons that opened since the last run, so nobody hears twice.
+	 */
+	public static function notify_opened() {
+		global $wpdb;
+		$now  = time();
+		$last = (int) get_option( self::OPENED_OPTION, 0 );
+		update_option( self::OPENED_OPTION, $now, false );
+		if ( ! $last || $now - $last > 3 * DAY_IN_SECONDS ) {
+			return; // first run, or the site was asleep: no old news
+		}
+		$from  = gmdate( 'Y-m-d H:i:s', $last );
+		$to    = gmdate( 'Y-m-d H:i:s', $now );
+		$found = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT s.user_id, l.id AS lesson_id, l.title, c.id AS course_id, c.title AS course
+				FROM %i s JOIN %i l ON l.course_id = s.course_id JOIN %i c ON c.id = l.course_id
+				WHERE c.status = 'published' AND l.drip_days > 0 AND ( l.open_on IS NULL OR l.open_on = '' )
+				AND s.started_at + INTERVAL l.drip_days DAY > %s AND s.started_at + INTERVAL l.drip_days DAY <= %s
+				LIMIT 2000",
+				Install::table( 'course_starts' ),
+				Install::table( 'lessons' ),
+				Install::table( 'courses' ),
+				$from,
+				$to
+			),
+			ARRAY_A
+		);
+		$dated = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT l.id AS lesson_id, l.title, l.open_on, c.id AS course_id, c.title AS course
+				FROM %i l JOIN %i c ON c.id = l.course_id
+				WHERE c.status = 'published' AND l.open_on IS NOT NULL AND l.open_on <> '' AND l.open_on BETWEEN %s AND %s",
+				Install::table( 'lessons' ),
+				Install::table( 'courses' ),
+				gmdate( 'Y-m-d', $last - DAY_IN_SECONDS ),
+				gmdate( 'Y-m-d', $now + DAY_IN_SECONDS )
+			),
+			ARRAY_A
+		);
+		foreach ( $dated as $l ) {
+			$at = self::date_ts( $l['open_on'] );
+			if ( $at <= $last || $at > $now ) {
+				continue;
+			}
+			$users = $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE course_id = %d LIMIT 2000', Install::table( 'course_starts' ), $l['course_id'] ) );
+			foreach ( $users as $u ) {
+				$found[] = $l + array( 'user_id' => $u );
+			}
+		}
+		foreach ( $found as $r ) {
+			$done = $wpdb->get_var( $wpdb->prepare( 'SELECT 1 FROM %i WHERE user_id = %d AND lesson_id = %d', Install::table( 'lesson_progress' ), $r['user_id'], $r['lesson_id'] ) );
+			if ( ! $done ) {
+				Notifications::notify( (int) $r['user_id'], 'lesson_open', 'lesson', (int) $r['lesson_id'], 0, 0, array( 'title' => $r['title'], 'course' => $r['course'], 'course_id' => (int) $r['course_id'] ) );
+			}
+		}
+	}
+
 	/** Opening a lesson starts the course (once): its dripped lessons count from today. */
 	public static function mark_started( $course_id ) {
 		global $wpdb;
@@ -565,9 +629,24 @@ class Rest_Courses {
 	private static function format_course( $row ) {
 		$lock = Access::lock( $row );
 		if ( $lock && 'level' === $lock['reason'] ) {
-			$lock['points_to_go'] = max( 0, ( Points::thresholds()[ $lock['level'] - 1 ] ?? 0 ) - (int) ( Points::stats_for( array( get_current_user_id() ) )[ get_current_user_id() ]['points'] ?? 0 ) );
+			$me                   = Points::stats_for( array( get_current_user_id() ) )[ get_current_user_id() ] ?? array( 'points' => 0, 'level' => 1 );
+			$need                 = (int) ( Points::thresholds()[ $lock['level'] - 1 ] ?? 0 );
+			$lock['points_to_go'] = max( 0, $need - (int) $me['points'] );
+			// For "How to unlock": where they are on the way, and what earns points.
+			$lock['points']       = (int) $me['points'];
+			$lock['need']         = $need;
+			$lock['my_level']     = (int) $me['level'];
+			$rules                = Points::rules();
+			$lock['earn']         = array_values(
+				array_filter(
+					array_map( fn( $k ) => array( 'what' => $k, 'points' => (int) ( $rules[ $k ][0] ?? 0 ) ), array( 'post', 'comment', 'reaction_received', 'lesson' ) ),
+					fn( $r ) => $r['points'] > 0
+				)
+			);
 		}
-		if ( $lock && ! empty( $row['access_cta_url'] ) ) {
+		if ( $lock && ! empty( $lock['membership']['offer'] ) ) {
+			$lock['cta'] = array( 'label' => $lock['membership']['offer']['label'], 'url' => $lock['membership']['offer']['url'] ); // set once on the membership
+		} elseif ( $lock && ! empty( $row['access_cta_url'] ) ) {
 			$lock['cta'] = array( 'label' => $row['access_cta_label'] ?: __( 'Get access', 'membuild-community' ), 'url' => $row['access_cta_url'] );
 		}
 		$out  = array(
@@ -580,7 +659,7 @@ class Rest_Courses {
 			'unlock_level' => (int) ( $row['unlock_level'] ?? 0 ),
 			'lock'         => $lock,
 			'locked_level' => $lock && 'level' === $lock['reason'] ? $lock['level'] : 0,
-			'questions'    => empty( $row['questions_off'] ) ? 'on' : 'off',
+			'questions'    => empty( $row['questions_off'] ) && Settings::course_part( 'questions' ) ? 'on' : 'off',
 		);
 		if ( Helpers::can_manage() ) {
 			$groups               = Access::groups();
@@ -644,11 +723,13 @@ class Rest_Courses {
 			'posts_count'     => array_sum( array_map( fn( $r ) => (int) $r->n, $talk ) ),
 			'files_count'     => $files_total,
 			// For the course overview: who teaches it and who's taking it.
-			'instructor'      => Helpers::users( array( (int) $course['created_by'] ) )[ (int) $course['created_by'] ] ?? null,
+			'instructor'      => Settings::course_part( 'instructor' ) ? ( Helpers::users( array( (int) $course['created_by'] ) )[ (int) $course['created_by'] ] ?? null ) : null,
 			'learners'        => $life['learners'],
 			'faces'           => $life['faces'],
 			'can_manage'      => Helpers::can_manage(),
 			'about'           => (string) ( $course['about'] ?? '' ),
+			'finish_points'   => (int) ( Points::rules()['course'][0] ?? 0 ), // "+20 points" when it's done
+			'started_on'      => self::started_at( (int) $course['id'] ) ? gmdate( 'c', self::started_at( (int) $course['id'] ) ) : null, // drip counts from here
 			'modules'         => array_map(
 				fn( $m ) => array( 'id' => (int) $m['id'], 'title' => $m['title'], 'lessons' => $by_module[ (int) $m['id'] ] ?? array() ),
 				$modules
@@ -702,6 +783,9 @@ class Rest_Courses {
 	 * @param array|null $media The lesson's media row (duration, meta), if it has one.
 	 */
 	private static function minutes( $chars, $media ) {
+		if ( ! Settings::course_part( 'times' ) ) {
+			return 0; // Settings › Features › Courses: no "7 min"
+		}
 		$seconds = 0.0;
 		if ( $media ) {
 			$seconds = (float) ( $media['duration'] ?? 0 ) ?: (float) ( json_decode( (string) ( $media['meta'] ?? '' ), true )['duration'] ?? 0 );
@@ -725,7 +809,8 @@ class Rest_Courses {
 				'name'     => (string) $r['name'],
 				'url'      => $open ? (string) $r['url'] : null,
 				'mime'     => (string) ( $r['mime'] ?? '' ),
-				'ext'      => strtoupper( (string) pathinfo( (string) $r['name'], PATHINFO_EXTENSION ) ),
+				// The type comes from the file itself, so a name without ".pdf" still shows PDF.
+				'ext'      => strtoupper( Media::TYPES[ (string) ( $r['mime'] ?? '' ) ][1] ?? (string) pathinfo( (string) $r['name'], PATHINFO_EXTENSION ) ),
 				'size'     => (int) ( $bytes[ (int) $r['media_id'] ] ?? 0 ) ?: null,
 			),
 			$resources

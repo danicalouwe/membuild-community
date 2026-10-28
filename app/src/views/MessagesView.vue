@@ -100,7 +100,7 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
         <li v-for="th in filtered" :key="th.id">
           <button class="row" :class="{ active: th.id === threadId, unread: th.unread }" @click="open(th.id)">
             <span class="faces" :class="{ group: th.type === 'group' }">
-              <Avatar v-for="o in th.others.slice(0, 2)" :key="o.id" :user="o" :size="th.type === 'group' ? 36 : 52" />
+              <Avatar v-for="o in th.others.slice(0, 2)" :key="o.id" :user="o" :size="th.type === 'group' ? 36 : 52" :online="th.type !== 'group'" />
             </span>
             <span class="text">
               <strong>{{ nameOf(th) }}</strong>

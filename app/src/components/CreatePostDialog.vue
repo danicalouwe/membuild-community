@@ -1,7 +1,10 @@
 <script setup>
 import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { askConfirm } from '../lib/confirm.js'
 import { api } from '../api.js'
 import { cfg } from '../config.js'
+import CourseLinkCard from './CourseLinkCard.vue'
+import { showToast } from '../lib/toast.js'
 import { insertPost, removePost, replacePost, updatePost } from '../stores/feed.js'
 import { startAttachment, startGif } from '../lib/attachments.js'
 import { giphyOn } from '../lib/giphy.js'
@@ -23,7 +26,7 @@ import { useDialog } from '../lib/useDialog.js'
 const props = defineProps({
   start: { type: String, default: '' }, // '' | 'feeling'
   files: { type: Array, default: () => [] }, // picked from the feed bar before opening
-  draft: { type: Object, default: null }, // restored after a failed post
+  draft: { type: Object, default: null }, // restored after a failed post; { text, share: { url, course } } when sharing a finished course
   edit: { type: Object, default: null }, // an existing post: change its words, feeling and background
   // Posting inside a course: { course: { id, title }, lesson: { id, title } | null }. Only members of the course see it.
   place: { type: Object, default: null },
@@ -62,6 +65,8 @@ function closeLink() {
   link.value = null
 }
 const error = ref(props.draft?.error || '')
+// Sharing a finished course: the card shows under the words, the link is added on Post.
+const share = props.edit ? null : props.draft?.share || null
 const showBackgrounds = ref(false)
 const showEmoji = ref(false)
 // The emoji button opens the floating emoji panel (search, categories), anchored to it.
@@ -111,10 +116,10 @@ const whoParts = computed(() => {
 const hasVideo = computed(() => attachments.value.some((a) => a.kind === 'video'))
 const failed = computed(() => attachments.value.some((a) => a.status === 'error'))
 const canPost = computed(
-  () => (text.value.trim() || attachments.value.length || keptMedia || feeling.value) && !failed.value && !saving.value && !link.value?.loading,
+  () => (text.value.trim() || share || attachments.value.length || keptMedia || feeling.value) && !failed.value && !saving.value && !link.value?.loading,
 )
 // Backgrounds only fit short, text-only posts.
-const bgAllowed = computed(() => !attachments.value.length && !keptMedia && !link.value && text.value.length <= BACKGROUND_MAX)
+const bgAllowed = computed(() => !share && !attachments.value.length && !keptMedia && !link.value && text.value.length <= BACKGROUND_MAX)
 const activeBg = computed(() => (bgAllowed.value && background.value ? BACKGROUNDS[background.value] : null))
 const bigText = computed(() => !attachments.value.length && !keptMedia && text.value.length < 85)
 const feelingList = computed(() =>
@@ -186,8 +191,8 @@ function chooseFeeling(key) {
   nextTick(() => textarea.value?.focus())
 }
 
-function close() {
-  if (dirty.value && !confirm(props.edit ? t.__('Discard your changes?', 'membuild-community') : t.__('Discard this post? What you wrote will be lost.', 'membuild-community'))) return
+async function close() {
+  if (dirty.value && !(await askConfirm(props.edit ? { title: t.__('Discard your changes?', 'membuild-community'), confirm: t.__('Discard', 'membuild-community'), cancel: t.__('Keep editing', 'membuild-community'), danger: true } : { title: t.__('Discard this post?', 'membuild-community'), text: t.__('What you wrote will be lost.', 'membuild-community'), confirm: t.__('Discard', 'membuild-community'), cancel: t.__('Keep writing', 'membuild-community'), danger: true }))) return
   attachments.value.forEach((a) => a.cancel())
   emit('close')
 }
@@ -201,7 +206,8 @@ async function submit() {
   if (props.edit) return saveEdit()
   const embed = !attachments.value.length && link.value?.media ? link.value.media : null
   // A post that is just the link shows the video alone, without the bare URL.
-  const content = embed && text.value.trim() === link.value.url ? '' : text.value.trim()
+  const words = embed && text.value.trim() === link.value.url ? '' : text.value.trim()
+  const content = share ? `${words} ${share.url}`.trim() : words
   const items = attachments.value
   const chosenBg = activeBg.value ? background.value : ''
   const chosenFeeling = feeling.value
@@ -246,12 +252,14 @@ async function submit() {
     replacePost(key, saved)
     items.forEach((a) => a.release()) // the saved media shows now, not the local previews
     pointsMayHaveChanged()
+    // They stay where they are; the message offers the post instead of jumping to Home.
+    if (share) showToast(t.__('Shared to Home', 'membuild-community'), '', { icon: 'megaphone', action: { label: t.__('View post', 'membuild-community'), post: saved.id } })
   } catch (err) {
     removePost(key)
     // Reopen with everything restored, so nothing the member wrote is lost.
     window.dispatchEvent(
       new CustomEvent('mbcom:reopen-composer', {
-        detail: { text: content, attachments: items, background: chosenBg, feeling: chosenFeeling, error: err.message, place },
+        detail: { text: share ? words : content, share, attachments: items, background: chosenBg, feeling: chosenFeeling, error: err.message, place },
       }),
     )
   }
@@ -345,11 +353,12 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
                 ref="textarea"
                 v-model="text"
                 :class="{ big: bigText || activeBg }"
-                :rows="activeBg ? 3 : 4"
+                :rows="activeBg ? 3 : share ? 2 : 4"
                 :placeholder="placeholder"
                 :aria-label="t.__('What\'s on your mind', 'membuild-community')"
               />
             </div>
+            <CourseLinkCard v-if="share" class="share-card" :course="share.course" still />
 
             <div class="tools">
               <button
@@ -865,5 +874,8 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
   .body {
     flex: 1;
   }
+}
+.share-card {
+  margin: 4px 0 8px;
 }
 </style>

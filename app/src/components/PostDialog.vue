@@ -6,6 +6,8 @@ import Avatar from './Avatar.vue'
 import Icon from './Icon.vue'
 import BaseDialog from './BaseDialog.vue'
 import RichText from './RichText.vue'
+import CourseLinkCard from './CourseLinkCard.vue'
+import { useCourseLink } from '../lib/courseCards.js'
 import MediaGrid from './MediaGrid.vue'
 import PostActions from './PostActions.vue'
 import CommentThread from './CommentThread.vue'
@@ -19,6 +21,8 @@ const props = defineProps({
   highlight: { type: Number, default: 0 }, // a comment to scroll to and flash (a shared link)
 })
 const emit = defineEmits(['close'])
+// A link to a course shows as its card, as in the feed.
+const { course: linkedCourse, text: shownText } = useCourseLink(() => props.post.content)
 
 const thread = ref(null)
 const label = () => t.sprintf(/* translators: %s: the author's name */ t.__("%s's post", 'membuild-community'), props.post.author?.name)
@@ -42,7 +46,8 @@ watch(() => route.path, () => emit('close'))
           </RouterLink>
         </div>
       </div>
-      <RichText v-if="post.content" class="text" :text="post.content" />
+      <RichText v-if="shownText" class="text" :text="shownText" :strong="linkedCourse?.title" />
+      <CourseLinkCard v-if="linkedCourse" :course="linkedCourse" @click="emit('close')" />
       <MediaGrid v-if="post.media.length" class="media" :media="post.media" />
       <PostActions :post="post" class="actions" @comment="thread?.focus()" />
 

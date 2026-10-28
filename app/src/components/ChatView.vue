@@ -1,4 +1,6 @@
 <script setup>
+import { activeLabel, isOnline } from '../lib/online.js'
+import { askConfirm } from '../lib/confirm.js'
 import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import GifMedia from './GifMedia.vue'
 import { gifBox } from '../lib/gifBox.js'
@@ -116,6 +118,39 @@ function scrollToBottom(smooth = false) {
   nextTick(() => scroller.value?.scrollTo({ top: scroller.value.scrollHeight, behavior: smooth ? 'smooth' : 'auto' }))
 }
 
+/*
+ * Opening a chat lands on the newest message. Shared posts, photos and GIFs finish
+ * loading a moment later and would push it out of view, so for the first couple of
+ * seconds the chat stays pinned to the bottom, unless the member scrolls up first.
+ */
+let pinned = false
+let pinTimer = null
+let pinObserver = null
+function pinToBottom(ms = 2500) {
+  pinned = true
+  clearTimeout(pinTimer)
+  pinTimer = setTimeout(() => (pinned = false), ms)
+}
+function keepPinned() {
+  const el = scroller.value
+  if (pinned && el) el.scrollTop = el.scrollHeight
+}
+function unpin() {
+  pinned = false
+}
+watch(scroller, (el, old) => {
+  pinObserver?.disconnect()
+  old?.removeEventListener('load', keepPinned, true)
+  if (!el) return
+  pinObserver = new MutationObserver(keepPinned)
+  pinObserver.observe(el, { childList: true, subtree: true, characterData: true })
+  el.addEventListener('load', keepPinned, true) // images and videos inside the chat
+})
+onBeforeUnmount(() => {
+  pinObserver?.disconnect()
+  clearTimeout(pinTimer)
+})
+
 function nearBottom() {
   const el = scroller.value
   return !el || el.scrollHeight - el.scrollTop - el.clientHeight < 160
@@ -140,6 +175,7 @@ async function load() {
     items.value = history.items
     hasMore.value = history.has_more
     scrollToBottom()
+    pinToBottom()
     markRead()
     const shared = takeShareDraft() // a link handed over by "Send in a message"
     if (shared) {
@@ -344,7 +380,7 @@ function startReply(m) {
 async function unsend(m) {
   menuFor.value = null
   moreFor.value = null
-  if (!confirm(t.__('Unsend this message for everyone?', 'membuild-community'))) return
+  if (!(await askConfirm({ title: t.__('Unsend this message for everyone?', 'membuild-community'), text: t.__('It disappears from the chat for everyone in it.', 'membuild-community'), confirm: t.__('Unsend', 'membuild-community'), danger: true }))) return
   try {
     Object.assign(m, await api.unsend(m.id))
   } catch (err) {
@@ -375,7 +411,7 @@ async function rename() {
 async function blockOther() {
   closeHeaderMenu()
   const person = others.value[0]
-  if (!person || !confirm(t.sprintf(/* translators: %s: member's name */ t.__('Block %s? You won’t see each other’s posts, comments or stories, and you can’t message each other. They aren’t told.', 'membuild-community'), person.name))) return
+  if (!person || !(await askConfirm({ title: t.sprintf(/* translators: %s: member's name */ t.__('Block %s?', 'membuild-community'), person.name), text: t.__('You won’t see each other’s posts, comments or stories, and you can’t message each other. They aren’t told.', 'membuild-community'), confirm: t.__('Block', 'membuild-community'), danger: true }))) return
   try {
     await api.block(person.id)
     blockedNotice.value = true
@@ -386,7 +422,7 @@ async function blockOther() {
 
 async function leave() {
   closeHeaderMenu()
-  if (!confirm(t.__('Leave this group? You will stop getting its messages.', 'membuild-community'))) return
+  if (!(await askConfirm({ title: t.__('Leave this group?', 'membuild-community'), text: t.__('You will stop getting its messages.', 'membuild-community'), confirm: t.__('Leave group', 'membuild-community'), danger: true }))) return
   try {
     await api.leaveChat(props.threadId)
     emit('left')
@@ -408,20 +444,20 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
         <div :ref="headerMenuRoot" class="menu-wrap name-wrap">
           <button :ref="headerMenuTrigger" class="name-btn" aria-haspopup="menu" :aria-expanded="headerMenu" @click="toggleHeaderMenu">
             <span class="faces" :class="{ group: isGroup }">
-              <Avatar v-for="u in others.slice(0, 2)" :key="u.id" :user="u" :size="isGroup ? 26 : 32" />
+              <Avatar v-for="u in others.slice(0, 2)" :key="u.id" :user="u" :size="isGroup ? 26 : 32" :online="!isGroup" />
             </span>
             <strong>{{ title }}</strong>
             <Icon name="chevronDown" :size="16" />
           </button>
           <div v-if="headerMenu" :ref="headerMenuList" class="menu left" role="menu" @keydown="onHeaderMenuKey">
-            <button role="menuitem" @click="closeHeaderMenu(); emit('expand')">{{ t.__('Open in Messages', 'membuild-community') }}</button>
+            <button role="menuitem" @click="closeHeaderMenu(); emit('expand')"><Icon name="expand" :size="20" /> {{ t.__('Open in Messages', 'membuild-community') }}</button>
             <template v-if="isGroup">
-              <button role="menuitem" @click="rename">{{ t.__('Rename group', 'membuild-community') }}</button>
-              <button role="menuitem" class="danger" @click="leave">{{ t.__('Leave group', 'membuild-community') }}</button>
+              <button role="menuitem" @click="rename"><Icon name="pencil" :size="20" /> {{ t.__('Rename group', 'membuild-community') }}</button>
+              <hr class="sep" /><button role="menuitem" class="danger" @click="leave"><Icon name="logout" :size="20" /> {{ t.__('Leave group', 'membuild-community') }}</button>
             </template>
             <template v-else-if="others[0]">
-              <RouterLink role="menuitem" :to="{ name: 'member', params: { id: others[0].id } }" @click="closeHeaderMenu">{{ t.__('View profile', 'membuild-community') }}</RouterLink>
-              <button role="menuitem" class="danger" @click="blockOther">{{ t.__('Block', 'membuild-community') }}</button>
+              <RouterLink role="menuitem" :to="{ name: 'member', params: { id: others[0].id } }" @click="closeHeaderMenu"><Icon name="user" :size="20" /> {{ t.__('View profile', 'membuild-community') }}</RouterLink>
+              <hr class="sep" /><button role="menuitem" class="danger" @click="blockOther"><Icon name="block" :size="20" /> {{ t.__('Block', 'membuild-community') }}</button>
             </template>
           </div>
         </div>
@@ -434,30 +470,31 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
       <button class="icon back" :aria-label="t.__('Back to chats', 'membuild-community')" @click="emit('back')"><Icon name="chevronLeft" :size="22" /></button>
       <template v-if="chat">
         <span class="faces" :class="{ group: isGroup }">
-          <Avatar v-for="u in others.slice(0, 2)" :key="u.id" :user="u" :size="isGroup ? 30 : 40" />
+          <Avatar v-for="u in others.slice(0, 2)" :key="u.id" :user="u" :size="isGroup ? 30 : 40" :online="!isGroup" />
         </span>
         <div class="who">
           <strong>{{ title }}</strong>
           <span v-if="isGroup">{{ memberCount(others.length + 1) }}</span>
+          <span v-else-if="others[0] && activeLabel(others[0])" :class="{ now: isOnline(others[0]) }">{{ activeLabel(others[0]) }}</span>
           <span v-else-if="others[0]">{{ t.sprintf(t.__('Level %d', 'membuild-community'), others[0].level) }}</span>
         </div>
         <div v-if="isGroup || others[0]" :ref="headerMenuRoot" class="menu-wrap">
           <button :ref="headerMenuTrigger" class="icon" :aria-label="t.__('Chat options', 'membuild-community')" aria-haspopup="menu" :aria-expanded="headerMenu" @click="toggleHeaderMenu"><Icon name="more" :size="22" /></button>
           <div v-if="headerMenu" :ref="headerMenuList" class="menu" role="menu" @keydown="onHeaderMenuKey">
             <template v-if="isGroup">
-              <button role="menuitem" @click="rename">{{ t.__('Rename group', 'membuild-community') }}</button>
-              <button role="menuitem" class="danger" @click="leave">{{ t.__('Leave group', 'membuild-community') }}</button>
+              <button role="menuitem" @click="rename"><Icon name="pencil" :size="20" /> {{ t.__('Rename group', 'membuild-community') }}</button>
+              <hr class="sep" /><button role="menuitem" class="danger" @click="leave"><Icon name="logout" :size="20" /> {{ t.__('Leave group', 'membuild-community') }}</button>
             </template>
             <template v-else>
-              <RouterLink role="menuitem" :to="{ name: 'member', params: { id: others[0].id } }" @click="closeHeaderMenu">{{ t.__('View profile', 'membuild-community') }}</RouterLink>
-              <button role="menuitem" class="danger" @click="blockOther">{{ t.__('Block', 'membuild-community') }}</button>
+              <RouterLink role="menuitem" :to="{ name: 'member', params: { id: others[0].id } }" @click="closeHeaderMenu"><Icon name="user" :size="20" /> {{ t.__('View profile', 'membuild-community') }}</RouterLink>
+              <hr class="sep" /><button role="menuitem" class="danger" @click="blockOther"><Icon name="block" :size="20" /> {{ t.__('Block', 'membuild-community') }}</button>
             </template>
           </div>
         </div>
       </template>
     </header>
 
-    <div ref="scroller" class="scroll" @scroll.passive="onScroll" @click="menuFor = null; moreFor = null">
+    <div ref="scroller" class="scroll" @wheel.passive="unpin" @touchstart.passive="unpin" @mousedown="unpin" @keydown="unpin" @scroll.passive="onScroll" @click="menuFor = null; moreFor = null">
       <p v-if="error" class="state">{{ error }}</p>
       <div v-else-if="!chat" class="state"><div class="spinner" /></div>
       <template v-else>
@@ -574,6 +611,12 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 </template>
 
 <style scoped>
+/* "Active now" in green under the name (Settings › Features › Show who's online). */
+.who .now {
+  color: #1f7a49;
+  font-weight: 650;
+}
+
 .muted-note {
   margin: 0;
   text-align: center;
@@ -710,17 +753,47 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
   box-shadow: 0 8px 24px rgb(0 0 0 / 20%);
 }
 
-.menu button {
-  display: block;
-  width: 100%;
-  text-align: left;
-  padding: 8px 10px;
-  border-radius: 8px;
-  font-weight: 600;
+/* Like the chat menu on the canvas: an icon on every row, the red action under a line. */
+.menu {
+  min-width: 220px;
+  padding: 8px;
+  border-radius: 14px;
 }
 
-.menu button:hover {
+.menu [role='menuitem'] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 10px;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.menu [role='menuitem'] :deep(svg) {
+  flex: none;
+}
+
+.menu [role='menuitem']:hover,
+.menu [role='menuitem']:focus-visible {
   background: var(--surface-2);
+}
+
+.menu .danger {
+  color: var(--danger);
+}
+
+.sep {
+  margin: 6px 4px;
+  border: 0;
+  border-top: 1px solid var(--border);
 }
 
 .danger {

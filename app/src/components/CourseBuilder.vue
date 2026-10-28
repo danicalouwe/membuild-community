@@ -11,6 +11,7 @@ import CourseMap from './CourseMap.vue'
 import RichEditor from './RichEditor.vue'
 import Icon from './Icon.vue'
 import { t } from '../lib/i18n.js'
+import { offerButton } from '../lib/offer.js'
 
 /**
  * The course builder (Version 2), for owners: Lessons (sections and lessons,
@@ -21,7 +22,7 @@ const props = defineProps({
   course: { type: Object, required: true },
   lessonId: { type: Number, default: null },
 })
-const emit = defineEmits(['update:course', 'exit'])
+const emit = defineEmits(['update:course', 'exit', 'preview'])
 
 const route = useRoute()
 const router = useRouter()
@@ -104,7 +105,25 @@ async function removeSection() {
 /* ---------- Changing the order ---------- */
 const ordering = ref(false)
 const moveFor = ref(null) // 'm<id>' or 'l<id>'
-const saveOrder = () => run(() => api.updateStructure(props.course.id, modules.value.map((m) => ({ id: m.id, lessons: m.lessons.map((l) => l.id) }))))
+const orderOf = () => modules.value.map((m) => ({ id: m.id, lessons: m.lessons.map((l) => l.id) }))
+const saveOrder = () => run(() => api.updateStructure(props.course.id, orderOf()))
+// Each move saves at once; Cancel puts back the order from when you started and saves that.
+let orderAtStart = null
+function startOrdering() {
+  orderAtStart = orderOf()
+  ordering.value = true
+}
+function cancelOrdering() {
+  ordering.value = false
+  moveFor.value = null
+  if (!orderAtStart || JSON.stringify(orderAtStart) === JSON.stringify(orderOf())) return
+  const byId = new Map(modules.value.map((m) => [m.id, m]))
+  const lessons = new Map(modules.value.flatMap((m) => m.lessons).map((l) => [l.id, l]))
+  const restored = orderAtStart.map((o) => byId.get(o.id)).filter(Boolean)
+  restored.forEach((m, i) => (m.lessons = orderAtStart[i].lessons.map((id) => lessons.get(id)).filter(Boolean)))
+  modules.value.splice(0, modules.value.length, ...restored)
+  saveOrder()
+}
 function moveSection(i, delta) {
   const list = modules.value
   const j = i + delta
@@ -184,7 +203,7 @@ const settingsStatus = ref('saved')
 const form = ref({})
 function fill() {
   const c = props.course
-  form.value = { title: c.title, description: c.description || '', about: c.about || '', cta_label: c.access_cta?.label || '', cta_url: c.access_cta?.url || '' }
+  form.value = { title: c.title, description: c.description || '', about: c.about || '' }
 }
 watch(() => props.course.id, fill, { immediate: true })
 let settingsTimer = null
@@ -210,7 +229,6 @@ const retrySettings = () => saveCourse({}, 0)
 watch(() => form.value.title, (v, old) => old !== undefined && v.trim() && v !== props.course.title && saveCourse({ title: v.trim() }, 900))
 watch(() => form.value.description, (v, old) => old !== undefined && v !== props.course.description && saveCourse({ description: v }, 900))
 watch(() => form.value.about, (v, old) => old !== undefined && v !== (props.course.about || '') && saveCourse({ about: v }, 1200))
-watch(() => [form.value.cta_label, form.value.cta_url], (v, old) => old && saveCourse({ access_cta_label: form.value.cta_label, access_cta_url: form.value.cta_url }, 900))
 
 const groups = ref(null)
 async function loadGroups() {
@@ -236,8 +254,15 @@ function setAccess(mode) {
 function toggleGroup(id, on) {
   const ids = new Set(props.course.access_groups || [])
   on ? ids.add(id) : ids.delete(id)
+  groupPicker.value = false
   saveCourse({ access_groups: [...ids] })
 }
+// The membership whose button everyone else sees: the first chosen one that has a button
+// (the server picks the same way). Its price and link are set once, in Memberships.
+const groupPicker = ref(false)
+const chosenGroups = computed(() => (groups.value || []).filter((g) => (props.course.access_groups || []).includes(g.id)))
+const shown = computed(() => chosenGroups.value.find((g) => g.offer) || chosenGroups.value[0] || null)
+const alsoOpens = computed(() => (shown.value?.courses || []).filter((c) => c.id !== props.course.id).map((c) => c.title))
 
 const coverInput = ref(null)
 const coverUploading = ref(false)
@@ -300,7 +325,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
     <div class="cb-head">
       <span class="cb-status" :class="{ live: course.status === 'published' }">{{ course.status === 'published' ? t.__('Published: members can see it', 'membuild-community') : t.__('Draft: only you can see it', 'membuild-community') }}</span>
       <h1>{{ course.title }}</h1>
-      <button class="btn btn-lg btn-ghost" @click="emit('exit')"><Icon name="eye" :size="20" /> {{ t.__('See it as a member', 'membuild-community') }}</button>
+      <button class="btn btn-lg btn-ghost" @click="emit('preview')"><Icon name="eye" :size="20" /> {{ t.__('See it as a member', 'membuild-community') }}</button>
     </div>
 
     <nav class="cb-tabs" role="tablist" :aria-label="t.__('Course builder', 'membuild-community')">
@@ -336,11 +361,14 @@ const counter = computed(() => `${form.value.description.length} / 160`)
             <strong>{{ t.__('Changing the order', 'membuild-community') }}</strong>
             <small>{{ t.__('Drag the dots to move a section or lesson, or press them for Move up and Move down.', 'membuild-community') }}</small>
           </span>
-          <button class="btn btn-lg btn-primary" @click="ordering = false"><Icon name="check" :size="18" /> {{ t.__('Done', 'membuild-community') }}</button>
+          <span class="cb-ordering-btns">
+            <button class="btn btn-lg btn-ghost" @click="cancelOrdering">{{ t.__('Cancel', 'membuild-community') }}</button>
+            <button class="btn btn-lg btn-primary" @click="ordering = false"><Icon name="check" :size="18" /> {{ t.__('Done', 'membuild-community') }}</button>
+          </span>
         </div>
         <div v-else class="cb-listhead">
           <strong>{{ overview }}</strong>
-          <button class="btn btn-lg btn-ghost" @click="ordering = true"><Icon name="list" :size="18" /> {{ t.__('Change the order', 'membuild-community') }}</button>
+          <button class="btn btn-lg btn-ghost" @click="startOrdering"><Icon name="list" :size="18" /> {{ t.__('Change the order', 'membuild-community') }}</button>
         </div>
 
         <section v-for="(m, mi) in modules" :key="m.id" class="cb-section card" :class="{ ordering }" @dragover.prevent @drop.stop="dropOn({ type: 'm', i: mi })">
@@ -387,7 +415,8 @@ const counter = computed(() => `${form.value.description.length} / 160`)
         </section>
 
         <button v-if="!ordering" class="btn btn-lg btn-ghost cb-addsection" :disabled="busy" @click="ask('section')"><Icon name="plus" :size="18" /> {{ t.__('Add a section', 'membuild-community') }}</button>
-        <div class="cb-done">
+        <!-- Leaving the builder; hidden while changing the order, which has its own Cancel and Done. -->
+        <div v-if="!ordering" class="cb-done">
           <button class="btn btn-lg btn-primary" @click="emit('exit')">{{ t.__('Done', 'membuild-community') }}</button>
         </div>
       </template>
@@ -441,20 +470,29 @@ const counter = computed(() => `${form.value.description.length} / 160`)
             <strong>{{ t.__('Which memberships open it', 'membuild-community') }}</strong>
             <p v-if="!groups">{{ t.__('Loading…', 'membuild-community') }}</p>
             <template v-else>
-              <label v-for="g in groups" :key="g.id" class="check">
-                <input type="checkbox" :checked="(course.access_groups || []).includes(g.id)" @change="toggleGroup(g.id, $event.target.checked)" />
-                <span>{{ g.name }}</span>
-              </label>
+              <div class="ms-pick">
+                <span v-for="g in chosenGroups" :key="g.id" class="ms-chip">{{ g.name }}<button type="button" :aria-label="t.sprintf(t.__('Remove %s', 'membuild-community'), g.name)" @click="toggleGroup(g.id, false)"><Icon name="close" :size="14" /></button></span>
+                <span v-if="groups.some((g) => !(course.access_groups || []).includes(g.id))" class="ms-more">
+                  <button type="button" class="ms-add" :aria-expanded="groupPicker" @click="groupPicker = !groupPicker">+ {{ t.__('Add a membership', 'membuild-community') }}</button>
+                  <span v-if="groupPicker" class="ms-menu card" role="menu">
+                    <button v-for="g in groups.filter((x) => !(course.access_groups || []).includes(x.id))" :key="g.id" type="button" role="menuitem" @click="toggleGroup(g.id, true)">{{ g.name }}</button>
+                  </span>
+                </span>
+              </div>
+              <small class="ms-hint">{{ t.__('A membership can follow a WordPress role, so WP Fusion, FluentCRM or your membership plugin can give access for you.', 'membuild-community') }}</small>
               <p v-if="!groups.length">{{ t.__('There are no memberships yet.', 'membuild-community') }}</p>
-              <p v-else-if="!(course.access_groups || []).length" class="warn-text">{{ t.__('Pick at least one. Until then only admins and moderators can open this course.', 'membuild-community') }}</p>
-              <RouterLink :to="{ name: 'settings', hash: '#s-access' }" class="link">{{ groups.length ? t.__('Manage memberships', 'membuild-community') : t.__('Create a membership', 'membuild-community') }} ›</RouterLink>
+              <p v-else-if="!chosenGroups.length" class="warn-text">{{ t.__('Pick at least one. Until then only admins and moderators can open this course.', 'membuild-community') }}</p>
+              <div v-if="shown" class="ms-sees">
+                <strong>{{ t.sprintf(/* translators: %s: membership name */ t.__('Everyone else sees the %s’s button', 'membuild-community'), shown.name) }}</strong>
+                <p v-if="shown.offer" class="ms-row">{{ t.__('Members see:', 'membuild-community') }} <span class="ms-btn"><Icon name="lock" :size="15" /> {{ offerButton(shown.offer) }}</span></p>
+                <p v-else class="ms-row">{{ t.__('It’s invite only, so there’s no button. Members see “Ask an admin for access”.', 'membuild-community') }}</p>
+                <p v-if="alsoOpens.length" class="ms-also">
+                  {{ t.sprintf(/* translators: 1: membership name, 2: other course names */ t.__('%1$s also opens %2$s. Its price and link are set once for all of them.', 'membuild-community'), shown.name, alsoOpens.join(', ')) }}
+                </p>
+                <RouterLink :to="{ name: 'settings', hash: '#s-access' }" class="link">{{ t.__('Change the price or link in Memberships', 'membuild-community') }} ›</RouterLink>
+              </div>
+              <RouterLink v-else :to="{ name: 'settings', hash: '#s-access' }" class="link">{{ groups.length ? t.__('Manage memberships', 'membuild-community') : t.__('Create a membership', 'membuild-community') }} ›</RouterLink>
             </template>
-            <label class="field">
-              <span>{{ t.__('Button for everyone else (optional)', 'membuild-community') }}</span>
-              <input v-model="form.cta_label" maxlength="60" :placeholder="t.__('e.g. Get access for $49/month', 'membuild-community')" />
-              <input v-model="form.cta_url" type="url" placeholder="https://" :aria-label="t.__('Button link', 'membuild-community')" />
-              <small>{{ t.__('Shown to members who can’t open it yet, for example a link to your checkout page.', 'membuild-community') }}</small>
-            </label>
           </div>
         </fieldset>
 
@@ -544,6 +582,122 @@ const counter = computed(() => `${form.value.description.length} / 160`)
 </template>
 
 <style scoped>
+.ms-pick {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.ms-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 6px 0 14px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-weight: 650;
+}
+
+.ms-chip button {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.ms-more {
+  position: relative;
+}
+
+.ms-add {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.ms-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  padding: 6px;
+}
+
+.ms-menu button {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ms-menu button:hover {
+  background: var(--surface-2);
+}
+
+.ms-hint {
+  color: var(--text-2);
+}
+
+.ms-sees {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.ms-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: var(--text-2);
+}
+
+.ms-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--surface);
+  font-weight: 700;
+}
+
+.ms-also {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 14px;
+}
+
 .cb {
   max-width: 900px;
   margin: 0 auto;
@@ -677,6 +831,16 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   border: 2px solid var(--accent);
   border-radius: 14px;
   background: var(--accent-soft);
+}
+
+.cb-ordering-btns {
+  display: flex;
+  flex: none;
+  gap: 10px;
+}
+
+.cb-ordering-btns .btn-ghost {
+  background: var(--surface);
 }
 
 .cb-ordering strong {

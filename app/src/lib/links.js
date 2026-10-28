@@ -28,3 +28,24 @@ export function sharedIn(text) {
   }
   return null
 }
+
+/** The course id a link into this community's Classroom points at (…/classroom/12 or a lesson in it), or 0. */
+export function courseIdOf(href) {
+  try {
+    const u = new URL(href, location.origin)
+    if (u.origin !== location.origin || !u.pathname.startsWith(cfg.basePath)) return 0
+    const m = u.pathname.slice(cfg.basePath.length).replace(/^\/+/, '').match(/^classroom\/(\d+)(?:\/\d+)?\/?$/)
+    return m ? Number(m[1]) : 0
+  } catch {
+    return 0
+  }
+}
+
+/** The first course link in a text: { id, href }, or null. */
+export function courseIn(text) {
+  for (const href of String(text || '').match(URL_RE) || []) {
+    const id = courseIdOf(href)
+    if (id) return { id, href }
+  }
+  return null
+}

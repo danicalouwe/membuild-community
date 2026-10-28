@@ -1,5 +1,6 @@
 <script setup>
 import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { askConfirm } from '../lib/confirm.js'
 import { api } from '../api.js'
 import { cfg } from '../config.js'
 import { updatePost } from '../stores/feed.js'
@@ -227,7 +228,7 @@ async function send() {
 }
 
 async function remove(c) {
-  if (!confirm(t.__('Delete this comment?', 'membuild-community'))) return
+  if (!(await askConfirm({ title: t.__('Delete this comment?', 'membuild-community'), text: t.__('Its replies go with it. This can’t be undone.', 'membuild-community'), confirm: t.__('Delete comment', 'membuild-community'), danger: true }))) return
   const top = topLevelOf(c)
   const isReply = !!(c.parent_id && top)
   // What it looked like before, to put back if the server refuses.

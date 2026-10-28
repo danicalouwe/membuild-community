@@ -1,4 +1,5 @@
 <script setup>
+import { cfg } from '../config.js'
 import { computed, ref, watch } from 'vue'
 import { api } from '../api.js'
 import Avatar from './Avatar.vue'
@@ -39,7 +40,7 @@ watch(
   () => props.course.id,
   async (id) => {
     newest.value = helpful.value = null
-    if (props.course.lock || !props.course.posts_count || props.course.questions === 'off') return
+    if (props.course.lock || !props.course.posts_count || props.course.questions === 'off' || cfg.community.courses?.saying === false) return
     try {
       const [a, b] = await Promise.all([api.coursePosts(id, { sort: 'newest' }), api.coursePosts(id, { sort: 'top' })])
       newest.value = a.items[0] || null
@@ -89,10 +90,11 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
         </ul>
 
         <div v-if="course.lock" class="ov-lockbox">
-          <strong><Icon name="lock" :size="18" /> {{ lockLabel(course.lock) }}</strong>
-          <p v-if="lockHint(course.lock)">{{ lockHint(course.lock) }}</p>
-          <a v-if="course.lock.cta" :href="course.lock.cta.url" class="btn btn-lg btn-primary">{{ course.lock.cta.label }}</a>
-          <RouterLink v-else-if="course.lock.reason === 'level'" to="/leaderboard" class="btn btn-lg btn-ghost">{{ t.__('How to earn points', 'membuild-community') }}</RouterLink>
+          <span class="ov-lock-icon"><Icon name="lock" :size="18" /></span>
+          <span>
+            <strong>{{ lockLabel(course.lock) }}</strong>
+            <p v-if="lockHint(course.lock)">{{ lockHint(course.lock) }}</p>
+          </span>
         </div>
         <div v-else-if="lessons.length" class="ov-progress">
           <div class="ov-prog"><span>{{ completedOf(course.completed_count, course.lessons_count) }}</span><span>{{ course.progress }}%</span></div>
@@ -144,7 +146,7 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
         <button class="ov-all" @click="emit('tab', 'posts')">{{ allPosts(course.posts_count) }} <Icon name="chevronRight" :size="18" /></button>
       </div>
       <div class="ov-saying">
-        <button v-for="s in saying" :key="s.tag" class="ov-post card" @click="s.post.lesson ? emit('open', s.post.lesson.id) : emit('tab', 'posts')">
+        <button v-for="s in saying" :key="s.tag" class="ov-post card" @click="s.post.lesson ? emit('open', s.post.lesson.id, s.post.id) : emit('tab', 'posts')">
           <span class="ov-tag" :class="s.tag">{{ s.tag === 'new' ? t.__('Newest', 'membuild-community') : t.__('Most helpful', 'membuild-community') }}</span>
           <span class="ov-who">
             <Avatar :user="s.post.author" :size="36" />
@@ -311,19 +313,30 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
 
 .ov-lockbox {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 16px;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
   border-radius: 14px;
   background: var(--surface-2);
 }
 
+.ov-lock-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--surface);
+}
+
 .ov-lockbox strong {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  display: block;
   font-size: 17px;
+}
+
+.ov-lockbox p {
+  font-size: 15px !important;
 }
 
 .ov-lockbox p,

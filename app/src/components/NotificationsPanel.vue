@@ -105,12 +105,14 @@ const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles
         <button class="item" :class="{ unread: !n.read }" @click="open(n)">
           <span class="pic">
             <span v-if="n.type === 'level_up'" class="level">{{ n.data.level }}</span>
+            <span v-else-if="n.type === 'lesson_open'" class="level cal"><Icon name="cap" :size="26" /></span>
             <span v-else-if="n.type === 'event_reminder' || !n.actors.length" class="level cal"><Icon name="calendar" :size="26" /></span>
             <Avatar v-else :user="n.actors[0]" :size="56" />
             <span class="type">
               <ReactionBadge v-if="n.data.reaction" :type="n.data.reaction" :size="26" />
               <span v-else-if="n.type === 'level_up'" class="tbadge star">🏆</span>
               <span v-else-if="isEvent(n)" class="tbadge cal">📅</span>
+              <span v-else-if="n.type === 'lesson_open'" class="tbadge cal">🔓</span>
               <span v-else class="tbadge comment"><Icon name="comment" :size="14" /></span>
             </span>
           </span>
@@ -120,6 +122,10 @@ const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles
               <!-- The space lives inside the text: Vue drops a lone leading space. -->
               <template v-if="n.data.courses?.length">{{ ' ' + unlockedCourses(n.data.courses) }}</template>
               <template v-else>{{ ' ' + t.__('Keep it up 🎉', 'membuild-community') }}</template>
+            </span>
+            <span v-else-if="n.type === 'lesson_open'" class="sentence">
+              <strong>{{ n.data.title }}</strong>{{ ' ' + t.__('is open now', 'membuild-community') }}
+              <span class="course">{{ n.data.course }}</span>
             </span>
             <span v-else-if="n.type === 'event_reminder'" class="sentence">
               <strong>{{ n.data.title }}</strong>{{ ' · ' + eventLine(n) }}
@@ -146,6 +152,12 @@ const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles
 </template>
 
 <style scoped>
+.sentence .course {
+  display: block;
+  color: var(--text-2);
+  font-size: 14px;
+}
+
 .panel {
   display: flex;
   flex-direction: column;

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { cfg } from '../config.js'
 import { discussionList, loadMore, refresh } from '../stores/feed.js'
 import Avatar from './Avatar.vue'
@@ -16,11 +16,14 @@ const CreatePostDialog = defineAsyncComponent(() => import('./CreatePostDialog.v
 const props = defineProps({
   course: { type: Object, required: true }, // { id, title }
   lesson: { type: Object, default: null }, // { id, title }; none: the whole course
+  focusPost: { type: Number, default: 0 }, // scroll to this post once it's on the page
 })
 const emit = defineEmits(['posted'])
 
 const whole = computed(() => !props.lesson)
-const sort = ref('top')
+// Most helpful first, unless Helpful votes are off (Settings › Features › Courses).
+const helpfulOn = cfg.community.courses?.helpful !== false
+const sort = ref(helpfulOn ? 'top' : 'newest')
 const query = ref('')
 const typed = ref('')
 const place = computed(() => ({ course: props.course.id, lesson: props.lesson?.id || 0 }))
@@ -63,11 +66,13 @@ const empty = computed(() =>
       ? t.__('No posts yet. Say hi, or ask the first question.', 'membuild-community')
       : t.__('Be the first to post about this lesson.', 'membuild-community'),
 )
+// Nothing posted here yet (not a search that came back empty): no search or sorts, just an invitation.
+const nothing = computed(() => list.value.loaded && !list.value.items.length && !list.value.pinned.length && !query.value)
 // A one-time tip under a lesson: what Helpful does. Remembered in this browser once dismissed.
 const TIP = 'mbcom_helpful_tip'
 const tip = ref(false)
 try {
-  tip.value = !whole.value && !localStorage.getItem(TIP)
+  tip.value = helpfulOn && !whole.value && !localStorage.getItem(TIP)
 } catch {
   tip.value = false
 }
@@ -81,6 +86,25 @@ function hideTip() {
 }
 const SORTS = { top: t.__('Most helpful', 'membuild-community'), newest: t.__('Newest', 'membuild-community') }
 
+// Opened from a post elsewhere (the Overview): find it, glide to it, and light it up for a moment.
+const root = ref(null)
+let focused = 0
+async function findFocus() {
+  const id = props.focusPost
+  if (!id || focused === id || !list.value.loaded) return
+  const el = root.value?.querySelector(`[data-post-id="${id}"]`)
+  if (el) {
+    focused = id
+    await new Promise((r) => setTimeout(r, 150))
+    el.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' })
+    el.classList.add('spotlight')
+    setTimeout(() => el.classList.remove('spotlight'), 3600)
+  } else if (list.value.hasMore && !list.value.loading) {
+    loadMore(list.value) // further down the list: bring in the next page and look again
+  }
+}
+watch(() => [props.focusPost, list.value.loaded, list.value.items.length, list.value.loading], () => nextTick(findFocus), { immediate: true })
+
 // Infinite scroll: the next page loads as the end comes into view.
 const sentinel = ref(null)
 let observer = null
@@ -92,14 +116,14 @@ onBeforeUnmount(() => observer?.disconnect())
 </script>
 
 <template>
-  <section class="talk" :aria-label="whole ? t.__('Course discussion', 'membuild-community') : t.__('Lesson discussion', 'membuild-community')">
+  <section ref="root" class="talk" :aria-label="whole ? t.__('Course discussion', 'membuild-community') : t.__('Lesson discussion', 'membuild-community')">
     <div class="talk-head">
       <h3>{{ whole ? t.__('All posts in this course', 'membuild-community') : t.__('Discussion', 'membuild-community') }}</h3>
-      <div class="search">
+      <div v-if="!nothing" class="search">
         <Icon name="search" :size="18" />
         <input v-model="typed" type="search" :placeholder="whole ? t.__('Search all posts', 'membuild-community') : t.__('Search this discussion', 'membuild-community')" :aria-label="whole ? t.__('Search all posts', 'membuild-community') : t.__('Search this discussion', 'membuild-community')" />
       </div>
-      <div class="sorts" role="radiogroup" :aria-label="t.__('Sort posts', 'membuild-community')">
+      <div v-if="!nothing && helpfulOn" class="sorts" role="radiogroup" :aria-label="t.__('Sort posts', 'membuild-community')">
         <button v-for="(label, key) in SORTS" :key="key" role="radio" :aria-checked="sort === key" :class="{ on: sort === key }" @click="sort = key">{{ label }}</button>
       </div>
     </div>
@@ -130,6 +154,12 @@ onBeforeUnmount(() => observer?.disconnect())
       </div>
     </div>
     <p v-else-if="list.error && !list.items.length" class="empty">{{ list.error }}</p>
+    <div v-else-if="nothing && !whole" class="none">
+      <span class="none-icon"><Icon name="comment" :size="22" /></span>
+      <strong>{{ t.__('No questions yet', 'membuild-community') }}</strong>
+      <p>{{ t.__('Be the first to ask about this lesson. Your question shows up right here, so the next person learns from it too.', 'membuild-community') }}</p>
+      <button v-if="!cfg.community.restriction" class="btn btn-lg btn-dark" @click="open()">{{ t.__('Ask a question', 'membuild-community') }}</button>
+    </div>
     <p v-else-if="list.loaded && !list.items.length && !list.pinned.length" class="empty">{{ empty }}</p>
     <button v-if="list.loaded && list.hasMore && !list.loading" class="more btn btn-ghost" @click="loadMore(list)">{{ t.__('Show more posts', 'membuild-community') }}</button>
     <div ref="sentinel" class="sentinel" aria-hidden="true" />
@@ -139,6 +169,20 @@ onBeforeUnmount(() => observer?.disconnect())
 </template>
 
 <style scoped>
+.talk :deep(.post.spotlight) {
+  animation: spotlight 3.6s ease both;
+}
+
+@keyframes spotlight {
+  0%,
+  60% {
+    box-shadow: 0 0 0 3px var(--accent), 0 12px 30px rgb(0 0 0 / 16%);
+  }
+  100% {
+    box-shadow: var(--shadow);
+  }
+}
+
 .talk {
   display: flex;
   flex-direction: column;
@@ -294,6 +338,38 @@ onBeforeUnmount(() => observer?.disconnect())
   color: var(--text-3);
 }
 
+.none {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 40px 24px;
+  border: 2px dashed var(--border);
+  border-radius: 16px;
+  text-align: center;
+}
+
+.none-icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  background: var(--surface);
+}
+
+.none strong {
+  font-size: 19px;
+}
+
+.none p {
+  max-width: 460px;
+  margin: 0 0 8px;
+  color: var(--text-2);
+  line-height: 1.55;
+}
+
 .more {
   align-self: center;
   color: var(--text);
@@ -305,6 +381,11 @@ onBeforeUnmount(() => observer?.disconnect())
 
 /* Phones: posts run edge to edge like the feed; the controls keep a margin. */
 @media (max-width: 899px) {
+  .none {
+    margin: 0 12px;
+    padding: 32px 18px;
+  }
+
   .talk-head,
   .empty {
     padding: 0 12px;

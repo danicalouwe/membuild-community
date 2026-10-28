@@ -1,5 +1,6 @@
 <script setup>
 import { computed, defineAsyncComponent, ref } from 'vue'
+import { askConfirm } from '../lib/confirm.js'
 import { api } from '../api.js'
 import { removePost, setCoursePin, setPinned, takePost } from '../stores/feed.js'
 import { cfg } from '../config.js'
@@ -11,6 +12,8 @@ import MediaGrid from './MediaGrid.vue'
 import PostActions from './PostActions.vue'
 import CommentItem from './CommentItem.vue'
 import EventCard from './EventCard.vue'
+import CourseLinkCard from './CourseLinkCard.vue'
+import { useCourseLink } from '../lib/courseCards.js'
 const PostDialog = defineAsyncComponent(() => import('./PostDialog.vue'))
 const CreatePostDialog = defineAsyncComponent(() => import('./CreatePostDialog.vue'))
 const ReportDialog = defineAsyncComponent(() => import('./ReportDialog.vue'))
@@ -26,6 +29,10 @@ const props = defineProps({
 
 // A course without a cover gets the same gradient the Classroom grid gives it.
 const coverFallback = (id) => `linear-gradient(135deg, hsl(${(id * 67) % 360} 65% 55%), hsl(${(id * 67 + 50) % 360} 60% 38%))`
+
+// A link to a course shows as a course card under the text, and the link leaves the
+// text; the course's name in it is bold. A course this member can't see keeps the link.
+const { course: linkedCourse, text: shownText } = useCourseLink(() => props.post.content)
 
 const { open: menu, root: menuRoot, trigger: menuTrigger, list: menuList, toggle: toggleMenu, close: closeMenu, onKeydown: onMenuKey } = useMenu()
 const editing = ref(false)
@@ -93,7 +100,7 @@ const open = (focusComment = false) => {
 
 async function remove() {
   closeMenu()
-  if (!confirm(t.__('Delete this post?', 'membuild-community'))) return
+  if (!(await askConfirm({ title: t.__('Delete this post?', 'membuild-community'), text: t.__('It’s gone for everyone, with its comments and reactions. This can’t be undone.', 'membuild-community'), confirm: t.__('Delete post', 'membuild-community'), danger: true }))) return
   const restore = takePost(props.post.id)
   try {
     await api.deletePost(props.post.id)
@@ -105,7 +112,7 @@ async function remove() {
 </script>
 
 <template>
-  <article class="post card" :class="{ pending: post.pending }">
+  <article class="post card" :class="{ pending: post.pending }" :data-post-id="post.id">
     <!-- In Home, a course question leads with the course (its cover as the picture, the author
          tucked on its corner), the way a group post reads in a Facebook home feed. -->
     <header class="head">
@@ -159,12 +166,6 @@ async function remove() {
           <em v-if="staffLabel" class="staff">{{ staffLabel }}</em>
           {{ post.pending ? t.__('Posting…', 'membuild-community') : timeAgo(post.created_at) }}<template v-if="post.edited"> · {{ t.__('Edited', 'membuild-community') }}</template>
         </span>
-        <RouterLink v-if="showPlace && post.lesson" class="place" :to="{ name: 'course', params: { courseId: post.course.id, lessonId: post.lesson.id } }">
-          <Icon name="cap" :size="13" /> {{ post.lesson.title }}
-        </RouterLink>
-        <RouterLink v-else-if="showPlace && post.course" class="place" :to="{ name: 'course', params: { courseId: post.course.id } }">
-          <Icon name="cap" :size="13" /> {{ post.course.title }}
-        </RouterLink>
       </div>
       </template>
       <span v-if="post.pinned" class="pin" :title="t.__('Pinned by an admin', 'membuild-community')"><Icon name="pin" :size="14" /> {{ pinLabel }}</span>
@@ -177,18 +178,27 @@ async function remove() {
             <button v-if="post.pin" role="menuitem" class="plain" @click="pinInCourse(null)"><Icon name="pin" :size="18" /> {{ t.__('Unpin post', 'membuild-community') }}</button>
           </template>
           <button v-else-if="canPin" role="menuitem" class="plain" @click="togglePin"><Icon name="pin" :size="18" /> {{ post.pinned ? t.__('Unpin post', 'membuild-community') : t.__('Pin to top', 'membuild-community') }}</button>
-          <button v-if="post.can_edit" role="menuitem" @click="closeMenu(); editing = true"><Icon name="compose" :size="18" /> {{ t.__('Edit post', 'membuild-community') }}</button>
+          <button v-if="post.can_edit" role="menuitem" class="plain" @click="closeMenu(); editing = true"><Icon name="compose" :size="18" /> {{ t.__('Edit post', 'membuild-community') }}</button>
           <button v-if="post.can_delete" role="menuitem" @click="remove"><Icon name="trash" :size="18" /> {{ t.__('Delete post', 'membuild-community') }}</button>
-          <button v-if="!isMine" role="menuitem" @click="closeMenu(); reporting = true"><Icon name="flag" :size="18" /> {{ t.__('Report post', 'membuild-community') }}</button>
+          <button v-if="!isMine" role="menuitem" class="plain" @click="closeMenu(); reporting = true"><Icon name="flag" :size="18" /> {{ t.__('Report post', 'membuild-community') }}</button>
         </div>
       </div>
     </header>
+
+    <!-- In a course's All posts: which lesson the post is about, so it can be opened there. -->
+    <RouterLink v-if="showPlace && post.lesson" class="place" :to="{ name: 'course', params: { courseId: post.course.id, lessonId: post.lesson.id } }">
+      <Icon name="video" :size="15" /> {{ t.sprintf(/* translators: %s: lesson title */ t.__('In: %s', 'membuild-community'), post.lesson.title) }}
+    </RouterLink>
+    <RouterLink v-else-if="showPlace && post.course" class="place" :to="{ name: 'course', params: { courseId: post.course.id } }">
+      <Icon name="cap" :size="15" /> {{ t.sprintf(/* translators: %s: course title */ t.__('In: %s', 'membuild-community'), post.course.title) }}
+    </RouterLink>
 
     <EventCard v-if="post.event" :post="post" compact />
     <div v-if="background" class="bg-post" :style="{ background }">
       <p>{{ post.content }}</p>
     </div>
-    <RichText v-else-if="post.content" class="text" :class="{ big: !post.media.length && post.content.length < 90 }" :text="post.content" :clamp="320" />
+    <RichText v-else-if="shownText" class="text" :class="{ big: !post.media.length && !linkedCourse && post.content.length < 90 }" :text="shownText" :strong="linkedCourse?.title" :clamp="320" />
+    <CourseLinkCard v-if="linkedCourse && !background" :course="linkedCourse" />
 
     <MediaGrid v-if="post.media.length && !post.event" class="media" :media="post.media" :reel-link="post.type === 'reel' ? { name: 'reels', query: { id: post.id } } : null" />
 
@@ -221,25 +231,26 @@ async function remove() {
 }
 
 .place {
-  display: inline-flex;
+  display: flex;
+  width: fit-content;
   align-items: center;
-  gap: 4px;
-  align-self: flex-start;
-  max-width: 100%;
-  margin-top: 3px;
-  padding: 2px 8px;
-  border-radius: 6px;
+  gap: 6px;
+  max-width: calc(100% - 28px);
+  margin: 2px 14px 12px;
+  padding: 4px 12px;
+  border-radius: 999px;
   background: var(--surface-2);
-  color: var(--text-2);
-  font-size: 12.5px;
+  color: var(--text);
+  font-size: 14px;
   font-weight: 650;
+  text-decoration: none;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .place:hover {
-  color: var(--text);
+  background: var(--border);
 }
 
 /* Home: the course is the picture, the author sits on its corner. */

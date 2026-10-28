@@ -1,4 +1,5 @@
 <script setup>
+import { cfg } from '../config.js'
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../api.js'
@@ -7,6 +8,8 @@ import BaseDialog from '../components/BaseDialog.vue'
 import Icon from '../components/Icon.vue'
 import { accessTag, lockLabel } from '../lib/access.js'
 import { t } from '../lib/i18n.js'
+import { offerButton } from '../lib/offer.js'
+import { asMember } from '../lib/preview.js'
 
 const router = useRouter()
 const courses = ref([])
@@ -30,7 +33,6 @@ onMounted(async () => {
 })
 
 // "See it as a member": owners check the Classroom without their tools and drafts.
-const asMember = ref(false)
 const owner = computed(() => canManage.value && !asMember.value)
 const visible = computed(() => (owner.value ? courses.value : courses.value.filter((c) => c.status !== 'draft' && !(c.lock && c.hide_locked))))
 
@@ -102,14 +104,17 @@ const postsLabel = (n) => t.sprintf(/* translators: %d: number of posts */ t._n(
 const percentDone = (pct) => t.sprintf(/* translators: %d: percent of the course completed */ t.__('%d%% complete', 'membuild-community'), pct)
 
 // The short pill on a locked cover, and what the card's foot says unlocks it.
-const lockPill = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: %d: level number */ t.__('Level %d+', 'membuild-community'), lock.level) : lock.groups.length ? lock.groups.join(', ') : t.__('Members only', 'membuild-community'))
-const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: %d: level number */ t.__('Reach Level %d', 'membuild-community'), lock.level) : lock.cta?.label || lockLabel(lock))
+// Settings › Features › Classroom: members and posts on course cards.
+const cardActivity = cfg.community.courses?.activity !== false
+const lockPill = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: %d: level number */ t.__('Level %d+', 'membuild-community'), lock.level) : lock.membership?.name || lock.groups.join(', ') || t.__('Members only', 'membuild-community'))
+const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: %d: level number */ t.__('Reach Level %d', 'membuild-community'), lock.level) : lock.membership?.offer ? offerButton(lock.membership.offer) : lockLabel(lock))
 </script>
 <template>
   <div class="classroom">
     <div v-if="canManage && asMember" class="preview-bar">
       <Icon name="eye" :size="20" />
-      <span>{{ t.__('You’re seeing the Classroom the way members see it. Drafts are hidden.', 'membuild-community') }}</span>
+      <span class="pv-long">{{ t.__('You’re seeing the Classroom the way members see it. Drafts are hidden.', 'membuild-community') }}</span>
+      <span class="pv-short">{{ t.__('Member view', 'membuild-community') }}</span>
       <button class="btn btn-lg btn-ghost" @click="asMember = false">{{ t.__('Back to your view', 'membuild-community') }}</button>
     </div>
 
@@ -181,7 +186,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
         <div class="body">
           <h2>{{ c.title }}</h2>
           <p class="desc">{{ c.description }}</p>
-          <div v-if="c.faces?.length || c.posts_count" class="alive">
+          <div v-if="cardActivity && (c.faces?.length || c.posts_count)" class="alive">
             <span v-if="c.faces?.length" class="people">
               <span class="faces"><Avatar v-for="u in c.faces" :key="u.id" :user="u" :size="24" /></span>
               {{ membersLabel(c.learners) }}
@@ -249,6 +254,74 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
 </template>
 
 <style scoped>
+/* Phones: the member-view bar is one short row. */
+.preview-bar .pv-short {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  /* One line on phones: eye, "Member view", the button. */
+  .preview-bar.preview-bar {
+    flex-wrap: nowrap;
+    gap: 10px;
+    margin: 8px 0 14px;
+    padding: 6px 6px 6px 14px;
+    font-size: 15px;
+  }
+
+  .preview-bar.preview-bar .pv-short {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .preview-bar.preview-bar svg {
+    flex: none;
+  }
+
+  .preview-bar.preview-bar .btn {
+    flex: none;
+    padding: 0 16px;
+    font-size: 15px;
+  }
+
+  .preview-bar .pv-long {
+    display: none;
+  }
+
+  .preview-bar .pv-short {
+    display: inline;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .preview-bar .btn {
+    margin-left: auto;
+    white-space: nowrap;
+  }
+
+  .preview-bar .btn {
+    min-height: 44px;
+  }
+}
+
+/* The smallest phones: the eye goes so the words and the button still fit. */
+@media (max-width: 360px) {
+  .preview-bar.preview-bar svg {
+    display: none;
+  }
+
+  .preview-bar.preview-bar {
+    gap: 8px;
+    padding-left: 14px;
+  }
+
+  .preview-bar.preview-bar .btn {
+    padding: 0 12px;
+  }
+}
+
 .classroom {
   max-width: 1080px;
   margin: 0 auto;
@@ -441,9 +514,6 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
     display: none;
   }
 
-  .preview-bar {
-    flex-wrap: wrap;
-  }
 }
 
 @media (max-width: 400px) {

@@ -63,6 +63,8 @@ class Privacy {
 				'data'        => array(
 					array( 'name' => __( 'Bio', 'membuild-community' ), 'value' => (string) get_user_meta( $id, 'mbcom_bio', true ) ),
 					array( 'name' => __( 'Profile photo', 'membuild-community' ), 'value' => (string) get_user_meta( $id, 'mbcom_avatar_url', true ) ),
+					array( 'name' => __( 'Cover picture', 'membuild-community' ), 'value' => (string) get_user_meta( $id, 'mbcom_cover_url', true ) ),
+					array( 'name' => __( 'Where you live', 'membuild-community' ), 'value' => (string) get_user_meta( $id, 'mbcom_location', true ) ),
 					array( 'name' => __( 'Level', 'membuild-community' ), 'value' => (string) $stats['level'] ),
 					array( 'name' => __( 'Points', 'membuild-community' ), 'value' => (string) $stats['points'] ),
 					array( 'name' => __( 'Private messages sent', 'membuild-community' ), 'value' => (string) $sent ),
@@ -167,7 +169,7 @@ class Privacy {
 		}
 		$removed += (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE reporter_id = %d', Install::table( 'reports' ), $id ) );
 		$removed += (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE user_id = %d OR blocked_id = %d', Install::table( 'blocks' ), $id, $id ) );
-		foreach ( array( 'mbcom_bio', 'mbcom_avatar_url', 'mbcom_email_prefs', 'mbcom_email_last', 'mbcom_last_active', Moderation::META ) as $key ) {
+		foreach ( array( 'mbcom_bio', 'mbcom_avatar_url', 'mbcom_cover_url', 'mbcom_location', 'mbcom_seen_at', 'mbcom_hide_online', 'mbcom_email_prefs', 'mbcom_email_last', 'mbcom_last_active', Moderation::META ) as $key ) {
 			$removed += delete_user_meta( $id, $key ) ? 1 : 0;
 		}
 		return array(

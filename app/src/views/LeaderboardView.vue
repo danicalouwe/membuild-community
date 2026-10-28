@@ -71,7 +71,7 @@ const rankLabel = (rank) => t.sprintf(/* translators: %d: your position on the l
       <ol class="list" :class="{ dim: loading }">
         <li v-for="item in data?.items || []" :key="item.user.id" :class="{ me: item.user.id === cfg.user.id, top: item.rank <= 3 }">
           <span class="rank">{{ medal(item.rank) || item.rank }}</span>
-          <Avatar :user="item.user" :size="40" badge link />
+          <Avatar :user="item.user" :size="40" badge link online="top" />
           <RouterLink :to="{ name: 'member', params: { id: item.user.id } }" class="name">{{ item.user.name }}</RouterLink>
           <span class="pts">{{ period === 'all' ? '' : '+' }}{{ compactNumber(item.points) }}</span>
         </li>

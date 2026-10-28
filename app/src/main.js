@@ -7,6 +7,7 @@ import { router } from './router.js'
 import './styles.css'
 import { cfg } from './config.js'
 import { applyAccent } from './lib/theme.js'
+import './lib/display.js' // Light / Dark / Auto, before the first paint
 import { vStream } from './lib/stream.js'
 import { vAutoGrow } from './lib/autoGrow.js'
 import { t } from './lib/i18n.js'

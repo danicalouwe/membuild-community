@@ -59,7 +59,8 @@ async function tick() {
     try {
       const threads = [...watchers].map(([id, w]) => `${id}:${w.afterId()}`).join(',')
       const since = feedSince?.() || undefined
-      const res = await api.pulse(threads || undefined, since)
+      // Only real use counts for the green dot: a click, key or scroll in the last 2 minutes.
+      const res = await api.pulse(threads || undefined, since, Date.now() - lastActivity < IDLE_AFTER)
       messages.unread = res.unread
       messages.inboxVersion = res.inbox_version
       messages.notifications = res.notifications

@@ -79,6 +79,7 @@ export function applyAccent(hex) {
   style.textContent = `
 :root { --accent: ${light.accent}; --accent-ink: ${light.ink}; --accent-text: ${light.text}; --accent-soft: color-mix(in srgb, ${hex} 12%, #ffffff); }
 @media (prefers-color-scheme: dark) {
-  :root { --accent: ${dark.accent}; --accent-ink: ${dark.ink}; --accent-text: ${dark.text}; --accent-soft: color-mix(in srgb, ${hex} 24%, #18191c); }
-}`
+  :root:not([data-theme="light"]) { --accent: ${dark.accent}; --accent-ink: ${dark.ink}; --accent-text: ${dark.text}; --accent-soft: color-mix(in srgb, ${hex} 24%, #18191c); }
+}
+:root[data-theme="dark"] { --accent: ${dark.accent}; --accent-ink: ${dark.ink}; --accent-text: ${dark.text}; --accent-soft: color-mix(in srgb, ${hex} 24%, #18191c); }`
 }

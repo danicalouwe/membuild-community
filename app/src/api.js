@@ -124,6 +124,8 @@ export const api = {
 
   courses: () => request('/courses'),
   course: (id) => request(`/courses/${id}`),
+  privacy: () => request('/me/privacy'),
+  savePrivacy: (body) => request('/me/privacy', { method: 'PUT', body }),
   courseMap: (id) => request(`/courses/${id}/map`),
   createCourse: (body) => request('/courses', { method: 'POST', body }),
   updateCourse: (id, body) => request(`/courses/${id}`, { method: 'PUT', body }),
@@ -182,7 +184,7 @@ export const api = {
   unsend: (id) => request(`/messages/${id}`, { method: 'DELETE' }),
   reactMessage: (id, type) => request(`/messages/${id}/reaction`, { method: 'PUT', body: { type } }),
   unreactMessage: (id) => request(`/messages/${id}/reaction`, { method: 'DELETE' }),
-  pulse: (threads, feedSince) => request('/messages/pulse', { params: { threads, feed_since: feedSince } }),
+  pulse: (threads, feedSince, active) => request('/messages/pulse', { params: { threads, feed_since: feedSince, active: active ? 1 : undefined } }),
   settings: () => request('/settings'),
   saveAppIcon: (mediaId) => request('/settings/app-icon', { method: 'PUT', body: { media_id: mediaId } }),
   testVideo: () => request('/settings/test-video', { method: 'POST' }),

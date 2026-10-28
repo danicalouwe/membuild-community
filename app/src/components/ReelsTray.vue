@@ -1,5 +1,6 @@
 <script setup>
 import { defineAsyncComponent, onBeforeUnmount, onMounted, ref } from 'vue'
+import { askConfirm } from '../lib/confirm.js'
 import { api } from '../api.js'
 import { cfg } from '../config.js'
 import { lists, loadMore, takePost } from '../stores/feed.js'
@@ -73,7 +74,7 @@ async function copyLink(reel) {
 
 async function remove(reel) {
   menu.value = null
-  if (!confirm(t.__('Delete this reel?', 'membuild-community'))) return
+  if (!(await askConfirm({ title: t.__('Delete this reel?', 'membuild-community'), confirm: t.__('Delete reel', 'membuild-community'), danger: true }))) return
   const restore = takePost(reel.id)
   try {
     await api.deletePost(reel.id)

@@ -184,7 +184,7 @@ class Discussions {
 		if ( ! $ok ) {
 			return new \WP_Error( 'mbcom_not_available', __( 'You can post here once you can open this lesson.', 'membuild-community' ), array( 'status' => 403 ) );
 		}
-		if ( $wpdb->get_var( $wpdb->prepare( 'SELECT questions_off FROM %i WHERE id = %d', Install::table( 'courses' ), $course_id ) ) ) {
+		if ( ! Settings::course_part( 'questions' ) || $wpdb->get_var( $wpdb->prepare( 'SELECT questions_off FROM %i WHERE id = %d', Install::table( 'courses' ), $course_id ) ) ) {
 			return new \WP_Error( 'mbcom_questions_off', __( 'Questions are turned off for this course.', 'membuild-community' ), array( 'status' => 403 ) );
 		}
 		return array( (int) $course_id, (int) $lesson_id );
@@ -287,6 +287,9 @@ class Discussions {
 		$row = self::course_post( (int) $req['id'] );
 		if ( is_wp_error( $row ) ) {
 			return $row;
+		}
+		if ( ! Settings::course_part( 'helpful' ) ) {
+			return new \WP_Error( 'mbcom_helpful_off', __( 'Helpful votes are turned off.', 'membuild-community' ), array( 'status' => 403 ) );
 		}
 		if ( (int) $row['user_id'] === get_current_user_id() ) {
 			return new \WP_Error( 'mbcom_own_post', __( 'You can’t vote for your own post.', 'membuild-community' ), array( 'status' => 400 ) );

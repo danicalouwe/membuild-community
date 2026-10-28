@@ -58,7 +58,7 @@ const closeLabel = (c) => t.sprintf(/* translators: %s: the chat's name or the p
       <div v-for="c in heads" :key="c.id" class="head-wrap">
         <button class="head" :aria-label="openLabel(c)" :title="nameOf(c)" @click="openChat(c)">
           <span class="faces" :class="{ group: c.others.length > 1 }">
-            <Avatar v-for="o in c.others.slice(0, 2)" :key="o.id" :user="o" :size="c.others.length > 1 ? 34 : 48" />
+            <Avatar v-for="o in c.others.slice(0, 2)" :key="o.id" :user="o" :size="c.others.length > 1 ? 34 : 48" :online="c.others.length === 1" />
           </span>
         </button>
         <button class="x" :aria-label="closeLabel(c)" @click="closeChat(c.id)"><Icon name="close" :size="12" /></button>

@@ -258,7 +258,7 @@ class Email {
 	public static function prefs( $user_id ) {
 		$p = get_user_meta( (int) $user_id, self::PREFS, true );
 		return array_merge(
-			array( 'frequency' => 'instant', 'messages' => true, 'activity' => true ),
+			array( 'frequency' => 'instant', 'messages' => true, 'activity' => true, 'events' => true ), // events: reminders and changes for events you're going to
 			is_array( $p ) ? $p : array()
 		);
 	}
@@ -272,7 +272,7 @@ class Email {
 		if ( isset( $req['frequency'] ) ) {
 			$p['frequency'] = in_array( $req['frequency'], array( 'instant', 'daily', 'off' ), true ) ? $req['frequency'] : 'instant';
 		}
-		foreach ( array( 'messages', 'activity' ) as $key ) {
+		foreach ( array( 'messages', 'activity', 'events' ) as $key ) {
 			if ( isset( $req[ $key ] ) ) {
 				$p[ $key ] = (bool) $req[ $key ];
 			}
@@ -392,14 +392,16 @@ class Email {
 		$cutoff = gmdate( 'Y-m-d H:i:s', time() - self::ACTIVE_WINDOW );
 		$items  = array();
 
-		if ( $prefs['activity'] ) {
+		// Comments and replies, and event reminders, each as the member chose.
+		$types = array_merge(
+			$prefs['activity'] ? array( 'post_comment', 'comment_reply' ) : array(),
+			$prefs['events'] ? array( 'event_reminder', 'event_changed', 'event_cancelled' ) : array()
+		);
+		if ( $types ) {
 			$rows = $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT * FROM %i WHERE user_id = %d AND type IN ('post_comment','comment_reply','event_reminder','event_changed','event_cancelled') AND read_at IS NULL AND seen_at IS NULL AND updated_at > %s AND updated_at <= %s ORDER BY updated_at DESC LIMIT 10",
-					Install::table( 'notifications' ),
-					$user_id,
-					$since,
-					$cutoff
+					'SELECT * FROM %i WHERE user_id = %d AND type IN (' . implode( ',', array_fill( 0, count( $types ), '%s' ) ) . ') AND read_at IS NULL AND seen_at IS NULL AND updated_at > %s AND updated_at <= %s ORDER BY updated_at DESC LIMIT 10', // phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- one %s per type, built above.
+					array_merge( array( Install::table( 'notifications' ), $user_id ), $types, array( $since, $cutoff ) )
 				),
 				ARRAY_A
 			);
@@ -573,18 +575,69 @@ class Email {
 		if ( ! hash_equals( self::sign( $user_id ), sanitize_text_field( wp_unslash( $_GET['sig'] ) ) ) || ! get_userdata( $user_id ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 			wp_die( esc_html__( 'This unsubscribe link isn’t valid.', 'membuild-community' ), '', array( 'response' => 400 ) );
 		}
-		if ( 'POST' !== Helpers::method() ) {
-			$form = '<p>' . esc_html__( 'Stop getting community emails?', 'membuild-community' ) . '</p>'
-				. '<form method="post" action="' . esc_url( self::unsubscribe_url( $user_id ) ) . '"><button type="submit" class="button button-primary">' . esc_html__( 'Unsubscribe', 'membuild-community' ) . '</button></form>';
-			wp_die( wp_kses( $form, array( 'p' => array(), 'form' => array( 'method' => true, 'action' => true ), 'button' => array( 'type' => true, 'class' => true ) ) ), esc_html__( 'Unsubscribe', 'membuild-community' ), array( 'response' => 200 ) );
+		$prefs = self::prefs( $user_id );
+		$url   = self::unsubscribe_url( $user_id );
+		if ( 'POST' === Helpers::method() ) {
+			// "daily" and "on" come from the page's buttons; anything else (a mail app's one-click
+			// unsubscribe, or Stop all community emails) turns emails off.
+			$do                 = sanitize_key( wp_unslash( $_POST['do'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification -- signed link
+			$prefs['frequency'] = 'daily' === $do ? 'daily' : ( 'on' === $do ? 'instant' : 'off' );
+			update_user_meta( $user_id, self::PREFS, $prefs );
+			self::unsubscribe_page( 'done', $prefs['frequency'], $url );
 		}
-		$p              = self::prefs( $user_id );
-		$p['frequency'] = 'off';
-		update_user_meta( $user_id, self::PREFS, $p );
-		wp_die(
-			esc_html__( 'You won’t get community emails any more. You can turn them back on from Edit profile.', 'membuild-community' ),
-			esc_html__( 'Unsubscribed', 'membuild-community' ),
-			array( 'response' => 200, 'link_url' => esc_url( home_url( '/' . Settings::slug() . '/me' ) ), 'link_text' => esc_html__( 'Open the community', 'membuild-community' ) )
-		);
+		// Opening the link only shows the choices (mail scanners open links); a POST changes anything.
+		self::unsubscribe_page( 'off' === $prefs['frequency'] ? 'done' : 'ask', $prefs['frequency'], $url );
+	}
+
+	/**
+	 * The unsubscribe pages, in the community's own look (its logo, name and main colour),
+	 * no login: "ask" offers a daily summary before stopping; "done" says what changed.
+	 */
+	private static function unsubscribe_page( $step, $frequency, $url ) {
+		$name    = Settings::name();
+		$accent  = Settings::get( 'accent' ) ?: '#c8f542';
+		$rgb     = sscanf( ltrim( $accent, '#' ), '%02x%02x%02x' );
+		$ink     = ( 0.299 * $rgb[0] + 0.587 * $rgb[1] + 0.114 * $rgb[2] ) > 150 ? '#16181d' : '#ffffff'; // readable on the main colour
+		$logo    = Settings::get( 'logo' )['url'] ?? '';
+		$home    = home_url( '/' . Settings::slug() . '/' );
+		$choose  = home_url( '/' . Settings::slug() . '/me/emails' );
+		$button  = fn( $do, $label, $main ) => '<form method="post" action="' . esc_url( $url ) . '"><input type="hidden" name="do" value="' . esc_attr( $do ) . '"><button type="submit" class="btn' . ( $main ? ' main' : '' ) . '">' . esc_html( $label ) . '</button></form>';
+		if ( 'ask' === $step ) {
+			/* translators: %s: community name */
+			$title = sprintf( __( 'Fewer emails from %s?', 'membuild-community' ), $name );
+			$body  = '<h1>' . esc_html( $title ) . '</h1><p>'
+				. esc_html( 'daily' === $frequency ? __( 'You’re getting one summary a day. Pick what suits you.', 'membuild-community' ) : __( 'You’re getting an email each time something happens. Pick what suits you.', 'membuild-community' ) ) . '</p>'
+				. ( 'daily' === $frequency ? '' : $button( 'daily', __( 'Send me one summary a day instead', 'membuild-community' ), true ) )
+				. $button( 'off', __( 'Stop all community emails', 'membuild-community' ), 'daily' === $frequency )
+				/* translators: %s: a link, "choose exactly which emails you get" */
+				. '<p class="or">' . sprintf( esc_html__( 'or %s', 'membuild-community' ), '<a href="' . esc_url( $choose ) . '">' . esc_html__( 'choose exactly which emails you get', 'membuild-community' ) . '</a>' ) . '</p>';
+		} else {
+			$off   = 'off' === $frequency;
+			$title = $off ? __( 'Done. No more community emails.', 'membuild-community' ) : ( 'daily' === $frequency ? __( 'Done. One summary a day from now on.', 'membuild-community' ) : __( 'Emails are back on.', 'membuild-community' ) );
+			$body  = '<span class="tick" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>'
+				. '<h1>' . esc_html( $title ) . '</h1><p>'
+				. esc_html( $off ? __( 'You’ll still see everything under the bell when you visit. Password reset emails still arrive.', 'membuild-community' ) : __( 'You can change this any time in Emails you get.', 'membuild-community' ) ) . '</p>'
+				. '<a class="btn main" href="' . esc_url( $home ) . '">' . esc_html__( 'Open the community', 'membuild-community' ) . '</a>'
+				. ( $off ? $button( 'on', __( 'Changed my mind, turn emails back on', 'membuild-community' ), false ) : '' );
+		}
+		$mark = $logo ? '<img src="' . esc_url( $logo ) . '" alt="">' : '<span class="mark">' . esc_html( Settings::initials() ) . '</span>';
+		nocache_headers();
+		status_header( 200 );
+		header( 'Content-Type: text/html; charset=utf-8' );
+		header( 'X-Robots-Tag: noindex' );
+		echo '<!doctype html><html lang="' . esc_attr( get_bloginfo( 'language' ) ) . '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>' . esc_html( $title . ' · ' . $name ) . '</title><style>'
+			. 'body{margin:0;background:#f3f4f6;color:#16181d;font:16px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}'
+			. '.wrap{max-width:560px;margin:90px auto;padding:0 16px;display:flex;flex-direction:column;align-items:center;gap:22px}'
+			. '.brand{display:flex;align-items:center;gap:12px;font-size:20px;font-weight:800}.brand img{width:48px;height:48px;border-radius:12px;object-fit:cover}'
+			. '.mark{display:grid;place-items:center;width:48px;height:48px;border-radius:12px;background:' . esc_attr( $accent ) . ';color:' . $ink . ';font-size:17px}'
+			. '.card{box-sizing:border-box;width:100%;display:flex;flex-direction:column;gap:16px;padding:34px 34px 30px;border:1px solid #e3e6ea;border-radius:20px;background:#fff;box-shadow:0 8px 24px rgba(16,24,40,.06)}'
+			. 'h1{margin:0;font-size:26px;line-height:1.25}p{margin:0;color:#4a4f59;font-size:17px;line-height:1.55}form{margin:0}'
+			. '.btn{display:flex;box-sizing:border-box;width:100%;height:54px;align-items:center;justify-content:center;border:0;border-radius:999px;background:#e6e9ee;color:#16181d;font-family:inherit;font-size:17px;font-weight:700;line-height:1;text-decoration:none;cursor:pointer}'
+			. '.btn.main{background:' . esc_attr( $accent ) . ';color:' . $ink . '}'
+			. '.or{text-align:center;font-size:16px}.or a{color:#16181d;font-weight:700}'
+			. '.tick{display:grid;place-items:center;width:60px;height:60px;border-radius:50%;background:#e3f5ea;color:#1f7a49}'
+			. '@media(max-width:600px){.wrap{margin:40px auto}.card{padding:26px 20px 22px}h1{font-size:23px}}'
+			. '</style></head><body><main class="wrap"><div class="brand">' . $mark . esc_html( $name ) . '</div><div class="card">' . $body . '</div></main></body></html>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every piece is escaped where it is built.
+		exit;
 	}
 }

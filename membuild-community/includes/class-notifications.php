@@ -251,6 +251,7 @@ class Notifications {
 		$data   = json_decode( (string) $r['data'], true ) ?: array();
 		$link   = match ( $r['type'] ) {
 			'level_up'       => array( 'name' => 'me' ),
+			'lesson_open'    => array( 'name' => 'course', 'params' => array( 'courseId' => (int) ( $data['course_id'] ?? 0 ), 'lessonId' => (int) $r['object_id'] ) ),
 			'story_reaction' => array( 'name' => 'feed' ),
 			'event_new', 'event_changed', 'event_cancelled', 'event_reminder' => array( 'name' => 'event', 'params' => array( 'id' => (int) $r['post_id'] ) ),
 			default          => array( 'name' => 'feed', 'query' => array( 'post' => (int) $r['post_id'] ) ),

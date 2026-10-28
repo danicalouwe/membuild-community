@@ -48,13 +48,13 @@ const shareCount = (n) => t.sprintf(/* translators: %s: number of shares, e.g. "
 
 <template>
   <div class="actions" :class="{ disabled: post.pending }">
-    <div v-if="post.reactions_count || post.comments_count || post.shares_count || post.helpful_count" class="summary">
+    <div v-if="post.reactions_count || post.comments_count || post.shares_count || (post.helpful_count && cfg.community.courses?.helpful !== false)" class="summary">
       <button v-if="post.reactions_count" class="who" :aria-label="t.__('See who reacted', 'membuild-community')" @click="showReactions = true">
         <ReactionStack :types="post.top_reactions" :counts="post.reaction_counts" :size="18" />
         <span>{{ fmt(post.reactions_count) }}</span>
       </button>
       <span class="counts">
-        <span v-if="post.helpful_count" class="helpful-count"><Icon name="arrowUp" :size="14" /> {{ helpfulCount(post.helpful_count) }}</span>
+        <span v-if="post.helpful_count && cfg.community.courses?.helpful !== false" class="helpful-count"><Icon name="arrowUp" :size="14" /> {{ helpfulCount(post.helpful_count) }}</span>
         <button v-if="post.comments_count" class="link" @click="$emit('comment')">
           {{ commentCount(post.comments_count) }}
         </button>
@@ -68,7 +68,7 @@ const shareCount = (n) => t.sprintf(/* translators: %s: number of shares, e.g. "
         <span>{{ t._x('Comment', 'verb: write a comment', 'membuild-community') }}</span>
       </button>
       <button
-        v-if="inCourse"
+        v-if="inCourse && cfg.community.courses?.helpful !== false"
         class="act helpful"
         :class="{ on: post.my_helpful }"
         :aria-pressed="post.my_helpful"

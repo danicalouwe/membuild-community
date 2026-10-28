@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.10.1
+Stable tag: 1.11.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -261,6 +261,20 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.11.0 =
+* A new Members page: cards with each member's cover photo, where they live and when they joined, a green dot on who's online, and more members as you scroll.
+* Online status: a green dot shows who's using the community right now. Members can hide it in Privacy (then they don't see others' dots either), and owners can turn it off.
+* A new profile page, with Edit profile, Emails you get and Privacy each on a page of their own. Change your photo or cover with the camera on your profile. The unsubscribe link in emails opens a clear page.
+* Memberships: open courses to the people in a membership, and give or take one away on a member's profile. A locked course says how to get in.
+* Lessons: one green Completed button, and after you finish a lesson a short countdown takes you to the next one (Stay here stops it). See it as a member now works on phones too.
+* Lesson files: a coloured icon for each kind of file, a name the owner chooses, downloads named after the course and lesson, and Preview for PDFs and pictures. Only members who can open the course can get them.
+* Sharing a finished course shows the course as a card, and you stay on the course with a "Shared to Home" message and View post. Any post that links to a course shows its card.
+* Phones: text and buttons are a little smaller so more fits, the member view bar is one line, and the Menu tab opens your menu.
+* Chats open on the newest message, the chat menu is tidier, and Messages has the whole width.
+* Fixed: Word, Excel and PowerPoint files couldn't be added to lessons.
+* Fixed: Delete post and other "Are you sure?" questions did nothing in some browsers. They now use the community's own box.
+* Fixed: holding Like on an iPhone selected text instead of opening the reactions.
 
 = 1.10.1 =
 * Fixed: in the course builder, Publish course, Delete lesson and Delete section couldn't be pressed in their "Are you sure?" boxes. They work again.

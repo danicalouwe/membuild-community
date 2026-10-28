@@ -165,6 +165,7 @@ export function insertPost(post) {
     return
   }
   ;(post.type === 'reel' ? lists.reels : lists.latest).items.unshift(post)
+  lists[`member-${post.author?.id}`]?.items.unshift(post) // and the top of the writer's own profile
 }
 
 export function replacePost(localKey, post) {

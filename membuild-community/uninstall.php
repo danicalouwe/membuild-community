@@ -45,7 +45,7 @@ function mbcom_uninstall_site() {
 		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . 'mbcom_' . $mbcom_table ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.SchemaChange -- removing the plugin's own tables on uninstall, only when the admin opted in.
 	}
 
-	foreach ( array( 'mbcom_bio', 'mbcom_avatar_url', 'mbcom_restriction', 'mbcom_email_prefs', 'mbcom_email_last', 'mbcom_last_active' ) as $mbcom_meta ) {
+	foreach ( array( 'mbcom_bio', 'mbcom_avatar_url', 'mbcom_restriction', 'mbcom_email_prefs', 'mbcom_email_last', 'mbcom_last_active', 'mbcom_seen_at', 'mbcom_hide_online', 'mbcom_cover_url', 'mbcom_location' ) as $mbcom_meta ) {
 		delete_metadata( 'user', 0, $mbcom_meta, '', true );
 	}
 
@@ -56,7 +56,7 @@ function mbcom_uninstall_site() {
 		wp_delete_file( $mbcom_key );
 	}
 
-	foreach ( array( 'mbcom_settings', 'mbcom_db_version', 'mbcom_files_migration', 'mbcom_key', 'mbcom_key_check', 'mbcom_key_saved', 'mbcom_search_index' ) as $mbcom_option ) {
+	foreach ( array( 'mbcom_settings', 'mbcom_db_version', 'mbcom_files_migration', 'mbcom_key', 'mbcom_key_check', 'mbcom_key_saved', 'mbcom_search_index', 'mbcom_lessons_opened_at' ) as $mbcom_option ) {
 		delete_option( $mbcom_option );
 	}
 	$wpdb->query(

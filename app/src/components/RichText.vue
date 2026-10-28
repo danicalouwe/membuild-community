@@ -4,7 +4,11 @@ import { useRoute, useRouter } from 'vue-router'
 import { parseInternal } from '../lib/links.js'
 
 // Turns URLs into links without ever rendering HTML from the server.
-const props = defineProps({ text: { type: String, default: '' }, clamp: { type: Number, default: 0 } })
+const props = defineProps({
+  text: { type: String, default: '' },
+  clamp: { type: Number, default: 0 },
+  strong: { type: String, default: '' }, // shown in bold where it appears (a course card's name)
+})
 
 const expanded = ref(false)
 const route = useRoute()
@@ -23,7 +27,12 @@ const shown = computed(() =>
   tooLong.value && !expanded.value ? props.text.slice(0, props.clamp).replace(/\s+\S*$/, '') + '…' : props.text,
 )
 const parts = computed(() =>
-  shown.value.split(URL_RE).map((chunk, i) => ({ link: i % 2 === 1, text: chunk })),
+  shown.value.split(URL_RE).flatMap((chunk, i) => {
+    if (i % 2 === 1) return [{ link: true, text: chunk }]
+    const at = props.strong ? chunk.indexOf(props.strong) : -1
+    if (at < 0) return [{ text: chunk }]
+    return [{ text: chunk.slice(0, at) }, { bold: true, text: props.strong }, { text: chunk.slice(at + props.strong.length) }]
+  }),
 )
 </script>
 
@@ -31,6 +40,7 @@ const parts = computed(() =>
   <div class="rich">
     <template v-for="(p, i) in parts" :key="i">
       <a v-if="p.link" :href="p.text" target="_blank" rel="noopener nofollow ugc" @click="follow($event, p.text)">{{ p.text }}</a>
+      <strong v-else-if="p.bold">{{ p.text }}</strong>
       <template v-else>{{ p.text }}</template>
     </template>
     <button v-if="tooLong && !expanded" class="more" @click="expanded = true">{{ t.__('See more', 'membuild-community') }}</button>

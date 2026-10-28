@@ -1,21 +1,24 @@
 <script setup>
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { api } from '../api.js'
 import Avatar from './Avatar.vue'
+import BaseDialog from './BaseDialog.vue'
+import ConfirmDialog from './ConfirmDialog.vue'
 import Icon from './Icon.vue'
+import { offerButton } from '../lib/offer.js'
 import { t } from '../lib/i18n.js'
 
-// Settings → Access groups. Changes save right away (they're not part of the
-// settings form): create, rename, link roles, delete, and add or remove members.
+/**
+ * Settings › Memberships. A membership decides who can open a locked course: the
+ * courses it opens, the people the owner added, the WordPress roles that join by
+ * themselves, and "How people get it" (one button for all its courses). Everything
+ * saves as you go; it isn't part of the settings form.
+ */
 const groups = ref([])
 const roles = ref([])
+const courses = ref([])
 const loaded = ref(false)
 const error = ref('')
-const newName = ref('')
-const open = ref(null) // id of the group whose members are shown
-const members = ref([])
-const search = ref('')
-const found = ref([])
 
 async function run(fn) {
   error.value = ''
@@ -29,321 +32,735 @@ async function run(fn) {
 async function load() {
   await run(async () => {
     const res = await api.groups()
-    groups.value = res.items
+    groups.value = res.items.map(withForm)
     roles.value = res.roles
+    courses.value = res.courses
   })
   loaded.value = true
 }
 onMounted(load)
 
+// Each membership keeps its "How people get it" fields as typed, so clearing the link
+// while typing doesn't flip it back to invite only under the owner's hands.
+function withForm(g, old) {
+  const o = g.offer || {}
+  return { ...g, form: old?.form || { label: o.label || t.__('Get access', 'membuild-community'), price: o.price || '', period: o.period || 'once', url: o.url || '' }, selling: old?.selling ?? !!g.offer }
+}
 function replace(group) {
+  if (!group) return
   const i = groups.value.findIndex((g) => g.id === group.id)
-  if (i >= 0) groups.value[i] = group
+  if (i >= 0) groups.value[i] = withForm(group, groups.value[i])
 }
+const update = async (g, body) => replace(await run(() => api.updateGroup(g.id, body)))
 
+/* ---------- New membership ---------- */
+const creating = ref(null) // { name, courses: Set }
+const busy = ref(false)
 async function create() {
-  const name = newName.value.trim()
+  const name = creating.value.name.trim()
   if (!name) return
-  const group = await run(() => api.createGroup({ name }))
+  busy.value = true
+  const group = await run(() => api.createGroup({ name, course_ids: [...creating.value.courses] }))
+  busy.value = false
   if (group) {
-    groups.value = [...groups.value, group].sort((a, b) => a.name.localeCompare(b.name))
-    newName.value = ''
+    groups.value = [...groups.value, withForm(group)].sort((a, b) => a.name.localeCompare(b.name))
+    creating.value = null
   }
 }
-
-async function rename(group, name) {
-  if (name.trim() && name.trim() !== group.name) replace(await run(() => api.updateGroup(group.id, { name: name.trim() })) || group)
+function toggleIn(set, id) {
+  set.has(id) ? set.delete(id) : set.add(id)
 }
 
-async function toggleRole(group, key, on) {
-  const next = on ? [...group.roles, key] : group.roles.filter((r) => r !== key)
-  replace((await run(() => api.updateGroup(group.id, { roles: next }))) || group)
+/* ---------- Rename ---------- */
+const renaming = ref(null) // { group, name }
+async function rename() {
+  const name = renaming.value.name.trim()
+  if (name && name !== renaming.value.group.name) await update(renaming.value.group, { name })
+  if (!error.value) renaming.value = null
 }
 
-async function remove(group) {
-  const courses = group.course_count
-    ? t.sprintf(/* translators: %d: number of courses */ t._n('It opens %d course; members who only had access through this group will lose it.', 'It opens %d courses; members who only had access through this group will lose it.', group.course_count, 'membuild-community'), group.course_count)
-    : ''
-  if (!confirm(`${t.sprintf(/* translators: %s: group name */ t.__('Delete the member group “%s”?', 'membuild-community'), group.name)} ${courses}`)) return
-  if (await run(() => api.deleteGroup(group.id))) {
-    groups.value = groups.value.filter((g) => g.id !== group.id)
-    if (open.value === group.id) open.value = null
-  }
+/* ---------- Courses ---------- */
+const choosing = ref(null) // { group, courses: Set }
+async function saveCourses() {
+  await update(choosing.value.group, { course_ids: [...choosing.value.courses] })
+  if (!error.value) choosing.value = null
 }
+const dropCourse = (g, id) => update(g, { course_ids: g.courses.map((c) => c.id).filter((c) => c !== id) })
 
-async function showMembers(group) {
-  if (open.value === group.id) {
-    open.value = null
-    return
-  }
-  open.value = group.id
-  members.value = []
-  search.value = ''
-  found.value = []
-  members.value = (await run(() => api.groupMembers(group.id)))?.items || []
+/* ---------- Roles ---------- */
+const rolePicker = ref(0) // id of the membership whose role list is open
+const roleName = (key) => roles.value.find((r) => r.key === key)?.name || key
+const addRole = (g, key) => {
+  rolePicker.value = 0
+  return update(g, { roles: [...g.roles, key] })
 }
+const dropRole = (g, key) => update(g, { roles: g.roles.filter((r) => r !== key) })
 
+/* ---------- People ---------- */
+const people = ref(null) // { group, members, search, found }
+async function openPeople(g) {
+  people.value = { group: g, members: [], search: '', found: [], loading: true }
+  const res = await run(() => api.groupMembers(g.id))
+  if (people.value) people.value = { ...people.value, members: res?.items || [], loading: false }
+}
 let timer
-watch(search, (q) => {
-  clearTimeout(timer)
-  if (!q.trim()) {
-    found.value = []
-    return
-  }
-  timer = setTimeout(async () => {
-    const res = await run(() => api.members({ search: q.trim() }))
-    const inGroup = new Set(members.value.map((m) => m.id))
-    found.value = (res?.items || []).filter((m) => !inGroup.has(m.id)).slice(0, 6)
-  }, 250)
-})
-
-async function add(group, member) {
-  const res = await run(() => api.addToGroup(group.id, [member.id]))
-  if (res) {
-    members.value = res.items
-    found.value = found.value.filter((m) => m.id !== member.id)
-    group.member_count = res.items.length
-  }
-}
-
-async function drop(group, member) {
-  const res = await run(() => api.removeFromGroup(group.id, member.id))
-  if (res) {
-    members.value = res.items
-    group.member_count = res.items.length
+watch(
+  () => people.value?.search,
+  (q) => {
+    clearTimeout(timer)
+    if (!people.value) return
+    if (!q?.trim()) {
+      people.value.found = []
+      return
+    }
+    timer = setTimeout(async () => {
+      const res = await run(() => api.members({ search: q.trim() }))
+      if (!people.value) return
+      const inIt = new Set(people.value.members.map((m) => m.id))
+      people.value.found = (res?.items || []).filter((m) => !inIt.has(m.id)).slice(0, 6)
+    }, 250)
+  },
+)
+async function addPerson(m) {
+  const g = people.value.group
+  const res = await run(() => api.addToGroup(g.id, [m.id]))
+  if (res && people.value) {
+    people.value.members = res.items
+    people.value.found = people.value.found.filter((x) => x.id !== m.id)
   }
 }
+async function dropPerson(m) {
+  const res = await run(() => api.removeFromGroup(people.value.group.id, m.id))
+  if (res && people.value) people.value.members = res.items
+}
+async function closePeople() {
+  people.value = null
+  await load() // the counts changed
+}
 
-const memberCount = (n) => t.sprintf(/* translators: %d: number of members */ t._n('%d member', '%d members', n, 'membuild-community'), n)
-const deleteLabel = (name) => t.sprintf(/* translators: %s: group name */ t.__('Delete %s', 'membuild-community'), name)
-const opensCourses = (n) => t.sprintf(/* translators: %d: number of courses */ t._n('Opens %d course', 'Opens %d courses', n, 'membuild-community'), n)
-const alsoRoles = (roles) => t.sprintf(/* translators: %s: WordPress role names, e.g. "Subscriber, Customer" */ t.__('Also everyone with the role: %s', 'membuild-community'), roles)
-const removeLabel = (name) => t.sprintf(/* translators: %s: member's name */ t.__('Remove %s', 'membuild-community'), name)
+/* ---------- How people get it ---------- */
+const saveTimers = {}
+function saveOffer(g) {
+  clearTimeout(saveTimers[g.id])
+  saveTimers[g.id] = setTimeout(() => {
+    const f = g.form
+    update(g, { cta_label: f.label, price: f.price, period: f.period, cta_url: f.url })
+  }, 600)
+}
+function setPeriod(g, p) {
+  g.form.period = p
+  saveOffer(g)
+}
+const PERIODS = computed(() => [
+  ['once', t.__('One-time', 'membuild-community')],
+  ['month', t.__('Per month', 'membuild-community')],
+  ['year', t.__('Per year', 'membuild-community')],
+])
+
+/* ---------- Delete ---------- */
+const deleting = ref(null)
+async function remove() {
+  const g = deleting.value
+  busy.value = true
+  const ok = await run(() => api.deleteGroup(g.id))
+  busy.value = false
+  if (ok) groups.value = groups.value.filter((x) => x.id !== g.id)
+  deleting.value = null
+}
+
+const membersOf = (n) => t.sprintf(/* translators: %d: number of members */ t._n('%d member', '%d members', n, 'membuild-community'), n)
+const peopleOf = (n) => t.sprintf(/* translators: %d: number of people */ t._n('%d person', '%d people', n, 'membuild-community'), n)
+const removeLabel = (name) => t.sprintf(/* translators: %s: a name */ t.__('Remove %s', 'membuild-community'), name)
 </script>
 
 <template>
-  <div class="access-groups">
+  <div class="ms">
+    <div class="ms-head">
+      <div>
+        <h2>{{ t.__('Memberships', 'membuild-community') }}</h2>
+        <p class="intro">{{ t.__('A membership decides who can open a locked course. People get one in two ways: you add them, or your membership tool gives them a role.', 'membuild-community') }}</p>
+      </div>
+      <button v-if="groups.length" class="btn btn-lg btn-primary" @click="creating = { name: '', courses: new Set() }"><Icon name="plus" :size="18" /> {{ t.__('New membership', 'membuild-community') }}</button>
+    </div>
+
     <p v-if="error" class="err" role="alert">{{ error }}</p>
 
-    <ul v-if="groups.length" class="list">
-      <li v-for="g in groups" :key="g.id" class="group">
-        <div class="row">
-          <input class="name" :value="g.name" maxlength="80" :aria-label="t.__('Group name', 'membuild-community')" @change="rename(g, $event.target.value)" />
-          <button class="btn btn-ghost small" :aria-expanded="open === g.id" @click="showMembers(g)">
-            <Icon name="users" :size="15" />
-            {{ memberCount(g.member_count) }}
-          </button>
-          <button class="icon-btn" :aria-label="deleteLabel(g.name)" @click="remove(g)"><Icon name="trash" :size="16" /></button>
+    <div v-if="loaded && !groups.length" class="none">
+      <span class="none-icon"><Icon name="lock" :size="26" /></span>
+      <strong>{{ t.__('No memberships yet', 'membuild-community') }}</strong>
+      <p>{{ t.__('Make one when some courses are only for paying members or a small group. Until then, every course is open to every member.', 'membuild-community') }}</p>
+      <button class="btn btn-lg btn-primary" @click="creating = { name: '', courses: new Set() }"><Icon name="plus" :size="18" /> {{ t.__('New membership', 'membuild-community') }}</button>
+    </div>
+
+    <section v-for="g in groups" :key="g.id" class="one">
+      <header class="one-head">
+        <h3>{{ g.name }} <span>{{ membersOf(g.total) }}</span></h3>
+        <button class="btn btn-lg btn-ghost" @click="renaming = { group: g, name: g.name }"><Icon name="pencil" :size="18" /> {{ t.__('Rename', 'membuild-community') }}</button>
+      </header>
+
+      <div class="part">
+        <span class="part-icon"><Icon name="cap" :size="18" /></span>
+        <div class="part-body">
+          <strong>{{ t.__('Opens these courses', 'membuild-community') }}</strong>
+          <div class="chips">
+            <span v-for="c in g.courses" :key="c.id" class="chip">{{ c.title }}<button :aria-label="removeLabel(c.title)" @click="dropCourse(g, c.id)"><Icon name="close" :size="14" /></button></span>
+            <button class="chip add" @click="choosing = { group: g, courses: new Set(g.courses.map((c) => c.id)) }">+ {{ t.__('Choose courses', 'membuild-community') }}</button>
+          </div>
         </div>
-        <p class="meta">
-          {{ g.course_count ? opensCourses(g.course_count) : t.__('Not used by any course yet', 'membuild-community') }}
-        </p>
+      </div>
 
-        <details class="roles">
-          <summary>
-            {{ g.role_names.length ? alsoRoles(g.role_names.join(', ')) : t.__('Link a WordPress role (optional)', 'membuild-community') }}
-          </summary>
-          <p class="hint">{{ t.__('Members with a linked role are in this group automatically, and leave it when the role is removed. Membership and shop plugins usually give buyers a role, so linking it connects them to your classroom.', 'membuild-community') }}</p>
-          <label v-for="r in roles" :key="r.key" class="check">
-            <input type="checkbox" :checked="g.roles.includes(r.key)" @change="toggleRole(g, r.key, $event.target.checked)" />
-            {{ r.name }}
-          </label>
-        </details>
-
-        <div v-if="open === g.id" class="members">
-          <label class="search">
-            <Icon name="search" :size="16" />
-            <input v-model="search" type="search" :placeholder="t.__('Add a member by name', 'membuild-community')" :aria-label="t.__('Add a member by name', 'membuild-community')" />
-          </label>
-          <ul v-if="found.length" class="people found">
-            <li v-for="m in found" :key="m.id">
-              <Avatar :user="m" :size="28" /> <span>{{ m.name }}</span>
-              <button class="btn btn-primary small" @click="add(g, m)">{{ t.__('Add', 'membuild-community') }}</button>
-            </li>
-          </ul>
-          <ul v-if="members.length" class="people">
-            <li v-for="m in members" :key="m.id">
-              <Avatar :user="m" :size="28" /> <span>{{ m.name }}</span>
-              <button class="icon-btn" :aria-label="removeLabel(m.name)" @click="drop(g, m)"><Icon name="close" :size="16" /></button>
-            </li>
-          </ul>
-          <p v-else class="hint">{{ g.roles.length ? t.__('Nobody added by hand yet. Members with the linked role are in the group anyway.', 'membuild-community') : t.__('Nobody in this group yet.', 'membuild-community') }}</p>
+      <div class="part">
+        <span class="part-icon"><Icon name="users" :size="18" /></span>
+        <div class="part-body">
+          <strong>{{ t.__('People you added', 'membuild-community') }}</strong>
+          <p>{{ peopleOf(g.member_count) }}</p>
+          <button class="btn btn-lg btn-ghost" @click="openPeople(g)">{{ t.__('Add or remove people', 'membuild-community') }}</button>
         </div>
-      </li>
-    </ul>
-    <p v-else-if="loaded" class="hint">{{ t.__('No member groups yet. Create one, add members, then pick it in a course’s “Who can open it”.', 'membuild-community') }}</p>
+      </div>
 
-    <form class="create" @submit.prevent="create">
-      <input v-model="newName" maxlength="80" :placeholder="t.__('New group, e.g. VIP or October cohort', 'membuild-community')" :aria-label="t.__('New group name', 'membuild-community')" />
-      <button class="btn btn-primary" :disabled="!newName.trim()">{{ t.__('Create group', 'membuild-community') }}</button>
-    </form>
+      <div class="part">
+        <span class="part-icon"><Icon name="link" :size="18" /></span>
+        <div class="part-body">
+          <strong>{{ t.__('Joins automatically with a role', 'membuild-community') }}</strong>
+          <p>{{ t.__('Use this when WP Fusion, FluentCRM or your membership plugin gives buyers a WordPress role.', 'membuild-community') }}</p>
+          <div class="chips">
+            <span v-for="r in g.roles" :key="r" class="chip">{{ roleName(r) }}<button :aria-label="removeLabel(roleName(r))" @click="dropRole(g, r)"><Icon name="close" :size="14" /></button></span>
+            <span class="pick">
+              <button class="chip add" :aria-expanded="rolePicker === g.id" @click="rolePicker = rolePicker === g.id ? 0 : g.id">+ {{ t.__('Add a role', 'membuild-community') }}</button>
+              <span v-if="rolePicker === g.id" class="menu card" role="menu">
+                <button v-for="r in roles.filter((x) => !g.roles.includes(x.key))" :key="r.key" role="menuitem" @click="addRole(g, r.key)">{{ r.name }}</button>
+              </span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="part">
+        <span class="part-icon"><Icon name="tag" :size="18" /></span>
+        <div class="part-body">
+          <strong>{{ t.__('How people get it', 'membuild-community') }}</strong>
+          <template v-if="g.selling">
+            <p>{{ t.__('One button for every course in this membership. Payment happens on your own checkout.', 'membuild-community') }}</p>
+            <div class="offer">
+              <input v-model="g.form.label" class="field label" maxlength="60" :aria-label="t.__('Button text', 'membuild-community')" @input="saveOffer(g)" />
+              <input v-model="g.form.price" class="field price" maxlength="20" placeholder="$49" :aria-label="t.__('Price', 'membuild-community')" @input="saveOffer(g)" />
+            </div>
+            <div class="periods" role="radiogroup" :aria-label="t.__('How often they pay', 'membuild-community')">
+              <button v-for="[key, label] in PERIODS" :key="key" role="radio" :aria-checked="g.form.period === key" :class="{ on: g.form.period === key }" @click="setPeriod(g, key)">{{ label }}</button>
+            </div>
+            <input v-model="g.form.url" class="field url" type="url" placeholder="https://yoursite.com/join" :aria-label="t.__('Your checkout or sign-up page', 'membuild-community')" @input="saveOffer(g)" />
+            <p class="sees">
+              {{ t.__('Members see:', 'membuild-community') }}
+              <span class="preview"><Icon name="lock" :size="15" /> {{ offerButton(g.form) }}</span>
+            </p>
+          </template>
+          <template v-else>
+            <p>{{ t.__('Invite only, so there’s no button. Members see “Ask an admin for access”.', 'membuild-community') }}</p>
+            <button class="btn btn-lg btn-ghost" @click="g.selling = true">{{ t.__('Add a Get access button', 'membuild-community') }}</button>
+          </template>
+        </div>
+      </div>
+
+      <div class="danger">
+        <div>
+          <strong>{{ t.__('Delete this membership', 'membuild-community') }}</strong>
+          <p>{{ t.__('Its courses stay. Members lose the courses only this membership opened.', 'membuild-community') }}</p>
+        </div>
+        <button class="btn btn-lg red-line" @click="deleting = g">{{ t.__('Delete…', 'membuild-community') }}</button>
+      </div>
+    </section>
+
+    <p class="foot">{{ t.__('Admins and moderators can always open every course.', 'membuild-community') }}</p>
+
+    <!-- + New membership: a name and which courses it opens; people and price come next. -->
+    <BaseDialog v-if="creating" :label="t.__('New membership', 'membuild-community')" :width="560" @close="creating = null">
+      <template #header><h2 class="dlg-title">{{ t.__('New membership', 'membuild-community') }}</h2></template>
+      <form class="dlg" @submit.prevent="create">
+        <label class="lbl" for="ms-name">{{ t.__('Name', 'membuild-community') }}</label>
+        <input id="ms-name" v-model="creating.name" class="field" maxlength="80" autofocus />
+        <p class="help">{{ t.__('Members see this name on locked courses, for example “Part of VIP coaching”.', 'membuild-community') }}</p>
+        <p class="lbl">{{ t.__('Which courses does it open?', 'membuild-community') }}</p>
+        <ul class="ticks">
+          <li v-for="c in courses" :key="c.id">
+            <label><input type="checkbox" :checked="creating.courses.has(c.id)" @change="toggleIn(creating.courses, c.id)" /> {{ c.title }}</label>
+          </li>
+        </ul>
+        <p class="help">{{ t.__('Next you can add people and choose how they get it.', 'membuild-community') }}</p>
+        <div class="actions">
+          <button type="button" class="btn btn-lg btn-ghost" @click="creating = null">{{ t.__('Cancel', 'membuild-community') }}</button>
+          <button class="btn btn-lg btn-primary" :disabled="busy || !creating.name.trim()">{{ t.__('Create membership', 'membuild-community') }}</button>
+        </div>
+      </form>
+    </BaseDialog>
+
+    <BaseDialog v-if="renaming" :label="t.__('Rename membership', 'membuild-community')" :width="520" @close="renaming = null">
+      <template #header><h2 class="dlg-title">{{ t.__('Rename membership', 'membuild-community') }}</h2></template>
+      <form class="dlg" @submit.prevent="rename">
+        <label class="lbl" for="ms-rename">{{ t.__('Name', 'membuild-community') }}</label>
+        <input id="ms-rename" v-model="renaming.name" class="field" maxlength="80" autofocus />
+        <p class="help">{{ t.__('Members see this name on locked courses, for example “Part of VIP coaching”.', 'membuild-community') }}</p>
+        <div class="actions">
+          <button type="button" class="btn btn-lg btn-ghost" @click="renaming = null">{{ t.__('Cancel', 'membuild-community') }}</button>
+          <button class="btn btn-lg btn-primary" :disabled="!renaming.name.trim()">{{ t.__('Save', 'membuild-community') }}</button>
+        </div>
+      </form>
+    </BaseDialog>
+
+    <BaseDialog v-if="choosing" :label="t.sprintf(/* translators: %s: membership name */ t.__('Courses in %s', 'membuild-community'), choosing.group.name)" :width="560" @close="choosing = null">
+      <template #header><h2 class="dlg-title">{{ t.sprintf(/* translators: %s: membership name */ t.__('Courses in %s', 'membuild-community'), choosing.group.name) }}</h2></template>
+      <div class="dlg">
+        <p class="lbl">{{ t.__('Which courses does it open?', 'membuild-community') }}</p>
+        <ul class="ticks">
+          <li v-for="c in courses" :key="c.id">
+            <label><input type="checkbox" :checked="choosing.courses.has(c.id)" @change="toggleIn(choosing.courses, c.id)" /> {{ c.title }}</label>
+          </li>
+        </ul>
+        <div class="actions">
+          <button class="btn btn-lg btn-ghost" @click="choosing = null">{{ t.__('Cancel', 'membuild-community') }}</button>
+          <button class="btn btn-lg btn-primary" @click="saveCourses">{{ t.__('Save', 'membuild-community') }}</button>
+        </div>
+      </div>
+    </BaseDialog>
+
+    <BaseDialog v-if="people" :label="t.sprintf(/* translators: %s: membership name */ t.__('People in %s', 'membuild-community'), people.group.name)" :width="560" @close="closePeople">
+      <template #header><h2 class="dlg-title">{{ t.sprintf(/* translators: %s: membership name */ t.__('People in %s', 'membuild-community'), people.group.name) }}</h2></template>
+      <div class="dlg">
+        <label class="search">
+          <Icon name="search" :size="18" />
+          <input v-model="people.search" type="search" :placeholder="t.__('Add someone by name', 'membuild-community')" :aria-label="t.__('Add someone by name', 'membuild-community')" />
+        </label>
+        <ul v-if="people.found.length" class="people">
+          <li v-for="m in people.found" :key="m.id">
+            <Avatar :user="m" :size="40" /> <span>{{ m.name }}</span>
+            <button class="btn btn-lg btn-primary" @click="addPerson(m)">{{ t.__('Add', 'membuild-community') }}</button>
+          </li>
+        </ul>
+        <p class="lbl">{{ peopleOf(people.members.length) }}</p>
+        <ul v-if="people.members.length" class="people">
+          <li v-for="m in people.members" :key="m.id">
+            <Avatar :user="m" :size="40" /> <span>{{ m.name }}</span>
+            <button class="btn btn-lg btn-ghost" :aria-label="removeLabel(m.name)" @click="dropPerson(m)">{{ t.__('Remove', 'membuild-community') }}</button>
+          </li>
+        </ul>
+        <p v-else-if="!people.loading" class="help">{{ t.__('Nobody added yet. Search for a name above.', 'membuild-community') }}</p>
+        <div class="actions">
+          <button class="btn btn-lg btn-primary" @click="closePeople">{{ t.__('Done', 'membuild-community') }}</button>
+        </div>
+      </div>
+    </BaseDialog>
+
+    <ConfirmDialog
+      v-if="deleting"
+      danger
+      :busy="busy"
+      :title="t.sprintf(/* translators: %s: membership name */ t.__('Delete %s?', 'membuild-community'), deleting.name)"
+      :confirm="t.__('Delete membership', 'membuild-community')"
+      @confirm="remove"
+      @close="deleting = null"
+    >
+      {{ t.__('Its courses stay. Members lose the courses only this membership opened. Their progress is kept.', 'membuild-community') }}
+    </ConfirmDialog>
   </div>
 </template>
 
 <style scoped>
-.list,
-.people {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.ms-head > .btn {
+  flex: none;
+  white-space: nowrap;
 }
 
-.group {
-  padding: 12px 0;
+.dlg-title {
+  margin: 0;
+  padding: 28px 22px 4px;
+  font-size: 24px;
+}
+
+.ms-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+h2 {
+  margin: 0 0 6px;
+  font-size: 22px;
+}
+
+.intro,
+.part p,
+.help,
+.foot {
+  margin: 0;
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+.err {
+  color: var(--danger-text);
+}
+
+.none {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 44px 24px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  text-align: center;
+}
+
+.none-icon {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.none strong {
+  font-size: 19px;
+}
+
+.none p {
+  max-width: 460px;
+  margin: 0 0 6px;
+  color: var(--text-2);
+}
+
+.one {
+  margin-bottom: 16px;
+  padding: 18px 20px 20px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.one-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 14px;
+}
+
+.one-head h3 {
+  margin: 0;
+  font-size: 19px;
+}
+
+.one-head h3 span {
+  margin-left: 8px;
+  color: var(--text-2);
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.part {
+  display: flex;
+  gap: 14px;
+  padding: 16px 0;
   border-top: 1px solid var(--border);
 }
 
-.row {
+.part-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.part-body {
   display: flex;
-  align-items: center;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.part-body > strong {
+  font-size: 16px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
-.name {
-  flex: 1;
-  min-width: 0;
-  height: 36px;
-  padding: 0 10px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: transparent;
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 8px 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--surface-2);
   color: var(--text);
   font: inherit;
   font-weight: 650;
 }
 
-.name:hover,
-.name:focus {
-  border-color: var(--border);
-  background: var(--surface-2);
-  outline: none;
-}
-
-.meta,
-.hint {
-  margin: 2px 10px;
-  font-size: 13px;
-  color: var(--text-3);
-}
-
-.roles {
-  margin: 6px 10px 0;
-  font-size: 13px;
-}
-
-.roles summary {
-  cursor: pointer;
+.chip button {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
   color: var(--text-2);
-  font-weight: 600;
+  cursor: pointer;
 }
 
-.roles .hint {
-  margin: 6px 0;
+.chip.add {
+  padding: 0 14px;
+  border: 1px dashed var(--border-strong);
+  background: none;
+  cursor: pointer;
 }
 
-.check {
+.pick {
+  position: relative;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  min-width: 220px;
+  max-height: 300px;
+  padding: 6px;
+  overflow-y: auto;
+}
+
+.menu button {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu button:hover {
+  background: var(--surface-2);
+}
+
+.field {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;
+}
+
+.offer {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  max-width: 560px;
+}
+
+.offer .price {
+  width: 120px;
+  flex: none;
+}
+
+.url {
+  max-width: 560px;
+}
+
+.periods {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.periods button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--text-2);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.periods button.on {
+  background: var(--text);
+  color: var(--surface);
+}
+
+.sees {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px !important;
+}
+
+.preview {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  margin: 2px 14px 2px 0;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--surface);
+  font-weight: 700;
 }
 
-.members {
-  margin: 10px 10px 0;
-  padding: 10px;
-  border-radius: 10px;
-  background: var(--surface-2);
+.danger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 8px;
+  padding: 16px 18px;
+  border: 1px solid var(--danger-line);
+  border-radius: 12px;
+  background: var(--danger-soft);
+}
+
+.danger strong {
+  color: var(--danger-text);
+}
+
+.danger p {
+  margin: 4px 0 0;
+  color: var(--danger-text);
+}
+
+.red-line {
+  flex: none;
+  border: 2px solid var(--danger-text);
+  background: var(--surface);
+  color: var(--danger-text);
+}
+
+.foot {
+  margin-top: 4px;
+}
+
+/* Dialogs */
+.dlg {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 22px 22px;
+}
+
+.lbl {
+  margin: 8px 0 0;
+  font-weight: 700;
+}
+
+.ticks,
+.people {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ticks li,
+.people li {
+  border-top: 1px solid var(--border);
+}
+
+.ticks label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.ticks input {
+  width: 24px;
+  height: 24px;
+  accent-color: var(--text);
+}
+
+.people li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+.people span {
+  flex: 1;
+  font-weight: 650;
 }
 
 .search {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 36px;
-  padding: 0 12px;
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--text-3);
-}
-
-/* The field inside has no outline of its own, so the pill shows focus. */
-.search:focus-within {
-  box-shadow: 0 0 0 2px var(--accent);
+  min-height: 52px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
 }
 
 .search input {
   flex: 1;
-  min-width: 0;
   border: 0;
-  background: transparent;
+  background: none;
   color: var(--text);
   font: inherit;
+  font-size: 16px;
   outline: none;
 }
 
-.people li {
+.actions {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 2px;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 12px;
 }
 
-.people span {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+@media (max-width: 600px) {
+  .ms-head {
+    flex-direction: column;
+  }
 
-.found {
-  margin: 6px 0;
-  padding-bottom: 6px;
-  border-bottom: 1px solid var(--border);
-}
+  .one {
+    padding: 16px 14px;
+  }
 
-.create {
-  display: flex;
-  gap: 8px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-}
+  .danger {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 
-.create input {
-  flex: 1;
-  min-width: 0;
-  height: 38px;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface-2);
-  color: var(--text);
-  font: inherit;
-}
-
-.btn.small {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 10px;
-  font-size: 13px;
-}
-
-.icon-btn {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  color: var(--text-2);
-}
-
-.icon-btn:hover {
-  background: var(--surface-2);
-}
-
-.err {
-  margin: 0 0 8px;
-  color: var(--danger);
+  .offer .price {
+    width: 96px;
+  }
 }
 </style>

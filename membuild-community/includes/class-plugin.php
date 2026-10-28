@@ -25,7 +25,7 @@ final class Plugin {
 	const INIT = array( Portal::class, Rest_Members::class, Notifications::class, Points::class );
 
 	/** Classes with REST routes. */
-	const REST = array( Rest_Feed::class, Rest_Media::class, Rest_Comments::class, Rest_Stories::class, Rest_Courses::class, Access::class, Rest_Gamification::class, Rest_Messages::class, Notifications::class, Settings::class, Rest_Members::class, Moderation::class, Email::class, App::class, Bunny::class, Blocks::class, Usage::class, Search::class, Rest_Places::class, Giphy::class, Discussions::class, Events::class, Problems::class );
+	const REST = array( Rest_Feed::class, Rest_Media::class, Rest_Comments::class, Rest_Stories::class, Rest_Courses::class, Access::class, Rest_Gamification::class, Rest_Messages::class, Notifications::class, Settings::class, Rest_Members::class, Moderation::class, Email::class, App::class, Bunny::class, Blocks::class, Usage::class, Search::class, Rest_Places::class, Giphy::class, Discussions::class, Events::class, Problems::class, Online::class );
 
 	/** Hourly maintenance, each bounded so a late or doubled cron run stays cheap. */
 	const MAINTENANCE = array(
@@ -34,6 +34,7 @@ final class Plugin {
 		array( Rest_Stories::class, 'cleanup' ),    // expired stories are already hidden; this frees storage
 		array( Embeds::class, 'refresh_stale' ),    // YouTube allows keeping video details for 30 days
 		array( Helpers::class, 'cleanup_rate_limits' ), // counts whose window has ended
+		array( Rest_Courses::class, 'notify_opened' ),  // "your lesson is open" when a waiting lesson opens
 	);
 
 	public static function boot() {

@@ -1,5 +1,6 @@
 <script setup>
 import { computed, nextTick, onMounted, ref } from 'vue'
+import { askConfirm } from '../lib/confirm.js'
 import { api } from '../api.js'
 import { loadStories } from '../stores/stories.js'
 import { pointsMayHaveChanged } from '../stores/me.js'
@@ -44,8 +45,8 @@ function startText() {
   nextTick(() => textInput.value?.focus())
 }
 
-function close() {
-  if ((text.value.trim() || item.value) && !confirm(t.__('Discard this story?', 'membuild-community'))) return
+async function close() {
+  if ((text.value.trim() || item.value) && !(await askConfirm({ title: t.__('Discard this story?', 'membuild-community'), confirm: t.__('Discard', 'membuild-community'), cancel: t.__('Keep editing', 'membuild-community'), danger: true }))) return
   item.value?.cancel()
   emit('close')
 }

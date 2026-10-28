@@ -1,15 +1,24 @@
 <script setup>
 import { RouterLink } from 'vue-router'
+import { isOnline } from '../lib/online.js'
 import { t } from '../lib/i18n.js'
 
 // `badge` shows the member's level on the avatar, Skool-style; `link` opens their profile.
+// `online` adds the green dot while they're active (bottom-right; 'top' puts it top-right,
+// where a level badge is in the way).
 defineProps({
+  online: { type: [Boolean, String], default: false },
   user: { type: Object, default: null },
   size: { type: Number, default: 40 },
   badge: { type: Boolean, default: false },
   link: { type: Boolean, default: false },
 })
 
+// The design system's dot: 14px, 12px on small photos, a little bigger on a profile's big photo.
+const dotSize = (size) => (size <= 40 ? 12 : size >= 100 ? 20 : 14)
+// The level badge grows with small photos but stops at 20px across, so it never crowds a big one.
+const badgeFont = (size) => Math.min(12, Math.max(9, Math.round(size * 0.3)))
+const badgeWidth = (size) => Math.min(20, Math.max(15, Math.round(size * 0.44)))
 const profileLabel = (name) => t.sprintf(/* translators: %s: member's name */ t.__("%s's profile", 'membuild-community'), name)
 const levelLabel = (level) => t.sprintf(/* translators: %d: level number */ t.__('Level %d', 'membuild-community'), level)
 </script>
@@ -34,9 +43,17 @@ const levelLabel = (level) => t.sprintf(/* translators: %d: level number */ t.__
     <span
       v-if="badge && user?.level"
       class="level"
-      :style="{ fontSize: `${Math.max(9, Math.round(size * 0.3))}px`, minWidth: `${Math.max(15, Math.round(size * 0.44))}px` }"
+      :style="{ fontSize: `${badgeFont(size)}px`, minWidth: `${badgeWidth(size)}px` }"
       :aria-label="levelLabel(user.level)"
     >{{ user.level }}</span>
+    <span
+      v-if="online && isOnline(user)"
+      class="dot"
+      :class="{ top: online === 'top' }"
+      :style="{ width: `${dotSize(size)}px`, height: `${dotSize(size)}px` }"
+      role="img"
+      :aria-label="t.__('Active now', 'membuild-community')"
+    />
   </component>
 </template>
 
@@ -69,5 +86,18 @@ const levelLabel = (level) => t.sprintf(/* translators: %d: level number */ t.__
   font-weight: 800;
   line-height: 1;
   box-shadow: 0 0 0 2px var(--surface);
+}
+.dot {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  border-radius: 50%;
+  background: #1f9d55;
+  box-shadow: 0 0 0 2.5px var(--surface);
+}
+
+.dot.top {
+  top: 0;
+  bottom: auto;
 }
 </style>

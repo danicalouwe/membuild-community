@@ -1,5 +1,6 @@
 <script setup>
 import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { askConfirm } from '../lib/confirm.js'
 import { useRouter } from 'vue-router'
 import { api } from '../api.js'
 import Avatar from '../components/Avatar.vue'
@@ -135,7 +136,7 @@ async function approve(place) {
   replace(await api.updatePlace(place.id, { status: 'published' }))
 }
 async function remove(place) {
-  if (!confirm(t.sprintf(/* translators: %s: place name */ t.__('Remove “%s” from Places?', 'membuild-community'), place.name))) return
+  if (!(await askConfirm({ title: t.sprintf(/* translators: %s: place name */ t.__('Remove “%s” from Places?', 'membuild-community'), place.name), confirm: t.__('Remove', 'membuild-community'), danger: true }))) return
   await api.deletePlace(place.id)
   places.value = places.value.filter((p) => p.id !== place.id)
   if (detail.value?.id === place.id) back()
@@ -202,7 +203,7 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
         <section v-if="detail.members?.length" class="who">
           <h2>{{ goingLine(detail) }}</h2>
           <div class="faces">
-            <RouterLink v-for="u in detail.members" :key="u.id" :to="{ name: 'member', params: { id: u.id } }" :title="u.name"><Avatar :user="u" :size="40" /></RouterLink>
+            <RouterLink v-for="u in detail.members" :key="u.id" :to="{ name: 'member', params: { id: u.id } }" :title="u.name"><Avatar :user="u" :size="40" online /></RouterLink>
           </div>
         </section>
 

@@ -448,6 +448,30 @@ $put_back();
 mbcom_check( '(the original key is back for the rest of the tests)', 'ok' === $vault::state() );
 
 /* ---------------------------------------------------------------- */
+echo "\nMember cards: where they live and a cover picture\n";
+$png0 = base64_decode( 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' );
+list( , $prof ) = mbcom_call( $ana, 'PUT', '/me/profile', array( 'location' => '  Austin, TX  ' ) );
+mbcom_check( 'a member can say where they live', 'Austin, TX' === $prof['location'] );
+$cov = mbcom_upload( $ana, 'image/png', $png0, 'cover.png' );
+list( $s, $prof ) = mbcom_call( $ana, 'PUT', '/me/profile', array( 'cover' => array( 'id' => $cov['id'] ) ) );
+mbcom_check( '…and put up a cover picture', 200 === $s && ! empty( $prof['cover'] ), (string) $s );
+list( $s ) = mbcom_call( $ben, 'PUT', '/me/profile', array( 'cover' => array( 'id' => $cov['id'] ) ) );
+mbcom_check( '…but not someone else’s upload', 400 === $s, (string) $s );
+list( , $dir ) = mbcom_call( $ben, 'GET', '/members', array( 'search' => get_userdata( $ana )->display_name ) );
+$card = array_values( array_filter( $dir['items'], fn( $m ) => $m['id'] === $ana ) )[0] ?? array();
+mbcom_check( 'the member card shows both, and a Message button for others', 'Austin, TX' === ( $card['location'] ?? '' ) && ! empty( $card['cover'] ) && false === $card['is_me'] && isset( $card['can_message'] ) );
+mbcom_call( $admin, 'PUT', '/settings', array( 'member_covers' => false ) );
+\MemBuild\Community\Settings::flush();
+list( , $dir ) = mbcom_call( $ben, 'GET', '/members', array( 'search' => get_userdata( $ana )->display_name ) );
+$card = array_values( array_filter( $dir['items'], fn( $m ) => $m['id'] === $ana ) )[0] ?? array();
+list( , $prof ) = mbcom_call( $ben, 'GET', "/members/{$ana}" );
+mbcom_check( 'with cover photos off on cards, cards drop it but the profile keeps it', null === $card['cover'] && ! empty( $prof['cover'] ) );
+mbcom_call( $admin, 'PUT', '/settings', array( 'member_covers' => true ) );
+\MemBuild\Community\Settings::flush();
+list( , $prof ) = mbcom_call( $ana, 'PUT', '/me/profile', array( 'location' => '', 'cover' => null ) );
+mbcom_check( 'emptying them hides them again', '' === $prof['location'] && null === $prof['cover'] && null === \MemBuild\Community\Media::get( $cov['id'] ) );
+
+/* ---------------------------------------------------------------- */
 echo "\nProtected files\n";
 $png   = base64_decode( 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' );
 $photo = mbcom_upload( $ana, 'image/png', $png, 'IMG_1234.png' );
@@ -492,6 +516,8 @@ mbcom_check( 'courses are open to everyone by default', 200 === $s, (string) $s 
 mbcom_call( $admin, 'PUT', "/courses/{$cid}", array( 'access' => 'level', 'unlock_level' => 5 ) );
 list( $s, $err ) = mbcom_call( $member, 'GET', "/lessons/{$lesson['id']}" );
 mbcom_check( 'a level course is locked below that level', 403 === $s && 'mbcom_level_locked' === $err['code'], (string) $s );
+list( , $card ) = mbcom_call( $member, 'GET', "/courses/{$cid}" );
+mbcom_check( '…and says how far they are and how to earn points', isset( $card['lock']['points'], $card['lock']['need'], $card['lock']['my_level'] ) && $card['lock']['need'] > $card['lock']['points'] && in_array( 'lesson', wp_list_pluck( $card['lock']['earn'], 'what' ), true ) );
 
 list( $s, $vip ) = mbcom_call( $admin, 'POST', '/groups', array( 'name' => 'VIP', 'roles' => array( 'author', 'not-a-role' ) ) );
 mbcom_check( 'admins create access groups (unknown roles are dropped)', 201 === $s && array( 'author' ) === $vip['roles'], (string) $s );
@@ -505,6 +531,24 @@ list( $s ) = mbcom_call( $member, 'POST', "/lessons/{$lesson['id']}/complete" );
 mbcom_check( '…and they can’t mark its lessons done', 403 === $s, (string) $s );
 list( , $card ) = mbcom_call( $member, 'GET', "/courses/{$cid}" );
 mbcom_check( '…which says which group it’s for', 'groups' === $card['lock']['reason'] && array( 'VIP' ) === $card['lock']['groups'] && ! isset( $card['access_groups'] ) );
+mbcom_check( '…invite only until it has a button', 'VIP' === ( $card['lock']['membership']['name'] ?? '' ) && null === $card['lock']['membership']['offer'] && empty( $card['lock']['cta'] ) );
+list( , $vipo ) = mbcom_call( $admin, 'PUT', "/groups/{$vip['id']}", array( 'cta_label' => 'Get access', 'price' => '$49', 'period' => 'month', 'cta_url' => 'https://example.com/join-vip' ) );
+mbcom_check( 'a membership keeps one button for all its courses: text, price, period and link', '$49' === ( $vipo['offer']['price'] ?? '' ) && 'month' === $vipo['offer']['period'] && 'https://example.com/join-vip' === $vipo['offer']['url'] );
+list( , $card ) = mbcom_call( $member, 'GET', "/courses/{$cid}" );
+mbcom_check( '…which locked members see on the course', 'https://example.com/join-vip' === ( $card['lock']['cta']['url'] ?? '' ) && '$49' === $card['lock']['membership']['offer']['price'] );
+list( , $vipo ) = mbcom_call( $admin, 'PUT', "/groups/{$vip['id']}", array( 'period' => 'weekly' ) );
+mbcom_check( '…a period that isn’t one is ignored', 'month' === $vipo['offer']['period'] );
+list( , $other ) = mbcom_call( $admin, 'POST', '/courses', array( 'title' => 'Second VIP course' ) );
+mbcom_call( $admin, 'PUT', "/courses/{$other['id']}", array( 'status' => 'published', 'access' => 'level', 'unlock_level' => 3 ) );
+list( , $vipo ) = mbcom_call( $admin, 'PUT', "/groups/{$vip['id']}", array( 'course_ids' => array( $cid, $other['id'] ) ) );
+list( , $oc ) = mbcom_call( $admin, 'GET', "/courses/{$other['id']}" );
+mbcom_check( 'choosing a course on the membership puts the course in it', 'groups' === $oc['access'] && in_array( $vip['id'], $oc['access_groups'], true ) && 2 === count( $vipo['courses'] ) );
+list( , $card ) = mbcom_call( $member, 'GET', "/courses/{$cid}" );
+mbcom_check( '…and the lock names the other courses it opens', array( 'Second VIP course' ) === ( $card['lock']['membership']['more'] ?? null ) );
+list( , $vipo ) = mbcom_call( $admin, 'PUT', "/groups/{$vip['id']}", array( 'course_ids' => array( $cid ) ) );
+list( , $oc ) = mbcom_call( $admin, 'GET', "/courses/{$other['id']}" );
+mbcom_check( '…taking it out again leaves it out', ! in_array( $vip['id'], $oc['access_groups'], true ) && 1 === count( $vipo['courses'] ) );
+mbcom_call( $admin, 'DELETE', "/courses/{$other['id']}" );
 
 $sheet = mbcom_upload( $admin, 'text/plain', "Worksheet\n", 'worksheet.txt' );
 mbcom_call( $admin, 'PUT', "/lessons/{$lesson['id']}", array( 'resources' => array( array( 'media_id' => $sheet['id'], 'name' => 'Worksheet' ) ) ) );
@@ -523,6 +567,9 @@ mbcom_check( '…and losing the role closes it again', 403 === $s, (string) $s )
 mbcom_call( $admin, 'POST', "/groups/{$vip['id']}/members", array( 'user_ids' => array( $member ) ) );
 list( $s ) = mbcom_call( $member, 'GET', "/lessons/{$lesson['id']}" );
 mbcom_check( 'adding a member by hand opens it', 200 === $s, (string) $s );
+list( , $mine ) = mbcom_call( $admin, 'GET', "/members/{$member}/groups" );
+$mine = array_values( array_filter( $mine['items'], fn( $g ) => $g['id'] === $vip['id'] ) )[0] ?? array();
+mbcom_check( 'a member’s memberships say how many courses and since when', ! empty( $mine['manual'] ) && 1 === $mine['courses'] && ! empty( $mine['since'] ) );
 mbcom_call( $member, 'POST', "/lessons/{$lesson['id']}/complete" );
 mbcom_call( $admin, 'PUT', "/members/{$member}/groups", array( 'group_ids' => array() ) );
 list( $s ) = mbcom_call( $member, 'GET', "/lessons/{$lesson['id']}" );
@@ -1116,7 +1163,9 @@ mbcom_call( $admin, 'PUT', "/lessons/{$ta['id']}", array( 'resources' => array( 
 mbcom_call( $admin, 'PUT', "/lessons/{$tb['id']}", array( 'resources' => array( array( 'media_id' => $later['id'], 'name' => 'Later.docx' ) ) ) );
 list( $s, $res ) = mbcom_call( $helper, 'GET', "/courses/{$tcid}/resources" );
 $files = array_merge( ...array_map( fn( $g ) => $g['files'], $res['items'] ) );
-mbcom_check( 'the Resources tab lists every lesson’s files with type and size', 200 === $s && 2 === count( $files ) && 'PDF' === $files[0]['ext'] && 2100 === $files[0]['size'] && $files[0]['url'], wp_json_encode( $files ) );
+// The type comes from the file itself: these test files are plain text, whatever they're called.
+mbcom_check( 'the Resources tab lists every lesson’s files with type and size', 200 === $s && 2 === count( $files ) && 'TXT' === $files[0]['ext'] && 2100 === $files[0]['size'] && $files[0]['url'], wp_json_encode( $files ) );
+mbcom_check( '…and keeps the name the owner typed, spaces and all', 'Guide.pdf' === $files[0]['name'] );
 mbcom_check( '…and a lesson that hasn’t opened shows its file without a link', $res['items'][1]['locked'] && null === $files[1]['url'] && $res['items'][1]['unlock_at'] );
 
 // Clean-up follows the lesson
@@ -1415,6 +1464,51 @@ wp_clear_scheduled_hook( \MemBuild\Community\Usage::HOOK . '_now' );
 \MemBuild\Community\Problems::clear();
 
 /* ---------------------------------------------------------------- */
+echo "\nEmails you get\n";
+$mailer = mbcom_user( 'mbct_mailer' );
+delete_user_meta( $mailer, \MemBuild\Community\Email::PREFS );
+list( , $ep ) = mbcom_call( $mailer, 'GET', '/me/email' );
+mbcom_check( 'event reminders are on by default, with messages and comments', true === $ep['events'] && true === $ep['messages'] && true === $ep['activity'] );
+list( , $ep ) = mbcom_call( $mailer, 'PUT', '/me/email', array( 'events' => false, 'frequency' => 'daily' ) );
+mbcom_check( '…and can be turned off on their own', false === $ep['events'] && true === $ep['activity'] && 'daily' === $ep['frequency'] );
+delete_user_meta( $mailer, \MemBuild\Community\Email::PREFS );
+
+/* ---------------------------------------------------------------- */
+mbcom_section( 'Who’s online' );
+$seer = mbcom_user( 'mbct_seer' );
+$seen = mbcom_user( 'mbct_seen' );
+delete_user_meta( $seer, \MemBuild\Community\Online::HIDE );
+delete_user_meta( $seen, \MemBuild\Community\Online::HIDE );
+delete_user_meta( $seen, \MemBuild\Community\Online::SEEN );
+mbcom_call( $seen, 'GET', '/messages/pulse' );
+mbcom_check( 'a pulse from an idle tab doesn’t count as being online', ! get_user_meta( $seen, \MemBuild\Community\Online::SEEN, true ) );
+mbcom_call( $seen, 'GET', '/messages/pulse', array( 'active' => 1 ) );
+mbcom_check( '…real use does', time() - (int) get_user_meta( $seen, \MemBuild\Community\Online::SEEN, true ) < 5 );
+list( , $prof ) = mbcom_call( $seer, 'GET', "/members/{$seen}" );
+mbcom_check( 'other members see when they were active', ! empty( $prof['active_at'] ) );
+list( , $dir ) = mbcom_call( $seer, 'GET', '/members', array( 'online' => 1 ) );
+mbcom_check( '…and find them under Online now, with a count', in_array( $seen, wp_list_pluck( $dir['items'], 'id' ), true ) && $dir['online'] >= 1 );
+list( , $pv ) = mbcom_call( $seen, 'PUT', '/me/privacy', array( 'show_online' => false ) );
+list( , $prof ) = mbcom_call( $seer, 'GET', "/members/{$seen}" );
+list( , $dir ) = mbcom_call( $seer, 'GET', '/members', array( 'online' => 1 ) );
+mbcom_check( 'a member who hides it isn’t shown as online', false === $pv['show_online'] && null === $prof['active_at'] && ! in_array( $seen, wp_list_pluck( $dir['items'], 'id' ), true ) );
+update_user_meta( $seer, \MemBuild\Community\Online::SEEN, time() );
+list( , $back ) = mbcom_call( $seen, 'GET', "/members/{$seer}" );
+list( , $dir ) = mbcom_call( $seen, 'GET', '/members' );
+mbcom_check( '…and doesn’t see anyone else either (fair both ways)', null === $back['active_at'] && null === $dir['online'] );
+mbcom_call( $seen, 'PUT', '/me/privacy', array( 'show_online' => true ) );
+mbcom_call( $admin, 'PUT', '/settings', array( 'features' => array( 'online' => false ) ) );
+\MemBuild\Community\Settings::flush();
+list( , $prof ) = mbcom_call( $seer, 'GET', "/members/{$seen}" );
+mbcom_check( 'with Show who’s online off, nobody is shown', null === $prof['active_at'] );
+mbcom_call( $admin, 'PUT', '/settings', array( 'features' => array( 'online' => true, 'messages' => false ) ) );
+\MemBuild\Community\Settings::flush();
+list( , $prof ) = mbcom_call( $seer, 'GET', "/members/{$seen}" );
+mbcom_check( '…it needs Messages too', null === $prof['active_at'] );
+mbcom_call( $admin, 'PUT', '/settings', array( 'features' => array( 'messages' => true ) ) );
+\MemBuild\Community\Settings::flush();
+
+/* ---------------------------------------------------------------- */
 mbcom_section( 'Drip from the day a member starts, and the Course map' );
 list( , $dc ) = mbcom_call( $admin, 'POST', '/courses', array( 'title' => 'Drip course' ) );
 $dcid         = $dc['id'];
@@ -1463,6 +1557,30 @@ mbcom_check( '…and opens for everyone once the day has come', 200 === $s, (str
 list( , $dl ) = mbcom_call( $admin, 'PUT', "/lessons/{$db['id']}", array( 'open_on' => 'not a date' ) );
 mbcom_check( '…a date that isn’t one is cleared', null === $dl['open_on'] );
 
+// "We'll send you a notification when it's ready": the hourly job tells them once it opens.
+$notes = \MemBuild\Community\Install::table( 'notifications' );
+$opened = fn() => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE user_id = %d AND type = 'lesson_open' AND object_id = %d", $notes, $dripper, $db['id'] ) );
+delete_option( \MemBuild\Community\Rest_Courses::OPENED_OPTION );
+$wpdb->update( $starts, array( 'started_at' => gmdate( 'Y-m-d H:i:s', time() - 3 * DAY_IN_SECONDS + 1800 ) ), array( 'user_id' => $dripper, 'course_id' => $dcid ) );
+\MemBuild\Community\Rest_Courses::notify_opened();
+mbcom_check( 'the lesson-open job’s first run sends nothing old', 0 === $opened() );
+update_option( \MemBuild\Community\Rest_Courses::OPENED_OPTION, time() - 3600, false );
+\MemBuild\Community\Rest_Courses::notify_opened();
+mbcom_check( '…a lesson that hasn’t opened yet isn’t announced', 0 === $opened() );
+$wpdb->update( $starts, array( 'started_at' => gmdate( 'Y-m-d H:i:s', time() - 3 * DAY_IN_SECONDS - 1800 ) ), array( 'user_id' => $dripper, 'course_id' => $dcid ) );
+update_option( \MemBuild\Community\Rest_Courses::OPENED_OPTION, time() - 3600, false );
+\MemBuild\Community\Rest_Courses::notify_opened();
+mbcom_check( '…once it opens, the member gets a notification', 1 === $opened() );
+\MemBuild\Community\Rest_Courses::notify_opened();
+mbcom_check( '…only once', 1 === $opened() );
+list( , $nl ) = mbcom_call( $dripper, 'GET', '/notifications' );
+$nfirst = array_values( array_filter( $nl['items'], fn( $n ) => 'lesson_open' === $n['type'] ) )[0] ?? array();
+mbcom_check( '…and it opens the lesson', 'course' === ( $nfirst['link']['name'] ?? '' ) && $db['id'] === ( $nfirst['link']['params']['lessonId'] ?? 0 ) && 'Day three' === ( $nfirst['data']['title'] ?? '' ) );
+list( , $view ) = mbcom_call( $dripper, 'GET', "/courses/{$dcid}" );
+mbcom_check( 'the course says when they started and what finishing it earns', ! empty( $view['started_on'] ) && 20 === $view['finish_points'] );
+$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE type = 'lesson_open' AND user_id = %d", $notes, $dripper ) );
+delete_option( \MemBuild\Community\Rest_Courses::OPENED_OPTION );
+
 // About this course, and questions off for one course.
 list( , $dcv ) = mbcom_call( $admin, 'PUT', "/courses/{$dcid}", array( 'about' => "## What you'll learn\n\n- One\n- Two", 'questions' => 'off' ) );
 mbcom_check( 'a course keeps its About text and its questions switch', str_contains( $dcv['about'], 'What you' ) && 'off' === $dcv['questions'] );
@@ -1471,6 +1589,23 @@ mbcom_check( '…and with questions off, nobody can post under its lessons', 403
 mbcom_call( $admin, 'PUT', "/courses/{$dcid}", array( 'questions' => 'on' ) );
 list( $s ) = mbcom_call( $dripper, 'POST', '/posts', array( 'content' => 'A question with questions on', 'lesson_id' => $da['id'] ) );
 mbcom_check( '…until they’re back on', 201 === $s, (string) $s );
+
+// Settings › Features › Courses: parts of every course an owner can turn off.
+list( $s, $saved ) = mbcom_call( $admin, 'PUT', '/settings', array( 'courses' => array( 'questions' => false, 'times' => false, 'instructor' => false, 'bogus' => false ) ) );
+mbcom_check( 'the Courses switches save (unknown ones are ignored)', 200 === $s && false === $saved['settings']['courses']['questions'] && ! isset( $saved['settings']['courses']['bogus'] ), (string) $s );
+\MemBuild\Community\Settings::flush();
+mbcom_check( '…Helpful votes and What people are saying need Questions', ! \MemBuild\Community\Settings::course_part( 'helpful' ) && ! \MemBuild\Community\Settings::course_part( 'saying' ) );
+list( $s ) = mbcom_call( $dripper, 'POST', '/posts', array( 'content' => 'A question with questions off everywhere', 'lesson_id' => $da['id'] ) );
+list( , $view ) = mbcom_call( $dripper, 'GET', "/courses/{$dcid}" );
+mbcom_check( '…with Questions off, nobody can post under any lesson, and courses say so', 403 === $s && 'off' === $view['questions'], (string) $s );
+mbcom_check( '…with times and instructor off, the course shows neither', null === $view['instructor'] && 0 === $view['modules'][0]['lessons'][0]['minutes'] );
+mbcom_call( $admin, 'PUT', '/settings', array( 'courses' => array( 'questions' => true, 'helpful' => false, 'times' => true, 'instructor' => true ) ) );
+\MemBuild\Community\Settings::flush();
+$asked = mbcom_call( $admin, 'POST', '/posts', array( 'content' => 'A question to vote on', 'lesson_id' => $da['id'] ) )[1];
+list( $s ) = mbcom_call( $dripper, 'PUT', "/posts/{$asked['id']}/helpful" );
+mbcom_check( '…with Helpful votes off, nobody can vote', 403 === $s, (string) $s );
+mbcom_call( $admin, 'PUT', '/settings', array( 'courses' => array( 'helpful' => true ) ) );
+\MemBuild\Community\Settings::flush();
 
 mbcom_call( $admin, 'DELETE', "/courses/{$dcid}" );
 mbcom_check( 'deleting a course removes its start dates', ! $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE course_id = %d', $starts, $dcid ) ) );

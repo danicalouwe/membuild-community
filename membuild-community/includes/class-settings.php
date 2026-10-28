@@ -21,7 +21,17 @@ class Settings {
 
 	const OPTION = 'mbcom_settings';
 
-	const FEATURES = array( 'reels', 'stories', 'classroom', 'leaderboard', 'messages', 'search', 'places', 'events' );
+	const FEATURES = array( 'reels', 'stories', 'classroom', 'leaderboard', 'messages', 'search', 'places', 'events', 'online' ); // online: "Show who's online", needs messages
+
+	/**
+	 * Settings › Features › Courses: the parts of a course an owner can turn off. The
+	 * lesson list, progress, Mark Complete and course locks are always on.
+	 * questions: under lessons (a course can also turn them off for itself) · helpful: votes
+	 * on them · saying: "What people are saying" on the Overview · times: "7 min" ·
+	 * instructor: "By" on the course page · confetti: when a course is finished ·
+	 * suggest: "Next you might like" · activity: members' faces and post counts on Classroom cards.
+	 */
+	const COURSE_PARTS = array( 'questions', 'helpful', 'saying', 'times', 'instructor', 'confetti', 'suggest', 'activity' );
 
 	/** Accent presets offered in the form; any hex color is accepted. */
 	const ACCENTS = array( '#3b5bfd', '#7c4dff', '#e0407b', '#f05a28', '#f2a20c', '#1fa463', '#0e9aa7', '#16181d' );
@@ -54,6 +64,8 @@ class Settings {
 			'min_age'     => 13,   // 0, 13, 16 or 18; asked at sign-up, never stored
 			'terms_url'   => '',
 			'features'    => array( 'places' => false ) + array_fill_keys( self::FEATURES, true ), // Places is the one most communities don't need
+			'courses'     => array_fill_keys( self::COURSE_PARTS, true ),
+			'member_covers' => true, // Settings › Features › Members directory: cover photos on member cards
 			'posting'     => 'everyone', // everyone | staff
 			'messaging'   => 'everyone', // everyone | staff (members may only start chats with staff)
 			'moderators'  => array(),
@@ -75,7 +87,7 @@ class Settings {
 			$defaults    = self::defaults();
 			self::$cache = array_merge( $defaults, $saved );
 			// Nested maps merge key by key, so a new feature or rule gets its default.
-			foreach ( array( 'features', 'points' ) as $key ) {
+			foreach ( array( 'features', 'points', 'courses' ) as $key ) {
 				self::$cache[ $key ] = array_merge( $defaults[ $key ], is_array( $saved[ $key ] ?? null ) ? $saved[ $key ] : array() );
 			}
 		}
@@ -93,6 +105,16 @@ class Settings {
 
 	public static function feature( $key ) {
 		return ! empty( self::all()['features'][ $key ] );
+	}
+
+	/** Whether a part of every course is on (see COURSE_PARTS). */
+	public static function course_part( $key ) {
+		$parts = self::all()['courses'];
+		// Helpful votes and "What people are saying" need the questions they're about.
+		if ( in_array( $key, array( 'helpful', 'saying' ), true ) && empty( $parts['questions'] ) ) {
+			return false;
+		}
+		return ! empty( $parts[ $key ] );
 	}
 
 	public static function name() {
@@ -157,6 +179,8 @@ class Settings {
 			'logo'        => $s['logo']['url'] ?? null,
 			'accent'      => $s['accent'],
 			'features'    => $s['features'],
+			'memberCovers' => (bool) $s['member_covers'], // covers (or the default one) on member cards
+			'courses'     => array_combine( self::COURSE_PARTS, array_map( array( __CLASS__, 'course_part' ), self::COURSE_PARTS ) ),
 			'canPost'     => self::can_post(),
 			'messaging'   => $s['messaging'],
 			'isStaff'     => self::is_staff( get_current_user_id() ),
@@ -295,6 +319,16 @@ class Settings {
 			$s['logo'] = null === $in['logo'] ? null : self::claim_logo( (int) ( $in['logo']['id'] ?? 0 ), $s['logo'] );
 			if ( is_wp_error( $s['logo'] ) ) {
 				return $s['logo'];
+			}
+		}
+		if ( array_key_exists( 'member_covers', $in ) ) {
+			$s['member_covers'] = (bool) $in['member_covers'];
+		}
+		if ( isset( $in['courses'] ) && is_array( $in['courses'] ) ) {
+			foreach ( self::COURSE_PARTS as $part ) {
+				if ( array_key_exists( $part, $in['courses'] ) ) {
+					$s['courses'][ $part ] = (bool) $in['courses'][ $part ];
+				}
 			}
 		}
 		if ( isset( $in['features'] ) && is_array( $in['features'] ) ) {

@@ -291,6 +291,9 @@ class Rest_Messages {
 		global $wpdb;
 		$me   = get_current_user_id();
 		Email::touch( $me ); // members active right now don't get emailed about what they've seen
+		if ( rest_sanitize_boolean( $req['active'] ) ) {
+			Online::touch( $me ); // a real click, key or scroll lately: the green dot
+		}
 		$out  = array(
 			'unread'        => self::unread_total(),
 			'inbox_version' => (int) $wpdb->get_var(
