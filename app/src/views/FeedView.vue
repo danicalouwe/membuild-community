@@ -129,8 +129,8 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
     <StoriesStrip v-if="feature('stories')" />
 
     <div class="sort" role="tablist" :aria-label="t.__('Sort posts', 'membuild-community')">
-      <button role="tab" :aria-selected="sort === 'latest'" :class="{ on: sort === 'latest' }" @click="sort = 'latest'">{{ t.__('Latest', 'membuild-community') }}</button>
-      <button role="tab" :aria-selected="sort === 'hot'" :class="{ on: sort === 'hot' }" @click="sort = 'hot'"><Icon name="flame" :size="15" /> {{ t.__('Popular', 'membuild-community') }}</button>
+      <button class="filter-pill" role="tab" :aria-selected="sort === 'latest'" :class="{ on: sort === 'latest' }" @click="sort = 'latest'">{{ t.__('Latest', 'membuild-community') }}</button>
+      <button class="filter-pill" role="tab" :aria-selected="sort === 'hot'" :class="{ on: sort === 'hot' }" @click="sort = 'hot'"><Icon name="flame" :size="15" /> {{ t.__('Popular', 'membuild-community') }}</button>
     </div>
 
     <PostCard v-for="post in list.pinned" :key="`pin-${post.id}`" :post="post" />
@@ -272,22 +272,6 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
 .sort {
   display: flex;
   gap: 6px;
-}
-
-.sort button {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 14px;
-  border-radius: 999px;
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--text-2);
-}
-
-.sort button.on {
-  background: var(--text);
-  color: var(--surface);
 }
 
 .status {

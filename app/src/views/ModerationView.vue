@@ -220,7 +220,7 @@ function personLine(p) {
     <header class="head">
       <h1>{{ t.__('Moderation', 'membuild-community') }}</h1>
       <div class="tabs" role="tablist">
-        <button v-for="tb in TABS" :key="tb.key" type="button" role="tab" :aria-selected="tab === tb.key" :class="{ on: tab === tb.key }" @click="tab = tb.key">
+        <button class="filter-pill" v-for="tb in TABS" :key="tb.key" type="button" role="tab" :aria-selected="tab === tb.key" :class="{ on: tab === tb.key }" @click="tab = tb.key">
           {{ tb.label }}
           <span v-if="countOf(tb.key)" class="count" :class="{ red: tb.key === 'open' }">{{ countOf(tb.key) }}</span>
         </button>
@@ -406,24 +406,6 @@ function personLine(p) {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-}
-
-.tabs button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 44px;
-  padding: 0 16px;
-  border-radius: 999px;
-  color: var(--text-2);
-  background: var(--surface-2);
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.tabs button.on {
-  color: var(--accent-text);
-  background: var(--accent-soft);
 }
 
 .count {
@@ -887,10 +869,6 @@ function personLine(p) {
     scrollbar-width: none;
   }
 
-  .tabs button {
-    flex: none;
-  }
-
   .report {
     padding: 18px 16px;
   }
@@ -958,4 +936,5 @@ function personLine(p) {
     padding: 0 14px;
   }
 }
+
 </style>

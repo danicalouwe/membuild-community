@@ -54,8 +54,8 @@ onBeforeUnmount(() => observer?.disconnect())
     <header class="head">
       <h1>{{ t.__('Events', 'membuild-community') }}</h1>
       <div class="tabs" role="tablist">
-        <button role="tab" :aria-selected="when === 'upcoming'" :class="{ on: when === 'upcoming' }" @click="when = 'upcoming'">{{ t.__('Upcoming', 'membuild-community') }}</button>
-        <button role="tab" :aria-selected="when === 'past'" :class="{ on: when === 'past' }" @click="when = 'past'">{{ t.__('Past', 'membuild-community') }}</button>
+        <button class="filter-pill" role="tab" :aria-selected="when === 'upcoming'" :class="{ on: when === 'upcoming' }" @click="when = 'upcoming'">{{ t.__('Upcoming', 'membuild-community') }}</button>
+        <button class="filter-pill" role="tab" :aria-selected="when === 'past'" :class="{ on: when === 'past' }" @click="when = 'past'">{{ t.__('Past', 'membuild-community') }}</button>
       </div>
       <button v-if="owner" class="btn btn-primary new" @click="creating = true"><Icon name="plus" :size="16" /> {{ t.__('New event', 'membuild-community') }}</button>
     </header>
@@ -107,21 +107,6 @@ onBeforeUnmount(() => observer?.disconnect())
 .tabs {
   display: flex;
   gap: 6px;
-}
-
-.tabs button {
-  height: 36px;
-  padding: 0 16px;
-  border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--text-2);
-  font-size: 15px;
-  font-weight: 650;
-}
-
-.tabs button.on {
-  background: var(--accent-soft);
-  color: var(--accent-text);
 }
 
 .new {
@@ -190,4 +175,5 @@ onBeforeUnmount(() => observer?.disconnect())
     justify-content: center;
   }
 }
+
 </style>

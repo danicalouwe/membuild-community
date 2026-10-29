@@ -124,7 +124,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
         <button class="btn btn-lg btn-primary" @click="startNew"><Icon name="plus" :size="20" /> {{ t.__('New course', 'membuild-community') }}</button>
       </div>
       <div v-else-if="counts.going || counts.done" class="filters" role="radiogroup" :aria-label="t.__('Show courses', 'membuild-community')">
-        <button v-for="f in FILTERS" :key="f.key" role="radio" :aria-checked="filter === f.key" :class="{ on: filter === f.key }" @click="filter = f.key">
+        <button class="filter-pill" v-for="f in FILTERS" :key="f.key" role="radio" :aria-checked="filter === f.key" :class="{ on: filter === f.key }" @click="filter = f.key">
           {{ f.label }}<span v-if="f.n" class="n">{{ f.n }}</span>
         </button>
       </div>
@@ -379,24 +379,6 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
   margin-left: auto;
 }
 
-.filters button {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 52px;
-  padding: 0 20px;
-  border-radius: 999px;
-  background: var(--fill-on-bg, var(--surface-2));
-  color: var(--text-2);
-  font-weight: 700;
-  font-size: 17px;
-}
-
-.filters button.on {
-  background: var(--accent-soft);
-  color: var(--accent-text);
-}
-
 .filters .n {
   min-width: 24px;
   padding: 0 7px;
@@ -513,13 +495,6 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
     display: none;
   }
 
-}
-
-@media (max-width: 400px) {
-  .filters button {
-    padding: 0 14px;
-    font-size: 16px;
-  }
 }
 
 .done-badge {
@@ -895,5 +870,13 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
   color: var(--text-3);
   text-align: center;
   margin: 24px 0;
+}
+
+@media (max-width: 767px) {
+  .filters .n {
+    min-width: 20px;
+    padding: 0 6px;
+    font-size: 12px;
+  }
 }
 </style>

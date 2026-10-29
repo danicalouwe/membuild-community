@@ -151,8 +151,8 @@ const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles
       <button v-if="unread || items.some((n) => !n.read)" class="link" @click="readAll">{{ t.__('Mark all as read', 'membuild-community') }}</button>
     </header>
     <div class="filters" role="tablist">
-      <button role="tab" :aria-selected="filter === 'all'" :class="{ on: filter === 'all' }" @click="filter = 'all'">{{ t.__('All', 'membuild-community') }}</button>
-      <button role="tab" :aria-selected="filter === 'unread'" :class="{ on: filter === 'unread' }" @click="filter = 'unread'">{{ unread ? t.sprintf(/* translators: %d: how many unread alerts */ t.__('Unread · %d', 'membuild-community'), unread) : t.__('Unread', 'membuild-community') }}</button>
+      <button class="filter-pill" role="tab" :aria-selected="filter === 'all'" :class="{ on: filter === 'all' }" @click="filter = 'all'">{{ t.__('All', 'membuild-community') }}</button>
+      <button class="filter-pill" role="tab" :aria-selected="filter === 'unread'" :class="{ on: filter === 'unread' }" @click="filter = 'unread'">{{ unread ? t.sprintf(/* translators: %d: how many unread alerts */ t.__('Unread · %d', 'membuild-community'), unread) : t.__('Unread', 'membuild-community') }}</button>
     </div>
 
     <ul class="list">
@@ -248,19 +248,6 @@ const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles
   display: flex;
   gap: 6px;
   padding: 4px 12px 8px;
-}
-
-.filters button {
-  padding: 6px 12px;
-  border-radius: 999px;
-  font-weight: 650;
-  font-size: 14px;
-  color: var(--text-2);
-}
-
-.filters button.on {
-  background: var(--accent-soft);
-  color: var(--accent-text);
 }
 
 .list {

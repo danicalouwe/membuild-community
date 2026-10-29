@@ -171,7 +171,7 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
       <input v-if="!loaded || threads.length || query || filter !== 'all'" v-model="query" class="search" type="search" :placeholder="t.__('Search chats', 'membuild-community')" :aria-label="t.__('Search chats', 'membuild-community')" />
 
       <div v-if="!loaded || threads.length || query || filter !== 'all'" class="filters" role="tablist" :aria-label="t.__('Show chats', 'membuild-community')">
-        <button v-for="f in FILTERS" :key="f.key" role="tab" :aria-selected="filter === f.key" :class="{ on: filter === f.key }" @click="filter = f.key">{{ f.label }}</button>
+        <button class="filter-pill" v-for="f in FILTERS" :key="f.key" role="tab" :aria-selected="filter === f.key" :class="{ on: filter === f.key }" @click="filter = f.key">{{ f.label }}</button>
       </div>
 
       <ul class="list" @scroll.passive="onListScroll">
@@ -338,21 +338,6 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
   display: flex;
   gap: 8px;
   padding: 4px 12px 10px;
-}
-
-.filters button {
-  min-height: 40px;
-  padding: 0 18px;
-  border-radius: 999px;
-  background: var(--surface-2);
-  font-size: 16px;
-  font-weight: 650;
-  color: var(--text-2);
-}
-
-.filters button.on {
-  background: var(--accent-soft);
-  color: var(--accent-text);
 }
 
 .text strong {
@@ -528,4 +513,5 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
     display: flex;
   }
 }
+
 </style>

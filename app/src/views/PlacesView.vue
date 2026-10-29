@@ -575,8 +575,8 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
           </button>
         </div>
       </div>
-      <button class="tog" :class="{ on: view === 'places' && showMembers }" :aria-pressed="view === 'places' && showMembers" @click="toggle('members')"><Icon name="users" :size="18" /> {{ t.__('Members', 'membuild-community') }} <Icon v-if="view === 'places' && showMembers" name="check" :size="16" /></button>
-      <button class="tog" :class="{ on: view === 'places' && showPlaces }" :aria-pressed="view === 'places' && showPlaces" @click="toggle('places')"><Icon name="mapPin" :size="18" /> {{ t.__('Places', 'membuild-community') }} <Icon v-if="view === 'places' && showPlaces" name="check" :size="16" /></button>
+      <button class="tog filter-pill" :class="{ on: view === 'places' && showMembers }" :aria-pressed="view === 'places' && showMembers" @click="toggle('members')"><Icon name="users" :size="18" /> {{ t.__('Members', 'membuild-community') }} <Icon v-if="view === 'places' && showMembers" name="check" :size="16" /></button>
+      <button class="tog filter-pill" :class="{ on: view === 'places' && showPlaces }" :aria-pressed="view === 'places' && showPlaces" @click="toggle('places')"><Icon name="mapPin" :size="18" /> {{ t.__('Places', 'membuild-community') }} <Icon v-if="view === 'places' && showPlaces" name="check" :size="16" /></button>
       <!-- Pending only shows when something is waiting (and stays while you look at it, so you can switch back). -->
       <button v-if="canEdit && (pendingCount || view === 'pending')" class="tog" :class="{ on: view === 'pending' }" :aria-pressed="view === 'pending'" @click="view = view === 'pending' ? 'places' : 'pending'; fitMap()">{{ t.__('Pending', 'membuild-community') }} <span v-if="pendingCount" class="count">{{ pendingCount }}</span></button>
     </div>
@@ -889,25 +889,6 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
   height: 32px;
   border-radius: 50%;
   color: var(--text-2);
-}
-
-.tog {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 52px;
-  padding: 0 20px;
-  border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--text);
-  font-size: 17px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.tog.on {
-  background: var(--text);
-  color: var(--surface);
 }
 
 .count {
@@ -1841,12 +1822,6 @@ button.pc:hover {
     height: 48px;
   }
 
-  .tog {
-    height: 44px;
-    padding: 0 10px;
-    font-size: 15px;
-  }
-
   .tog :deep(svg) {
     display: none;
   }
@@ -1895,10 +1870,6 @@ button.pc:hover {
   .pcard.placed {
     right: auto;
     width: calc(100vw - 16px);
-  }
-
-  .tog {
-    padding: 0 12px;
   }
 
   .mface {

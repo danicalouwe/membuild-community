@@ -124,7 +124,7 @@ onBeforeUnmount(() => observer?.disconnect())
         <input v-model="typed" type="search" :placeholder="whole ? t.__('Search all posts', 'membuild-community') : t.__('Search this discussion', 'membuild-community')" :aria-label="whole ? t.__('Search all posts', 'membuild-community') : t.__('Search this discussion', 'membuild-community')" />
       </div>
       <div v-if="!nothing && helpfulOn" class="sorts" role="radiogroup" :aria-label="t.__('Sort posts', 'membuild-community')">
-        <button v-for="(label, key) in SORTS" :key="key" role="radio" :aria-checked="sort === key" :class="{ on: sort === key }" @click="sort = key">{{ label }}</button>
+        <button class="filter-pill" v-for="(label, key) in SORTS" :key="key" role="radio" :aria-checked="sort === key" :class="{ on: sort === key }" @click="sort = key">{{ label }}</button>
       </div>
     </div>
 
@@ -277,25 +277,7 @@ onBeforeUnmount(() => observer?.disconnect())
 
 .sorts {
   display: flex;
-  gap: 4px;
-  padding: 3px;
-  border-radius: 999px;
-  background: var(--surface-2);
-}
-
-.sorts button {
-  height: 42px;
-  padding: 0 16px;
-  border-radius: 999px;
-  font-size: 15.5px;
-  font-weight: 650;
-  color: var(--text-2);
-}
-
-.sorts button.on {
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 12%);
+  gap: 8px;
 }
 
 .bar {

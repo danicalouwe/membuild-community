@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.13.1
+Stable tag: 1.13.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,10 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.13.2 =
+* Filters everywhere share one look: Classroom, Leaderboard, Events, Home's Latest and Popular, Messages, the chats and Alerts panels, Members, Search, Moderation, Places, a lesson's sort and who reacted. They are smaller than the page's main buttons (they're a choice, not an action), light green when picked, and still easy to tap on a phone.
+* The For you list on Home shows its date as a small calendar page, with the month on a grey strip.
 
 = 1.13.1 =
 * Sell memberships with FluentCart: in Settings, Memberships, pick the FluentCart product that sells a membership. "Continue to checkout" on a locked course goes straight to a simple checkout in your community's look (your logo and what they get on the left, only the fields that are needed on the right), then a "You're in" page that opens the course. Members are added when the order is paid and removed on a refund. A cancelled subscription keeps access until the end of what was paid for; a paused one closes it until it's resumed.

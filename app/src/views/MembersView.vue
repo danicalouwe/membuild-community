@@ -92,8 +92,8 @@ const roleLabel = (role) => (role === 'admin' ? t.__('Admin', 'membuild-communit
     <header class="head">
       <h1>{{ t.__('Members', 'membuild-community') }} <span v-if="total">{{ total.toLocaleString(locale) }}</span></h1>
       <div class="sorts" role="tablist">
-        <button v-for="s in SORTS" :key="s.key" role="tab" :aria-selected="sort === s.key" :class="{ on: sort === s.key }" @click="sort = s.key">{{ s.label }}</button>
-        <button v-if="online !== null" role="tab" class="online-tab" :aria-selected="sort === 'online'" :class="{ on: sort === 'online' }" @click="sort = 'online'">
+        <button class="filter-pill" v-for="s in SORTS" :key="s.key" role="tab" :aria-selected="sort === s.key" :class="{ on: sort === s.key }" @click="sort = s.key">{{ s.label }}</button>
+        <button v-if="online !== null" role="tab" class="online-tab filter-pill" :aria-selected="sort === 'online'" :class="{ on: sort === 'online' }" @click="sort = 'online'">
           <i class="green" aria-hidden="true" /> {{ t.__('Online now', 'membuild-community') }} <span class="count">{{ online }}</span>
         </button>
       </div>
@@ -254,26 +254,6 @@ const roleLabel = (role) => (role === 'admin' ? t.__('Admin', 'membuild-communit
   display: flex;
   gap: 8px;
   flex-basis: 100%;
-}
-
-.sorts button {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 6px;
-  min-height: 40px;
-  padding: 0 16px;
-  border-radius: 999px;
-  background: var(--surface-2);
-  font-weight: 650;
-  font-size: 15px;
-  color: var(--text-2);
-  white-space: nowrap;
-}
-
-.sorts button.on {
-  background: var(--accent-soft);
-  color: var(--accent-text);
 }
 
 .grid {
@@ -530,6 +510,9 @@ const roleLabel = (role) => (role === 'admin' ? t.__('Admin', 'membuild-communit
   .sorts {
     overflow-x: auto;
     scrollbar-width: none;
+    /* Room for each filter's 44px tap area (a sideways-scrolling row clips what's outside it). */
+    margin-block: -4px;
+    padding-block: 4px;
   }
 
   .active.phone-only.now {
@@ -614,4 +597,5 @@ const roleLabel = (role) => (role === 'admin' ? t.__('Admin', 'membuild-communit
     align-items: flex-start;
   }
 }
+
 </style>

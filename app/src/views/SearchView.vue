@@ -198,7 +198,7 @@ const searched = computed(() => {
         </header>
 
         <div v-if="filters.length" class="filters" role="tablist">
-          <button v-for="f in filters" :key="f.key" type="button" role="tab" :aria-selected="type === f.key" :class="{ on: type === f.key }" @click="setType(f.key)">
+          <button class="filter-pill" v-for="f in filters" :key="f.key" type="button" role="tab" :aria-selected="type === f.key" :class="{ on: type === f.key }" @click="setType(f.key)">
             {{ f.label }} <span class="n">{{ f.n }}</span>
           </button>
         </div>
@@ -274,29 +274,6 @@ const searched = computed(() => {
 
 .filters::-webkit-scrollbar {
   display: none;
-}
-
-.filters button {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 10px;
-  min-height: 52px;
-  padding: 0 20px;
-  border-radius: 999px;
-  color: var(--text-2);
-  background: var(--surface-2);
-  font-size: 17px;
-  font-weight: 700;
-}
-
-.filters button:hover {
-  background: var(--border);
-}
-
-.filters button.on {
-  color: var(--accent-text);
-  background: var(--accent-soft);
 }
 
 .n {
@@ -532,10 +509,6 @@ const searched = computed(() => {
     mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent);
   }
 
-  .filters button {
-    padding: 0 18px;
-  }
-
   .group,
   .start-card,
   .none {
@@ -557,4 +530,5 @@ const searched = computed(() => {
     padding: 48px 24px;
   }
 }
+
 </style>

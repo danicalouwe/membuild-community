@@ -164,7 +164,7 @@ const writePost = () => router.push({ name: 'feed', query: { write: 1 } })
       <header class="rank-head">
         <h1>{{ t.__('Leaderboard', 'membuild-community') }}</h1>
         <div class="periods" role="tablist" :aria-label="t.__('Period', 'membuild-community')">
-          <button v-for="x in PERIODS" :key="x.key" role="tab" :aria-selected="period === x.key" :class="{ on: period === x.key }" @click="period = x.key">{{ x.label }}</button>
+          <button class="filter-pill" v-for="x in PERIODS" :key="x.key" role="tab" :aria-selected="period === x.key" :class="{ on: period === x.key }" @click="period = x.key">{{ x.label }}</button>
         </div>
       </header>
 
@@ -274,22 +274,6 @@ h1 {
 .periods {
   display: flex;
   gap: 8px;
-}
-
-.periods button {
-  height: 52px;
-  padding: 0 20px;
-  white-space: nowrap;
-  border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--text-2);
-  font-size: 17px;
-  font-weight: 700;
-}
-
-.periods button.on {
-  background: var(--accent-soft);
-  color: var(--accent-text);
 }
 
 /* Your level (phones) */
@@ -714,7 +698,6 @@ h1 {
   }
 }
 
-
 /* Phones: edge to edge, the filters split the width. */
 @media (max-width: 767px) {
   .board {
@@ -739,11 +722,8 @@ h1 {
     font-size: 26px;
   }
 
-  .periods button {
+  .periods .filter-pill {
     flex: 1;
-    height: 48px;
-    padding: 0;
-    font-size: 16px;
   }
 
   .spot {
@@ -785,4 +765,5 @@ h1 {
     font-size: 14px;
   }
 }
+
 </style>

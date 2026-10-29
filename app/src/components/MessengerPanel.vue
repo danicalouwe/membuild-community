@@ -94,7 +94,7 @@ function compose() {
     </header>
     <input v-model="query" class="search" type="search" :placeholder="t.__('Search chats', 'membuild-community')" :aria-label="t.__('Search chats', 'membuild-community')" />
     <div class="filters" role="tablist">
-      <button v-for="f in FILTERS" :key="f.key" role="tab" :aria-selected="filter === f.key" :class="{ on: filter === f.key }" @click="filter = f.key">{{ f.label }}</button>
+      <button class="filter-pill" v-for="f in FILTERS" :key="f.key" role="tab" :aria-selected="filter === f.key" :class="{ on: filter === f.key }" @click="filter = f.key">{{ f.label }}</button>
     </div>
 
     <ul class="list">
@@ -156,19 +156,6 @@ function compose() {
   display: flex;
   gap: 6px;
   padding: 0 12px 6px;
-}
-
-.filters button {
-  padding: 6px 12px;
-  border-radius: 999px;
-  font-weight: 650;
-  font-size: 14px;
-  color: var(--text-2);
-}
-
-.filters button.on {
-  background: var(--accent-soft);
-  color: var(--accent-text);
 }
 
 .round {

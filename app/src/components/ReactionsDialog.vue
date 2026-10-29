@@ -57,12 +57,12 @@ onMounted(() => load(true))
   <BaseDialog :label="t.__('Reactions', 'membuild-community')" :width="560" max-height="640px" phone="sheet" @close="emit('close')" @scroll="onScroll">
     <template #header>
       <header class="tabs" role="tablist">
-        <button role="tab" class="tab" :class="{ on: tab === '' }" :aria-selected="tab === ''" @click="select('')">{{ t.__('All', 'membuild-community') }}</button>
+        <button role="tab" class="tab filter-pill" :class="{ on: tab === '' }" :aria-selected="tab === ''" @click="select('')">{{ t.__('All', 'membuild-community') }}</button>
         <button
           v-for="[type, n] in tabs"
           :key="type"
           role="tab"
-          class="tab"
+          class="tab filter-pill"
           :class="{ on: tab === type }"
           :aria-selected="tab === type"
           @click="select(type)"
@@ -95,44 +95,12 @@ onMounted(() => load(true))
 .tabs {
   display: flex;
   align-items: stretch;
-  gap: 4px;
-  padding: 8px 12px 0;
+  gap: 8px;
+  padding: 8px 12px 12px;
   border-bottom: 1px solid var(--border);
   overflow-x: auto;
   scrollbar-width: none;
   flex: none;
-}
-
-.tab {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 12px 14px 14px;
-  font-size: 15px;
-  font-weight: 650;
-  color: var(--text-2);
-  white-space: nowrap;
-  border-radius: 8px 8px 0 0;
-}
-
-.tab:hover {
-  background: var(--surface-2);
-}
-
-.tab.on {
-  color: var(--accent-text);
-}
-
-.tab.on::after {
-  content: '';
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: -1px;
-  height: 3px;
-  border-radius: 3px 3px 0 0;
-  background: var(--accent);
 }
 
 .close {
