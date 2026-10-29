@@ -64,7 +64,7 @@ const lessons = computed(() => props.course.lessons_count || 0)
 <template>
   <BaseDialog v-if="!sharing" :label="t.__('You finished the course', 'membuild-community')" :width="520" :z="95" style="border-radius: 24px; overflow: hidden" @close="emit('close')">
     <template #header="{ close }">
-      <button class="x" :aria-label="t.__('Close', 'membuild-community')" @click="close"><Icon name="close" :size="20" /></button>
+      <button class="x round-btn" :aria-label="t.__('Close', 'membuild-community')" @click="close"><Icon name="close" :size="20" /></button>
     </template>
     <div class="done">
       <span v-if="cfg.community.courses?.confetti !== false" class="confetti" aria-hidden="true"><i v-for="(p, n) in pieces" :key="n" :style="p" /></span>
@@ -93,15 +93,6 @@ const lessons = computed(() => props.course.lessons_count || 0)
   top: 16px;
   right: 16px;
   z-index: 2;
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border: 0;
-  border-radius: 50%;
-  background: var(--surface-2);
-  color: var(--text-2);
-  cursor: pointer;
 }
 
 .done {

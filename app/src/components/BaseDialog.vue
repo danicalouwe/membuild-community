@@ -50,7 +50,7 @@ const panelStyle = () => ({
         <slot name="header" :close="() => emit('close', 'button')">
           <header class="top">
             <h2 :id="headingId">{{ title }}</h2>
-            <button class="round" :aria-label="t.__('Close', 'membuild-community')" @click="emit('close', 'button')"><Icon name="close" :size="20" /></button>
+            <button class="round round-btn" :aria-label="t.__('Close', 'membuild-community')" @click="emit('close', 'button')"><Icon name="close" :size="20" /></button>
           </header>
         </slot>
         <div class="content" @scroll.passive="emit('scroll', $event)"><slot /></div>
@@ -113,17 +113,6 @@ const panelStyle = () => ({
   right: 14px;
   top: 50%;
   translate: 0 -50%;
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--surface-2);
-  color: var(--text-2);
-}
-
-.round:hover {
-  filter: brightness(0.96);
 }
 
 .content {

@@ -41,7 +41,7 @@ const people = (n) =>
       <template v-if="past">
         <span class="when-past">{{ whenShort(e) }} {{ zoneName() }}</span>
         <strong class="title">{{ e.title }}</strong>
-        <span v-if="state === 'cancelled'" class="tag off">{{ t.__('Cancelled', 'membuild-community') }}</span>
+        <span v-if="state === 'cancelled'" class="status-tag bad when-tag">{{ t.__('Cancelled', 'membuild-community') }}</span>
         <span v-else-if="e.recording" class="replay"><Icon name="play" :size="14" /> {{ t.__('Watch the replay', 'membuild-community') }}</span>
         <button v-else-if="owner" class="btn add" @click.prevent.stop="emit('add-replay', post)"><Icon name="plus" :size="16" /> {{ t.__('Add the replay', 'membuild-community') }}</button>
         <span v-else class="muted">{{ t.__('No replay for this one', 'membuild-community') }}</span>
@@ -49,10 +49,10 @@ const people = (n) =>
       <template v-else>
         <span class="day">{{ dayShort(e) }}<span v-if="state === 'upcoming' || state === 'soon'" class="day-until"> · {{ untilPill(e) }}</span></span>
         <strong class="title">{{ e.title }}</strong>
-        <span class="line"><Icon name="clock" :size="16" /> <span class="t-full">{{ here ? timeRangeIn(e) : timeRange(e) }}<small v-if="here && city"> ({{ t.sprintf(/* translators: %s: a city */ t.__('%s time', 'membuild-community'), city) }})</small></span><span class="t-start">{{ startTime(e) }}</span> <span v-if="state === 'upcoming' || state === 'soon'" class="pill">{{ untilPill(e) }}</span></span>
+        <span class="line"><Icon name="clock" :size="16" /> <span class="t-full">{{ here ? timeRangeIn(e) : timeRange(e) }}<small v-if="here && city"> ({{ t.sprintf(/* translators: %s: a city */ t.__('%s time', 'membuild-community'), city) }})</small></span><span class="t-start">{{ startTime(e) }}</span> <span v-if="state === 'upcoming' || state === 'soon'" class="status-tag soon-tag">{{ untilPill(e) }}</span></span>
         <span v-if="e.where !== 'online' && e.place" class="line"><Icon name="mapPin" :size="16" /> {{ placeLine }}<template v-if="e.where === 'both'"> · {{ t.__('and online', 'membuild-community') }}</template></span>
         <span v-else class="line"><Icon name="video" :size="16" /> {{ t.__('Online', 'membuild-community') }}</span>
-        <span v-if="!owner && e.my_rsvp === 'going'" class="tag ok"><Icon name="check" :size="13" /> {{ t.__('You’re going', 'membuild-community') }}</span>
+        <span v-if="!owner && e.my_rsvp === 'going'" class="status-tag ok when-tag"><Icon name="check" :size="13" /> {{ t.__('You’re going', 'membuild-community') }}</span>
       </template>
       <span v-if="owner && state !== 'cancelled'" class="line count"><Icon name="users" :size="16" /> {{ people(e.going_count) }} <small>· {{ t.__('only you see this', 'membuild-community') }}</small></span>
     </span>
@@ -61,6 +61,10 @@ const people = (n) =>
 </template>
 
 <style scoped>
+.when-tag {
+  margin-top: 2px;
+}
+
 .er {
   display: flex;
   align-items: center;
@@ -200,36 +204,6 @@ const people = (n) =>
   font-size: 14px;
 }
 
-.pill {
-  padding: 2px 10px;
-  border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--text-2);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  margin-top: 2px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.tag.ok {
-  background: var(--ok-soft);
-  color: var(--ok-text);
-}
-
-.tag.off {
-  background: var(--danger-soft);
-  color: var(--danger-text);
-}
-
 .replay {
   display: inline-flex;
   align-items: center;
@@ -314,7 +288,7 @@ const people = (n) =>
   }
 
   .t-full,
-  .pill {
+  .soon-tag {
     display: none;
   }
 

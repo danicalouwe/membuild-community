@@ -68,7 +68,7 @@ async function send() {
         </label>
       </div>
       <textarea v-if="reason" v-model="note" rows="2" maxlength="500" :placeholder="t.__('Anything else they should know? (optional)', 'membuild-community')" :aria-label="t.__('Note', 'membuild-community')" />
-      <p v-if="error" class="err">{{ error }}</p>
+      <p v-if="error" class="error-text">{{ error }}</p>
       <footer class="foot">
         <button type="button" class="btn" @click="emit('close')">{{ t.__('Cancel', 'membuild-community') }}</button>
         <button type="submit" class="btn btn-primary" :disabled="!reason || sending">{{ sending ? t.__('Sending…', 'membuild-community') : t.__('Report', 'membuild-community') }}</button>
@@ -119,11 +119,6 @@ textarea {
   color: var(--text);
   font: inherit;
   resize: vertical;
-}
-
-.err {
-  margin: 0;
-  color: var(--danger);
 }
 
 .foot {

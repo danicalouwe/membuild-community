@@ -70,7 +70,7 @@ onMounted(() => load(true))
           <ReactionBadge :type="type" :size="24" />
           <span>{{ compactNumber(n) }}</span>
         </button>
-        <button class="close" :aria-label="t.__('Close', 'membuild-community')" @click="emit('close')"><Icon name="close" :size="22" /></button>
+        <button class="close round-btn" :aria-label="t.__('Close', 'membuild-community')" @click="emit('close')"><Icon name="close" :size="22" /></button>
       </header>
     </template>
 
@@ -106,14 +106,6 @@ onMounted(() => load(true))
 .close {
   margin-left: auto;
   align-self: center;
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--surface-2);
-  color: var(--text-2);
 }
 
 .list {

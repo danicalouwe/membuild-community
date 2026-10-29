@@ -698,7 +698,7 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
         </div>
         </template>
       </template>
-      <p v-if="error" class="err" role="status">{{ error }}</p>
+      <p v-if="error" class="error-text" role="status">{{ error }}</p>
     </section>
 
     <!-- One place, in a column on the left; the map beside it. -->
@@ -712,7 +712,7 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
       <div v-for="n in 4" :key="n" class="skeleton" style="height: 14px" :style="{ width: `${92 - n * 9}%` }" />
     </aside>
     <aside v-if="detail" :key="detail.id" class="detail page-in">
-      <button class="back" @click="back"><Icon name="chevronLeft" :size="20" /> {{ t.__('All places', 'membuild-community') }}</button>
+      <button class="back-link" @click="back"><Icon name="chevronLeft" :size="20" /> {{ t.__('All places', 'membuild-community') }}</button>
       <div class="hero">
         <img v-if="detail.cover" :src="detail.cover" alt="" />
         <MapThumb v-else :lat="detail.lat" :lng="detail.lng" :zoom="16" :color="CATEGORY[detail.category]?.color" :emoji="CATEGORY[detail.category]?.emoji" />
@@ -794,7 +794,7 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
         <ul v-if="meMatches.length" class="dlg-list">
           <li v-for="(m, i) in meMatches" :key="i"><button :disabled="meBusy" @click="pickMe(m)"><Icon name="mapPin" :size="16" /> {{ m.label }}</button></li>
         </ul>
-        <p v-if="meError" class="err">{{ meError }}</p>
+        <p v-if="meError" class="error-text">{{ meError }}</p>
         <div class="dlg-act">
           <button v-if="myMap" class="link danger" @click="hideMe">{{ t.__('Take me off the map', 'membuild-community') }}</button>
           <button class="btn btn-lg btn-ghost" @click="meOpen = false">{{ t.__('Cancel', 'membuild-community') }}</button>
@@ -807,7 +807,7 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
         <p class="dlg-note">{{ canEdit ? t.__('It shows on this place and on the map until the day you pick.', 'membuild-community') : t.__('It shows on this place and on the map until the day you pick. An admin or moderator checks it first.', 'membuild-community') }}</p>
         <label class="dlg-field"><span>{{ t.__('What’s new?', 'membuild-community') }}</span><input v-model="newsText" type="text" maxlength="200" required :placeholder="t.__('20% off for members until Nov 30', 'membuild-community')" /></label>
         <label class="dlg-field"><span>{{ t.__('Ends on', 'membuild-community') }}</span><input v-model="newsEnds" type="date" :min="today" required /></label>
-        <p v-if="newsError" class="err">{{ newsError }}</p>
+        <p v-if="newsError" class="error-text">{{ newsError }}</p>
         <div class="dlg-act">
           <button type="button" class="btn btn-lg btn-ghost" @click="newsOpen = false">{{ t.__('Cancel', 'membuild-community') }}</button>
           <button class="btn btn-lg btn-primary" :disabled="newsBusy || !newsText.trim()">{{ canEdit ? t.__('Share it', 'membuild-community') : t.__('Send for a check', 'membuild-community') }}</button>
@@ -1249,10 +1249,6 @@ button.pc:hover {
   color: var(--text-2);
 }
 
-.err {
-  color: var(--danger-text);
-}
-
 /* Members in the panel: big faces with first name and city. */
 .faces-row {
   display: flex;
@@ -1653,15 +1649,6 @@ button.pc:hover {
 
 .detail > * {
   flex-shrink: 0; /* the column scrolls; nothing in it gets squeezed */
-}
-
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 44px;
-  color: var(--text);
-  font-weight: 700;
 }
 
 .hero {

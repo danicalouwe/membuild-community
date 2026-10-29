@@ -183,10 +183,10 @@ const writePost = () => router.push({ name: 'feed', query: { write: 1 } })
       </ol>
 
       <!-- Nobody has points in this period yet. -->
-      <div v-else-if="data && !items.length" class="empty">
-        <span class="empty-ic"><Icon name="star" :size="28" /></span>
-        <strong>{{ emptyTitle }}</strong>
-        <p>{{ t.__('Post or comment and you’ll be the first one on the board.', 'membuild-community') }}</p>
+      <div v-else-if="data && !items.length" class="empty-state">
+        <span class="empty-state-icon" aria-hidden="true"><Icon name="star" :size="28" /></span>
+        <strong class="empty-state-title">{{ emptyTitle }}</strong>
+        <p class="empty-state-text">{{ t.__('Post or comment and you’ll be the first one on the board.', 'membuild-community') }}</p>
         <button class="btn btn-lg btn-primary" @click="writePost">{{ t.__('Write a post', 'membuild-community') }}</button>
       </div>
 
@@ -606,39 +606,6 @@ h1 {
 
 .sk {
   pointer-events: none;
-}
-
-/* Empty period */
-.empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 40px 24px 28px;
-  text-align: center;
-}
-
-.empty-ic {
-  display: grid;
-  place-items: center;
-  width: 64px;
-  height: 64px;
-  margin-bottom: 6px;
-  border-radius: 50%;
-  background: var(--accent-soft);
-  color: var(--accent-text);
-}
-
-.empty strong {
-  font-size: 20px;
-}
-
-.empty p {
-  max-width: 340px;
-  margin: 0 0 8px;
-  color: var(--text-2);
-  font-size: 15px;
-  line-height: 1.5;
 }
 
 /* Tablets and phones: one column (no room for the levels beside it); your level in its own

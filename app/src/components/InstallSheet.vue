@@ -38,7 +38,7 @@ const heading = t.sprintf(/* translators: %s: the site's name */ t.__('Get the %
       <div ref="sheet" class="sheet" role="dialog" aria-modal="true" :aria-label="t.__('Add to your phone', 'membuild-community')">
         <header>
           <h2>{{ heading }}</h2>
-          <button class="round" :aria-label="t.__('Close', 'membuild-community')" @click="emit('close')"><Icon name="close" :size="20" /></button>
+          <button class="round round-btn" :aria-label="t.__('Close', 'membuild-community')" @click="emit('close')"><Icon name="close" :size="20" /></button>
         </header>
         <p class="lead">{{ t.__('Open the community from your home screen, full screen, like any other app.', 'membuild-community') }}</p>
 
@@ -100,15 +100,6 @@ h2 {
   font-size: 19px;
 }
 
-.round {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: var(--surface-2);
-  flex: none;
-}
 
 .lead {
   margin: 8px 0 14px;

@@ -27,11 +27,17 @@ const meta = () => t.sprintf(/* translators: %d: number of lessons */ t._n('%d l
       <span v-if="course.description" class="sum">{{ course.description }}</span>
       <span class="meta">{{ meta() }}</span>
     </span>
-    <span class="pill" :class="status().key">{{ status().label }}</span>
+    <span class="status-tag on-card" :class="{ done: 'ok', going: 'warn' }[status().key] || 'accent'">{{ status().label }}</span>
   </component>
 </template>
 
 <style scoped>
+.on-card {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+}
+
 .cc {
   position: relative;
   display: flex;
@@ -104,29 +110,6 @@ const meta = () => t.sprintf(/* translators: %d: number of lessons */ t._n('%d l
   font-weight: 600;
 }
 
-.pill {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  padding: 4px 12px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent-text);
-  font-size: 13px;
-  font-weight: 700;
-  z-index: 1;
-}
-
-.pill.done {
-  background: var(--ok-soft);
-  color: var(--ok-text);
-}
-
-.pill.going {
-  background: var(--warn-soft);
-  color: var(--warn-text);
-}
-
 @media (max-width: 600px) {
   .cc {
     flex-direction: column;
@@ -146,7 +129,7 @@ const meta = () => t.sprintf(/* translators: %d: number of lessons */ t._n('%d l
   }
 
   /* On the cover: clear of its rounded corner. */
-  .pill {
+  .on-card {
     top: 22px;
     right: 22px;
   }

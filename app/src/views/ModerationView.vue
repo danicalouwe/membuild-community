@@ -193,12 +193,12 @@ async function lift(user, it = null) {
 /* ---------- Done and Muted & banned ---------- */
 
 const OUTCOME = {
-  kept: { label: t.__('Left up', 'membuild-community'), tone: 'green' },
+  kept: { label: t.__('Left up', 'membuild-community'), tone: 'ok' },
   removed: { label: t.__('Taken down', 'membuild-community'), tone: 'grey' },
-  muted: { label: t.__('Muted', 'membuild-community'), tone: 'yellow' },
-  banned: { label: t.__('Banned', 'membuild-community'), tone: 'red' },
+  muted: { label: t.__('Muted', 'membuild-community'), tone: 'warn' },
+  banned: { label: t.__('Banned', 'membuild-community'), tone: 'bad' },
 }
-const outcome = (it) => (it.object_type === 'member' && it.resolution.action === 'kept' ? { label: t.__('Fine', 'membuild-community'), tone: 'green' } : OUTCOME[it.resolution.action] || OUTCOME.kept)
+const outcome = (it) => (it.object_type === 'member' && it.resolution.action === 'kept' ? { label: t.__('Fine', 'membuild-community'), tone: 'ok' } : OUTCOME[it.resolution.action] || OUTCOME.kept)
 function decidedLine(it) {
   const why = t.sprintf(/* translators: %s: report reasons */ t.__('Reported for %s', 'membuild-community'), it.reasons.map((r) => r.label).join(', '))
   const by = it.resolution.by?.name ? t.sprintf(/* translators: 1: a name, 2: how long ago ("2h ago") */ t.__('decided by %1$s %2$s', 'membuild-community'), it.resolution.by.name, ago(it.resolution.at)) : t.sprintf(t.__('decided %s', 'membuild-community'), ago(it.resolution.at))
@@ -244,7 +244,7 @@ function personLine(p) {
           <span class="who">
             <span class="name-row">
               <RouterLink :to="{ name: 'member', params: { id: p.user.id } }"><strong>{{ p.user.name }}</strong></RouterLink>
-              <span class="tag" :class="p.status === 'banned' ? 'red' : 'yellow'">{{ personTag(p) }}</span>
+              <span class="status-tag" :class="p.status === 'banned' ? 'bad' : 'warn'">{{ personTag(p) }}</span>
             </span>
             <small>{{ personLine(p) }}</small>
           </span>
@@ -266,7 +266,7 @@ function personLine(p) {
             <span v-if="it.preview.content" class="said">{{ it.preview.content }}</span>
             <small>{{ decidedLine(it) }}</small>
           </span>
-          <span class="tag" :class="outcome(it).tone">{{ outcome(it).label }}</span>
+          <span class="status-tag" :class="outcome(it).tone">{{ outcome(it).label }}</span>
         </li>
       </ul>
       <button v-if="nextPage" type="button" class="btn-grey more" :disabled="loading" @click="load(false)">{{ t.__('Show more', 'membuild-community') }}</button>
@@ -287,12 +287,12 @@ function personLine(p) {
           <span class="who">
             <span class="name-row">
               <strong>{{ title(it) }}</strong>
-              <span v-if="it.author_restriction" class="tag" :class="it.author_restriction.status === 'banned' ? 'red' : 'yellow'">{{ personTag(it.author_restriction) }}</span>
+              <span v-if="it.author_restriction" class="status-tag" :class="it.author_restriction.status === 'banned' ? 'bad' : 'warn'">{{ personTag(it.author_restriction) }}</span>
             </span>
             <small>{{ subtitle(it) }}</small>
           </span>
           <span v-if="it.preview.hidden" class="hidden-tag"><Icon name="eyeOff" :size="16" /> {{ t.__('Hidden from members until you decide', 'membuild-community') }}</span>
-          <span v-else-if="it.preview.gone" class="tag grey">{{ t.__('Already removed', 'membuild-community') }}</span>
+          <span v-else-if="it.preview.gone" class="status-tag grey">{{ t.__('Already removed', 'membuild-community') }}</span>
         </header>
 
         <p class="why"><strong>{{ reportedBy(it) }}</strong> {{ reasonsText(it) }}{{ it.preview.hidden ? ' ' + t.__('A post reported by 3 members hides by itself.', 'membuild-community') : '' }}</p>
@@ -644,34 +644,6 @@ function personLine(p) {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-}
-
-.tag {
-  flex: none;
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.tag.green {
-  color: #157347;
-  background: color-mix(in srgb, #1f9d55 16%, transparent);
-}
-
-.tag.grey {
-  color: var(--text-2);
-  background: var(--surface-2);
-}
-
-.tag.yellow {
-  color: var(--warn-text);
-  background: var(--warn-soft);
-}
-
-.tag.red {
-  color: #b42318;
-  background: color-mix(in srgb, #d92d20 14%, transparent);
 }
 
 .note {

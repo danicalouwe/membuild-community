@@ -14,7 +14,7 @@ api.leaderboard('all').then((d) => (data.value = d)).catch(() => {})
 <template>
   <div class="lv-page page-in">
     <div class="top">
-      <RouterLink :to="{ name: 'leaderboard' }" class="back"><Icon name="chevronLeft" :size="18" /> {{ t.__('Leaderboard', 'membuild-community') }}</RouterLink>
+      <RouterLink :to="{ name: 'leaderboard' }" class="back-link"><Icon name="chevronLeft" :size="18" /> {{ t.__('Leaderboard', 'membuild-community') }}</RouterLink>
       <h1>{{ t.__('Levels & points', 'membuild-community') }}</h1>
     </div>
     <template v-if="data">
@@ -41,15 +41,9 @@ api.leaderboard('all').then((d) => (data.value = d)).catch(() => {})
   background: var(--surface-2);
 }
 
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.back-link {
   min-height: 52px;
-  color: var(--text);
   font-size: 17px;
-  font-weight: 700;
-  text-decoration: none;
 }
 
 h1 {

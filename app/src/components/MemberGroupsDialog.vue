@@ -78,7 +78,7 @@ function line(g) {
           <RouterLink :to="{ name: 'settings', hash: '#s-access' }" @click="emit('close')">{{ t.__('Make one in Settings', 'membuild-community') }}</RouterLink>
         </p>
       </template>
-      <p v-if="error" class="err">{{ error }}</p>
+      <p v-if="error" class="error-text">{{ error }}</p>
       <footer class="foot">
         <button type="button" class="btn btn-lg btn-ghost" @click="emit('close')">{{ t.__('Cancel', 'membuild-community') }}</button>
         <button type="submit" class="btn btn-lg btn-primary" :disabled="saving || !groups?.length">{{ saving ? t.__('Saving…', 'membuild-community') : t.__('Save changes', 'membuild-community') }}</button>
@@ -189,11 +189,6 @@ function line(g) {
 .switch:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-}
-
-.err {
-  margin: 0;
-  color: var(--danger-text);
 }
 
 .foot {

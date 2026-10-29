@@ -206,7 +206,7 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
   <EventForm v-else-if="post && dialog" :event="post" :copy="dialog.copy" @close="dialog = null" @saved="saved" />
 
   <div v-else-if="post" class="event page-in" :class="{ hosting: host }">
-    <RouterLink :to="{ name: 'events' }" class="back"><Icon name="chevronLeft" :size="18" /> {{ t.__('Events', 'membuild-community') }}</RouterLink>
+    <RouterLink :to="{ name: 'events' }" class="back-link"><Icon name="chevronLeft" :size="18" /> {{ t.__('Events', 'membuild-community') }}</RouterLink>
 
     <!-- The host's own bar. -->
     <div v-if="host" class="host-bar card">
@@ -225,7 +225,7 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
           <button v-if="player" class="play" :aria-label="t.__('Watch the replay', 'membuild-community')" @click="watching = true"><Icon name="play" :size="30" /></button>
         </div>
 
-        <span v-if="pill" class="pill" :class="pill.cls">{{ pill.text }}</span>
+        <span v-if="pill" class="status-tag lg page-status" :class="{ off: 'bad' }[pill.cls] || pill.cls || 'accent'">{{ pill.text }}</span>
         <h1>{{ e.title }}</h1>
         <div class="hosted">
           <Avatar :user="post.author" :size="48" link />
@@ -316,7 +316,7 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
             <label for="replay-url">{{ t.__('Add the replay', 'membuild-community') }}</label>
             <input id="replay-url" ref="replayInput" v-model="replayUrl" type="url" inputmode="url" :placeholder="t.__('Paste the video link (YouTube, Vimeo…)', 'membuild-community')" />
             <button class="btn btn-lg btn-primary main" :disabled="!replayUrl.trim() || replayBusy">{{ replayBusy ? t.__('Saving…', 'membuild-community') : t.__('Save the replay', 'membuild-community') }}</button>
-            <p v-if="replayError" class="err">{{ replayError }}</p>
+            <p v-if="replayError" class="error-text">{{ replayError }}</p>
             <p class="note">{{ t.__('It shows on this page and in Past events. YouTube and Vimeo play right here.', 'membuild-community') }}</p>
           </form>
           <p v-else class="note">{{ t.__('There’s no replay for this one.', 'membuild-community') }}</p>
@@ -356,6 +356,10 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
 </template>
 
 <style scoped>
+.page-status {
+  margin-top: 20px;
+}
+
 .ev-sk-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 320px;
@@ -379,15 +383,8 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
   text-align: center;
 }
 
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
+.back-link {
   margin-bottom: 8px;
-  color: var(--text);
-  font-weight: 700;
-  text-decoration: none;
 }
 
 .host-bar {
@@ -448,37 +445,6 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
 .play :deep(path),
 .side .play-ic :deep(path) {
   fill: currentColor;
-}
-
-.pill {
-  display: inline-block;
-  margin-top: 20px;
-  padding: 6px 14px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent-text);
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.pill.ok {
-  background: var(--ok-soft);
-  color: var(--ok-text);
-}
-
-.pill.grey {
-  background: var(--surface-2);
-  color: var(--text-2);
-}
-
-.pill.off {
-  background: var(--danger-soft);
-  color: var(--danger-text);
-}
-
-.pill.live {
-  background: #e5484d;
-  color: #fff;
 }
 
 h1 {
@@ -750,11 +716,6 @@ h1 {
   margin: 0;
 }
 
-.err {
-  margin: 0;
-  color: var(--danger-text);
-}
-
 .going-list {
   margin: 0;
   padding: 8px 16px 16px;
@@ -805,9 +766,6 @@ h1 {
     order: 3;
   }
 
-  .pill {
-    justify-self: start;
-  }
 }
 
 @media (max-width: 600px) {

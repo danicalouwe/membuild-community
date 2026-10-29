@@ -84,7 +84,7 @@ function pick(gif) {
       </div>
       <div ref="sentinel" class="sentinel" />
 
-      <p v-if="error" class="note err" role="status">{{ error }}</p>
+      <p v-if="error" class="note error-text" role="status">{{ error }}</p>
       <p v-else-if="!loading && !items.length" class="note">{{ t.__('No GIFs found. Try another word.', 'membuild-community') }}</p>
     </div>
     <template #footer>
@@ -177,10 +177,6 @@ function pick(gif) {
   margin: 16px 0;
   text-align: center;
   color: var(--text-2);
-}
-
-.err {
-  color: var(--danger);
 }
 
 .powered {

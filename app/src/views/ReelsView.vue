@@ -448,11 +448,11 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
         </template>
       </section>
 
-      <section v-if="list.loaded && !list.items.length" class="reel empty">
-        <Icon name="film" :size="48" />
-        <h2>{{ t.__('No reels yet', 'membuild-community') }}</h2>
-        <p>{{ t.__('Share a short video, up to 60 seconds.', 'membuild-community') }}</p>
-        <button class="btn btn-primary" @click="startCreate()"><Icon name="plus" :size="18" /> {{ t.__('Create a reel', 'membuild-community') }}</button>
+      <section v-if="list.loaded && !list.items.length" class="reel empty empty-state">
+        <span class="empty-state-icon" aria-hidden="true"><Icon name="film" :size="28" /></span>
+        <h2 class="empty-state-title">{{ t.__('No reels yet', 'membuild-community') }}</h2>
+        <p class="empty-state-text">{{ t.__('Share a short video, up to 60 seconds.', 'membuild-community') }}</p>
+        <button class="btn btn-lg btn-primary" @click="startCreate()"><Icon name="plus" :size="18" /> {{ t.__('Create a reel', 'membuild-community') }}</button>
       </section>
       <!-- Loading: a reel's shape in dark grey (video, name and caption, the buttons down the side). -->
       <section v-else-if="!list.loaded" class="reel" aria-busy="true">
@@ -498,6 +498,15 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
 </template>
 
 <style scoped>
+/* The empty state on the black reel area: light words. */
+.empty .empty-state-title {
+  color: #fff;
+}
+
+.empty .empty-state-text {
+  color: rgb(255 255 255 / 60%);
+}
+
 .processing {
   position: absolute;
   inset: 0;
@@ -777,23 +786,8 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
 }
 
 .empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  gap: 8px;
-  text-align: center;
-  padding: 24px;
   color: rgb(255 255 255 / 85%);
-}
-
-.empty h2 {
-  margin: 8px 0 0;
-}
-
-.empty p {
-  margin: 0 0 12px;
-  color: rgb(255 255 255 / 60%);
 }
 
 .sheet-backdrop {

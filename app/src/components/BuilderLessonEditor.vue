@@ -263,7 +263,7 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
         <span>
           <strong>{{ pendingVideo.name }}</strong>
           <small v-if="pendingVideo.status === 'working'">{{ uploadingLabel(pendingVideo.progress) }} {{ t.__('You can keep writing.', 'membuild-community') }}</small>
-          <small v-else-if="pendingVideo.status === 'error'" class="err">{{ pendingVideo.error }}</small>
+          <small v-else-if="pendingVideo.status === 'error'" class="error-text">{{ pendingVideo.error }}</small>
         </span>
         <button class="btn btn-lg btn-ghost" type="button" @click="removeVideo">{{ t.__('Cancel', 'membuild-community') }}</button>
       </div>
@@ -277,7 +277,7 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
           <input v-model="link" type="url" placeholder="https://youtu.be/…" :aria-label="t.__('Video link', 'membuild-community')" />
           <button class="btn btn-lg btn-primary" :disabled="!link || checking">{{ checking ? t.__('Checking…', 'membuild-community') : t.__('Add video', 'membuild-community') }}</button>
         </form>
-        <p v-if="linkError" class="err">{{ linkError }}</p>
+        <p v-if="linkError" class="error-text">{{ linkError }}</p>
       </div>
       <input ref="videoInput" class="sr-only" type="file" accept="video/*" @change="pickVideo" />
     </section>
@@ -298,7 +298,7 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
             <!-- The name members see on the lesson. The file's type shows on its own, so no ".pdf". -->
             <input v-model="r.name" type="text" maxlength="120" :aria-label="t.__('File name members see', 'membuild-community')" :placeholder="t.__('Name this file', 'membuild-community')" @blur="r.name = r.name.trim(); later(0)" @input="later(900)" />
             <small v-if="r.item?.status === 'working'">{{ uploadingLabel(r.item.progress) }}</small>
-            <small v-else-if="r.item?.status === 'error'" class="err">{{ r.item.error }}</small>
+            <small v-else-if="r.item?.status === 'error'" class="error-text">{{ r.item.error }}</small>
             <small v-else>{{ kindName(extOf(r)) }}<template v-if="r.size"> · {{ fileSize(r.size) }}</template></small>
           </span>
           <button class="btn btn-lg btn-ghost" type="button" @click="resources.splice(i, 1)">{{ t.__('Remove', 'membuild-community') }}</button>
@@ -570,10 +570,6 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
   margin: 0 0 12px;
   padding: 0;
   list-style: none;
-}
-
-.err {
-  color: var(--danger-text) !important;
 }
 
 .choice {

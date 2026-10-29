@@ -43,15 +43,15 @@ const me = () => ({ ...cfg.user, active_at: show.value ? new Date().toISOString(
 
 <template>
   <div class="privacy">
-    <RouterLink :to="{ name: 'profile-edit' }" class="back"><Icon name="chevronLeft" :size="18" /> {{ t.__('Edit profile', 'membuild-community') }}</RouterLink>
+    <RouterLink :to="{ name: 'profile-edit' }" class="back-link"><Icon name="chevronLeft" :size="18" /> {{ t.__('Edit profile', 'membuild-community') }}</RouterLink>
     <div class="head">
-      <h1>{{ t.__('Privacy', 'membuild-community') }}</h1>
-      <span v-if="status === 'saved'" class="pill ok"><Icon name="check" :size="16" /> {{ t.__('Saved', 'membuild-community') }}</span>
-      <span v-else-if="status === 'saving'" class="pill">{{ t.__('Saving…', 'membuild-community') }}</span>
+      <h1 class="page-title">{{ t.__('Privacy', 'membuild-community') }}</h1>
+      <span v-if="status === 'saved'" class="status-tag lg ok"><Icon name="check" :size="16" /> {{ t.__('Saved', 'membuild-community') }}</span>
+      <span v-else-if="status === 'saving'" class="status-tag lg">{{ t.__('Saving…', 'membuild-community') }}</span>
     </div>
-    <p class="intro">{{ t.__('Choose what other members can see about you. Changes save by themselves.', 'membuild-community') }}</p>
+    <p class="page-intro">{{ t.__('Choose what other members can see about you. Changes save by themselves.', 'membuild-community') }}</p>
 
-    <p v-if="error" class="err" role="alert">{{ error }}</p>
+    <p v-if="error" class="error-text" role="alert">{{ error }}</p>
 
     <section v-if="loaded" class="card box">
       <h2>{{ t.__('Online status', 'membuild-community') }}</h2>
@@ -79,7 +79,7 @@ const me = () => ({ ...cfg.user, active_at: show.value ? new Date().toISOString(
         <p v-if="show" class="note"><Icon name="info" :size="18" /> {{ t.__('If you turn this off, nobody sees when you’re online, and you won’t see when other members are online either. It’s fair both ways.', 'membuild-community') }}</p>
         <p v-else class="note warn"><Icon name="eyeOff" :size="18" /> {{ t.__('You’re hidden. Nobody sees when you’re online, and you won’t see green dots on other members either. Your posts, comments and messages still show as normal.', 'membuild-community') }}</p>
       </template>
-      <p v-else class="intro">{{ t.__('This community doesn’t show who’s online, so there’s nothing to hide.', 'membuild-community') }}</p>
+      <p v-else class="page-intro">{{ t.__('This community doesn’t show who’s online, so there’s nothing to hide.', 'membuild-community') }}</p>
     </section>
 
   </div>
@@ -92,51 +92,11 @@ const me = () => ({ ...cfg.user, active_at: show.value ? new Date().toISOString(
   padding: 24px 16px 40px;
 }
 
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  color: var(--text);
-  font-weight: 700;
-  text-decoration: none;
-}
-
 .head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-}
-
-h1 {
-  margin: 8px 0 4px;
-  font-size: 30px;
-}
-
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: 999px;
-  background: var(--surface-2);
-  font-weight: 700;
-}
-
-.pill.ok {
-  background: var(--ok-soft);
-  color: var(--ok-text);
-}
-
-.intro {
-  margin: 0 0 22px;
-  color: var(--text-2);
-  font-size: 17px;
-}
-
-.err {
-  color: var(--danger-text);
 }
 
 .box {

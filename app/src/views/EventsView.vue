@@ -73,19 +73,25 @@ onBeforeUnmount(() => observer?.disconnect())
     <div v-if="list.loading && !list.items.length" class="month">
       <div v-for="n in 3" :key="n" class="card sk"><div class="skeleton" style="width: 208px; aspect-ratio: 16 / 9; border-radius: 10px" /><div style="flex: 1"><div class="skeleton" style="height: 12px; width: 30%; margin-bottom: 10px" /><div class="skeleton" style="height: 18px; width: 70%" /></div></div>
     </div>
-    <div v-else-if="list.loaded && !list.items.length" class="empty card">
-      <Icon name="calendar" :size="36" />
-      <h2>{{ when === 'past' ? t.__('No past events yet.', 'membuild-community') : t.__('Nothing scheduled yet.', 'membuild-community') }}</h2>
-      <p v-if="cfg.community.isStaff && when === 'upcoming'">{{ t.__('Add a live call, a Q&A or a workshop. Members get a reminder the day before and an hour before.', 'membuild-community') }}</p>
-      <p v-else-if="when === 'upcoming'">{{ t.__('Check back soon.', 'membuild-community') }}</p>
+    <div v-else-if="list.loaded && !list.items.length" class="empty-state card">
+      <span class="empty-state-icon" aria-hidden="true"><Icon name="calendar" :size="28" /></span>
+      <h2 class="empty-state-title">{{ when === 'past' ? t.__('No past events yet.', 'membuild-community') : t.__('Nothing scheduled yet.', 'membuild-community') }}</h2>
+      <p class="empty-state-text" v-if="cfg.community.isStaff && when === 'upcoming'">{{ t.__('Add a live call, a Q&A or a workshop. Members get a reminder the day before and an hour before.', 'membuild-community') }}</p>
+      <p class="empty-state-text" v-else-if="when === 'upcoming'">{{ t.__('Check back soon.', 'membuild-community') }}</p>
     </div>
-    <p v-if="list.error && !list.items.length" class="empty">{{ list.error }}</p>
+    <p v-if="list.error && !list.items.length" class="error-text list-error" role="alert">{{ list.error }}</p>
     <div ref="sentinel" class="sentinel" aria-hidden="true" />
 
   </div>
 </template>
 
 <style scoped>
+.list-error {
+  margin: 8px 0;
+  padding: 24px;
+  text-align: center;
+}
+
 .events {
   max-width: 808px;
   margin: 0 auto;
@@ -141,23 +147,6 @@ onBeforeUnmount(() => observer?.disconnect())
   align-items: center;
   gap: 20px;
   padding: 14px;
-}
-
-.empty {
-  margin: 8px 0;
-  padding: 40px 24px;
-  text-align: center;
-  color: var(--text-2);
-}
-
-.empty h2 {
-  margin: 10px 0 4px;
-  font-size: 18px;
-  color: var(--text);
-}
-
-.empty p {
-  margin: 0;
 }
 
 .sentinel {

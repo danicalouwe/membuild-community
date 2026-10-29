@@ -224,16 +224,16 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
     <p v-if="error" class="status">{{ error }}</p>
     <p v-else-if="!loading && filter !== 'all' && !filtered.length" class="status">{{ t.__('No courses here yet.', 'membuild-community') }}</p>
 
-    <div v-else-if="!loading && !courses.length && canManage" class="empty card">
-      <span class="empty-icon accent"><Icon name="cap" :size="30" /></span>
-      <h2>{{ t.__('Create your first course', 'membuild-community') }}</h2>
-      <p>{{ t.__('Give it a name, add a few lessons, and publish when you’re ready. Until then, only you can see it.', 'membuild-community') }}</p>
+    <div v-else-if="!loading && !courses.length && canManage" class="empty-state dashed card">
+      <span class="empty-state-icon"><Icon name="cap" :size="28" /></span>
+      <h2 class="empty-state-title">{{ t.__('Create your first course', 'membuild-community') }}</h2>
+      <p class="empty-state-text">{{ t.__('Give it a name, add a few lessons, and publish when you’re ready. Until then, only you can see it.', 'membuild-community') }}</p>
       <button class="btn btn-lg btn-primary" @click="startNew"><Icon name="plus" :size="20" /> {{ t.__('New course', 'membuild-community') }}</button>
     </div>
-    <div v-else-if="!loading && !visible.length" class="empty card">
-      <span class="empty-icon"><Icon name="cap" :size="30" /></span>
-      <h2>{{ t.__('No courses yet', 'membuild-community') }}</h2>
-      <p>{{ t.__('When a course is added, it will show up here. We’ll let you know.', 'membuild-community') }}</p>
+    <div v-else-if="!loading && !visible.length" class="empty-state card">
+      <span class="empty-state-icon"><Icon name="cap" :size="28" /></span>
+      <h2 class="empty-state-title">{{ t.__('No courses yet', 'membuild-community') }}</h2>
+      <p class="empty-state-text">{{ t.__('When a course is added, it will show up here. We’ll let you know.', 'membuild-community') }}</p>
       <RouterLink class="btn btn-lg btn-ghost" :to="{ name: 'feed' }">{{ t.__('Back to Home', 'membuild-community') }}</RouterLink>
     </div>
 
@@ -785,44 +785,6 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
   display: flex;
   justify-content: center;
   margin-top: 22px;
-}
-
-.empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  padding: 56px 24px;
-  border-style: dashed;
-  text-align: center;
-}
-
-.empty h2 {
-  margin: 4px 0 0;
-  font-size: 22px;
-}
-
-.empty p {
-  max-width: 460px;
-  margin: 0 0 8px;
-  color: var(--text-2);
-  font-size: 17px;
-  line-height: 1.55;
-}
-
-.empty-icon {
-  display: grid;
-  place-items: center;
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: var(--surface-2);
-  color: var(--text-2);
-}
-
-.empty-icon.accent {
-  background: var(--accent-soft);
-  color: var(--accent-text);
 }
 
 .name-form {

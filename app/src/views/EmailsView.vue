@@ -47,14 +47,14 @@ const ABOUT = [
 
 <template>
   <div class="emails">
-    <RouterLink :to="{ name: 'profile-edit' }" class="back"><Icon name="chevronLeft" :size="18" /> {{ t.__('Edit profile', 'membuild-community') }}</RouterLink>
+    <RouterLink :to="{ name: 'profile-edit' }" class="back-link"><Icon name="chevronLeft" :size="18" /> {{ t.__('Edit profile', 'membuild-community') }}</RouterLink>
     <div class="head">
-      <h1>{{ t.__('Emails you get', 'membuild-community') }}</h1>
-      <span v-if="status === 'saved'" class="pill ok"><Icon name="check" :size="16" /> {{ t.__('Saved', 'membuild-community') }}</span>
-      <span v-else-if="status === 'saving'" class="pill">{{ t.__('Saving…', 'membuild-community') }}</span>
+      <h1 class="page-title">{{ t.__('Emails you get', 'membuild-community') }}</h1>
+      <span v-if="status === 'saved'" class="status-tag lg ok"><Icon name="check" :size="16" /> {{ t.__('Saved', 'membuild-community') }}</span>
+      <span v-else-if="status === 'saving'" class="status-tag lg">{{ t.__('Saving…', 'membuild-community') }}</span>
     </div>
-    <p v-if="prefs" class="intro">{{ t.sprintf(/* translators: %s: email address */ t.__('Sent to %s. Changes save by themselves.', 'membuild-community'), prefs.email) }}</p>
-    <p v-if="error" class="err" role="alert">{{ error }}</p>
+    <p v-if="prefs" class="page-intro">{{ t.sprintf(/* translators: %s: email address */ t.__('Sent to %s. Changes save by themselves.', 'membuild-community'), prefs.email) }}</p>
+    <p v-if="error" class="error-text" role="alert">{{ error }}</p>
 
     <template v-if="prefs">
       <p v-if="!prefs.enabled" class="note warn"><Icon name="bell" :size="18" /> {{ t.__('This community doesn’t send emails right now. Your choices are kept for when it does.', 'membuild-community') }}</p>
@@ -88,51 +88,11 @@ const ABOUT = [
   padding: 24px 16px 40px;
 }
 
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  color: var(--text);
-  font-weight: 700;
-  text-decoration: none;
-}
-
 .head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-}
-
-h1 {
-  margin: 8px 0 4px;
-  font-size: 30px;
-}
-
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: 999px;
-  background: var(--surface-2);
-  font-weight: 700;
-}
-
-.pill.ok {
-  background: var(--ok-soft);
-  color: var(--ok-text);
-}
-
-.intro {
-  margin: 0 0 22px;
-  color: var(--text-2);
-  font-size: 17px;
-}
-
-.err {
-  color: var(--danger-text);
 }
 
 .box {

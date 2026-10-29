@@ -185,7 +185,7 @@ const isFirstWait = (l) => {
         <span class="chip people"><Icon name="users" :size="15" /> {{ live ? live.lessons.reduce((n, s) => n + s.on, 0) : '…' }}</span> {{ t.__('members on a lesson now', 'membuild-community') }}
         <span class="chip dark"><Icon name="users" :size="15" /> {{ live ? live.started : '…' }}</span> {{ t.__('started', 'membuild-community') }}
       </p>
-      <p v-if="error" class="err">{{ error }}</p>
+      <p v-if="error" class="error-text">{{ error }}</p>
     </div>
 
     <p class="kicker">{{ t.__('In the Classroom', 'membuild-community') }}</p>
@@ -207,7 +207,7 @@ const isFirstWait = (l) => {
       </span>
       <span class="chip dark"><Icon name="users" :size="15" /> {{ live ? live.started : '…' }}</span>
       <div class="example">
-        <span class="tag">{{ t.__('Example only', 'membuild-community') }}</span>
+        <span class="status-tag dark">{{ t.__('Example only', 'membuild-community') }}</span>
         <p>{{ samStarts }} {{ t.__('The black dates on the right show when each lesson would open for Sam. Every member gets their own dates, counted from the day they start.', 'membuild-community') }}</p>
       </div>
     </div>
@@ -270,7 +270,7 @@ const isFirstWait = (l) => {
             <strong>{{ popTitle }}</strong>
             <small v-if="openFor.lesson">{{ openFor.lesson.title }}</small>
           </span>
-          <button class="x" :aria-label="t.__('Close', 'membuild-community')" @click="openFor = null"><Icon name="close" :size="20" /></button>
+          <button class="x round-btn lg" :aria-label="t.__('Close', 'membuild-community')" @click="openFor = null"><Icon name="close" :size="20" /></button>
         </header>
         <div v-for="u in openFor.list" :key="u.id" class="who">
           <Avatar :user="u" :size="44" link />
@@ -447,16 +447,6 @@ const isFirstWait = (l) => {
 
 .example p {
   margin: 6px 0 0;
-}
-
-.tag {
-  display: inline-block;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: var(--text);
-  color: var(--surface);
-  font-size: 13px;
-  font-weight: 700;
 }
 
 .finish-note {
@@ -730,11 +720,6 @@ button.chip:not(:disabled):hover {
   color: var(--text-3);
 }
 
-.err {
-  margin: 0;
-  color: var(--danger-text);
-}
-
 .pop-back {
   position: fixed;
   inset: 0;
@@ -778,14 +763,6 @@ button.chip:not(:disabled):hover {
   color: var(--text-2);
 }
 
-.x {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--surface-2);
-}
 
 .who {
   display: flex;

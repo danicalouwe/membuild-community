@@ -89,7 +89,7 @@ onMounted(() => {
     <div ref="panel" class="creator" role="dialog" aria-modal="true" :aria-label="t.__('Create story', 'membuild-community')">
       <!-- Left: who's posting, the editor, then Discard and Share -->
       <aside class="left">
-        <button class="round" :aria-label="t.__('Close', 'membuild-community')" @click="close"><Icon name="close" :size="22" /></button>
+        <button class="round round-btn lg" :aria-label="t.__('Close', 'membuild-community')" @click="close"><Icon name="close" :size="22" /></button>
         <div class="me">
           <Avatar :user="cfg.user" :size="64" />
           <span><strong>{{ t.__('Your story', 'membuild-community') }}</strong><small>{{ cfg.user.name }}</small></span>
@@ -191,18 +191,7 @@ onMounted(() => {
 }
 
 .round {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
   margin: 14px 0 0 18px;
-  border-radius: 50%;
-  color: var(--text);
-  background: var(--surface-2);
-}
-
-.round:hover {
-  background: var(--border);
 }
 
 .me {

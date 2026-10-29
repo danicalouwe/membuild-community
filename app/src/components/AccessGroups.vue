@@ -207,7 +207,7 @@ const removeLabel = (name) => t.sprintf(/* translators: %s: a name */ t.__('Remo
       <button v-if="groups.length" class="btn btn-lg btn-primary" @click="creating = { name: '', courses: new Set() }"><Icon name="plus" :size="18" /> {{ t.__('New membership', 'membuild-community') }}</button>
     </div>
 
-    <p v-if="error" class="err" role="alert">{{ error }}</p>
+    <p v-if="error" class="error-text" role="alert">{{ error }}</p>
 
     <div v-if="loaded && !groups.length" class="none">
       <span class="none-icon"><Icon name="lock" :size="26" /></span>
@@ -450,10 +450,6 @@ h2 {
   margin: 0;
   color: var(--text-2);
   line-height: 1.5;
-}
-
-.err {
-  color: var(--danger-text);
 }
 
 .none {

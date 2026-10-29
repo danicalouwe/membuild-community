@@ -58,11 +58,11 @@ const paidWith = (s) => (s.card ? t.sprintf(/* translators: %s: a card or paymen
 
 <template>
   <div class="billing">
-    <RouterLink :to="{ name: 'me' }" class="back"><Icon name="chevronLeft" :size="18" /> {{ t.__('Your profile', 'membuild-community') }}</RouterLink>
-    <h1>{{ t.__('Billing', 'membuild-community') }}</h1>
-    <p v-if="items.length" class="intro">{{ t.__('The memberships you pay for. Manage billing shows the details, your payments, and where to change your card, pause or cancel.', 'membuild-community') }}</p>
+    <RouterLink :to="{ name: 'me' }" class="back-link"><Icon name="chevronLeft" :size="18" /> {{ t.__('Your profile', 'membuild-community') }}</RouterLink>
+    <h1 class="page-title">{{ t.__('Billing', 'membuild-community') }}</h1>
+    <p v-if="items.length" class="page-intro">{{ t.__('The memberships you pay for. Manage billing shows the details, your payments, and where to change your card, pause or cancel.', 'membuild-community') }}</p>
 
-    <p v-if="error" class="err" role="alert">{{ error }}</p>
+    <p v-if="error" class="error-text" role="alert">{{ error }}</p>
 
     <div v-if="!loaded" class="card sub sk" aria-busy="true"><span /><span /><span /></div>
 
@@ -72,7 +72,7 @@ const paidWith = (s) => (s.card ? t.sprintf(/* translators: %s: a card or paymen
           <h2>{{ s.name }}</h2>
           <p class="price">{{ price(s) }}</p>
         </div>
-        <span class="pill" :class="STATES[s.state].tone">{{ STATES[s.state].label() }}</span>
+        <span class="status-tag" :class="STATES[s.state].tone">{{ STATES[s.state].label() }}</span>
       </div>
       <p v-if="line(s)" class="line">
         {{ line(s).before }}<strong v-if="line(s).date">{{ line(s).date }}</strong>{{ line(s).after }}
@@ -87,10 +87,10 @@ const paidWith = (s) => (s.card ? t.sprintf(/* translators: %s: a card or paymen
       </div>
     </section>
 
-    <section v-if="loaded && !items.length && !error" class="card empty">
-      <span class="empty-icon" aria-hidden="true"><Icon name="card" :size="28" /></span>
-      <h2>{{ t.__('Nothing to pay for', 'membuild-community') }}</h2>
-      <p>{{ t.__('When you join a paid membership, it shows here with its renewal date and receipts.', 'membuild-community') }}</p>
+    <section v-if="loaded && !items.length && !error" class="card empty-state">
+      <span class="empty-state-icon" aria-hidden="true"><Icon name="card" :size="28" /></span>
+      <h2 class="empty-state-title">{{ t.__('Nothing to pay for', 'membuild-community') }}</h2>
+      <p class="empty-state-text">{{ t.__('When you join a paid membership, it shows here with its renewal date and receipts.', 'membuild-community') }}</p>
       <RouterLink class="btn btn-lg btn-ghost" :to="{ name: 'classroom' }">{{ t.__('Browse the Classroom', 'membuild-community') }}</RouterLink>
     </section>
   </div>
@@ -101,31 +101,6 @@ const paidWith = (s) => (s.card ? t.sprintf(/* translators: %s: a card or paymen
   max-width: 760px;
   margin: 0 auto;
   padding: 24px 16px 40px;
-}
-
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  color: var(--text);
-  font-weight: 700;
-  text-decoration: none;
-}
-
-h1 {
-  margin: 8px 0 4px;
-  font-size: 30px;
-}
-
-.intro {
-  margin: 0 0 22px;
-  color: var(--text-2);
-  font-size: 16px;
-}
-
-.err {
-  color: var(--danger);
 }
 
 .sub {
@@ -150,28 +125,6 @@ h1 {
   margin: 2px 0 0;
   color: var(--text-2);
   font-size: 15px;
-}
-
-.pill {
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.pill.ok {
-  background: var(--ok-soft, #e5f4ea);
-  color: #1f7a49;
-}
-
-.pill.grey {
-  background: var(--surface-2);
-  color: var(--text-2);
-}
-
-.pill.bad {
-  background: var(--danger-soft);
-  color: var(--danger-text);
 }
 
 .line {
@@ -209,33 +162,6 @@ h1 {
   text-decoration: none;
 }
 
-.empty {
-  padding: 44px 32px;
-  text-align: center;
-}
-
-.empty-icon {
-  display: grid;
-  place-items: center;
-  width: 64px;
-  height: 64px;
-  margin: 0 auto 14px;
-  border-radius: 50%;
-  background: var(--accent-soft);
-  color: var(--accent-text);
-}
-
-.empty h2 {
-  margin: 0;
-  font-size: 20px;
-}
-
-.empty p {
-  margin: 8px 0 18px;
-  color: var(--text-2);
-  font-size: 16px;
-}
-
 .sk span {
   display: block;
   height: 14px;
@@ -250,10 +176,6 @@ h1 {
 }
 
 @media (max-width: 600px) {
-  h1 {
-    font-size: 26px;
-  }
-
   .sub {
     padding: 18px;
   }

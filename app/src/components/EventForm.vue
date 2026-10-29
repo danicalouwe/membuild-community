@@ -209,9 +209,9 @@ const heading = computed(() => (editing.value ? t.__('Edit event', 'membuild-com
 
 <template>
   <div class="page-in ef">
-    <button type="button" class="back" @click="emit('close')"><Icon name="chevronLeft" :size="18" /> {{ t.__('Events', 'membuild-community') }}</button>
-    <h1>{{ heading }}</h1>
-    <p class="intro">{{ t.__('Members see it in Events, and the ones who say they’re going get reminders.', 'membuild-community') }}</p>
+    <button type="button" class="back-link" @click="emit('close')"><Icon name="chevronLeft" :size="18" /> {{ t.__('Events', 'membuild-community') }}</button>
+    <h1 class="page-title">{{ heading }}</h1>
+    <p class="page-intro">{{ t.__('Members see it in Events, and the ones who say they’re going get reminders.', 'membuild-community') }}</p>
 
     <form class="ef-form" @submit.prevent="save">
       <!-- What is it? -->
@@ -335,7 +335,7 @@ const heading = computed(() => (editing.value ? t.__('Edit event', 'membuild-com
         <p class="remind"><Icon name="bell" :size="18" /> {{ t.__('Members who say they’re going get a reminder email the day before and an hour before. You don’t need to do anything.', 'membuild-community') }}</p>
       </section>
 
-      <p v-if="error" class="err" role="alert">{{ error }}</p>
+      <p v-if="error" class="error-text" role="alert">{{ error }}</p>
 
       <div class="bar card">
         <span>{{ editing ? t.__('Changes show as soon as you save.', 'membuild-community') : t.__('Nothing is published until you press Publish event.', 'membuild-community') }}</span>
@@ -353,24 +353,8 @@ const heading = computed(() => (editing.value ? t.__('Edit event', 'membuild-com
   padding: 20px 16px 48px;
 }
 
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 44px;
-  color: var(--text);
-  font-weight: 700;
-}
-
 h1 {
-  margin: 6px 0 6px;
-  font-size: 30px;
-}
-
-.intro {
-  margin: 0 0 20px;
-  color: var(--text-2);
-  font-size: 17px;
+  margin: 6px 0;
 }
 
 .ef-form {
@@ -648,11 +632,6 @@ textarea {
 .remind :deep(svg) {
   flex: none;
   margin-top: 2px;
-}
-
-.err {
-  margin: 0;
-  color: var(--danger-text);
 }
 
 .bar {

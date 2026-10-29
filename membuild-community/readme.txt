@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.13.2
+Stable tag: 1.13.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,11 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.13.3 =
+* One look for the shapes every page repeats: the ‹ Back link, page titles and the line under them, red error messages, status tags (Active, Paused, Live now, Saved…) and the round close buttons now look the same everywhere.
+* Empty pages say so the same way: Billing, Classroom, Events, Leaderboard, Messages, the chats panel and Reels show an icon in a soft circle, a short title, one line on what to do and a full-size button. An owner's "Create your first course" stands out with a dashed edge.
+* Status tags use one colour for one meaning (green good, grey neutral, red needs attention, yellow waiting), and Moderation's tags now follow dark mode.
 
 = 1.13.2 =
 * Filters everywhere share one look: Classroom, Leaderboard, Events, Home's Latest and Popular, Messages, the chats and Alerts panels, Members, Search, Moderation, Places, a lesson's sort and who reacted. They are smaller than the page's main buttons (they're a choice, not an action), light green when picked, and still easy to tap on a phone.

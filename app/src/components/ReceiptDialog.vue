@@ -58,13 +58,13 @@ async function save() {
       </header>
     </template>
 
-    <p v-if="error" class="err" role="alert">{{ error }}</p>
+    <p v-if="error" class="error-text" role="alert">{{ error }}</p>
     <div v-else-if="!r" class="sk" aria-busy="true"><span /><span /><span /></div>
 
     <div v-else class="paper">
       <div class="head">
         <h2>{{ t.__('Receipt', 'membuild-community') }}</h2>
-        <span class="pill" :class="r.state">{{ STATE[r.state]() }}</span>
+        <span class="status-tag" :class="{ paid: 'ok', failed: 'bad' }[r.state]">{{ STATE[r.state]() }}</span>
       </div>
       <p class="muted when">{{ r.number }} · {{ when }}</p>
       <div class="lbl">{{ t.__('Billed to', 'membuild-community') }}</div>
@@ -186,25 +186,6 @@ async function save() {
   font-size: 18px;
 }
 
-.pill {
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--text-2);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.pill.paid {
-  background: var(--ok-soft, #e5f4ea);
-  color: #1f7a49;
-}
-
-.pill.failed {
-  background: var(--danger-soft);
-  color: var(--danger-text);
-}
-
 .foot-btns {
   padding: 0 4px;
   display: flex;
@@ -225,9 +206,8 @@ async function save() {
   gap: 8px;
 }
 
-.err {
+.error-text {
   padding: 0 22px;
-  color: var(--danger);
 }
 
 .sk {

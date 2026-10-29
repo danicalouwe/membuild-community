@@ -75,7 +75,7 @@ const partOf = computed(() =>
   <BaseDialog :label="title" :width="520" phone="sheet" style="border-radius: 24px" @close="emit('close')">
     <template #header="{ close }">
       <span class="grab" aria-hidden="true" />
-      <button class="x" :aria-label="t.__('Close', 'membuild-community')" @click="close"><Icon name="close" :size="20" /></button>
+      <button class="x round-btn" :aria-label="t.__('Close', 'membuild-community')" @click="close"><Icon name="close" :size="20" /></button>
     </template>
     <div class="ud">
       <span class="badge"><Icon name="lock" :size="24" /></span>
@@ -118,15 +118,6 @@ const partOf = computed(() =>
   top: 16px;
   right: 16px;
   z-index: 2;
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border: 0;
-  border-radius: 50%;
-  background: var(--surface-2);
-  color: var(--text-2);
-  cursor: pointer;
 }
 
 .grab {

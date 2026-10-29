@@ -89,7 +89,7 @@ const startGroup = (n) => t.sprintf(/* translators: %d: number of people in the 
   <li v-if="!results.length" class="empty">{{ t.__('No members found.', 'membuild-community') }}</li>
     </ul>
 
-    <p v-if="error" class="err">{{ error }}</p>
+    <p v-if="error" class="error-text">{{ error }}</p>
     <template #footer>
       <button class="btn btn-primary start" :disabled="!picked.length || starting" @click="start">
         {{ starting ? t.__('Opening…', 'membuild-community') : isGroup ? startGroup(picked.length + 1) : t.__('Chat', 'membuild-community') }}
@@ -204,9 +204,8 @@ const startGroup = (n) => t.sprintf(/* translators: %d: number of people in the 
   color: var(--text-3);
 }
 
-.err {
+.error-text {
   margin: 0 14px;
-  color: var(--danger);
   font-size: 13px;
 }
 

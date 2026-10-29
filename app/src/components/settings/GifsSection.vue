@@ -44,9 +44,9 @@ watch(
       <span class="label">{{ t.__('GIPHY key', 'membuild-community') }}</span>
       <span class="key-row">
         <input v-model.trim="form.gifs.key" :class="{ bad: status === false }" type="password" autocomplete="off" spellcheck="false" placeholder="a1B2c3D4e5F6g7H8i9J0" />
-        <span v-if="status === true" class="pill ok"><Icon name="check" :size="14" /> {{ t.__('Working', 'membuild-community') }}</span>
-        <span v-else-if="status === false" class="pill bad"><Icon name="close" :size="14" /> {{ t.__('Not working', 'membuild-community') }}</span>
-        <span v-else-if="status === 'checking'" class="pill">{{ t.__('Checking…', 'membuild-community') }}</span>
+        <span v-if="status === true" class="status-tag lg ok"><Icon name="check" :size="14" /> {{ t.__('Working', 'membuild-community') }}</span>
+        <span v-else-if="status === false" class="status-tag lg bad"><Icon name="close" :size="14" /> {{ t.__('Not working', 'membuild-community') }}</span>
+        <span v-else-if="status === 'checking'" class="status-tag lg">{{ t.__('Checking…', 'membuild-community') }}</span>
       </span>
       <small v-if="status === false" class="err">{{ t.__('GIPHY didn’t accept that key. Copy it again from your GIPHY dashboard (it’s about 32 letters and numbers, no spaces) and paste it here. Until it works, members can still upload their own GIF files.', 'membuild-community') }}</small>
       <small>{{ t.__('Free from GIPHY (choose “API”, not “SDK”).', 'membuild-community') }} <a href="https://developers.giphy.com/dashboard/" target="_blank" rel="noopener" class="open-link">{{ t.__('Get a free key', 'membuild-community') }} <Icon name="external" :size="13" /></a></small>
@@ -80,28 +80,6 @@ watch(
 
 .key-row input.bad {
   border-color: var(--danger) !important;
-}
-
-.pill {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 999px;
-  background: var(--surface-2);
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.pill.ok {
-  background: var(--ok-soft);
-  color: var(--ok-text);
-}
-
-.pill.bad {
-  background: var(--danger-soft);
-  color: var(--danger-text);
 }
 
 .open-link {

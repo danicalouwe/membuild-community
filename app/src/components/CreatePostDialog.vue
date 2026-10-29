@@ -325,7 +325,7 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
         <template v-if="view === 'main'">
           <header class="top">
             <h2>{{ edit ? t.__('Edit post', 'membuild-community') : t.__('Create post', 'membuild-community') }}</h2>
-            <button class="round" :aria-label="t.__('Close', 'membuild-community')" @click="close"><Icon name="close" :size="22" /></button>
+            <button class="round round-btn" :aria-label="t.__('Close', 'membuild-community')" @click="close"><Icon name="close" :size="22" /></button>
           </header>
 
           <div class="body">
@@ -438,7 +438,7 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
         <!-- Feeling view -->
         <template v-else>
           <header class="top">
-            <button class="round back" :aria-label="t.__('Back', 'membuild-community')" @click="view = 'main'"><Icon name="chevronLeft" :size="22" /></button>
+            <button class="round round-btn back" :aria-label="t.__('Back', 'membuild-community')" @click="view = 'main'"><Icon name="chevronLeft" :size="22" /></button>
             <h2>{{ t.__('How are you feeling?', 'membuild-community') }}</h2>
           </header>
           <div class="body">
@@ -540,13 +540,6 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
 .round {
   position: absolute;
   right: 14px;
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: var(--surface-2);
-  color: var(--text-2);
 }
 
 .round.back {

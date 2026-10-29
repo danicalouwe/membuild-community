@@ -189,9 +189,9 @@ const title = p ? t.__('Edit place', 'membuild-community') : props.canEdit ? t._
 <template>
   <!-- Suggest / Add / Edit a place: its own page (Version 2), in two cards. -->
   <div class="page-in pf-page">
-    <button type="button" class="back" @click="emit('close')"><Icon name="chevronLeft" :size="18" /> {{ t.__('Places', 'membuild-community') }}</button>
+    <button type="button" class="back-link" @click="emit('close')"><Icon name="chevronLeft" :size="18" /> {{ t.__('Places', 'membuild-community') }}</button>
     <h1>{{ title }}</h1>
-    <p v-if="!p" class="intro">{{ canEdit ? t.__('A spot for members: somewhere to meet up, a partner with a member perk, or a venue for your events.', 'membuild-community') : t.__('A spot you’d recommend to other members: somewhere to meet up, train, or get a member deal. An admin or moderator checks it first.', 'membuild-community') }}</p>
+    <p v-if="!p" class="page-intro">{{ canEdit ? t.__('A spot for members: somewhere to meet up, a partner with a member perk, or a venue for your events.', 'membuild-community') : t.__('A spot you’d recommend to other members: somewhere to meet up, train, or get a member deal. An admin or moderator checks it first.', 'membuild-community') }}</p>
 
     <form :id="formId" class="place-form" @submit.prevent="save">
       <section class="card box">
@@ -323,7 +323,7 @@ const title = p ? t.__('Edit place', 'membuild-community') : props.canEdit ? t._
         <p v-if="who === 'members'" class="access-note"><Icon name="lock" :size="18" /> {{ t.sprintf(/* translators: %s: a membership */ t.__('Members without %s don’t see this place anywhere: not on the map, in the list or in search, and not on its own page. Events held here still follow their own Who can come?', 'membuild-community'), groups.find((g) => g.id === Number(accessGroup))?.name || '') }}</p>
       </section>
 
-      <p v-if="error" class="err" role="alert">{{ error }}</p>
+      <p v-if="error" class="error-text" role="alert">{{ error }}</p>
       <div class="actions">
         <button type="button" class="btn btn-lg btn-ghost" @click="emit('close')">{{ t.__('Cancel', 'membuild-community') }}</button>
         <button type="submit" class="btn btn-lg btn-primary" :disabled="saving || coverBusy">
@@ -341,25 +341,9 @@ const title = p ? t.__('Edit place', 'membuild-community') : props.canEdit ? t._
   padding: 20px 16px 48px;
 }
 
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 44px;
-  color: var(--text);
-  font-weight: 700;
-}
-
 .pf-page h1 {
   margin: 6px 0 6px;
   font-size: 30px;
-}
-
-.intro {
-  margin: 0 0 20px;
-  color: var(--text-2);
-  font-size: 17px;
-  line-height: 1.5;
 }
 
 .place-form {
@@ -585,11 +569,6 @@ const title = p ? t.__('Edit place', 'membuild-community') : props.canEdit ? t._
   height: 52px;
   object-fit: cover;
   border-radius: 8px;
-}
-
-.err {
-  color: var(--danger);
-  margin: 0;
 }
 
 .actions {

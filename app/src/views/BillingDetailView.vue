@@ -88,15 +88,15 @@ async function act(what) {
 
 <template>
   <div class="bd">
-    <RouterLink :to="{ name: 'billing' }" class="back"><Icon name="chevronLeft" :size="18" /> {{ t.__('Billing', 'membuild-community') }}</RouterLink>
+    <RouterLink :to="{ name: 'billing' }" class="back-link"><Icon name="chevronLeft" :size="18" /> {{ t.__('Billing', 'membuild-community') }}</RouterLink>
 
-    <p v-if="error" class="err" role="alert">{{ error }}</p>
+    <p v-if="error" class="error-text" role="alert">{{ error }}</p>
     <div v-else-if="!s" class="card box sk" aria-busy="true"><span /><span /><span /><span /></div>
 
     <template v-else>
       <div class="title">
-        <h1>{{ s.name }}</h1>
-        <span class="pill" :class="STATES[s.state].tone">{{ STATES[s.state].label() }}</span>
+        <h1 class="page-title">{{ s.name }}</h1>
+        <span class="status-tag" :class="STATES[s.state].tone">{{ STATES[s.state].label() }}</span>
       </div>
       <p v-if="opens" class="sub">{{ opens }}</p>
 
@@ -120,7 +120,7 @@ async function act(what) {
         <h2>{{ t.__('Payments', 'membuild-community') }}</h2>
         <p v-if="!s.payments.length" class="none">{{ t.__('No payments yet.', 'membuild-community') }}</p>
         <div v-for="p in s.payments" :key="p.id" class="row pay">
-          <span>{{ day(p.date) }} · {{ p.amount }} <span class="pill small" :class="PAY[p.state].tone">{{ PAY[p.state].label() }}</span></span>
+          <span>{{ day(p.date) }} · {{ p.amount }} <span class="status-tag pay" :class="PAY[p.state].tone">{{ PAY[p.state].label() }}</span></span>
           <button v-if="p.id" class="link" @click="receipt = p.id">{{ t.__('Receipt', 'membuild-community') }}</button>
         </div>
       </section>
@@ -130,20 +130,14 @@ async function act(what) {
 </template>
 
 <style scoped>
+.status-tag.pay {
+  margin-left: 6px;
+}
+
 .bd {
   max-width: 760px;
   margin: 0 auto;
   padding: 24px 16px 40px;
-}
-
-.back {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
-  color: var(--text);
-  font-weight: 700;
-  text-decoration: none;
 }
 
 .title {
@@ -156,17 +150,12 @@ async function act(what) {
 
 h1 {
   margin: 0;
-  font-size: 30px;
 }
 
 .sub {
   margin: 0 0 20px;
   color: var(--text-2);
   font-size: 16px;
-}
-
-.err {
-  color: var(--danger);
 }
 
 .box {
@@ -221,34 +210,6 @@ h1 {
   font-weight: 700;
 }
 
-.pill {
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.pill.small {
-  margin-left: 6px;
-  padding: 2px 8px;
-  font-size: 12px;
-}
-
-.pill.ok {
-  background: var(--ok-soft, #e5f4ea);
-  color: #1f7a49;
-}
-
-.pill.grey {
-  background: var(--surface-2);
-  color: var(--text-2);
-}
-
-.pill.bad {
-  background: var(--danger-soft);
-  color: var(--danger-text);
-}
-
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -292,10 +253,6 @@ h1 {
 }
 
 @media (max-width: 600px) {
-  h1 {
-    font-size: 26px;
-  }
-
   .box {
     padding: 18px;
   }

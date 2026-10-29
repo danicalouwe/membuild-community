@@ -195,11 +195,11 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
         </li>
         <li v-if="loadingMore" class="none-here">{{ t.__('Loading…', 'membuild-community') }}</li>
         <li v-if="loaded && !filtered.length && (threads.length || query || filter !== 'all')" class="none-here">{{ query ? t.__('No chats found.', 'membuild-community') : filter === 'unread' ? t.__('No unread chats.', 'membuild-community') : t.__('No group chats yet.', 'membuild-community') }}</li>
-        <li v-if="loaded && !threads.length && !query && filter === 'all'" class="empty">
-          <span class="empty-badge"><Icon name="comment" :size="30" /></span>
-          <h2>{{ t.__('No messages yet', 'membuild-community') }}</h2>
-          <p>{{ t.__('Say hello to someone you met here. Messages are private between you.', 'membuild-community') }}</p>
-          <RouterLink class="btn btn-primary find" :to="{ name: 'members' }">{{ t.__('Find someone in Members', 'membuild-community') }}</RouterLink>
+        <li v-if="loaded && !threads.length && !query && filter === 'all'" class="empty-state">
+          <span class="empty-state-icon" aria-hidden="true"><Icon name="comment" :size="28" /></span>
+          <h2 class="empty-state-title">{{ t.__('No messages yet', 'membuild-community') }}</h2>
+          <p class="empty-state-text">{{ t.__('Say hello to someone you met here. Messages are private between you.', 'membuild-community') }}</p>
+          <RouterLink class="btn btn-lg btn-primary" :to="{ name: 'members' }">{{ t.__('Find someone in Members', 'membuild-community') }}</RouterLink>
         </li>
       </ul>
     </aside>
@@ -396,49 +396,6 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
   color: #fff;
   font-size: 12px;
   font-weight: 800;
-}
-
-.empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 48px 20px;
-  text-align: center;
-  color: var(--text-2);
-}
-
-.empty-badge {
-  display: grid;
-  place-items: center;
-  width: 72px;
-  height: 72px;
-  margin-bottom: 8px;
-  border-radius: 50%;
-  background: var(--accent-soft);
-  color: var(--accent-text);
-}
-
-.empty h2 {
-  margin: 0;
-  font-size: 20px;
-  color: var(--text);
-}
-
-.empty p {
-  margin: 0 0 12px;
-  max-width: 340px;
-  font-size: 16px;
-  line-height: 1.45;
-}
-
-.empty .find {
-  min-height: 52px;
-  padding: 0 26px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  font-size: 16px;
 }
 
 .muted-icon {

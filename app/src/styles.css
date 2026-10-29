@@ -449,3 +449,204 @@ video {
     inset: -4px 0;
   }
 }
+
+/* ---------- Shared kit: one source of truth for the shapes every page repeats ----------
+   A page uses these classes and keeps only what is truly its own (its layout, a one-off size). */
+
+/* "‹ Back to …" at the top of an inner page (a link or a button). */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+/* An inner page's title, and the grey line under it. */
+.page-title {
+  margin: 8px 0 4px;
+  font-size: 30px;
+}
+
+.page-intro {
+  margin: 0 0 22px;
+  color: var(--text-2);
+  font-size: 17px;
+}
+
+/* A sentence saying something went wrong (role="alert" where it appears after an action). */
+.error-text {
+  margin: 0;
+  /* Always red, even inside a block that greys its text. */
+  color: var(--danger-text) !important;
+}
+
+@media (max-width: 600px) {
+  .page-title {
+    font-size: 26px;
+  }
+}
+
+/* A status tag: a short word saying how something stands. Small (13px) in rows and cards; .lg
+   (15px) for a page's one status. Colours mean one thing each: ok good, (none) grey neutral,
+   bad needs attention, warn waiting, accent in progress or coming up, dark only for Draft,
+   live a live event. Tags laid over photos keep their own see-through style. */
+.status-tag {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.status-tag.lg {
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 15px;
+}
+
+.status-tag.ok {
+  background: var(--ok-soft);
+  color: var(--ok-text);
+}
+
+.status-tag.bad {
+  background: var(--danger-soft);
+  color: var(--danger-text);
+}
+
+.status-tag.warn {
+  background: var(--warn-soft);
+  color: var(--warn-text);
+}
+
+.status-tag.accent {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.status-tag.dark {
+  background: var(--text);
+  color: var(--surface);
+}
+
+.status-tag.live {
+  background: #e5484d;
+  color: #fff;
+}
+
+/* An empty state: what a page shows before it has anything. An icon in a soft circle, a short
+   title, one line on what to do, at most one button. .small inside a panel; .dashed when an
+   owner is invited to start something (the circle in the main colour). */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px 32px;
+  text-align: center;
+}
+
+.empty-state-icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 6px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.empty-state-title {
+  margin: 0;
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.empty-state-text {
+  max-width: 380px;
+  margin: 0;
+  color: var(--text-2);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.empty-state > .btn {
+  margin-top: 8px;
+}
+
+.empty-state.small {
+  gap: 8px;
+  padding: 32px 20px;
+}
+
+.empty-state.small .empty-state-icon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 4px;
+}
+
+.empty-state.small .empty-state-title {
+  font-size: 17px;
+}
+
+.empty-state.small .empty-state-text {
+  max-width: 300px;
+  font-size: 15px;
+}
+
+.empty-state.dashed {
+  border: 2px dashed var(--border);
+}
+
+.empty-state.dashed .empty-state-icon {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* A round icon button in a grey circle: 40px for a box's close ✕, .lg 44px for back and tools
+   on full-screen pages. Buttons over a photo or video keep their own see-through circle. */
+.round-btn {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.round-btn:hover {
+  color: var(--text);
+}
+
+.round-btn.lg {
+  width: 44px;
+  height: 44px;
+  color: var(--text);
+}
