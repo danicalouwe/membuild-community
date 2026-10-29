@@ -7,6 +7,7 @@ import { cfg } from '../config.js'
 import { eventList, removePost, setRsvp, updatePost, watchPost } from '../stores/feed.js'
 import Avatar from '../components/Avatar.vue'
 import Icon from '../components/Icon.vue'
+import ThemeSlot from '../components/ThemeSlot.vue'
 import RichText from '../components/RichText.vue'
 import PostActions from '../components/PostActions.vue'
 import CommentThread from '../components/CommentThread.vue'
@@ -245,6 +246,7 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
 
       <!-- The card: when, where, and what to do. -->
       <aside class="side card">
+        <ThemeSlot name="events.side-card" :off="host" :data="{ event: e, state, badge, post, rsvp }">
         <div class="when">
           <span class="tile"><small>{{ badge.month }}</small><strong>{{ badge.day }}</strong></span>
           <span>
@@ -328,6 +330,7 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
           <hr />
           <button class="link danger" @click="remove">{{ t.__('Delete this event…', 'membuild-community') }}</button>
         </template>
+        </ThemeSlot>
       </aside>
     </div>
 

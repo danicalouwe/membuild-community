@@ -12,6 +12,7 @@ import { pendingReelFile } from '../lib/pending.js'
 import { compactNumber } from '../lib/time.js'
 import Avatar from '../components/Avatar.vue'
 import Icon from '../components/Icon.vue'
+import ThemeSlot from '../components/ThemeSlot.vue'
 import RichText from '../components/RichText.vue'
 import CommentThread from '../components/CommentThread.vue'
 import YouTubeReel from '../components/YouTubeReel.vue'
@@ -448,12 +449,14 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
         </template>
       </section>
 
-      <section v-if="list.loaded && !list.items.length" class="reel empty empty-state">
+      <ThemeSlot v-if="list.loaded && !list.items.length" name="app.empty-state" :data="{ page: 'reels', icon: 'film', title: t.__('No reels yet', 'membuild-community'), text: t.__('Share a short video, up to 60 seconds.', 'membuild-community') }">
+      <section class="reel empty empty-state">
         <span class="empty-state-icon" aria-hidden="true"><Icon name="film" :size="28" /></span>
         <h2 class="empty-state-title">{{ t.__('No reels yet', 'membuild-community') }}</h2>
         <p class="empty-state-text">{{ t.__('Share a short video, up to 60 seconds.', 'membuild-community') }}</p>
         <button class="btn btn-lg btn-primary" @click="startCreate()"><Icon name="plus" :size="18" /> {{ t.__('Create a reel', 'membuild-community') }}</button>
       </section>
+      </ThemeSlot>
       <!-- Loading: a reel's shape in dark grey (video, name and caption, the buttons down the side). -->
       <section v-else-if="!list.loaded" class="reel" aria-busy="true">
         <div class="box reel-sk" style="--ar: 9 / 16">

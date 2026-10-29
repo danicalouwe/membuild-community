@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import { api } from '../api.js'
 import Avatar from '../components/Avatar.vue'
 import Icon from '../components/Icon.vue'
+import ThemeSlot from '../components/ThemeSlot.vue'
 import PlacesMap from '../components/PlacesMap.vue'
 import MapThumb from '../components/MapThumb.vue'
 import { CATEGORY, directionsUrl, distanceKm, distanceLabel, openState, weekLines } from '../lib/places.js'
@@ -680,7 +681,9 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
         <div v-if="panelOpen" class="grid">
           <template v-if="loading"><span v-for="n in 6" :key="n" class="pc pc-sk" aria-hidden="true"><span class="skeleton pc-cover" /><span class="pc-body"><i class="skeleton" style="width: 70%" /><i class="skeleton" style="width: 45%" /></span></span></template>
           <!-- Photo (a small map when there's none), name, the city with a pin, What's new. -->
-          <button v-for="(p, i) in inCity.slice(0, morePlaces.n.value)" :key="p.id" class="pc lift rise-in" :style="{ '--i': i % 24 }" :class="{ pending: p.status === 'pending', on: placeCard?.place.id === p.id }" @click="flyToPlace(p)">
+          <template v-for="(p, i) in inCity.slice(0, morePlaces.n.value)" :key="p.id">
+          <ThemeSlot name="places.card" :data="{ place: p, category: CATEGORY[p.category], city: cityOf(p), open: () => flyToPlace(p) }">
+          <button class="pc lift rise-in" :style="{ '--i': i % 24 }" :class="{ pending: p.status === 'pending', on: placeCard?.place.id === p.id }" @click="flyToPlace(p)">
             <span class="pc-cover"><img v-if="p.cover" :src="p.cover" alt="" loading="lazy" /><MapThumb v-else :lat="p.lat" :lng="p.lng" :color="CATEGORY[p.category]?.color" :emoji="CATEGORY[p.category]?.emoji" /></span>
             <span class="pc-body">
               <strong>{{ p.name }}</strong>
@@ -690,6 +693,8 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
               <span v-if="p.status === 'pending'" class="wait">{{ t.__('Waiting for review', 'membuild-community') }}</span>
             </span>
           </button>
+          </ThemeSlot>
+          </template>
           <span v-if="inCity.length > morePlaces.n.value" :key="morePlaces.n.value" :ref="(el) => (morePlaces.spot.value = el)" class="more-spot" aria-hidden="true" />
           <div v-if="!loading && !inCity.length" class="empty-note">
             <template v-if="places.length">{{ t.__('No places here yet.', 'membuild-community') }}</template>

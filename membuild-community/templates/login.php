@@ -37,10 +37,29 @@ $mbcom_min  = sprintf( __( '%d or more characters', 'membuild-community' ), \Mem
 		<link rel="icon" type="image/png" sizes="192x192" href="<?php echo esc_url( $icons[192] ); ?>">
 	<?php endif; ?>
 	<?php wp_print_styles( array( 'mbcom-login' ) ); ?>
+	<?php
+	/**
+	 * The Join and Log in pages' head, after their styles: where a Community theme prints its
+	 * stylesheet for these pages.
+	 */
+	do_action( 'membuild_community/login_head', $view );
+	?>
 </head>
 <body>
 <main class="page">
 	<section class="brand-side" aria-hidden="true">
+	<?php
+	/**
+	 * Theme contract slot "join.picture": the picture side of Join and Log in. A Community
+	 * theme returns its own HTML (passed through wp_kses_post) to replace the logo, picture and
+	 * headline; returning '' keeps them. $args: view ('login', 'join', …), picture (the owner's
+	 * picture or ''), headline, tagline, logo, initials, name.
+	 */
+	$mbcom_side = (string) apply_filters( 'membuild_community/join_picture', '', array( 'view' => $view, 'picture' => (string) $picture, 'headline' => (string) $headline, 'tagline' => (string) $tagline, 'logo' => (string) $logo, 'initials' => (string) $initials, 'name' => (string) $name ) );
+	?>
+	<?php if ( '' !== trim( $mbcom_side ) ) : ?>
+		<?php echo wp_kses_post( $mbcom_side ); ?>
+	<?php else : ?>
 		<span class="logo"><?php if ( $logo ) : ?><img src="<?php echo esc_url( $logo ); ?>" alt=""><?php else : ?><?php echo esc_html( $initials ); ?><?php endif; ?></span>
 		<div class="stage">
 			<?php if ( $picture ) : ?>
@@ -78,6 +97,7 @@ $mbcom_min  = sprintf( __( '%d or more characters', 'membuild-community' ), \Mem
 				<?php endif; ?>
 			</div>
 		</div>
+	<?php endif; ?>
 	</section>
 
 	<section class="form-side">

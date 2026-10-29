@@ -10,6 +10,7 @@ import Avatar from '../components/Avatar.vue'
 import Icon from '../components/Icon.vue'
 import LevelsCard from '../components/LevelsCard.vue'
 import EarnPoints from '../components/EarnPoints.vue'
+import ThemeSlot from '../components/ThemeSlot.vue'
 import PodiumConfetti from '../components/PodiumConfetti.vue'
 import { t } from '../lib/i18n.js'
 
@@ -156,8 +157,8 @@ const writePost = () => router.push({ name: 'feed', query: { write: 1 } })
   <div class="board page-in">
     <!-- Computers: your level and every level, then how points are earned. -->
     <aside class="side">
-      <LevelsCard :levels="data?.levels || []" :progress="data?.progress" />
-      <EarnPoints :rules="data?.rules || []" />
+      <ThemeSlot name="leaderboard.levels" :data="{ levels: data?.levels || [], progress: data?.progress }"><LevelsCard :levels="data?.levels || []" :progress="data?.progress" /></ThemeSlot>
+      <ThemeSlot name="leaderboard.earn-points" :data="{ rules: data?.rules || [] }"><EarnPoints :rules="data?.rules || []" /></ThemeSlot>
     </aside>
 
     <section class="ranks card">
@@ -183,15 +184,18 @@ const writePost = () => router.push({ name: 'feed', query: { write: 1 } })
       </ol>
 
       <!-- Nobody has points in this period yet. -->
-      <div v-else-if="data && !items.length" class="empty-state">
+      <ThemeSlot v-else-if="data && !items.length" name="app.empty-state" :data="{ page: 'leaderboard', icon: 'star', title: emptyTitle, text: t.__('Post or comment and you’ll be the first one on the board.', 'membuild-community') }">
+      <div class="empty-state">
         <span class="empty-state-icon" aria-hidden="true"><Icon name="star" :size="28" /></span>
         <strong class="empty-state-title">{{ emptyTitle }}</strong>
         <p class="empty-state-text">{{ t.__('Post or comment and you’ll be the first one on the board.', 'membuild-community') }}</p>
         <button class="btn btn-lg btn-primary" @click="writePost">{{ t.__('Write a post', 'membuild-community') }}</button>
       </div>
+      </ThemeSlot>
 
       <template v-else>
-        <ol v-if="podium.length" class="podium" :class="{ dim: loading }" :aria-label="t.__('Top three', 'membuild-community')">
+        <ThemeSlot v-if="podium.length" name="leaderboard.podium" :data="{ podium, me: cfg.user, burst }">
+        <ol class="podium" :class="{ dim: loading }" :aria-label="t.__('Top three', 'membuild-community')">
           <PodiumConfetti :burst="burst" />
           <li v-for="item in podium" :key="item.user.id" class="place rise-in" :class="[`p${item.rank}`, { me: item.user.id === cfg.user.id }]" :style="{ '--i': item.rank - 1 }">
             <span class="ring"><Avatar :user="item.user" :size="item.rank === 1 ? 76 : 60" link /><span class="chip" :aria-label="PLACE[item.rank]?.()">{{ item.rank }}</span></span>
@@ -202,6 +206,7 @@ const writePost = () => router.push({ name: 'feed', query: { write: 1 } })
             <span class="pts">{{ pts(item.points) }}</span>
           </li>
         </ol>
+        </ThemeSlot>
         <ol class="list" :class="{ dim: loading }">
           <li v-for="item in rows" :key="item.user.id" class="row rise-in" :class="{ me: item.user.id === cfg.user.id, stuck: stuck && item.user.id === cfg.user.id }" :style="{ '--i': item.rank - 1 }">
             <span class="rank">{{ item.rank }}</span>

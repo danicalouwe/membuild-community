@@ -3,6 +3,7 @@ import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch 
 import { cfg } from '../config.js'
 import { eventList, loadMore, refresh } from '../stores/feed.js'
 import EventRow from '../components/EventRow.vue'
+import ThemeSlot from '../components/ThemeSlot.vue'
 import Icon from '../components/Icon.vue'
 import { monthOf, stateOf } from '../lib/events.js'
 import { useRouter } from 'vue-router'
@@ -62,23 +63,25 @@ onBeforeUnmount(() => observer?.disconnect())
 
     <section v-if="live.length && when === 'upcoming'" class="month">
       <h2 class="live-h">● {{ t.__('Happening now', 'membuild-community') }}</h2>
-      <EventRow v-for="(p, i) in live" :key="p.id" class="rise-in" :style="{ '--i': i }" :post="p" :owner="owner" />
+      <template v-for="(p, i) in live" :key="p.id"><ThemeSlot name="events.row" :off="owner" :data="{ post: p, live: true }"><EventRow class="rise-in" :style="{ '--i': i }" :post="p" :owner="owner" /></ThemeSlot></template>
     </section>
 
     <section v-for="g in months" :key="g.month" class="month">
       <h2>{{ g.month }}</h2>
-      <EventRow v-for="(p, i) in g.items" :key="p.id" class="rise-in" :style="{ '--i': i }" :post="p" :owner="owner" @add-replay="addReplay" />
+      <template v-for="(p, i) in g.items" :key="p.id"><ThemeSlot name="events.row" :off="owner" :data="{ post: p, live: false }"><EventRow class="rise-in" :style="{ '--i': i }" :post="p" :owner="owner" @add-replay="addReplay" /></ThemeSlot></template>
     </section>
 
     <div v-if="list.loading && !list.items.length" class="month">
       <div v-for="n in 3" :key="n" class="card sk"><div class="skeleton" style="width: 208px; aspect-ratio: 16 / 9; border-radius: 10px" /><div style="flex: 1"><div class="skeleton" style="height: 12px; width: 30%; margin-bottom: 10px" /><div class="skeleton" style="height: 18px; width: 70%" /></div></div>
     </div>
-    <div v-else-if="list.loaded && !list.items.length" class="empty-state card">
+    <ThemeSlot v-else-if="list.loaded && !list.items.length" name="app.empty-state" :data="{ page: 'events', icon: 'calendar', title: when === 'past' ? t.__('No past events yet.', 'membuild-community') : t.__('Nothing scheduled yet.', 'membuild-community'), text: t.__('Add a live call, a Q&A or a workshop. Members get a reminder the day before and an hour before.', 'membuild-community') }">
+    <div class="empty-state card">
       <span class="empty-state-icon" aria-hidden="true"><Icon name="calendar" :size="28" /></span>
       <h2 class="empty-state-title">{{ when === 'past' ? t.__('No past events yet.', 'membuild-community') : t.__('Nothing scheduled yet.', 'membuild-community') }}</h2>
       <p class="empty-state-text" v-if="cfg.community.isStaff && when === 'upcoming'">{{ t.__('Add a live call, a Q&A or a workshop. Members get a reminder the day before and an hour before.', 'membuild-community') }}</p>
       <p class="empty-state-text" v-else-if="when === 'upcoming'">{{ t.__('Check back soon.', 'membuild-community') }}</p>
     </div>
+    </ThemeSlot>
     <p v-if="list.error && !list.items.length" class="error-text list-error" role="alert">{{ list.error }}</p>
     <div ref="sentinel" class="sentinel" aria-hidden="true" />
 

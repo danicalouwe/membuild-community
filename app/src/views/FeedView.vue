@@ -11,6 +11,7 @@ import StoriesStrip from '../components/StoriesStrip.vue'
 import Icon from '../components/Icon.vue'
 import DayOne from '../components/DayOne.vue'
 import ForYou from '../components/ForYou.vue'
+import ThemeSlot from '../components/ThemeSlot.vue'
 import { api } from '../api.js'
 import { showToast } from '../lib/toast.js'
 import { useRouter } from 'vue-router'
@@ -26,6 +27,12 @@ watch(sort, (s) => {
   sessionStorage.setItem('mbcom-sort', s)
   window.scrollTo({ top: 0 })
   if (!list.value.loaded) loadMore(list.value)
+})
+
+// "For you" beside the feed (the next event, your course, new members), loaded once.
+const forYou = ref(null)
+onMounted(async () => {
+  forYou.value = await api.forYou().catch(() => null)
 })
 
 onMounted(() => {
@@ -122,20 +129,24 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
 
     <aside class="day-one-slot">
       <DayOne />
-      <ForYou />
+      <ThemeSlot name="home.for-you" :data="{ data: forYou }"><ForYou :data="forYou" /></ThemeSlot>
     </aside>
 
     <Composer v-if="cfg.community.canPost && !cfg.community.restriction" @posted="scrollTop" />
     <StoriesStrip v-if="feature('stories')" />
+
+    <ThemeSlot name="home.before-feed" :data="{ sort }" />
 
     <div class="sort" role="tablist" :aria-label="t.__('Sort posts', 'membuild-community')">
       <button class="filter-pill" role="tab" :aria-selected="sort === 'latest'" :class="{ on: sort === 'latest' }" @click="sort = 'latest'">{{ t.__('Latest', 'membuild-community') }}</button>
       <button class="filter-pill" role="tab" :aria-selected="sort === 'hot'" :class="{ on: sort === 'hot' }" @click="sort = 'hot'"><Icon name="flame" :size="15" /> {{ t.__('Popular', 'membuild-community') }}</button>
     </div>
 
-    <PostCard v-for="post in list.pinned" :key="`pin-${post.id}`" :post="post" />
+    <template v-for="post in list.pinned" :key="`pin-${post.id}`">
+      <ThemeSlot name="home.post-card" :data="{ post, pinned: true }"><PostCard :post="post" /></ThemeSlot>
+    </template>
     <template v-for="(post, i) in list.items" :key="post.localKey || post.id">
-      <PostCard :post="post" course-header />
+      <ThemeSlot name="home.post-card" :data="{ post, pinned: false }"><PostCard :post="post" course-header /></ThemeSlot>
       <!-- Reels are grouped into one tray in the feed, after the third post. -->
       <ReelsTray v-if="feature('reels') && i === Math.min(2, list.items.length - 1)" />
     </template>

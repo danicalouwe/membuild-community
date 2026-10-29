@@ -10,11 +10,12 @@ import Avatar from './components/Avatar.vue'
 import HeaderActions from './components/HeaderActions.vue'
 import SearchBox from './components/SearchBox.vue'
 import LevelUpToast from './components/LevelUpToast.vue'
+import ThemeSlot from './components/ThemeSlot.vue'
 import Toast from './components/Toast.vue'
 import ConfirmHost from './components/ConfirmHost.vue'
 import MemberViewToggle from './components/MemberViewToggle.vue'
 import { canSeeAsMember } from './lib/preview.js'
-import { refreshStats } from './stores/me.js'
+import { me, refreshStats } from './stores/me.js'
 import { openChat } from './stores/chatDock.js'
 import { messages, startPulse } from './stores/messages.js'
 import { t, locale } from './lib/i18n.js'
@@ -159,6 +160,7 @@ const isActive = (tab) =>
 <template>
   <div class="shell" :class="{ immersive, 'in-course': inCourse, 'in-lesson': inLesson, building, 'on-profile': onProfile, 'no-tabbar': route.name === 'levels' || (route.name === 'settings' && !!route.query.s) || (route.name === 'messages' && !!route.params.threadId), 'phone-bare': route.name === 'search' }">
     <header class="topbar">
+      <ThemeSlot name="app.top-bar" :data="{ tabs: desktopTabs, isActive, user: cfg.user, logo: cfg.community.logo, siteName: cfg.siteName, home: '/' }">
       <div class="topbar-inner">
         <div class="start">
           <RouterLink to="/" class="brand" :aria-label="homeLabel" :title="cfg.siteName">
@@ -175,6 +177,7 @@ const isActive = (tab) =>
         </nav>
         <HeaderActions />
       </div>
+      </ThemeSlot>
     </header>
 
     <div v-if="cfg.community.restriction" class="restricted" role="status">
@@ -185,6 +188,7 @@ const isActive = (tab) =>
     </div>
 
     <aside class="side" :aria-label="t.__('Sections', 'membuild-community')">
+      <ThemeSlot name="app.left-menu" :data="{ tabs: desktopTabs, tools: sideLinks, isActive, user: cfg.user }">
       <RouterLink to="/me" class="side-me">
         <Avatar :user="cfg.user" :size="36" />
         <strong>{{ cfg.user.name }}</strong>
@@ -202,6 +206,7 @@ const isActive = (tab) =>
           <span v-if="l.badge" class="side-badge">{{ l.badge > 9 ? '9+' : l.badge }}</span>
         </RouterLink>
       </nav>
+      </ThemeSlot>
     </aside>
 
     <main class="main" :class="{ flush: route.name === 'places', centred }">
@@ -213,6 +218,7 @@ const isActive = (tab) =>
     </main>
 
     <nav class="tabbar" :aria-label="t.__('Sections', 'membuild-community')">
+      <ThemeSlot name="app.tab-bar" :data="{ tabs: mobileTabs, isActive, user: cfg.user, notifications: messages.notifications, openMenu: openPhoneMenu, menuOpen: phoneMenuOpen }">
       <!-- A short word under each icon: easier for everyone than icons alone. -->
       <template v-for="tab in mobileTabs" :key="tab.name">
         <!-- Your photo opens the menu (your profile, settings, display, log out are in it). -->
@@ -228,13 +234,14 @@ const isActive = (tab) =>
           <span class="tab-label" aria-hidden="true">{{ tab.short || tab.label }}</span>
         </RouterLink>
       </template>
+      </ThemeSlot>
     </nav>
 
     <PostDialog v-if="linked" :key="linked.id" :post="linked" :highlight="Number(route.query.comment) || 0" @close="closeLinked" />
     <ChatDock v-if="showDock" />
     <MemberViewToggle v-else-if="canSeeAsMember" />
     <VideoDock v-if="video.media" />
-    <LevelUpToast />
+    <ThemeSlot name="app.level-up" :data="{ levelUp: me.levelUp, dismiss: () => (me.levelUp = null) }"><LevelUpToast /></ThemeSlot>
     <Toast />
     <ConfirmHost />
   </div>

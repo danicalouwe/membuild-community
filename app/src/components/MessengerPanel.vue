@@ -8,6 +8,7 @@ import { timeAgo } from '../lib/time.js'
 import { canDock, dock, openChat } from '../stores/chatDock.js'
 import Avatar from './Avatar.vue'
 import Icon from './Icon.vue'
+import ThemeSlot from './ThemeSlot.vue'
 import { t } from '../lib/i18n.js'
 
 // The Messenger dropdown: recent chats. A chat opens as a docked window
@@ -115,12 +116,14 @@ function compose() {
         </button>
       </li>
       <li v-if="!loaded" class="state">{{ t.__('Loading…', 'membuild-community') }}</li>
-      <li v-else-if="!threads.length && !query && filter === 'all'" class="empty-state small">
+      <ThemeSlot v-else-if="!threads.length && !query && filter === 'all'" name="app.empty-state" :data="{ page: 'chats', icon: 'comment', title: t.__('No messages yet', 'membuild-community'), text: t.__('Say hello to someone you met here. Messages are private between you.', 'membuild-community') }">
+      <li class="empty-state small">
           <span class="empty-state-icon" aria-hidden="true"><Icon name="comment" :size="22" /></span>
           <h2 class="empty-state-title">{{ t.__('No messages yet', 'membuild-community') }}</h2>
           <p class="empty-state-text">{{ t.__('Say hello to someone you met here. Messages are private between you.', 'membuild-community') }}</p>
           <RouterLink class="btn btn-lg btn-primary" :to="{ name: 'members' }" @click="emit('navigate')">{{ t.__('Find someone in Members', 'membuild-community') }}</RouterLink>
         </li>
+      </ThemeSlot>
       <li v-else-if="!filtered.length" class="state">{{ query ? t.__('No chats found.', 'membuild-community') : filter === 'unread' ? t.__('No unread chats.', 'membuild-community') : filter === 'groups' ? t.__('No group chats yet.', 'membuild-community') : t.__('No conversations yet.', 'membuild-community') }}</li>
     </ul>
 

@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { api } from '../api.js'
 import Icon from '../components/Icon.vue'
+import ThemeSlot from '../components/ThemeSlot.vue'
 import { locale, t } from '../lib/i18n.js'
 
 // Billing: the memberships a member pays for with FluentCart. Changing the card, cancelling
@@ -87,12 +88,14 @@ const paidWith = (s) => (s.card ? t.sprintf(/* translators: %s: a card or paymen
       </div>
     </section>
 
-    <section v-if="loaded && !items.length && !error" class="card empty-state">
+    <ThemeSlot v-if="loaded && !items.length && !error" name="app.empty-state" :data="{ page: 'billing', icon: 'card', title: t.__('Nothing to pay for', 'membuild-community'), text: t.__('When you join a paid membership, it shows here with its renewal date and receipts.', 'membuild-community') }">
+    <section class="card empty-state">
       <span class="empty-state-icon" aria-hidden="true"><Icon name="card" :size="28" /></span>
       <h2 class="empty-state-title">{{ t.__('Nothing to pay for', 'membuild-community') }}</h2>
       <p class="empty-state-text">{{ t.__('When you join a paid membership, it shows here with its renewal date and receipts.', 'membuild-community') }}</p>
       <RouterLink class="btn btn-lg btn-ghost" :to="{ name: 'classroom' }">{{ t.__('Browse the Classroom', 'membuild-community') }}</RouterLink>
     </section>
+    </ThemeSlot>
   </div>
 </template>
 

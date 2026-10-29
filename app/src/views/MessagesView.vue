@@ -7,6 +7,7 @@ import { messages } from '../stores/messages.js'
 import { timeAgo } from '../lib/time.js'
 import Avatar from '../components/Avatar.vue'
 import Icon from '../components/Icon.vue'
+import ThemeSlot from '../components/ThemeSlot.vue'
 import ChatView from '../components/ChatView.vue'
 import NewChatDialog from '../components/NewChatDialog.vue'
 import { locale, t } from '../lib/i18n.js'
@@ -195,12 +196,14 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
         </li>
         <li v-if="loadingMore" class="none-here">{{ t.__('Loading…', 'membuild-community') }}</li>
         <li v-if="loaded && !filtered.length && (threads.length || query || filter !== 'all')" class="none-here">{{ query ? t.__('No chats found.', 'membuild-community') : filter === 'unread' ? t.__('No unread chats.', 'membuild-community') : t.__('No group chats yet.', 'membuild-community') }}</li>
-        <li v-if="loaded && !threads.length && !query && filter === 'all'" class="empty-state">
+        <ThemeSlot v-if="loaded && !threads.length && !query && filter === 'all'" name="app.empty-state" :data="{ page: 'messages', icon: 'comment', title: t.__('No messages yet', 'membuild-community'), text: t.__('Say hello to someone you met here. Messages are private between you.', 'membuild-community') }">
+        <li class="empty-state">
           <span class="empty-state-icon" aria-hidden="true"><Icon name="comment" :size="28" /></span>
           <h2 class="empty-state-title">{{ t.__('No messages yet', 'membuild-community') }}</h2>
           <p class="empty-state-text">{{ t.__('Say hello to someone you met here. Messages are private between you.', 'membuild-community') }}</p>
           <RouterLink class="btn btn-lg btn-primary" :to="{ name: 'members' }">{{ t.__('Find someone in Members', 'membuild-community') }}</RouterLink>
         </li>
+        </ThemeSlot>
       </ul>
     </aside>
 

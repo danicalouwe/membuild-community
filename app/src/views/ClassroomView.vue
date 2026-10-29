@@ -6,6 +6,7 @@ import { api } from '../api.js'
 import Avatar from '../components/Avatar.vue'
 import BaseDialog from '../components/BaseDialog.vue'
 import Icon from '../components/Icon.vue'
+import ThemeSlot from '../components/ThemeSlot.vue'
 import { accessTag, lockLabel } from '../lib/access.js'
 import { t } from '../lib/i18n.js'
 import { offerButton } from '../lib/offer.js'
@@ -130,7 +131,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
       </div>
     </header>
 
-    <template v-if="resume && filter === 'all' && !owner">
+    <ThemeSlot v-if="resume && filter === 'all' && !owner" name="classroom.continue" :data="{ course: resume, to: linkTo(resume), nextLabel: `${lessonOf(resume)} · ${resume.next_lesson.title}` }">
       <h2 class="section">{{ t.__('Continue where you left off', 'membuild-community') }}</h2>
       <RouterLink class="card resume" :to="linkTo(resume)">
         <div class="resume-cover" :style="resume.cover ? null : { background: fallback(resume.id) }">
@@ -147,10 +148,11 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
         </div>
         <span class="btn btn-lg btn-primary resume-btn">{{ t.__('Continue', 'membuild-community') }}</span>
       </RouterLink>
-      <h2 class="section">{{ t.__('All courses', 'membuild-community') }}</h2>
-    </template>
+    </ThemeSlot>
 
-    <div v-if="loading || shown.length || owner" class="grid">
+    <ThemeSlot v-if="loading || shown.length || owner" name="classroom.course-list" :off="owner || loading" :data="{ courses: shown, filter, to: linkTo, state: stateOf, resume: filter === 'all' && !owner ? resume : null }">
+    <h2 v-if="resume && filter === 'all' && !owner" class="section">{{ t.__('All courses', 'membuild-community') }}</h2>
+    <div class="grid">
       <template v-if="loading">
         <div v-for="n in 3" :key="n" class="card course">
           <div class="skeleton cover-sk" />
@@ -173,7 +175,9 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
         </span>
       </button>
 
-      <RouterLink v-for="c in shown" :key="c.id" class="card course" :class="{ locked: c.lock }" :to="linkTo(c)">
+      <template v-for="c in shown" :key="c.id">
+      <ThemeSlot name="classroom.course-card" :off="owner" :data="{ course: c, to: linkTo(c), state: stateOf(c) }">
+      <RouterLink class="card course" :class="{ locked: c.lock }" :to="linkTo(c)">
         <div class="cover" :style="c.cover ? null : { background: fallback(c.id) }">
           <img v-if="c.cover" :src="c.cover" alt="" loading="lazy" decoding="async" />
           <span v-else class="cover-title">{{ c.title }}</span>
@@ -215,7 +219,10 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
           </div>
         </div>
       </RouterLink>
+      </ThemeSlot>
+      </template>
     </div>
+    </ThemeSlot>
 
     <div v-if="!showAll && filtered.length > PAGE" class="more">
       <button class="btn btn-lg btn-ghost" @click="showAll = true">{{ t.__('Show more', 'membuild-community') }}</button>
@@ -230,12 +237,14 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
       <p class="empty-state-text">{{ t.__('Give it a name, add a few lessons, and publish when you’re ready. Until then, only you can see it.', 'membuild-community') }}</p>
       <button class="btn btn-lg btn-primary" @click="startNew"><Icon name="plus" :size="20" /> {{ t.__('New course', 'membuild-community') }}</button>
     </div>
-    <div v-else-if="!loading && !visible.length" class="empty-state card">
+    <ThemeSlot v-else-if="!loading && !visible.length" name="app.empty-state" :data="{ page: 'classroom', icon: 'cap', title: t.__('No courses yet', 'membuild-community'), text: t.__('When a course is added, it will show up here. We’ll let you know.', 'membuild-community') }">
+    <div class="empty-state card">
       <span class="empty-state-icon"><Icon name="cap" :size="28" /></span>
       <h2 class="empty-state-title">{{ t.__('No courses yet', 'membuild-community') }}</h2>
       <p class="empty-state-text">{{ t.__('When a course is added, it will show up here. We’ll let you know.', 'membuild-community') }}</p>
       <RouterLink class="btn btn-lg btn-ghost" :to="{ name: 'feed' }">{{ t.__('Back to Home', 'membuild-community') }}</RouterLink>
     </div>
+    </ThemeSlot>
 
     <BaseDialog v-if="naming" :title="t.__('New course', 'membuild-community')" :width="480" @close="naming = false">
       <form class="name-form" @submit.prevent="createCourse">

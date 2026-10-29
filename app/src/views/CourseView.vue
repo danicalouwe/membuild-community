@@ -5,6 +5,7 @@ import { api } from '../api.js'
 import { renderMarkdown } from '../lib/markdown.js'
 import { pointsMayHaveChanged } from '../stores/me.js'
 import Icon from '../components/Icon.vue'
+import ThemeSlot from '../components/ThemeSlot.vue'
 import LessonPlayer from '../components/LessonPlayer.vue'
 import LessonDiscussion from '../components/LessonDiscussion.vue'
 import CourseComplete from '../components/CourseComplete.vue'
@@ -124,7 +125,7 @@ async function markComplete() {
     const after = allLessons.value.find((x) => x.id === lesson.value.next_id)
     const next = nextOpen.value ? after : null
     // An open next lesson: the card counts down and goes there. A waiting one: it says when it opens.
-    doneCard.value = { key: Date.now(), count: course.value.completed_count, total: course.value.lessons_count, course: course.value.title, next: next ? { id: next.id, title: next.title } : null, opensAt: !next && after?.unlock_at ? after.unlock_at : null }
+    doneCard.value = { key: Date.now(), lesson: lesson.value?.title || '', count: course.value.completed_count, total: course.value.lessons_count, course: course.value.title, next: next ? { id: next.id, title: next.title } : null, opensAt: !next && after?.unlock_at ? after.unlock_at : null }
   }
 }
 function goNext(id) {
@@ -364,6 +365,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
     <div class="lv-grid">
       <!-- The outline, beside a lesson -->
       <aside v-if="withOutline" ref="outlineEl" class="lv-outline card" :class="{ open: outlineOpen }">
+        <ThemeSlot name="course.outline" :data="{ course, lessonId, open }">
         <div class="lv-cover" :style="course.cover ? null : { background: fallback(course.id) }">
           <img v-if="course.cover" :src="course.cover" alt="" />
         </div>
@@ -397,11 +399,14 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
             </ul>
           </section>
         </nav>
+        </ThemeSlot>
+        <ThemeSlot name="course.lesson-side" :data="{ course, lesson }" />
       </aside>
 
       <div class="lv-main">
         <!-- The bar: tabs, then previous / next and the one main button. Stays at the top while you scroll. -->
         <div class="lv-bar">
+          <ThemeSlot name="course.lesson-bar" :off="ownerView" :data="{ course, lesson, tab, setTab, open, markComplete, continueCourse }">
           <button v-if="withOutline" class="lv-contents" @click="outlineOpen = !outlineOpen">
             <Icon name="cap" :size="18" /> {{ contentsCount(course.completed_count, course.lessons_count) }}
           </button>
@@ -431,9 +436,10 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
               {{ course.progress >= 100 ? t.__('Review the course', 'membuild-community') : started ? t.__('Continue', 'membuild-community') : t.__('Start course', 'membuild-community') }} <Icon name="arrowRight" :size="18" />
             </button>
           </div>
+          </ThemeSlot>
         </div>
 
-        <CourseOverview v-if="tab === 'overview'" :course="course" @open="open" @tab="setTab" />
+        <ThemeSlot v-if="tab === 'overview'" name="course.front" :data="{ course, onOpen: open, onTab: setTab }"><CourseOverview :course="course" @open="open" @tab="setTab" /></ThemeSlot>
 
         <template v-else-if="tab === 'posts' && course.questions !== 'off'">
           <div v-if="course.lock" class="card locked">
@@ -531,10 +537,10 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
       <RouterLink v-else to="/classroom" class="btn btn-lg btn-ghost lv-grow">{{ t.__('Back to Classroom', 'membuild-community') }}</RouterLink>
     </div>
     <span v-if="tip" class="lv-tip" role="tooltip" :style="{ left: tip.x + 'px', top: tip.y + 'px' }">{{ tip.text }}</span>
-    <LessonDone :done="doneCard" @next="goNext" @close="doneCard = null" />
+    <ThemeSlot name="app.lesson-done" :data="{ done: doneCard, onNext: goNext, onClose: () => (doneCard = null) }"><LessonDone :done="doneCard" @next="goNext" @close="doneCard = null" /></ThemeSlot>
     <FilePreview v-if="previewing" :file="previewing" :place="course && lesson ? `${course.title} › ${lesson.title}` : ''" @close="previewing = null" />
     <UnlockDialog v-if="unlocking && course?.lock" :course="course" :checking="rechecking" @recheck="recheck" @close="unlocking = false" />
-    <CourseComplete v-if="finished" :course="course" @close="finished = false" />
+    <ThemeSlot v-if="finished" name="course.finished" :data="{ course, onClose: () => (finished = false) }"><CourseComplete :course="course" @close="finished = false" /></ThemeSlot>
   </div>
 </template>
 

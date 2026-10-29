@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.13.5
+Stable tag: 1.13.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,11 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.13.6 =
+* Ready for Community themes: add-ons that give the community a whole new look. A theme can restyle every screen and fill 27 named places (the Classroom's course list, a post card, the top bar, Lesson done, the Leaderboard's podium and more). Without a theme nothing changes.
+* Safe by design: if a theme's piece ever breaks, the community's own version shows instead and Community → Problems says which theme it was. Owner tools, Block, Report and Moderate always stay the community's own.
+* Themes can show a member's streak, level and points, and can restyle the picture side of Join and Log in.
 
 = 1.13.5 =
 * Dark mode fixes: the Places "New" tag and news box, the Search topic icons, a few green status words and the Reels "more" menu no longer show as bright light-mode patches.

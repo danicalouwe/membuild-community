@@ -1,6 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
-import { api } from '../api.js'
+import { computed } from 'vue'
 import { dateBadge, startOf, zoneName } from '../lib/events.js'
 import { locale, t } from '../lib/i18n.js'
 import Avatar from './Avatar.vue'
@@ -8,10 +7,9 @@ import Icon from './Icon.vue'
 
 // "For you" beside the Home feed on computers: the next event, the course
 // you're in the middle of, and who joined this week. Hidden when it's all empty.
-const data = ref(null)
-onMounted(async () => {
-  data.value = await api.forYou().catch(() => null)
-})
+// Loaded by the Home feed (FeedView), so a Community theme's piece for "home.for-you" gets the same data.
+const props = defineProps({ data: { type: Object, default: null } })
+const data = computed(() => props.data)
 const any = computed(() => data.value && (data.value.event || data.value.course || data.value.members))
 
 const timeFmt = new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' })

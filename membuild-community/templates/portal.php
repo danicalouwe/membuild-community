@@ -28,6 +28,15 @@ defined( 'ABSPATH' ) || exit;
 		<link rel="icon" type="image/png" sizes="192x192" href="<?php echo esc_url( $icons[192] ); ?>">
 	<?php endif; ?>
 	<?php wp_print_styles( array( 'mbcom-app', 'mbcom-app-1' ) ); ?>
+	<script>window.MBCommunity = window.MBCommunity || { queue: [], ready: function ( fn ) { this.queue.push( fn ); } };</script>
+	<?php
+	/**
+	 * The community page's head, after the app's styles. A Community theme prints its
+	 * stylesheet here (so its token values win) and may print its script here or in
+	 * membuild_community/app_footer; see app/src/lib/slots.js for MBCommunity.ready().
+	 */
+	do_action( 'membuild_community/app_head' );
+	?>
 </head>
 <body>
 	<div id="mbcom-app"></div>

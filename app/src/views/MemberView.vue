@@ -10,6 +10,7 @@ import { canDock, openChat } from '../stores/chatDock.js'
 import { timeAgo } from '../lib/time.js'
 import Avatar from '../components/Avatar.vue'
 import Icon from '../components/Icon.vue'
+import ThemeSlot from '../components/ThemeSlot.vue'
 import PostSkeleton from '../components/PostSkeleton.vue'
 import PostCard from '../components/PostCard.vue'
 import Composer from '../components/Composer.vue'
@@ -233,6 +234,7 @@ const dailyCap = (n) => t.sprintf(/* translators: %d: how many times a day this 
       <!-- The top: a wide cover, the photo over its edge, name and level, bio, 52px buttons. -->
       <section class="hero">
         <div class="hero-in">
+          <ThemeSlot name="profile.cover" :off="!member || member.is_me" :data="{ member }">
           <div class="cover" :style="member?.cover ? { backgroundImage: `url(${member.cover})` } : null">
             <label v-if="member?.is_me" class="cam cover-cam" :title="t.__('Change cover picture', 'membuild-community')">
               <input ref="coverInput" type="file" accept="image/*" hidden @change="pickCover" />
@@ -241,6 +243,7 @@ const dailyCap = (n) => t.sprintf(/* translators: %d: how many times a day this 
             </label>
             <span v-if="coverUpload" class="busy">{{ t.__('Uploading…', 'membuild-community') }}</span>
           </div>
+          </ThemeSlot>
 
           <div class="head">
             <div class="pic">
@@ -260,6 +263,7 @@ const dailyCap = (n) => t.sprintf(/* translators: %d: how many times a day this 
                 <span v-if="member.role && !member.blocked" class="role">{{ member.role === 'admin' ? t.__('Admin', 'membuild-community') : t.__('Moderator', 'membuild-community') }}</span>
               </h1>
               <p class="lvl">{{ levelLabel(member.level) }}</p>
+              <ThemeSlot name="profile.badges" :data="{ member }" />
               <template v-if="!member.blocked">
                 <p v-if="restrictionText" class="restricted-tag">{{ restrictionText }}</p>
                 <p v-if="member.bio" class="bio">{{ member.bio }}</p>
@@ -311,6 +315,7 @@ const dailyCap = (n) => t.sprintf(/* translators: %d: how many times a day this 
 
       <div v-else-if="member" class="cols">
         <aside class="left">
+          <ThemeSlot name="profile.about" :off="isMe" :data="{ member }">
           <section class="card box">
             <h2>{{ t.__('About', 'membuild-community') }}</h2>
             <ul class="about">
@@ -320,6 +325,7 @@ const dailyCap = (n) => t.sprintf(/* translators: %d: how many times a day this 
               <li v-if="member.shared_course"><Icon name="cap" :size="20" /> <span>{{ bothTaking[0] }}<b>{{ member.shared_course }}</b>{{ bothTaking[1] }}</span></li>
             </ul>
           </section>
+          </ThemeSlot>
 
           <section class="card box">
             <h2>{{ levelLabel(member.level) }}</h2>

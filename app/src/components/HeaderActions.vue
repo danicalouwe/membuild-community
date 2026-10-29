@@ -7,6 +7,7 @@ import { install, pwa } from '../lib/pwa.js'
 import { display, setDisplay } from '../lib/display.js'
 import Avatar from './Avatar.vue'
 import Icon from './Icon.vue'
+import ThemeSlot from './ThemeSlot.vue'
 import { t } from '../lib/i18n.js'
 
 const MessengerPanel = defineAsyncComponent(() => import('./MessengerPanel.vue'))
@@ -146,6 +147,7 @@ const accountLabel = () => {
 
 <template>
   <div ref="root" class="actions">
+    <ThemeSlot name="app.top-bar-end" :data="{ isPhone }" />
 
     <div v-if="isPhone || shortcuts.length || editShortcuts" class="slot">
       <button
