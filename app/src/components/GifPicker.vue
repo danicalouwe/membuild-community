@@ -69,7 +69,7 @@ function pick(gif) {
 <template>
   <component :is="pop ? PopFrame : BaseDialog" :title="t.__('Choose a GIF', 'membuild-community')" v-bind="pop ? {} : { width: 520, maxHeight: '680px', phone: 'sheet', z: 120 }" @close="emit('close')">
     <div class="gif-picker">
-      <label class="search">
+      <label class="section-search search">
         <Icon name="search" :size="18" />
         <input ref="input" v-model="query" type="search" enterkeyhint="search" :placeholder="t.__('Search GIPHY', 'membuild-community')" :aria-label="t.__('Search GIPHY', 'membuild-community')" />
       </label>
@@ -97,6 +97,10 @@ function pick(gif) {
 </template>
 
 <style scoped>
+.search {
+  margin-bottom: 12px;
+}
+
 .gif-picker {
   padding: 12px 14px 4px;
 }
@@ -111,30 +115,8 @@ function pick(gif) {
   top: 0;
   z-index: 1;
   margin-bottom: 8px;
-}
-
-.search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 40px;
-  padding: 0 14px;
-  border-radius: 999px;
+  /* Solid while GIFs scroll under it. */
   background: var(--surface-2);
-  color: var(--text-2);
-  margin-bottom: 12px;
-}
-
-.search input {
-  flex: 1;
-  min-width: 0;
-  border: 0;
-  padding: 0;
-  background: transparent;
-  color: var(--text);
-  outline: none;
-  box-shadow: none;
-  font-size: 16px;
 }
 
 /* Two columns that fill top to bottom, like GIPHY's own grid; order stays GIPHY's. */

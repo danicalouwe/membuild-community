@@ -168,7 +168,7 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
         <h1>{{ t.__('Chats', 'membuild-community') }}</h1>
         <button class="new" :aria-label="t.__('New message', 'membuild-community')" @click="composing = true"><Icon name="plus" :size="20" /></button>
       </header>
-      <input v-if="!loaded || threads.length || query || filter !== 'all'" v-model="query" class="search" type="search" :placeholder="t.__('Search chats', 'membuild-community')" :aria-label="t.__('Search chats', 'membuild-community')" />
+      <label v-if="!loaded || threads.length || query || filter !== 'all'" class="section-search search"><Icon name="search" :size="18" /><input v-model="query" type="search" :placeholder="t.__('Search chats', 'membuild-community')" :aria-label="t.__('Search chats', 'membuild-community')" /></label>
 
       <div v-if="!loaded || threads.length || query || filter !== 'all'" class="filters" role="tablist" :aria-label="t.__('Show chats', 'membuild-community')">
         <button class="filter-pill" v-for="f in FILTERS" :key="f.key" role="tab" :aria-selected="filter === f.key" :class="{ on: filter === f.key }" @click="filter = f.key">{{ f.label }}</button>
@@ -219,6 +219,10 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
 </template>
 
 <style scoped>
+.search {
+  margin: 0 12px 8px;
+}
+
 .messages {
   max-width: 1180px;
   height: calc(100dvh - var(--header-h) - 32px);
@@ -255,15 +259,6 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: var(--surface-2);
-}
-
-.search {
-  margin: 0 12px 8px;
-  height: 36px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: 999px;
   background: var(--surface-2);
 }
 

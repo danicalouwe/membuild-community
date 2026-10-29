@@ -92,7 +92,7 @@ function compose() {
         <button class="round" :aria-label="t.__('New message', 'membuild-community')" :title="t.__('New message', 'membuild-community')" @click="compose"><Icon name="compose" :size="18" /></button>
       </span>
     </header>
-    <input v-model="query" class="search" type="search" :placeholder="t.__('Search chats', 'membuild-community')" :aria-label="t.__('Search chats', 'membuild-community')" />
+    <label class="section-search search"><Icon name="search" :size="18" /><input v-model="query" type="search" :placeholder="t.__('Search chats', 'membuild-community')" :aria-label="t.__('Search chats', 'membuild-community')" /></label>
     <div class="filters" role="tablist">
       <button class="filter-pill" v-for="f in FILTERS" :key="f.key" role="tab" :aria-selected="filter === f.key" :class="{ on: filter === f.key }" @click="filter = f.key">{{ f.label }}</button>
     </div>
@@ -129,6 +129,10 @@ function compose() {
 </template>
 
 <style scoped>
+.search {
+  margin: 4px 12px 8px;
+}
+
 .panel {
   display: flex;
   flex-direction: column;
@@ -167,15 +171,6 @@ function compose() {
 }
 
 .round:hover {
-  background: var(--surface-2);
-}
-
-.search {
-  margin: 4px 12px 8px;
-  height: 36px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: 999px;
   background: var(--surface-2);
 }
 

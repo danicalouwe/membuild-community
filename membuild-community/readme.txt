@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.13.3
+Stable tag: 1.13.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,9 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.13.4 =
+* Search boxes that look inside one section (a lesson's discussion, Messages, the chats panel, and the emoji, GIF and feeling pickers) now match the filters beside them: the same height, the same grey and round ends, a search icon in each, and a thin ring in your main colour while you type.
 
 = 1.13.3 =
 * One look for the shapes every page repeats: the ‹ Back link, page titles and the line under them, red error messages, status tags (Active, Paused, Live now, Saved…) and the round close buttons now look the same everywhere.

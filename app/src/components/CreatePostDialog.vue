@@ -442,7 +442,7 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
             <h2>{{ t.__('How are you feeling?', 'membuild-community') }}</h2>
           </header>
           <div class="body">
-            <input v-model="feelingQuery" class="search" type="search" :placeholder="t.__('Search', 'membuild-community')" :aria-label="t.__('Search feelings', 'membuild-community')" />
+            <label class="section-search search"><Icon name="search" :size="18" /><input v-model="feelingQuery" type="search" :placeholder="t.__('Search', 'membuild-community')" :aria-label="t.__('Search feelings', 'membuild-community')" /></label>
             <div class="feelings">
               <button v-for="[key, f] in feelingList" :key="key" class="feeling" :class="{ on: feeling === key }" @click="chooseFeeling(key)">
                 <span class="f-emoji">{{ f.emoji }}</span> {{ f.label }}
@@ -795,15 +795,6 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
   background: var(--surface-2);
   color: var(--text-3);
   cursor: default;
-}
-
-.search {
-  width: 100%;
-  height: 38px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: 999px;
-  background: var(--surface-2);
 }
 
 .feelings {

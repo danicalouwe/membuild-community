@@ -119,10 +119,10 @@ onBeforeUnmount(() => observer?.disconnect())
   <section ref="root" class="talk" :aria-label="whole ? t.__('Course discussion', 'membuild-community') : t.__('Lesson discussion', 'membuild-community')">
     <div class="talk-head">
       <h3>{{ whole ? t.__('All posts in this course', 'membuild-community') : t.__('Discussion', 'membuild-community') }}</h3>
-      <div v-if="!nothing" class="search">
+      <label v-if="!nothing" class="section-search search">
         <Icon name="search" :size="18" />
         <input v-model="typed" type="search" :placeholder="whole ? t.__('Search all posts', 'membuild-community') : t.__('Search this discussion', 'membuild-community')" :aria-label="whole ? t.__('Search all posts', 'membuild-community') : t.__('Search this discussion', 'membuild-community')" />
-      </div>
+      </label>
       <div v-if="!nothing && helpfulOn" class="sorts" role="radiogroup" :aria-label="t.__('Sort posts', 'membuild-community')">
         <button class="filter-pill" v-for="(label, key) in SORTS" :key="key" role="radio" :aria-checked="sort === key" :class="{ on: sort === key }" @click="sort = key">{{ label }}</button>
       </div>
@@ -169,6 +169,11 @@ onBeforeUnmount(() => observer?.disconnect())
 </template>
 
 <style scoped>
+.search {
+  flex: 0 1 300px;
+  min-width: 200px;
+}
+
 .talk :deep(.post.spotlight) {
   animation: spotlight 3.6s ease both;
 }
@@ -249,30 +254,6 @@ onBeforeUnmount(() => observer?.disconnect())
   font-weight: 700;
   text-decoration: underline;
   color: inherit;
-}
-
-.search {
-  flex: 0 1 300px;
-  min-width: 200px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 48px;
-  padding: 0 14px;
-  border-radius: 999px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--text-3);
-}
-
-.search input {
-  flex: 1;
-  min-width: 0;
-  border: 0;
-  background: transparent;
-  color: var(--text);
-  font-size: 16px;
-  outline: none;
 }
 
 .sorts {

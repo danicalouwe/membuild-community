@@ -650,3 +650,57 @@ video {
   height: 44px;
   color: var(--text);
 }
+
+/* A section search: looks inside one section (a lesson's discussion, chats, the emoji, GIF and
+   feeling pickers). A tool like the filter pills beside it, so the same height and fill: 40px,
+   36px on phones with a 44px tap area. Markup: <label class="section-search"><Icon …/><input
+   type="search" …></label> (the label lets the whole pill, and its tap area, focus the box).
+   The top bar's search, the Search page's box, form fields and the Places map bar keep theirs. */
+.section-search {
+  position: relative;
+  display: flex;
+  flex: none; /* never squeezed by a tight panel */
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+  color: var(--text-2);
+  cursor: text;
+}
+
+.section-search:focus-within {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.section-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+}
+
+.section-search input::placeholder {
+  color: var(--text-3);
+}
+
+@media (max-width: 767px) {
+  .section-search {
+    height: 36px;
+  }
+
+  .section-search::after {
+    content: '';
+    position: absolute;
+    inset: -4px 0;
+  }
+}

@@ -180,7 +180,7 @@ onBeforeUnmount(() => {
         <button type="button" class="plus" :aria-label="t.__('More emoji', 'membuild-community')" @click="more"><Icon name="plus" :size="18" /></button>
       </template>
       <template v-else>
-        <label class="search">
+        <label class="section-search search">
           <Icon name="search" :size="16" />
           <input ref="search" v-model="query" type="search" :placeholder="t.__('Search emoji', 'membuild-community')" :aria-label="t.__('Search emoji', 'membuild-community')" />
         </label>
@@ -223,6 +223,10 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.search {
+  margin: 0 2px 8px;
+}
+
 .reaction-picker {
   position: fixed;
   z-index: 200;
@@ -250,30 +254,6 @@ onBeforeUnmount(() => {
 .reaction-picker.sheet {
   width: calc(100vw - 16px);
   max-width: none;
-}
-
-.search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 36px;
-  margin: 0 2px 8px;
-  padding: 0 12px;
-  border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--text-2);
-}
-
-.search input {
-  flex: 1;
-  min-width: 0;
-  border: 0;
-  padding: 0;
-  background: transparent;
-  color: var(--text);
-  outline: none;
-  box-shadow: none;
-  font-size: 15px;
 }
 
 /* One scrolling list (vertical only), like Facebook's panel. */
