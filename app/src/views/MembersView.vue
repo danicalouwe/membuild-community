@@ -1,6 +1,6 @@
 <script setup>
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { canDock, openChat } from '../stores/chatDock.js'
 import { api } from '../api.js'
 import { cfg, levelLabel } from '../config.js'
@@ -17,7 +17,7 @@ const SORTS = [
   { key: 'active', label: t.__('Most active', 'membuild-community') },
   { key: 'newest', label: t.__('Newest', 'membuild-community') },
 ]
-const sort = ref('active')
+const sort = ref(useRoute().query.sort === 'newest' ? 'newest' : 'active')
 const items = ref([])
 const total = ref(0)
 const online = ref(null) // how many are online now; null when the viewer doesn't see it

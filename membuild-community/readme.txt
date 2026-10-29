@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.12.0
+Stable tag: 1.13.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -261,6 +261,21 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.13.0 =
+* First week: a short "Finish setting up" checklist for the owner (with Invite people) and a welcome checklist for new members, beside the Home feed. New members get a welcome email to confirm their address; activity emails wait until they do.
+* Emails: a new, cleaner look for every email, and the activity email shows comments with photos, replies under your comment and the next event. Messages are never copied into emails.
+* Log in and Join: two-column pages with the picture, bigger fields, Show password, Keep me logged in, and clearer steps for a forgotten password.
+* Home: a quiet "For you" list on the right on computers, with the next event, the course you're in the middle of and new members this week.
+* Alerts: grouped into Today, This week and Earlier, with "Unread · 3", and several level-ups in a row shown as one.
+* Messages: All, Unread and Groups tabs that reach every chat, more chats as you scroll, Mute this chat (no emails, not in the count), rename a group right in the chat header, and no bottom bar while a chat is open on a phone.
+* Reels: a full-screen Create a reel with a live preview, share a YouTube Short from its link, a ⋯ menu with Report and Remove reel, sound and search buttons on the video, and a calm "Getting your video ready" card while a video is prepared.
+* Stories: bigger buttons, Seen by with faces, a full-screen Create a story with more backgrounds, including your community's colour.
+* Search: Recent searches, Look around, results grouped by kind with counts, events as their own kind, and a full screen on phones.
+* Moderation: a clearer page with Needs you, Done and Muted & banned, each report saying who, why and what members said, and Take it down or Leave it up.
+* Settings: choose how many levels (3 to 9) and their points, Minimum age as simple choices, a separate Danger box, memberships that open and close, and a simpler Safety key backup with a clear file name.
+* See it as a member is now a small round eye: white in your view, dark with the level while you see it as a member.
+* Fixes: "&" in email subjects, long emails in the confirm banner, comment reports settled with their post, and many smaller fixes.
 
 = 1.12.0 =
 * Events: a new event page with the time where it's held and in your own time, Add to calendar, and a full-page New event form. Events can be online, in person or both, held at one of your Places, and repeat every week, every 2 weeks or every month.

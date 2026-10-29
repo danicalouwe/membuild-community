@@ -1,10 +1,13 @@
 <script setup>
 import { isProcessing } from '../lib/stream.js'
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api.js'
-import { lists, loadMore, insertPost, setReaction } from '../stores/feed.js'
-import { startAttachment } from '../lib/attachments.js'
+import { lists, loadMore, insertPost, setReaction, takePost } from '../stores/feed.js'
+import { askConfirm } from '../lib/confirm.js'
+import { showToast } from '../lib/toast.js'
+import { cfg } from '../config.js'
+import ReelCreator from '../components/ReelCreator.vue'
 import { pendingReelFile } from '../lib/pending.js'
 import { compactNumber } from '../lib/time.js'
 import Avatar from '../components/Avatar.vue'
@@ -14,6 +17,8 @@ import CommentThread from '../components/CommentThread.vue'
 import YouTubeReel from '../components/YouTubeReel.vue'
 import { t } from '../lib/i18n.js'
 import { useDialog } from '../lib/useDialog.js'
+
+const ReportDialog = defineAsyncComponent(() => import('../components/ReportDialog.vue'))
 
 const route = useRoute()
 const router = useRouter()
@@ -183,11 +188,10 @@ async function share() {
   }
 }
 
-/* ---------- Upload a reel ---------- */
+/* ---------- Create a reel ---------- */
 
-const fileInput = ref(null)
-// Reels are uploaded videos: "New reel" goes straight to picking one.
-const composer = ref(null) // { step: 'upload', item, caption, error, posting }
+// "New reel" opens the full-screen Create a reel (ReelCreator): a video, or a YouTube Short link.
+const composer = ref(null) // { file } while it's open
 
 const commentsSheet = ref(null)
 // Computers: comments open as a panel on the right and the reel keeps playing; moving to
@@ -199,55 +203,82 @@ wideQuery.addEventListener('change', onWide)
 onBeforeUnmount(() => wideQuery.removeEventListener('change', onWide))
 watch(active, () => {
   if (commentsFor.value && wide.value && current.value) commentsFor.value = current.value
+  moreOpen.value = false
 })
-const composerSheet = ref(null)
 useDialog(commentsSheet, { open: () => !!commentsFor.value, onClose: () => (commentsFor.value = null) })
-useDialog(composerSheet, { open: () => !!composer.value, onClose: () => closeComposer() })
 let alive = true
 
-function startCreate() {
-  fileInput.value?.click()
-}
-
-function pickVideo(e) {
-  const file = e.target.files[0]
-  e.target.value = ''
-  if (!file) return
+function startCreate(file = null) {
   videos.forEach((v) => v.pause())
-  composer.value = { step: 'upload', item: startAttachment(file), caption: '', error: '', posting: false }
+  composer.value = { file: file instanceof File ? file : null }
 }
 
 function closeComposer() {
-  composer.value?.item?.cancel()
   composer.value = null
   playCurrent()
 }
 
-async function postReel() {
-  const c = composer.value
-  if (!c || c.posting) return
-  c.posting = true
-  c.error = ''
+async function posted(saved) {
+  insertPost(saved)
+  composer.value = null
+  await nextTick()
+  if (!alive || !scroller.value) return
+  scroller.value.scrollTop = 0
+  active.value = 0
+  router.replace({ query: { id: saved.id } })
+  playCurrent()
+}
+
+/* ---------- More (⋯): Report, Remove reel ---------- */
+
+const moreOpen = ref(false)
+const reporting = ref(null) // the reel being reported
+const isMine = (post) => post.author?.id === cfg.user.id
+
+function report(post) {
+  moreOpen.value = false
+  reporting.value = post
+}
+function reported(res) {
+  if (res?.hidden) dropReel(reporting.value.id) // hidden for review: it leaves Reels now
+}
+
+function dropReel(id) {
+  const i = list.items.findIndex((p) => p.id === id)
+  takePost(id)
+  if (i !== -1 && active.value >= list.items.length) active.value = Math.max(0, list.items.length - 1)
+  nextTick(playCurrent)
+}
+
+async function removeReel(post) {
+  moreOpen.value = false
+  const mine = isMine(post)
+  const ok = await askConfirm({
+    title: mine ? t.__('Delete this reel?', 'membuild-community') : t.__('Remove this reel?', 'membuild-community'),
+    text: mine
+      ? t.__('It disappears from Reels and Home for everyone, with its likes and comments.', 'membuild-community')
+      : t.sprintf(/* translators: %s: the member's first name */ t.__('It disappears from Reels and Home for everyone, with its likes and comments. %s isn’t told who removed it.', 'membuild-community'), (post.author?.name || '').split(' ')[0] || t.__('The member', 'membuild-community')),
+    confirm: mine ? t.__('Delete reel', 'membuild-community') : t.__('Remove reel', 'membuild-community'),
+    danger: true,
+  })
+  if (!ok) return
+  const restore = takePost(post.id)
   try {
-    await c.item.promise
-    if (c.item.status !== 'done') throw new Error(c.item.error || t.__('Upload failed', 'membuild-community'))
-    const saved = await api.createPost({ type: 'reel', content: c.caption.trim(), media_ids: [c.item.media.id] })
-    insertPost(saved)
-    c.item.release()
-    composer.value = null
-    await nextTick()
-    if (!alive || !scroller.value) return
-    scroller.value.scrollTop = 0
-    active.value = 0
-    router.replace({ query: { id: saved.id } })
-    playCurrent()
+    await api.deletePost(post.id)
+    showToast(mine ? t.__('Reel deleted.', 'membuild-community') : t.__('Reel removed.', 'membuild-community'))
+    if (active.value >= list.items.length) active.value = Math.max(0, list.items.length - 1)
+    nextTick(playCurrent)
   } catch (err) {
-    c.error = err.message
-    c.posting = false
+    restore()
+    showToast(err.message)
   }
 }
 
 /* ---------- Lifecycle ---------- */
+
+const closeMore = () => (moreOpen.value = false)
+onMounted(() => window.addEventListener('click', closeMore))
+onBeforeUnmount(() => window.removeEventListener('click', closeMore))
 
 onMounted(async () => {
   document.documentElement.style.overflow = 'hidden'
@@ -257,7 +288,7 @@ onMounted(async () => {
 
   // A video picked from the feed bar's camera button: open the upload sheet with it.
   if (pendingReelFile.value) {
-    composer.value = { step: 'upload', item: startAttachment(pendingReelFile.value), caption: '', error: '', posting: false }
+    startCreate(pendingReelFile.value)
     pendingReelFile.value = null
   }
 
@@ -336,8 +367,16 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
                 <span class="ic"><Icon name="comment" :size="23" /></span><span>{{ compactNumber(post.comments_count) }}</span>
               </button>
               <button class="rail-btn" :aria-label="t._x('Share', 'verb', 'membuild-community')" @click="share"><span class="ic"><Icon name="share" :size="23" /></span></button>
+              <div class="more-wrap">
+                  <button class="rail-btn" :aria-label="t.__('More', 'membuild-community')" aria-haspopup="menu" :aria-expanded="moreOpen && i === active" @click.stop="moreOpen = !moreOpen"><span class="ic"><Icon name="more" :size="23" /></span></button>
+                  <div v-if="moreOpen && i === active" class="more-menu" role="menu" @click.stop>
+                    <button v-if="!isMine(post)" role="menuitem" @click="report(post)"><Icon name="flag" :size="20" /> {{ t.__('Report', 'membuild-community') }}</button>
+                    <button v-if="post.can_delete" role="menuitem" class="danger" @click="removeReel(post)"><Icon name="trash" :size="20" /> {{ isMine(post) ? t.__('Delete reel…', 'membuild-community') : t.__('Remove reel…', 'membuild-community') }}</button>
+                  </div>
+                </div>
+              <button class="rail-btn" :aria-label="t.__('Search', 'membuild-community')" @click="router.push({ name: 'search' })"><span class="ic"><Icon name="search" :size="23" /></span></button>
               <!-- Phones only: the round + at the top would sit on YouTube's own buttons. -->
-              <button class="rail-btn phone-new" :aria-label="t.__('New reel', 'membuild-community')" @click="startCreate"><span class="ic"><Icon name="plus" :size="23" /></span><span>{{ t.__('New reel', 'membuild-community') }}</span></button>
+              <button class="rail-btn phone-new" :aria-label="t.__('New reel', 'membuild-community')" @click="startCreate()"><span class="ic"><Icon name="plus" :size="23" /></span><span>{{ t.__('New reel', 'membuild-community') }}</span></button>
             </div>
           </div>
         </template>
@@ -361,9 +400,16 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
             @playing="i === active && (buffering = false)"
           />
 
-          <div v-if="isProcessing(post.media[0])" class="center-icon processing-note">{{ t.__('Processing video…', 'membuild-community') }}</div>
+          <div v-if="isProcessing(post.media[0])" class="processing" role="status">
+            <span class="ring" aria-hidden="true" />
+            <strong>{{ t.__('Getting your video ready', 'membuild-community') }}</strong>
+            <span>{{ t.__('This usually takes under a minute. You can keep browsing; we’ll put it in Reels as soon as it’s ready.', 'membuild-community') }}</span>
+          </div>
           <div v-if="i === active && paused" class="center-icon"><Icon name="play" :size="56" /></div>
-          <div v-if="i === active && buffering && !paused" class="spinner" :aria-label="t.__('Loading', 'membuild-community')" />
+          <div v-if="i === active && buffering && !paused && !isProcessing(post.media[0])" class="spinner" :aria-label="t.__('Loading', 'membuild-community')" />
+          <!-- Sound and search as round buttons on the video, like Facebook. -->
+          <button class="on-video sound" :aria-label="muted ? t.__('Turn sound on', 'membuild-community') : t.__('Mute', 'membuild-community')" :title="muted ? t.__('Turn sound on', 'membuild-community') : t.__('Mute', 'membuild-community')" @click.stop="muted = !muted"><Icon :name="muted ? 'mute' : 'volume'" :size="24" /></button>
+          <button class="on-video find" :aria-label="t.__('Search', 'membuild-community')" :title="t.__('Search', 'membuild-community')" @click.stop="router.push({ name: 'search' })"><Icon name="search" :size="24" /></button>
           <span v-for="h in i === active ? hearts : []" :key="h.id" class="burst" :style="{ left: `${h.x}px`, top: `${h.y}px` }">❤️</span>
         </div>
 
@@ -389,9 +435,13 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
               <span class="ic"><Icon name="share" :size="26" /></span>
               <span>{{ t._x('Share', 'verb', 'membuild-community') }}</span>
             </button>
-            <button class="rail-btn" :aria-label="muted ? t.__('Turn sound on', 'membuild-community') : t.__('Mute', 'membuild-community')" @click="muted = !muted">
-              <span class="ic"><Icon :name="muted ? 'mute' : 'volume'" :size="26" /></span>
-            </button>
+  <div class="more-wrap">
+              <button class="rail-btn" :aria-label="t.__('More', 'membuild-community')" aria-haspopup="menu" :aria-expanded="moreOpen && i === active" @click.stop="moreOpen = !moreOpen"><span class="ic"><Icon name="more" :size="28" /></span></button>
+              <div v-if="moreOpen && i === active" class="more-menu" role="menu" @click.stop>
+                <button v-if="!isMine(post)" role="menuitem" @click="report(post)"><Icon name="flag" :size="20" /> {{ t.__('Report', 'membuild-community') }}</button>
+                <button v-if="post.can_delete" role="menuitem" class="danger" @click="removeReel(post)"><Icon name="trash" :size="20" /> {{ isMine(post) ? t.__('Delete reel…', 'membuild-community') : t.__('Remove reel…', 'membuild-community') }}</button>
+              </div>
+            </div>
           </div>
         </div>
         </div>
@@ -402,7 +452,7 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
         <Icon name="film" :size="48" />
         <h2>{{ t.__('No reels yet', 'membuild-community') }}</h2>
         <p>{{ t.__('Share a short video, up to 60 seconds.', 'membuild-community') }}</p>
-        <button class="btn btn-primary" @click="startCreate"><Icon name="plus" :size="18" /> {{ t.__('Create a reel', 'membuild-community') }}</button>
+        <button class="btn btn-primary" @click="startCreate()"><Icon name="plus" :size="18" /> {{ t.__('Create a reel', 'membuild-community') }}</button>
       </section>
       <!-- Loading: a reel's shape in dark grey (video, name and caption, the buttons down the side). -->
       <section v-else-if="!list.loaded" class="reel" aria-busy="true">
@@ -427,9 +477,8 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
     </div>
 
     <!-- One place to add a reel, the same for every reel: "+ New reel" top right (a round + on phones). -->
-    <button class="create btn btn-lg btn-primary" :aria-label="t.__('New reel', 'membuild-community')" @click="startCreate"><Icon name="plus" :size="20" /> <span class="create-label">{{ t.__('New reel', 'membuild-community') }}</span></button>
-    <input ref="fileInput" class="sr-only" type="file" accept="video/*" @change="pickVideo" />
-
+    <button class="create btn btn-lg btn-primary" :aria-label="t.__('New reel', 'membuild-community')" @click="startCreate()"><Icon name="plus" :size="20" /> <span class="create-label">{{ t.__('New reel', 'membuild-community') }}</span></button>
+    
     <!-- Comments sheet -->
     <Transition name="sheet">
       <div v-if="commentsFor" class="sheet-backdrop" :class="{ side: wide }" @click.self="commentsFor = null">
@@ -443,45 +492,45 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
       </div>
     </Transition>
 
-    <!-- New reel -->
-    <Transition name="sheet">
-      <div v-if="composer" class="sheet-backdrop" @click.self="closeComposer">
-        <div ref="composerSheet" class="sheet new-reel" role="dialog" aria-modal="true" :aria-label="t.__('New reel', 'membuild-community')">
-          <header>
-            <strong>{{ t.__('New reel', 'membuild-community') }}</strong>
-            <button :aria-label="t.__('Close', 'membuild-community')" @click="closeComposer"><Icon name="close" /></button>
-          </header>
-          <div class="new-body">
-            <video :src="composer.item.previewUrl" muted playsinline autoplay loop class="preview" />
-            <div class="new-side">
-              <textarea v-model="composer.caption" rows="4" maxlength="2200" :placeholder="t.__('Write a caption…', 'membuild-community')" :aria-label="t.__('Caption', 'membuild-community')" />
-              <div class="status" :class="composer.item.status">
-                <template v-if="composer.item.status === 'working'">
-                  {{ composer.item.stage }} {{ Math.round(composer.item.progress * 100) }}%
-                  <i :style="{ transform: `scaleX(${composer.item.progress})` }" />
-                </template>
-                <template v-else-if="composer.item.status === 'done'">{{ t.__('Ready to post ✓', 'membuild-community') }}</template>
-                <template v-else>{{ composer.item.error }}</template>
-              </div>
-              <p v-if="composer.error" class="err">{{ composer.error }}</p>
-              <button class="btn btn-primary" :disabled="composer.posting || composer.item.status === 'error'" @click="postReel">
-                {{ composer.posting ? (composer.item.status === 'working' ? t.__('Finishing upload…', 'membuild-community') : t.__('Posting…', 'membuild-community')) : t.__('Share reel', 'membuild-community') }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Transition>
+    <ReelCreator v-if="composer" :file="composer.file" @close="closeComposer" @posted="posted" />
+    <ReportDialog v-if="reporting" type="post" :id="reporting.id" @close="reporting = null" @reported="reported" />
   </div>
 </template>
 
 <style scoped>
-.processing-note {
-  padding: 10px 16px;
-  border-radius: 999px;
-  background: rgb(0 0 0 / 60%);
+.processing {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 40px;
+  background: #1c1d21;
+  text-align: center;
+  pointer-events: none;
+}
+
+.processing .ring {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 6px;
+  border: 4px solid rgb(255 255 255 / 22%);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+.processing strong {
+  font-size: 19px;
+}
+
+.processing span:last-child {
+  max-width: 380px;
   font-size: 15px;
-  font-weight: 600;
+  line-height: 1.55;
+  color: rgb(255 255 255 / 78%);
 }
 
 .stage {
@@ -844,6 +893,22 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   gap: 14px;
 }
 
+/* Phones: under a YouTube reel the words get the full width, the buttons go in a row under them. */
+@media (max-width: 767px) {
+  .yt-info {
+    flex-wrap: wrap;
+  }
+
+  .yt-text {
+    flex-basis: 100%;
+  }
+
+  .yt-info .rail.row {
+    width: 100%;
+    justify-content: space-around;
+  }
+}
+
 
 
 
@@ -859,65 +924,68 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   padding: 14px 16px 16px;
 }
 
-.new-body {
-  display: flex;
-  gap: 14px;
-  padding: 16px;
+.on-video {
+  position: absolute;
+  top: 14px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 45%);
+  color: #fff;
 }
 
-.preview {
-  width: 140px;
-  aspect-ratio: 9 / 16;
-  object-fit: cover;
-  border-radius: 12px;
-  background: #000;
-  flex: none;
+.on-video:hover {
+  background: rgb(0 0 0 / 62%);
 }
 
-.new-side {
-  flex: 1;
+.on-video.sound {
+  left: 14px;
+}
+
+.on-video.find {
+  right: 14px;
+}
+
+.more-wrap {
+  position: relative;
+}
+
+.more-menu {
+  position: absolute;
+  right: -8px;
+  bottom: calc(100% + 8px);
+  z-index: 6;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  min-width: 230px;
+  padding: 8px;
+  border-radius: 14px;
+  background: #fff;
+  color: var(--text, #16181d);
+  box-shadow: 0 12px 36px rgb(0 0 0 / 35%);
 }
 
-.new-side textarea {
-  resize: none;
-  padding: 10px 12px;
-  border: 1px solid #333338;
-  border-radius: 12px;
-  background: #26262a;
-  color: #f2f2f4;
+.more-menu button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 650;
+  text-align: left;
 }
 
-.status {
-  font-size: 13px;
-  font-weight: 600;
-  color: #b9b9c0;
+.more-menu button:hover {
+  background: #f1f2f4;
 }
 
-.status i {
-  display: block;
-  height: 3px;
-  margin-top: 6px;
-  border-radius: 2px;
-  background: var(--accent);
-  transform-origin: left;
-  transition: transform 0.2s linear;
-}
-
-.status.done {
-  color: #57d38c;
-}
-
-.status.error,
-.err {
-  color: #ff7676;
-  margin: 0;
-}
-
-.new-side .btn {
-  margin-top: auto;
+.more-menu .danger {
+  color: #b42318;
 }
 
 .sheet-enter-active,

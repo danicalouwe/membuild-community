@@ -43,11 +43,11 @@ const phoneMenuOpen = ref(false)
 window.addEventListener('mbcom:phone-menu-state', (e) => (phoneMenuOpen.value = e.detail))
 const openPhoneMenu = () => window.dispatchEvent(new CustomEvent('mbcom:phone-menu'))
 // Pages without the left sidebar: profiles, your settings pages, Messages (its own chat list is the side column), an event (its own two columns), Places and the Leaderboard.
-const onProfile = computed(() => ['member', 'me', 'profile-edit', 'privacy', 'emails', 'messages', 'event', 'places', 'leaderboard', 'levels'].includes(route.name))
+const onProfile = computed(() => ['member', 'me', 'profile-edit', 'privacy', 'emails', 'messages', 'event', 'places', 'leaderboard', 'levels', 'settings', 'search', 'moderation'].includes(route.name))
 const inLesson = computed(() => inCourse.value && !!route.params.lessonId && !route.query.tab)
 // Single-column pages sit at the exact centre of the window, as on Facebook: the right side
 // reserves the same width as the left column. Grids and maps use the full width beside it.
-const centred = computed(() => ['feed', 'notifications', 'search'].includes(route.name))
+const centred = computed(() => ['feed', 'notifications'].includes(route.name))
 // Tabs follow the features switched on in settings (the lists update after a save).
 const shown = computed(() => tabs.filter((tab) => !tab.feature || feature(tab.feature)))
 const desktopTabs = computed(() => shown.value.filter((tab) => tab.name !== 'me' && !tab.mobileOnly))
@@ -135,7 +135,7 @@ const isActive = (tab) =>
 </script>
 
 <template>
-  <div class="shell" :class="{ immersive, 'in-course': inCourse, 'in-lesson': inLesson, building, 'on-profile': onProfile, 'no-tabbar': route.name === 'levels' }">
+  <div class="shell" :class="{ immersive, 'in-course': inCourse, 'in-lesson': inLesson, building, 'on-profile': onProfile, 'no-tabbar': route.name === 'levels' || (route.name === 'settings' && !!route.query.s) || (route.name === 'messages' && !!route.params.threadId), 'phone-bare': route.name === 'search' }">
     <header class="topbar">
       <div class="topbar-inner">
         <div class="start">
@@ -599,12 +599,22 @@ const isActive = (tab) =>
     border-top: 1px solid var(--border);
   }
 
-  /* Levels & points: its own page with a back row, no bottom bar. */
+  /* Levels & points, a settings section and an open chat: their own page with a back arrow, no bottom bar. */
   .no-tabbar .tabbar {
     display: none;
   }
 
   .no-tabbar .main {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Search on a phone is its own full screen: ‹ back and the box, no header or bottom bar. */
+  .phone-bare .topbar,
+  .phone-bare .tabbar {
+    display: none;
+  }
+
+  .phone-bare .main {
     padding-bottom: env(safe-area-inset-bottom);
   }
 

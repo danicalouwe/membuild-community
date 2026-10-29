@@ -236,12 +236,14 @@ JS;
 		}
 		echo '</nav>';
 		echo $before_head; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the caller
-		printf(
-			'<div class="mb-page__head"><div><h1 class="mb-page__title">%s</h1>%s</div>%s</div>',
-			esc_html( $title ),
-			$desc ? '<p class="mb-page__desc">' . wp_kses( $desc, array( 'a' => array( 'href' => array() ), 'strong' => array() ) ) . '</p>' : '',
-			$actions ? '<div class="mb-page__actions">' . $actions . '</div>' : '' // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the caller
-		);
+		if ( '' !== $title ) { // the setup guide brings its own heading
+			printf(
+				'<div class="mb-page__head"><div><h1 class="mb-page__title">%s</h1>%s</div>%s</div>',
+				esc_html( $title ),
+				$desc ? '<p class="mb-page__desc">' . wp_kses( $desc, array( 'a' => array( 'href' => array() ), 'strong' => array() ) ) . '</p>' : '',
+				$actions ? '<div class="mb-page__actions">' . $actions . '</div>' : '' // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the caller
+			);
+		}
 		self::notice();
 	}
 
@@ -301,6 +303,61 @@ JS;
 		return $totals;
 	}
 
+	/** The six steps, one main button on the next one, a thin progress bar (see First_Run). */
+	private static function setup_guide() {
+		$done  = First_Run::owner_steps();
+		$steps = array(
+			'look'   => array( __( 'Name, logo and colour', 'membuild-community' ), __( 'How your community looks to members.', 'membuild-community' ), __( 'Choose', 'membuild-community' ), self::app_url( 'settings#s-general' ), 'M4 20l4-1 10-10-3-3L5 16zM14 7l3 3' ),
+			'email'  => array( __( 'Choose how emails are sent', 'membuild-community' ), __( 'So sign-up and password emails arrive, not land in spam.', 'membuild-community' ), __( 'Choose', 'membuild-community' ), self::app_url( 'settings#s-email' ), 'M3 6h18v12H3zM3 7l9 7 9-7' ),
+			'key'    => array( __( 'Save your safety key', 'membuild-community' ), __( 'Keeps private messages readable if your site ever moves to a new host.', 'membuild-community' ), __( 'Save the key', 'membuild-community' ), self::app_url( 'settings?s=advanced#s-key' ), 'M15 7a4 4 0 1 1-3.9 5H7v3H4v-3H3v-3h8.1A4 4 0 0 1 15 7z' ),
+			'course' => array( __( 'Add your first course', 'membuild-community' ), __( 'Skip this if you only want a community for now.', 'membuild-community' ), __( 'Create a course', 'membuild-community' ), self::app_url( 'classroom' ), 'M2 9l10-5 10 5-10 5zM6 11v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5' ),
+			'post'   => array( __( 'Write a welcome post', 'membuild-community' ), __( 'The first thing new members see. Say hello and what to expect.', 'membuild-community' ), __( 'Write it', 'membuild-community' ), self::app_url( '?write=1' ), 'M4 20l4-1 10-10-3-3L5 16z' ),
+			'invite' => array( __( 'Invite your members', 'membuild-community' ), __( 'Share your join link. People with an account on your site can already log in.', 'membuild-community' ), __( 'Invite', 'membuild-community' ), self::app_url( '?invite=1' ), 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21a7 7 0 0 1 14 0M16 3.5a4 4 0 0 1 0 7.5M18 14.5a7 7 0 0 1 4 6.5' ),
+		);
+		$count = count( array_filter( $done ) );
+		$next  = '';
+		foreach ( $steps as $key => $st ) {
+			if ( empty( $done[ $key ] ) && 'course' !== $key ) {
+				$next = $key;
+				break;
+			}
+		}
+		echo '<section class="mb-card mbcom-guide">';
+		printf(
+			'<div class="mbcom-guide-head"><div><h1>%s</h1><p>%s</p></div>%s</div>',
+			esc_html__( 'Welcome! Let’s get your community ready', 'membuild-community' ),
+			wp_kses(
+				sprintf(
+					/* translators: %s: the community's address */
+					__( 'Your community is already live at %s. These six steps take about 10 minutes. You can stop and come back any time.', 'membuild-community' ),
+					'<a href="' . esc_url( self::app_url() ) . '"><strong>' . esc_html( wp_parse_url( self::app_url(), PHP_URL_HOST ) . '/' . Settings::slug() ) . '</strong></a>'
+				),
+				array( 'a' => array( 'href' => true ), 'strong' => array() )
+			),
+			self::open_button() // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped there
+		);
+		/* translators: 1: steps done, 2: all steps */
+		printf( '<div class="mbcom-guide-bar"><span><i style="width:%d%%"></i></span><b>%s</b></div>', (int) round( 100 * $count / count( $steps ) ), esc_html( sprintf( __( '%1$d of %2$d done', 'membuild-community' ), $count, count( $steps ) ) ) );
+		echo '<ol class="mbcom-guide-steps">';
+		$n = 0;
+		foreach ( $steps as $key => $st ) {
+			++$n;
+			$is_done = ! empty( $done[ $key ] );
+			$tag     = 'email' === $key && ! $is_done ? '<span class="mbcom-guide-tag warn">' . esc_html__( 'Do this before inviting anyone', 'membuild-community' ) . '</span>' : ( 'course' === $key ? '<span class="mbcom-guide-tag">' . esc_html__( 'Optional', 'membuild-community' ) . '</span>' : '' );
+			printf(
+				'<li class="%s"><span class="mbcom-guide-n">%s</span><svg class="mbcom-guide-ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="%s"/></svg><span class="mbcom-guide-words"><strong>%s</strong>%s<small>%s</small></span>%s</li>',
+				$is_done ? 'done' : ( $key === $next ? 'next' : '' ),
+				$is_done ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' : (int) $n,
+				esc_attr( $st[4] ),
+				esc_html( $st[0] ),
+				$tag, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped above
+				esc_html( $st[1] ),
+				$is_done ? '<span class="mbcom-guide-done">' . esc_html__( 'Done', 'membuild-community' ) . '</span>' : '<a class="mbcom-guide-btn' . ( $key === $next ? ' main' : '' ) . '" href="' . esc_url( $st[3] ) . '">' . esc_html( $st[2] ) . '</a>'
+			);
+		}
+		echo '</ol></section>';
+	}
+
 	public static function page_overview() {
 		$t       = self::totals();
 		$week    = $t['week'];
@@ -320,22 +377,34 @@ JS;
 			array( __( 'Comments', 'membuild-community' ), $t['comments'], $this_week( $week['comments'] ), '', self::url( 'comments' ), (bool) $week['comments'] ),
 		);
 
-		// Keep me updated: once, and once more two weeks after “Not now”. While it's
-		// up, the numbers sit blurred behind it; either button clears the way. Anything
-		// urgent (reports, a broken host) is shown above the blur, never behind it.
-		$gated = Helpers::can_manage() && Usage::card_due();
-		self::shell_open(
-			'',
-			Settings::name(),
-			sprintf(
-				/* translators: %s: the community's address, linked */
-				__( 'Your community page is live at %s. Here is what happened in it.', 'membuild-community' ),
-				'<a href="' . esc_url( self::app_url() ) . '">/' . esc_html( Settings::slug() ) . '/</a>'
-			),
-			self::open_button(),
-			Health::key_card()
-		);
+		// A new community: the six-step setup guide comes first, then Keep me updated.
+		// The numbers show once people have joined; nothing is blurred.
+		$guide = Helpers::can_manage() && ! First_Run::owner_done();
+		$staff = count( get_users( array( 'capability' => 'moderate_comments', 'fields' => 'ID', 'number' => 50 ) ) );
+		$quiet = $guide && $t['members'] <= $staff; // nobody but the team yet
+		$gated = false;
+		if ( $guide ) {
+			self::shell_open( '', '', '', '' );
+			self::setup_guide();
+		} else {
+			self::shell_open(
+				'',
+				Settings::name(),
+				sprintf(
+					/* translators: %s: the community's address, linked */
+					__( 'Your community page is live at %s. Here is what happened in it.', 'membuild-community' ),
+					'<a href="' . esc_url( self::app_url() ) . '">/' . esc_html( Settings::slug() ) . '/</a>'
+				),
+				self::open_button(),
+				Health::key_card()
+			);
+		}
 		Usage::setup_card();
+		if ( $quiet ) {
+			printf( '<p class="mbcom-guide-note"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg> %s</p>', esc_html__( 'Your numbers (members, posts, activity) show here once people join. This guide hides itself when all six steps are done.', 'membuild-community' ) );
+			self::shell_close();
+			return;
+		}
 		if ( $gated ) {
 			$urgent = array();
 			if ( Problems::strip_item() ) {
@@ -842,6 +911,37 @@ JS;
 .mbcom-admin .mbcom-checks p{margin:8px 0 0}
 .mbcom-admin .mbcom-gated{filter:blur(5px);opacity:.55;pointer-events:none;user-select:none;max-height:900px;overflow:hidden;-webkit-mask-image:linear-gradient(#000 55%,transparent);mask-image:linear-gradient(#000 55%,transparent);display:flex;flex-direction:column;gap:var(--space-5)}
 
+/* Page titles: the WordPress admin rule ".wrap h1" (thin, 23px) would win over ours. Same font as the card titles. */
+.mbcom-admin .mb-page__title{font:700 24px/30px var(--font-sans);letter-spacing:-.02em;color:var(--ink);padding:0;margin:0}
+
+/* Setup guide (setup_guide) */
+.mbcom-admin .mbcom-guide{display:flex;flex-direction:column;gap:var(--space-4);padding:32px 36px}
+.mbcom-admin .mbcom-guide-head{display:flex;justify-content:space-between;gap:var(--space-5);align-items:flex-start}
+.mbcom-admin .mbcom-guide-head h1{margin:0;font:800 30px/38px var(--font-sans);letter-spacing:-.02em;color:var(--ink)}
+.mbcom-admin .mbcom-guide-head p{margin:10px 0 0;max-width:700px;color:var(--ink-body);font-size:16px;line-height:26px}
+.mbcom-admin .mbcom-guide-head p a{color:var(--ink);text-decoration:none}
+.mbcom-admin .mbcom-guide-bar{display:flex;align-items:center;gap:var(--space-4);margin-top:var(--space-2)}
+.mbcom-admin .mbcom-guide-bar span{flex:1;height:10px;border-radius:999px;background:var(--surface-200);overflow:hidden}
+.mbcom-admin .mbcom-guide-bar i{display:block;height:100%;border-radius:inherit;background:#1f7a49}
+.mbcom-admin .mbcom-guide-bar b{font-size:16px;color:var(--ink)}
+.mbcom-admin .mbcom-guide-steps{list-style:none;margin:0;padding:0}
+.mbcom-admin .mbcom-guide-steps li{display:flex;align-items:center;gap:var(--space-4);padding:18px 0;border-top:1px solid var(--line-100);margin:0}
+.mbcom-admin .mbcom-guide-n{display:grid;place-items:center;flex:none;width:40px;height:40px;border-radius:50%;background:var(--surface-200);color:var(--ink);font:700 16px/1 var(--font-sans)}
+.mbcom-admin .mbcom-guide-steps li.done .mbcom-guide-n{background:#1f7a49;color:#fff}
+.mbcom-admin .mbcom-guide-ic{flex:none;color:var(--ink-body)}
+.mbcom-admin .mbcom-guide-words{flex:1;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+.mbcom-admin .mbcom-guide-words strong{font-size:17px;font-weight:600;color:var(--ink)}
+.mbcom-admin .mbcom-guide-steps li.done .mbcom-guide-words strong{text-decoration:line-through;color:var(--ink-mute)}
+.mbcom-admin .mbcom-guide-words small{flex-basis:100%;font-size:15px;color:var(--ink-body)}
+.mbcom-admin .mbcom-guide-tag{padding:3px 10px;border-radius:999px;background:var(--surface-200);color:var(--ink-body);font-size:13px;font-weight:700}
+.mbcom-admin .mbcom-guide-tag.warn{background:#fff3d6;color:#7a4e00}
+.mbcom-admin .mbcom-guide-done{color:#1f7a49;font-size:16px;font-weight:700}
+.mbcom-admin .mbcom-guide-btn{display:inline-flex;align-items:center;flex:none;min-height:52px;padding:0 24px;border-radius:999px;background:var(--surface-200);color:var(--ink);font-size:17px;font-weight:700;text-decoration:none}
+.mbcom-admin .mbcom-guide-btn:hover{background:var(--line-100);color:var(--ink)}
+.mbcom-admin .mbcom-guide-btn.main{background:var(--accent);color:#16181d}
+.mbcom-admin .mbcom-guide-note{display:flex;align-items:center;gap:var(--space-3);margin:0;padding:16px 20px;border-radius:var(--radius-md);background:var(--surface-200);color:var(--ink-body);font-size:15px}
+@media (max-width:782px){.mbcom-admin .mbcom-guide{padding:22px 18px}.mbcom-admin .mbcom-guide-head{flex-direction:column}.mbcom-admin .mbcom-guide-steps li{flex-wrap:wrap}.mbcom-admin .mbcom-guide-ic{display:none}.mbcom-admin .mbcom-guide-btn{margin-left:56px}}
+
 /* Keep me updated (Usage::setup_card) */
 .mbcom-admin .mbcom-setup{display:flex;flex-direction:column;gap:var(--space-4);border-color:var(--brand)}
 .mbcom-admin .mbcom-setup h2{font:700 20px/26px var(--font-sans);letter-spacing:-.015em;margin:0}
@@ -850,6 +950,7 @@ JS;
 .mbcom-admin .mbcom-setup-fields label{display:flex;flex-direction:column;gap:var(--space-2);font:700 11px/16px var(--font-sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-mute);min-width:0}
 .mbcom-admin .mbcom-setup-fields select,.mbcom-admin .mbcom-setup-fields input{width:100%;max-width:none;min-height:var(--control-h);border-radius:var(--radius-md);border:1px solid var(--line-200);background:var(--surface-000);color:var(--ink);font:500 15px/22px var(--font-sans);letter-spacing:0;text-transform:none;padding:0 var(--space-4);box-shadow:none}
 .mbcom-admin .mbcom-setup-fields select:focus,.mbcom-admin .mbcom-setup-fields input:focus{border-color:var(--brand);box-shadow:none;outline:2px solid var(--focus);outline-offset:2px}
+.mbcom-admin .mbcom-setup-fields label:first-child{grid-column:1/-1}
 .mbcom-admin .mbcom-setup-fields input[readonly]{color:var(--ink-mute);background:var(--surface-200);border-color:var(--line-100)}
 .mbcom-admin .mbcom-setup:not(:has(option[value="other"]:checked)) .mbcom-setup-other{display:none}
 .mbcom-admin .mbcom-setup-share{display:flex;gap:var(--space-3);align-items:flex-start;max-width:760px;padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);background:var(--surface-200);color:var(--ink-body);font-size:14px;line-height:20px}

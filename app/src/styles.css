@@ -240,7 +240,8 @@ video {
 /* Phones: an admin's “See it as a member” button moves up over a page's own action bar
    (New event's Publish bar), so it never covers Publish or Cancel. */
 @media (max-width: 767px) {
-  body:has(.ef .bar) .mvt-wrap:not(.docked) {
+  body:has(.ef .bar) .mvt-wrap:not(.docked),
+  body:has(.savebar.solo) .mvt-wrap:not(.docked) {
     bottom: calc(var(--tabbar-h) + 100px + env(safe-area-inset-bottom));
   }
 }

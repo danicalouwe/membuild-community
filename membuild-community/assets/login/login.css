@@ -10,6 +10,9 @@
 	--line: #dadde1;
 	--soft: #f0f2f5;
 	--danger: #c5221f;
+	--field: #d5d9df;
+	--grey: #e6e9ee;
+	--box: #b8bdc6;
 	color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
@@ -21,6 +24,9 @@
 		--line: #2c2e33;
 		--soft: #222327;
 		--danger: #ff6b5f;
+		--field: #3a3d44;
+		--grey: #2a2c31;
+		--box: #5a5e66;
 	}
 }
 * { box-sizing: border-box; }
@@ -41,6 +47,11 @@ a { color: inherit; }
 .headline em { font-style: normal; color: var(--accent-text); }
 .tagline { position: relative; z-index: 2; margin: 14px 0 0; max-width: 340px; color: var(--text-2); font-size: 16px; }
 
+/* The owner's own photo (Settings › Joining): fills the side above the headline, cropped to fit. */
+.photo { position: absolute; inset: 0 0 34% 0; border-radius: 20px; overflow: hidden; }
+.photo img { width: 100%; height: 100%; object-fit: cover; }
+.photo::after { content: ""; position: absolute; inset: auto 0 0; height: 40%; background: linear-gradient(transparent, var(--bg, #fff)); }
+
 /* The illustration: a post, a reel, a member and reactions, drawn in the community's color. */
 .art { position: absolute; top: 4%; left: 34%; width: 340px; height: 420px; transform-origin: top left; }
 @media (max-height: 760px) { .art { transform: scale(0.85); } }
@@ -59,53 +70,64 @@ a { color: inherit; }
 .e2 { top: 270px; left: 285px; background: #f02849; font-size: 24px; }
 
 .form-side { display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
-.panel { width: 100%; max-width: 536px; }
-.back { display: inline-grid; place-items: center; width: 36px; height: 36px; margin: -6px 0 18px -8px; border-radius: 50%; color: var(--text-2); text-decoration: none; }
-.back:hover { background: var(--soft); }
-h1 { margin: 0 0 16px; font-size: 17px; font-weight: 650; }
-.solo h1 { margin-bottom: 4px; font-size: 24px; font-weight: 700; }
-.lead { margin: 0 0 18px; color: var(--text); }
-.msg { margin: 0 0 14px; padding: 10px 14px; border-radius: 12px; background: var(--soft); }
+.panel { width: 100%; max-width: 440px; }
+h1 { margin: 0 0 8px; font-size: 28px; font-weight: 650; line-height: 1.25; }
+.lead { margin: 0 0 22px; color: var(--text-2); font-size: 16px; line-height: 1.5; }
+.lead strong { color: var(--text); }
+h1 + form, h1 + .msg { margin-top: 22px; }
+form { display: flex; flex-direction: column; gap: 16px; }
+.msg { margin: 0 0 16px; padding: 12px 16px; border-radius: 12px; background: var(--soft); font-size: 16px; }
 .msg.error { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
-.field { position: relative; display: block; margin-bottom: 12px; }
-.field input { width: 100%; height: 60px; padding: 24px 16px 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--text); font: inherit; font-size: 16px; outline: none; }
-.field input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent); }
-.field span { position: absolute; left: 17px; top: 19px; color: var(--text-2); font-size: 16px; pointer-events: none; transition: top 0.12s, font-size 0.12s; }
-.field input:focus + span, .field input:not(:placeholder-shown) + span { top: 9px; font-size: 12px; }
-.field.pw input { padding-right: 52px; }
-.eye { position: absolute; right: 8px; top: 10px; display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: 50%; background: none; color: var(--text-2); cursor: pointer; }
-.eye:hover { background: var(--soft); }
-.eye[aria-pressed="true"] { color: var(--accent-text); }
-.btn { display: flex; align-items: center; justify-content: center; width: 100%; height: 44px; margin-top: 12px; border: 0; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font: inherit; font-weight: 650; font-size: 16px; text-decoration: none; cursor: pointer; }
-.btn:hover { filter: brightness(0.95); }
-.btn.outline { margin-top: 0; border: 1px solid var(--accent); background: transparent; color: var(--accent-text); }
-.link { display: block; margin: 18px 0 0; text-align: center; font-weight: 600; text-decoration: none; }
-.link:hover { text-decoration: underline; }
-.join { margin-top: 56px; }
-.small { margin: 10px 0 0; color: var(--text-2); font-size: 13px; }
-.foot { margin-top: 26px; text-align: center; color: var(--text-2); font-size: 13px; }
 
-/* Forgot / reset: a single centered column, like Facebook's "Find your account". */
-.solo-page { min-height: 100vh; padding: 28px 24px; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 6%, var(--bg)), var(--bg) 45%, color-mix(in srgb, var(--accent) 5%, var(--bg))); }
-.solo { max-width: 600px; margin: 0 auto; }
+/* A field: its label above, then a 54px box. */
+.field { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.label { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 0; color: var(--text); font-size: 16px; font-weight: 700; }
+.label a { color: var(--text); }
+.label small { color: var(--text-2); font-size: 15px; font-weight: 400; }
+.field input, .field select, .box { width: 100%; height: 54px; padding: 0 16px; border: 1px solid var(--field); border-radius: 12px; background: var(--surface); color: var(--text); font: inherit; font-size: 17px; outline: none; }
+.field input:focus, .field select:focus, .box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
+.box { display: flex; align-items: center; padding-right: 6px; }
+.box input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; box-shadow: none !important; background: none; }
+.show { height: 42px; padding: 0 12px; border: 0; border-radius: 10px; background: none; color: var(--text); font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+.show:hover { background: var(--soft); }
+
+/* Keep me logged in */
+.check { position: relative; display: flex; align-items: center; gap: 10px; font-size: 16px; cursor: pointer; }
+.check input { position: absolute; opacity: 0; width: 22px; height: 22px; margin: 0; }
+.tick { flex: none; width: 22px; height: 22px; border: 2px solid var(--box); border-radius: 6px; }
+.check input:checked + .tick { position: relative; border-color: var(--text); background: var(--text); }
+.check input:checked + .tick::after { content: ""; position: absolute; left: 6px; top: 2px; width: 5px; height: 10px; border: solid var(--bg); border-width: 0 2.5px 2.5px 0; transform: rotate(45deg); }
+.check input:focus-visible + .tick { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent); }
+
+.btn { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; padding: 0 24px; border: 0; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font: inherit; font-size: 17px; font-weight: 700; text-decoration: none; cursor: pointer; }
+.btn:hover { filter: brightness(0.95); }
+.btn.outline { border: 1px solid var(--field); background: transparent; color: var(--text); }
+.btn.outline:hover { background: var(--soft); filter: none; }
+.btn.grey { background: var(--grey); color: var(--text); }
+.or { display: flex; align-items: center; gap: 12px; margin: 22px 0 16px; color: #8b909b; font-size: 14px; }
+.or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.link { display: block; margin: 18px 0 0; text-align: center; font-size: 16px; font-weight: 700; text-decoration: none; }
+.link:hover { text-decoration: underline; }
+.link.plain { font-weight: 400; }
+.link.plain a { font-weight: 700; text-decoration: underline; }
+.small { margin: 0; color: var(--text-2); font-size: 14px; line-height: 1.5; }
+.small a { color: var(--text); font-weight: 700; }
+
+/* Check your email */
+.icon { display: grid; place-items: center; width: 64px; height: 64px; margin-bottom: 18px; border-radius: 50%; background: var(--accent-soft, color-mix(in srgb, var(--accent) 22%, #fff)); color: var(--accent-text); }
+form.note { display: block; margin: 0 0 18px; padding: 14px 16px; border-radius: 12px; background: var(--soft); color: var(--text-2); font-size: 15px; line-height: 1.5; }
+.text-btn { padding: 0; border: 0; background: none; color: var(--text); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
 
 @media (max-width: 900px) {
-	.page { grid-template-columns: 1fr; }
+	.page { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
 	/* Only the logo shows here on phones, so the panel shrinks to it instead of filling a whole screen. */
 	.brand-side { height: auto; min-height: 0; border-right: 0; padding: 28px 24px 0; align-items: center; }
 	.stage, .tagline { display: none; }
 	.form-side { align-items: flex-start; padding-top: 24px; }
-	h1 { text-align: center; }
+	h1 { font-size: 24px; }
 }
-@media (prefers-reduced-motion: reduce) { .field span { transition: none; } }
 
 /* Sign-up */
-.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.birthday { display: flex; gap: 10px; margin: 0 0 12px; padding: 0; border: 0; }
-.birthday legend { margin-bottom: 6px; color: var(--text-2); font-size: 13px; }
-.birthday select { flex: 1; height: 48px; padding: 0 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--text); font: inherit; font-size: 16px; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.birthday .label small { margin-left: 6px; }
 .trap { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
-.small a { color: var(--accent-text); }
-.solo { position: relative; }
-/* The logo in the corner of the one-column pages (not ".small", which is the help-text style). */
-.logo.logo-corner { position: absolute; top: 0; right: 0; width: 40px; height: 40px; border-radius: 11px; font-size: 15px; }

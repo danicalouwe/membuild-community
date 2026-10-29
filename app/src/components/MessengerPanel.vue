@@ -36,14 +36,23 @@ const filtered = computed(() => {
   )
 })
 
+// The tab and the search are answered by the server, so they reach every chat, not only the newest 30.
+let asked = 0
 async function load() {
-  const res = await api.inbox().catch(() => null)
-  if (!res) return
+  const mine = ++asked
+  const res = await api.inbox({ filter: filter.value === 'all' ? undefined : filter.value, search: query.value.trim() || undefined }).catch(() => null)
+  if (!res || mine !== asked) return
   threads.value = res.items
   messages.unread = res.unread
   loaded.value = true
 }
 onMounted(load)
+let searchTimer = 0
+watch(filter, () => load())
+watch(query, () => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(load, 300)
+})
 watch(() => messages.inboxVersion, (v, old) => old !== undefined && v !== old && load())
 
 function preview(th) {
@@ -101,10 +110,17 @@ function compose() {
               <span v-if="th.last_message" class="when">· {{ timeAgo(th.last_message.created_at) }}</span>
             </span>
           </span>
-          <span v-if="th.unread" class="dot" :aria-label="t.__('Unread', 'membuild-community')" />
+          <Icon v-if="th.muted" class="muted-icon" name="bellOff" :size="18" :aria-label="t.__('Muted', 'membuild-community')" />
+          <span v-if="th.unread" class="dot" :class="{ quiet: th.muted }" :aria-label="t.__('Unread', 'membuild-community')" />
         </button>
       </li>
       <li v-if="!loaded" class="state">{{ t.__('Loading…', 'membuild-community') }}</li>
+      <li v-else-if="!threads.length && !query && filter === 'all'" class="empty">
+          <span class="empty-badge"><Icon name="comment" :size="30" /></span>
+          <h2>{{ t.__('No messages yet', 'membuild-community') }}</h2>
+          <p>{{ t.__('Say hello to someone you met here. Messages are private between you.', 'membuild-community') }}</p>
+          <RouterLink class="btn btn-primary find" :to="{ name: 'members' }" @click="emit('navigate')">{{ t.__('Find someone in Members', 'membuild-community') }}</RouterLink>
+        </li>
       <li v-else-if="!filtered.length" class="state">{{ query ? t.__('No chats found.', 'membuild-community') : filter === 'unread' ? t.__('No unread chats.', 'membuild-community') : filter === 'groups' ? t.__('No group chats yet.', 'membuild-community') : t.__('No conversations yet.', 'membuild-community') }}</li>
     </ul>
 
@@ -267,6 +283,59 @@ function compose() {
   height: 12px;
   border-radius: 50%;
   background: var(--accent);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--text-2);
+}
+
+.empty-badge {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 8px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.empty h2 {
+  margin: 0;
+  font-size: 20px;
+  color: var(--text);
+}
+
+.empty p {
+  margin: 0 0 12px;
+  max-width: 340px;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.empty .find {
+  min-height: 52px;
+  padding: 0 26px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 16px;
+}
+
+.muted-icon {
+  flex: none;
+  color: var(--text-3);
+}
+
+.dot.quiet {
+  background: var(--surface-3, #d5d8dd);
+  color: var(--text-2);
 }
 
 .state {

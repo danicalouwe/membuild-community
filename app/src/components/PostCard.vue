@@ -197,7 +197,7 @@ async function remove() {
     <div v-if="background" class="bg-post" :style="{ background }">
       <p>{{ post.content }}</p>
     </div>
-    <RichText v-else-if="shownText" class="text" :class="{ big: !post.media.length && !linkedCourse && post.content.length < 90 }" :text="shownText" :strong="linkedCourse?.title" :clamp="320" />
+    <RichText v-else-if="shownText" class="text" :class="{ big: !post.media.length && !linkedCourse && !post.event && post.content.length < 90 }" :text="shownText" :strong="linkedCourse?.title" :clamp="320" />
     <CourseLinkCard v-if="linkedCourse && !background" :course="linkedCourse" />
 
     <MediaGrid v-if="post.media.length && !post.event" class="media" :media="post.media" :reel-link="post.type === 'reel' ? { name: 'reels', query: { id: post.id } } : null" />

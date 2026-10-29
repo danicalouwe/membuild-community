@@ -4,7 +4,8 @@ import { askConfirm } from '../lib/confirm.js'
 import { api } from '../api.js'
 import { stories, markSeen, removeStory } from '../stores/stories.js'
 import { timeAgo } from '../lib/time.js'
-import { BACKGROUNDS } from '../lib/postStyle.js'
+import { storyBg } from '../lib/postStyle.js'
+import { showToast } from '../lib/toast.js'
 import { REACTIONS } from '../lib/reactions.js'
 import Avatar from './Avatar.vue'
 import Icon from './Icon.vue'
@@ -193,7 +194,7 @@ async function sendReply() {
   replying.value = false
   sent.value = true
   setTimeout(() => (sent.value = false), 1800)
-  api.storyReply(story.value.id, text).catch(() => alert(t.__('Your reply could not be sent.', 'membuild-community')))
+  api.storyReply(story.value.id, text).catch(() => showToast(t.__('Your reply could not be sent.', 'membuild-community')))
 }
 
 async function openViewers() {
@@ -204,7 +205,15 @@ async function openViewers() {
 
 async function remove() {
   menu.value = false
-  if (!(await askConfirm({ title: t.__('Delete this story?', 'membuild-community'), confirm: t.__('Delete story', 'membuild-community'), danger: true }))) return
+  paused.value = true
+  const yes = await askConfirm({
+    title: t.__('Delete this story?', 'membuild-community'),
+    text: t.__('It disappears now instead of after 24 hours. Replies people sent you stay in your messages.', 'membuild-community'),
+    confirm: t.__('Delete story', 'membuild-community'),
+    danger: true,
+  })
+  paused.value = false
+  if (!yes) return
   const g = group.value
   const s = story.value
   const wasLast = g.stories.length === 1
@@ -228,7 +237,17 @@ onBeforeUnmount(() => {
   document.documentElement.style.overflow = ''
 })
 const storyLabel = (name) => t.sprintf(/* translators: %s: the name of the person who posted the story */ t.__('%s\'s story', 'membuild-community'), name)
-const viewerCount = (n) => t.sprintf(/* translators: %d: number of people who viewed the story */ t._n('%d viewer', '%d viewers', n, 'membuild-community'), n)
+const seenBy = (n) => t.sprintf(/* translators: %d: number of people who saw the story */ t.__('Seen by %d', 'membuild-community'), n)
+// "2h ago" in the Seen by list ("now" stays as it is).
+function seenAt(iso) {
+  const ago = timeAgo(iso)
+  return Date.now() - new Date(iso).getTime() < 60000 ? ago : t.sprintf(/* translators: %s: a short time, e.g. 2h */ t.__('%s ago', 'membuild-community'), ago)
+}
+const firstName = (u) => (u?.name || '').split(' ')[0]
+function unmute() {
+  muted.value = false
+  if (video.value) video.value.muted = false
+}
 </script>
 
 <template>
@@ -240,7 +259,7 @@ const viewerCount = (n) => t.sprintf(/* translators: %d: number of people who vi
 
       <div v-if="story" class="frame">
         <!-- Media -->
-        <div class="media" :style="story.kind === 'text' ? { background: BACKGROUNDS[story.background] || BACKGROUNDS.grape } : null">
+        <div class="media" :style="story.kind === 'text' ? storyBg(story.background) : null">
           <template v-if="story.kind === 'photo'">
             <img class="blur" :src="story.url" alt="" aria-hidden="true" />
             <img :key="story.id" class="photo" :src="story.url" alt="" @load="ready = true" @error="ready = true" />
@@ -261,7 +280,7 @@ const viewerCount = (n) => t.sprintf(/* translators: %d: number of people who vi
             />
           </template>
           <p v-if="story.kind === 'text'" class="text-story">{{ story.text }}</p>
-          <p v-else-if="story.text" class="caption">{{ story.text }}</p>
+          <p v-else-if="story.text" class="caption" :class="{ mine: group.is_me }">{{ story.text }}</p>
         </div>
 
         <!-- Tap zones: left 30% previous, the rest next; hold anywhere to pause -->
@@ -289,8 +308,10 @@ const viewerCount = (n) => t.sprintf(/* translators: %d: number of people who vi
                 <button :aria-label="t.__('Story options', 'membuild-community')" @click="menu = !menu; paused = menu"><Icon name="more" :size="22" /></button>
                 <div v-if="menu" class="menu"><button @click="remove"><Icon name="trash" :size="18" /> {{ t.__('Delete story', 'membuild-community') }}</button></div>
               </div>
+              <button class="phone-close" :aria-label="t.__('Close stories', 'membuild-community')" @click="emit('close')"><Icon name="close" :size="22" /></button>
             </div>
           </div>
+          <button v-if="isVideo && muted && ready" class="sound-pill" @click="unmute"><Icon name="mute" :size="18" /> {{ t.__('Tap for sound', 'membuild-community') }}</button>
         </div>
 
         <div v-if="!ready" class="spinner" :aria-label="t.__('Loading', 'membuild-community')" />
@@ -298,9 +319,11 @@ const viewerCount = (n) => t.sprintf(/* translators: %d: number of people who vi
 
         <!-- Bottom: viewers for your own story, quick reactions for others -->
         <div class="bottom">
-          <button v-if="group.is_me" class="viewers-btn" @click="openViewers">
+          <button v-if="group.is_me" class="seen-bar" @click="openViewers">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
-            {{ viewerCount(story.views_count || 0) }}
+            <span v-if="story.seen_faces?.length" class="faces"><Avatar v-for="u in story.seen_faces" :key="u.id" :user="u" :size="28" /></span>
+            <strong>{{ story.views_count ? seenBy(story.views_count) : t.__('No one has seen it yet', 'membuild-community') }}</strong>
+            <Icon name="chevronRight" :size="18" class="chev" />
           </button>
           <div v-else class="others">
             <form class="reply" @submit.prevent="sendReply">
@@ -314,7 +337,7 @@ const viewerCount = (n) => t.sprintf(/* translators: %d: number of people who vi
               />
               <button v-if="replyText.trim()" type="submit" :aria-label="t.__('Send reply', 'membuild-community')"><Icon name="send" :size="20" /></button>
             </form>
-            <span v-if="sent" class="sent">{{ t.__('Sent ✓', 'membuild-community') }}</span>
+            <span class="only" :class="{ sent }" aria-live="polite">{{ sent ? t.__('Sent ✓', 'membuild-community') : t.sprintf(/* translators: %s: a first name */ t.__('Only %s sees your reply.', 'membuild-community'), firstName(group.author)) }}</span>
             <div class="quick" role="group" :aria-label="t.__('React to story', 'membuild-community')">
               <button v-for="r in REACTIONS" :key="r.type" :class="{ on: story.my_reaction === r.type }" :aria-label="r.label" @click="react(r.type)">
                 <ReactionBadge :type="r.type" :size="30" />
@@ -323,28 +346,31 @@ const viewerCount = (n) => t.sprintf(/* translators: %d: number of people who vi
           </div>
         </div>
 
-        <!-- Viewers sheet -->
-        <Transition name="sheet">
-          <div v-if="showViewers" class="sheet-backdrop" @click.self="showViewers = false">
-            <div class="sheet">
-              <header>
-                <strong>{{ t.__('Story details', 'membuild-community') }}</strong>
-                <button :aria-label="t.__('Close', 'membuild-community')" @click="showViewers = false"><Icon name="close" :size="20" /></button>
-              </header>
-              <p class="sheet-count">{{ viewers ? viewerCount(viewers.count) : t.__('Loading…', 'membuild-community') }}</p>
-              <div v-for="v in viewers?.items || []" :key="v.user.id" class="viewer-row">
-                <span class="v-avatar">
-                  <Avatar :user="v.user" :size="40" />
-                  <ReactionBadge v-if="v.reaction" class="v-badge" :type="v.reaction" :size="18" />
-                </span>
-                <span class="v-name">{{ v.user.name }}</span>
-                <span class="v-time">{{ timeAgo(v.viewed_at) }}</span>
-              </div>
-              <p v-if="viewers && !viewers.items.length" class="sheet-empty">{{ t.__('No one has seen this yet.', 'membuild-community') }}</p>
-            </div>
-          </div>
-        </Transition>
       </div>
+
+      <!-- Seen by: who saw your story, when, and how they reacted. A card beside the story; a sheet on phones. -->
+      <Transition name="sheet">
+        <div v-if="showViewers" class="sheet-backdrop" @click.self="showViewers = false">
+          <div class="sheet" role="dialog" :aria-label="viewers ? seenBy(viewers.count) : t.__('Seen by', 'membuild-community')">
+            <header>
+              <strong>{{ viewers ? seenBy(viewers.count) : t.__('Seen by', 'membuild-community') }}</strong>
+              <button :aria-label="t.__('Close', 'membuild-community')" @click="showViewers = false"><Icon name="close" :size="20" /></button>
+            </header>
+            <p class="sheet-note">{{ t.__('Only you can see this list.', 'membuild-community') }}</p>
+            <ul class="seen-list">
+              <template v-if="!viewers">
+                <li v-for="n in 4" :key="`sk${n}`" class="viewer-row"><span class="skeleton" style="width: 44px; height: 44px; border-radius: 50%" /><span style="flex: 1"><span class="skeleton" style="display: block; width: 50%; height: 15px" /><span class="skeleton" style="display: block; width: 30%; height: 12px; margin-top: 6px" /></span></li>
+              </template>
+              <li v-for="v in viewers?.items || []" :key="v.user.id" class="viewer-row">
+                <Avatar :user="v.user" :size="44" />
+                <span class="v-who"><strong>{{ v.user.name }}</strong><small>{{ seenAt(v.viewed_at) }}</small></span>
+                <ReactionBadge v-if="v.reaction" :type="v.reaction" :size="26" />
+              </li>
+            </ul>
+            <p v-if="viewers && !viewers.items.length" class="sheet-empty">{{ t.__('No one has seen it yet.', 'membuild-community') }}</p>
+          </div>
+        </div>
+      </Transition>
     </div>
   </Teleport>
 </template>
@@ -407,11 +433,12 @@ const viewerCount = (n) => t.sprintf(/* translators: %d: number of people who vi
   overflow-wrap: anywhere;
 }
 
+/* Above the reply box and reactions (or Seen by, on your own). */
 .caption {
   position: absolute;
   left: 16px;
   right: 16px;
-  bottom: 90px;
+  bottom: 186px;
   margin: 0;
   padding: 8px 12px;
   text-align: center;
@@ -419,6 +446,10 @@ const viewerCount = (n) => t.sprintf(/* translators: %d: number of people who vi
   font-weight: 650;
   background: rgb(0 0 0 / 45%);
   border-radius: 10px;
+}
+
+.caption.mine {
+  bottom: 92px;
 }
 
 .tap {
@@ -474,21 +505,46 @@ const viewerCount = (n) => t.sprintf(/* translators: %d: number of people who vi
 
 .controls {
   display: flex;
-  gap: 2px;
+  gap: 8px;
   margin-left: auto;
 }
 
+/* 44px circles that stay visible on any photo or colour. */
 .controls button {
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   color: #fff;
+  background: rgb(0 0 0 / 24%);
 }
 
 .controls button:hover {
-  background: rgb(255 255 255 / 15%);
+  background: rgb(0 0 0 / 38%);
+}
+
+.controls .phone-close {
+  display: none;
+}
+
+/* A muted video story: one tap turns the sound on (like Reels). */
+.sound-pill {
+  position: absolute;
+  top: 82px;
+  left: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgb(30 30 32 / 72%);
+  font-size: 16px;
+  font-weight: 700;
+  transform: translateX(-50%);
+  pointer-events: auto;
 }
 
 .controls :deep(path) {
@@ -601,8 +657,9 @@ const viewerCount = (n) => t.sprintf(/* translators: %d: number of people who vi
 .reply input {
   flex: 1;
   min-width: 0;
-  height: 42px;
-  padding: 0 16px;
+  height: 49px;
+  padding: 0 18px;
+  font-size: 16px;
   border: 0;
   background: transparent;
   color: #fff;
@@ -619,12 +676,19 @@ const viewerCount = (n) => t.sprintf(/* translators: %d: number of people who vi
 .reply button {
   display: grid;
   place-items: center;
-  width: 40px;
+  width: 48px;
+  height: 48px;
   color: #fff;
 }
 
-.sent {
+.only {
+  margin-top: -2px;
+  color: rgb(255 255 255 / 85%);
   font-size: 13px;
+}
+
+.only.sent {
+  color: #fff;
   font-weight: 700;
 }
 
@@ -649,16 +713,41 @@ const viewerCount = (n) => t.sprintf(/* translators: %d: number of people who vi
   transform: scale(1.18);
 }
 
-.viewers-btn {
-  display: inline-flex;
+/* Your own story: Seen by, with the last few faces. */
+.seen-bar {
+  display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 16px;
+  gap: 10px;
+  width: 100%;
+  height: 56px;
+  padding: 0 18px;
   border-radius: 999px;
   color: #fff;
-  font-weight: 650;
-  background: rgb(0 0 0 / 40%);
+  font-size: 16px;
+  background: rgb(0 0 0 / 30%);
   backdrop-filter: blur(8px);
+}
+
+.seen-bar:hover {
+  background: rgb(0 0 0 / 42%);
+}
+
+.faces {
+  display: flex;
+}
+
+.faces > * {
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgb(0 0 0 / 45%);
+}
+
+.faces > * + * {
+  margin-left: -8px;
+}
+
+.seen-bar .chev {
+  margin-left: auto;
+  opacity: 0.8;
 }
 
 .close-x,
@@ -673,17 +762,17 @@ const viewerCount = (n) => t.sprintf(/* translators: %d: number of people who vi
 }
 
 .close-x {
-  top: 16px;
-  right: 16px;
-  width: 44px;
-  height: 44px;
+  top: 18px;
+  right: 22px;
+  width: 52px;
+  height: 52px;
 }
 
 .side {
   top: 50%;
-  width: 48px;
-  height: 48px;
-  margin-top: -24px;
+  width: 52px;
+  height: 52px;
+  margin-top: -26px;
 }
 
 .side.left {
@@ -703,18 +792,22 @@ const viewerCount = (n) => t.sprintf(/* translators: %d: number of people who vi
   position: absolute;
   inset: 0;
   z-index: 4;
-  display: flex;
-  align-items: flex-end;
-  background: rgb(0 0 0 / 40%);
 }
 
+/* Computers: a card beside the story. */
 .sheet {
-  width: 100%;
-  max-height: 70%;
+  position: absolute;
+  top: 200px;
+  left: min(calc(50% + min(100dvh - 32px, 920px) * 9 / 32 - 132px), calc(100% - 376px));
+  width: 360px;
+  max-height: min(520px, calc(100dvh - 240px));
   overflow-y: auto;
-  padding: 0 16px 16px;
-  border-radius: 16px 16px 0 0;
-  background: #1c1c1f;
+  border-radius: 16px;
+  color: var(--text);
+  background: var(--surface);
+  box-shadow: 0 18px 50px rgb(0 0 0 / 40%);
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .sheet header {
@@ -723,49 +816,65 @@ const viewerCount = (n) => t.sprintf(/* translators: %d: number of people who vi
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 0;
-  background: #1c1c1f;
+  padding: 16px 20px 6px;
+  background: var(--surface);
+}
+
+.sheet header strong {
+  font-size: 20px;
 }
 
 .sheet header button {
-  color: #fff;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: var(--text);
+  background: var(--surface-2);
 }
 
-.sheet-count,
+.sheet-note,
 .sheet-empty {
-  margin: 0 0 10px;
-  color: #a9aeb8;
-  font-size: 14px;
-  font-weight: 600;
+  margin: 0;
+  padding: 0 20px 14px;
+  color: var(--text-2);
+  font-size: 15px;
+}
+
+.sheet-empty {
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.seen-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .viewer-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 7px 0;
+  padding: 10px 20px;
+  border-top: 1px solid var(--border);
 }
 
-.v-avatar {
-  position: relative;
-  display: inline-flex;
+.v-who {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
 }
 
-.v-badge {
-  position: absolute;
-  right: -3px;
-  bottom: -3px;
-  --ring: #1c1c1f;
+.v-who strong {
+  font-size: 16px;
 }
 
-.v-name {
-  font-weight: 600;
-}
-
-.v-time {
-  margin-left: auto;
-  color: #8e8e96;
-  font-size: 13px;
+.v-who small {
+  color: var(--text-2);
+  font-size: 14px;
 }
 
 .sheet-enter-active,
@@ -785,7 +894,7 @@ const viewerCount = (n) => t.sprintf(/* translators: %d: number of people who vi
 
 .sheet-enter-from .sheet,
 .sheet-leave-to .sheet {
-  transform: translateY(100%);
+  transform: translateY(10px);
 }
 
 @media (max-width: 767px) {
@@ -800,12 +909,32 @@ const viewerCount = (n) => t.sprintf(/* translators: %d: number of people who vi
     display: none;
   }
 
+  /* Phones: the close button sits with the other controls. */
   .close-x {
-    top: calc(64px + env(safe-area-inset-top));
-    right: 8px;
-    width: 38px;
-    height: 38px;
-    background: transparent;
+    display: none;
+  }
+
+  .controls .phone-close {
+    display: grid;
+  }
+
+  .sheet-backdrop {
+    background: rgb(0 0 0 / 40%);
+  }
+
+  .sheet {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-height: 70%;
+    border-radius: 16px 16px 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .sheet-enter-from .sheet,
+  .sheet-leave-to .sheet {
+    transform: translateY(100%);
   }
 
   .top {

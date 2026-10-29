@@ -199,6 +199,7 @@ class Notifications {
 			'items'     => array_map( fn( $r ) => self::format( $r, $users ), $rows ),
 			'next_page' => $has_more ? (int) $req['page'] + 1 : null,
 			'unseen'    => self::unseen_count( get_current_user_id() ),
+			'unread'    => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE user_id = %d AND read_at IS NULL', $table, get_current_user_id() ) ),
 		);
 	}
 

@@ -25,7 +25,7 @@ final class Plugin {
 	const INIT = array( Portal::class, Rest_Members::class, Notifications::class, Points::class );
 
 	/** Classes with REST routes. */
-	const REST = array( Rest_Feed::class, Rest_Media::class, Rest_Comments::class, Rest_Stories::class, Rest_Courses::class, Access::class, Rest_Gamification::class, Rest_Messages::class, Notifications::class, Settings::class, Rest_Members::class, Moderation::class, Email::class, App::class, Bunny::class, Blocks::class, Usage::class, Search::class, Rest_Places::class, Giphy::class, Discussions::class, Events::class, Problems::class, Online::class );
+	const REST = array( Rest_Feed::class, Rest_Media::class, Rest_Comments::class, Rest_Stories::class, Rest_Courses::class, Access::class, Rest_Gamification::class, Rest_Messages::class, Notifications::class, Settings::class, Rest_Members::class, Moderation::class, Email::class, App::class, Bunny::class, Blocks::class, Usage::class, Search::class, Rest_Places::class, Giphy::class, Discussions::class, Events::class, Problems::class, Online::class, First_Run::class, For_You::class );
 
 	/** Hourly maintenance, each bounded so a late or doubled cron run stays cheap. */
 	const MAINTENANCE = array(

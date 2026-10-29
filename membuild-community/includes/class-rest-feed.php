@@ -326,8 +326,10 @@ class Rest_Feed {
 		$post_id = (int) $wpdb->insert_id;
 		$media   = Media::attach( $user_id, $post_id, $media_ids );
 
-		// Reels are videos uploaded to the community; links to other sites belong in a normal post.
-		if ( 'reel' === $type && ( 1 !== count( $media ) || 'video' !== $media[0]['kind'] ) ) {
+		// Reels are videos uploaded to the community, or a YouTube Short shared from its link
+		// (played in YouTube's own player); other links belong in a normal post.
+		$reel_ok = 1 === count( $media ) && ( 'video' === $media[0]['kind'] || ( 'embed' === $media[0]['kind'] && 'youtube' === ( $media[0]['embed']['provider'] ?? '' ) ) );
+		if ( 'reel' === $type && ! $reel_ok ) {
 			$wpdb->delete( Install::table( 'posts' ), array( 'id' => $post_id ) );
 			$wpdb->update( Install::table( 'media' ), array( 'post_id' => null ), array( 'post_id' => $post_id ) );
 			return new \WP_Error( 'mbcom_reel_media', __( 'A reel needs exactly one video.', 'membuild-community' ), array( 'status' => 400 ) );

@@ -114,6 +114,16 @@ class Rest_Stories {
 			$groups[ $uid ]['stories'][] = self::format( $row, $uid === $me );
 		}
 
+		// Your own stories show the last few people who saw them ("Seen by 12" with faces).
+		if ( isset( $groups[ $me ] ) ) {
+			foreach ( $groups[ $me ]['stories'] as &$mine ) {
+				$ids = array_map( 'intval', $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE story_id = %d ORDER BY viewed_at DESC LIMIT 3', $views, $mine['id'] ) ) );
+				$faces = Helpers::users( $ids );
+				$mine['seen_faces'] = array_values( array_filter( array_map( fn( $id ) => $faces[ $id ] ?? null, $ids ) ) );
+			}
+			unset( $mine );
+		}
+
 		foreach ( $groups as &$g ) {
 			$g['has_unseen'] = ! $g['is_me'] && (bool) array_filter( $g['stories'], fn( $s ) => ! $s['seen'] );
 			$g['latest_at']  = end( $g['stories'] )['created_at'];
@@ -136,7 +146,7 @@ class Rest_Stories {
 		}
 		$me         = get_current_user_id();
 		$text       = Helpers::clean_text( $req['text'] ?? '', 250 );
-		$background = in_array( $req['background'] ?? '', Helpers::BACKGROUNDS, true ) ? $req['background'] : null;
+		$background = in_array( $req['background'] ?? '', self::backgrounds(), true ) ? $req['background'] : null;
 		$media      = null;
 
 		if ( ! empty( $req['media_id'] ) ) {
@@ -294,6 +304,11 @@ class Rest_Stories {
 	}
 
 	/* ---------- Helpers ---------- */
+
+	/** Text story backgrounds: the post ones, the community's own colour and a few more (see lib/postStyle.js). */
+	public static function backgrounds() {
+		return array_merge( array( 'community' ), Helpers::BACKGROUNDS, array( 'sun', 'blue', 'fire', 'slate' ) );
+	}
 
 	private static function get( $id, $active_only = false ) {
 		global $wpdb;

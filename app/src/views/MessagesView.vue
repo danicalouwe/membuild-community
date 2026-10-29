@@ -9,7 +9,7 @@ import Avatar from '../components/Avatar.vue'
 import Icon from '../components/Icon.vue'
 import ChatView from '../components/ChatView.vue'
 import NewChatDialog from '../components/NewChatDialog.vue'
-import { t } from '../lib/i18n.js'
+import { locale, t } from '../lib/i18n.js'
 import { sharedIn } from '../lib/links.js'
 
 const props = defineProps({ threadId: { type: Number, default: null } })
@@ -20,25 +20,86 @@ const threads = ref([])
 const loaded = ref(false)
 const query = ref('')
 const composing = ref(false)
+const filter = ref('all')
+// The chat that was unread when you opened it: it stays under Unread while you read it.
+const wasUnread = ref(null)
+const FILTERS = [
+  { key: 'all', label: t.__('All', 'membuild-community') },
+  { key: 'unread', label: t.__('Unread', 'membuild-community') },
+  { key: 'groups', label: t.__('Groups', 'membuild-community') },
+]
 
 const filtered = computed(() => {
   const q = query.value.trim().toLowerCase()
-  if (!q) return threads.value
-  return threads.value.filter((th) => nameOf(th).toLowerCase().includes(q))
+  return threads.value.filter(
+    (th) =>
+      (!q || nameOf(th).toLowerCase().includes(q)) &&
+      (filter.value !== 'unread' || th.unread || th.id === wasUnread.value) && // a chat you opened from Unread stays while you read it
+      (filter.value !== 'groups' || th.type === 'group'),
+  )
 })
 
 const nameOf = (th) => th.title || th.others.map((o) => o.name).join(', ') || t.__('Just you', 'membuild-community')
 
+// The server answers the tab and the search, 30 chats at a time; more load as you scroll.
+const hasMore = ref(false)
+const loadingMore = ref(false)
+let asked = 0
+const params = () => ({ filter: filter.value === 'all' ? undefined : filter.value, search: query.value.trim() || undefined })
 async function loadInbox() {
-  const res = await api.inbox().catch(() => null)
-  if (!res) return
-  threads.value = res.items
+  const mine = ++asked
+  const res = await api.inbox(params()).catch(() => null)
+  if (!res || mine !== asked) return
+  // A chat opened from Unread stays in the list while you read it.
+  const keep = filter.value === 'unread' && wasUnread.value && !res.items.some((th) => th.id === wasUnread.value) ? threads.value.find((th) => th.id === wasUnread.value) : null
+  threads.value = keep ? [keep, ...res.items] : res.items
+  hasMore.value = res.has_more
   messages.unread = res.unread
   loaded.value = true
 }
+async function loadMore() {
+  if (!hasMore.value || loadingMore.value) return
+  const last = threads.value[threads.value.length - 1]
+  if (!last?.last_at) return
+  loadingMore.value = true
+  const mine = asked
+  try {
+    const res = await api.inbox({ ...params(), before: last.last_at, before_id: last.id })
+    if (mine !== asked) return
+    const have = new Set(threads.value.map((th) => th.id))
+    threads.value.push(...res.items.filter((th) => !have.has(th.id)))
+    hasMore.value = res.has_more
+  } catch {
+    /* try again on the next scroll */
+  } finally {
+    loadingMore.value = false
+  }
+}
+function onListScroll(e) {
+  const el = e.target
+  if (el.scrollTop + el.clientHeight > el.scrollHeight - 300) loadMore()
+}
+let searchTimer = 0
+watch(filter, () => loadInbox())
+watch(query, () => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(loadInbox, 300)
+})
 
-// Any new message in any of my chats bumps inbox_version: refresh the list then.
-watch(() => messages.inboxVersion, (v, old) => old !== undefined && v !== old && loadInbox())
+// Any new message in any of my chats bumps inbox_version: refresh the newest chats then,
+// keeping the older ones already loaded further down (so a deep scroll isn't lost).
+async function refreshTop() {
+  const mine = ++asked
+  const res = await api.inbox(params()).catch(() => null)
+  if (!res || mine !== asked) return
+  const fresh = new Set(res.items.map((th) => th.id))
+  const oldest = res.items[res.items.length - 1]
+  const below = res.has_more && oldest ? threads.value.filter((th) => !fresh.has(th.id) && (th.last_at < oldest.last_at || (th.last_at === oldest.last_at && th.id < oldest.id))) : []
+  threads.value = [...res.items, ...below]
+  if (!below.length) hasMore.value = res.has_more
+  messages.unread = res.unread
+}
+watch(() => messages.inboxVersion, (v, old) => old !== undefined && v !== old && refreshTop())
 onMounted(loadInbox)
 
 // The Messenger dropdown's pencil links here with ?new=1.
@@ -53,6 +114,7 @@ watch(
 )
 
 function open(id) {
+  wasUnread.value = threads.value.find((th) => th.id === id)?.unread ? id : null
   router.push({ name: 'messages', params: { threadId: id } })
 }
 
@@ -84,6 +146,18 @@ function preview(th) {
   const name = th.others.find((o) => o.id === lm.user_id)?.name.split(' ')[0] || t.__('Someone', 'membuild-community')
   return t.sprintf(/* translators: 1: sender's first name or file name, 2: the latest message or error message */ t.__('%1$s: %2$s', 'membuild-community'), name, words(lm))
 }
+// The list's time, as in the drawing: today's time, a weekday this week, else the date.
+const timeFmt = new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' })
+const dayFmt = new Intl.DateTimeFormat(locale, { weekday: 'short' })
+const dateFmt = new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' })
+function whenOf(iso) {
+  const d = new Date(iso)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  if (d >= today) return timeFmt.format(d)
+  if (today - d < 6 * 86400000) return dayFmt.format(d)
+  return dateFmt.format(d)
+}
 const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messages */ t._n('%d unread', '%d unread', n, 'membuild-community'), n)
 </script>
 
@@ -94,9 +168,13 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
         <h1>{{ t.__('Chats', 'membuild-community') }}</h1>
         <button class="new" :aria-label="t.__('New message', 'membuild-community')" @click="composing = true"><Icon name="plus" :size="20" /></button>
       </header>
-      <input v-model="query" class="search" type="search" :placeholder="t.__('Search chats', 'membuild-community')" :aria-label="t.__('Search chats', 'membuild-community')" />
+      <input v-if="!loaded || threads.length || query || filter !== 'all'" v-model="query" class="search" type="search" :placeholder="t.__('Search chats', 'membuild-community')" :aria-label="t.__('Search chats', 'membuild-community')" />
 
-      <ul class="list">
+      <div v-if="!loaded || threads.length || query || filter !== 'all'" class="filters" role="tablist" :aria-label="t.__('Show chats', 'membuild-community')">
+        <button v-for="f in FILTERS" :key="f.key" role="tab" :aria-selected="filter === f.key" :class="{ on: filter === f.key }" @click="filter = f.key">{{ f.label }}</button>
+      </div>
+
+      <ul class="list" @scroll.passive="onListScroll">
         <li v-for="th in filtered" :key="th.id">
           <button class="row" :class="{ active: th.id === threadId, unread: th.unread }" @click="open(th.id)">
             <span class="faces" :class="{ group: th.type === 'group' }">
@@ -104,23 +182,30 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
             </span>
             <span class="text">
               <strong>{{ nameOf(th) }}</strong>
-              <span class="preview">
-                <span class="p">{{ preview(th) }}</span>
-                <span v-if="th.last_message" class="when">· {{ timeAgo(th.last_message.created_at) }}</span>
+              <span class="p">{{ preview(th) }}</span>
+            </span>
+            <span class="side">
+              <span v-if="th.last_message" class="when">{{ whenOf(th.last_message.created_at) }}</span>
+              <span class="side-row">
+                <Icon v-if="th.muted" class="muted-icon" name="bellOff" :size="16" :aria-label="t.__('Muted', 'membuild-community')" />
+                <span v-if="th.unread" class="dot" :class="{ quiet: th.muted }" :aria-label="unreadLabel(th.unread)">{{ th.unread > 9 ? '9+' : th.unread }}</span>
               </span>
             </span>
-            <span v-if="th.unread" class="dot" :aria-label="unreadLabel(th.unread)">{{ th.unread > 9 ? '9+' : th.unread }}</span>
           </button>
         </li>
-        <li v-if="loaded && !threads.length" class="empty">
-          <p>{{ t.__('No conversations yet.', 'membuild-community') }}</p>
-          <button class="btn btn-primary" @click="composing = true">{{ t.__('Send a message', 'membuild-community') }}</button>
+        <li v-if="loadingMore" class="none-here">{{ t.__('Loading…', 'membuild-community') }}</li>
+        <li v-if="loaded && !filtered.length && (threads.length || query || filter !== 'all')" class="none-here">{{ query ? t.__('No chats found.', 'membuild-community') : filter === 'unread' ? t.__('No unread chats.', 'membuild-community') : t.__('No group chats yet.', 'membuild-community') }}</li>
+        <li v-if="loaded && !threads.length && !query && filter === 'all'" class="empty">
+          <span class="empty-badge"><Icon name="comment" :size="30" /></span>
+          <h2>{{ t.__('No messages yet', 'membuild-community') }}</h2>
+          <p>{{ t.__('Say hello to someone you met here. Messages are private between you.', 'membuild-community') }}</p>
+          <RouterLink class="btn btn-primary find" :to="{ name: 'members' }">{{ t.__('Find someone in Members', 'membuild-community') }}</RouterLink>
         </li>
       </ul>
     </aside>
 
     <main class="pane card">
-      <ChatView v-if="threadId" :key="threadId" :thread-id="threadId" @back="router.push({ name: 'messages' })" @left="router.push({ name: 'messages' }); loadInbox()" @read="onRead" />
+      <ChatView v-if="threadId" :key="threadId" :thread-id="threadId" @back="router.push({ name: 'messages' })" @left="router.push({ name: 'messages' }); loadInbox()" @read="onRead" @renamed="(c) => { const th = threads.find((x) => x.id === threadId); if (th) th.title = c.title }" @muted="(on) => { const th = threads.find((x) => x.id === threadId); if (th) th.muted = on }" />
       <div v-else class="pick">
         <span class="badge"><Icon name="chat" :size="30" /></span>
         <h2>{{ t.__('Your messages', 'membuild-community') }}</h2>
@@ -249,25 +334,67 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
   white-space: nowrap;
 }
 
-.preview {
+.filters {
   display: flex;
-  gap: 4px;
-  font-size: 13px;
-  color: var(--text-3);
+  gap: 8px;
+  padding: 4px 12px 10px;
+}
+
+.filters button {
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 16px;
+  font-weight: 650;
+  color: var(--text-2);
+}
+
+.filters button.on {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.text strong {
+  font-size: 17px;
 }
 
 .p {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 15px;
+  color: var(--text-2);
 }
 
-.when {
+.side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
   flex: none;
 }
 
+.side-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+}
+
+.when {
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.none-here {
+  padding: 24px 12px;
+  text-align: center;
+  color: var(--text-3);
+}
+
 .unread .text strong,
-.unread .preview {
+.unread .p {
   font-weight: 750;
   color: var(--text);
 }
@@ -280,16 +407,63 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
   height: 20px;
   padding: 0 6px;
   border-radius: 999px;
-  background: var(--accent);
-  color: var(--accent-ink);
-  font-size: 11px;
+  background: var(--danger, #e02424);
+  color: #fff;
+  font-size: 12px;
   font-weight: 800;
 }
 
 .empty {
-  padding: 24px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 48px 20px;
   text-align: center;
+  color: var(--text-2);
+}
+
+.empty-badge {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 8px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.empty h2 {
+  margin: 0;
+  font-size: 20px;
+  color: var(--text);
+}
+
+.empty p {
+  margin: 0 0 12px;
+  max-width: 340px;
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.empty .find {
+  min-height: 52px;
+  padding: 0 26px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 16px;
+}
+
+.muted-icon {
+  flex: none;
   color: var(--text-3);
+}
+
+.dot.quiet {
+  background: var(--surface-3, #d5d8dd);
+  color: var(--text-2);
 }
 
 .pick {
@@ -339,6 +513,11 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
 
   .pane {
     display: none;
+  }
+
+  /* An open chat has no bottom bar (‹ goes back), so it takes that space too. */
+  .messages.has-chat {
+    height: calc(100dvh - 50px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   }
 
   .has-chat .inbox {

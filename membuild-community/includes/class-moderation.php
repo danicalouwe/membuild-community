@@ -57,6 +57,28 @@ class Moderation {
 		return $r;
 	}
 
+	/**
+	 * Everyone muted or banned right now, newest first: user_id => restriction.
+	 * One query, however many there are; mutes that have ended are cleared on the way.
+	 */
+	private static function all_restrictions() {
+		global $wpdb;
+		$out = array();
+		foreach ( $wpdb->get_results( $wpdb->prepare( 'SELECT user_id, meta_value FROM %i WHERE meta_key = %s', $wpdb->usermeta, self::META ), ARRAY_A ) as $row ) {
+			$r = maybe_unserialize( $row['meta_value'] );
+			if ( ! is_array( $r ) || empty( $r['status'] ) ) {
+				continue;
+			}
+			if ( ! empty( $r['until'] ) && strtotime( $r['until'] ) <= time() ) {
+				delete_user_meta( (int) $row['user_id'], self::META );
+				continue;
+			}
+			$out[ (int) $row['user_id'] ] = $r;
+		}
+		uasort( $out, fn( $a, $b ) => strcmp( (string) ( $b['at'] ?? '' ), (string) ( $a['at'] ?? '' ) ) );
+		return $out;
+	}
+
 	public static function is_banned( $user_id ) {
 		return 'banned' === ( self::restriction( $user_id )['status'] ?? '' );
 	}
@@ -206,11 +228,7 @@ class Moderation {
 	public static function counts() {
 		global $wpdb;
 		$resolved = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(DISTINCT object_type, object_id) FROM %i WHERE status IN ('kept','removed','muted','banned')", Install::table( 'reports' ) ) );
-		$members  = 0;
-		foreach ( get_users( array( 'meta_key' => self::META, 'meta_compare' => 'EXISTS', 'fields' => 'ID', 'number' => 200 ) ) as $id ) { // phpcs:ignore WordPress.DB.SlowDBQuery -- small set, staff only
-			$members += self::restriction( (int) $id ) ? 1 : 0; // expired mutes don't count
-		}
-		return array( 'open' => self::open_count(), 'resolved' => $resolved, 'members' => $members );
+		return array( 'open' => self::open_count(), 'resolved' => $resolved, 'members' => count( self::all_restrictions() ) ); // ended mutes don't count
 	}
 
 	/* ---------- The queue ---------- */
@@ -292,7 +310,7 @@ class Moderation {
 				: array( 'gone' => true );
 		}
 		if ( 'post' === $type ) {
-			$row = $wpdb->get_row( $wpdb->prepare( 'SELECT content, type, status, created_at FROM %i WHERE id = %d', Install::table( 'posts' ), $id ), ARRAY_A );
+			$row = $wpdb->get_row( $wpdb->prepare( 'SELECT content, type, status, course_id, created_at FROM %i WHERE id = %d', Install::table( 'posts' ), $id ), ARRAY_A );
 			if ( ! $row ) {
 				return array( 'gone' => true );
 			}
@@ -304,11 +322,14 @@ class Moderation {
 				'hidden'     => 'review' === $row['status'],
 				'gone'       => 'deleted' === $row['status'],
 				'created_at' => Helpers::iso( $row['created_at'] ),
+				// "in Home" or "in Launch in 30 Days": where it was posted
+				'course'     => (int) $row['course_id'] ? $wpdb->get_var( $wpdb->prepare( 'SELECT title FROM %i WHERE id = %d', Install::table( 'courses' ), $row['course_id'] ) ) : null,
 			);
 		}
-		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT content, image_url, created_at FROM %i WHERE id = %d', Install::table( 'comments' ), $id ), ARRAY_A );
+		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT c.content, c.image_url, c.created_at, p.user_id AS post_user, p.status AS post_status FROM %i c LEFT JOIN %i p ON p.id = c.post_id WHERE c.id = %d', Install::table( 'comments' ), Install::table( 'posts' ), $id ), ARRAY_A );
+		$on  = $row && $row['post_user'] ? get_userdata( (int) $row['post_user'] ) : null;
 		return $row
-			? array( 'content' => mb_substr( (string) $row['content'], 0, 600 ), 'thumb' => $row['image_url'], 'kind' => 'comment', 'hidden' => false, 'gone' => false, 'created_at' => Helpers::iso( $row['created_at'] ) )
+			? array( 'content' => mb_substr( (string) $row['content'], 0, 600 ), 'thumb' => $row['image_url'], 'kind' => 'comment', 'hidden' => false, 'gone' => ! $row['post_status'] || 'deleted' === $row['post_status'], 'created_at' => Helpers::iso( $row['created_at'] ), 'on' => $on ? $on->display_name : null )
 			: array( 'gone' => true );
 	}
 
@@ -345,6 +366,11 @@ class Moderation {
 				$id
 			)
 		);
+		// A post taken down takes its comments with it: their open reports are settled too,
+		// so nobody is asked to judge a comment on a post that's gone.
+		if ( 'remove' === $action && 'post' === $type ) {
+			$wpdb->query( $wpdb->prepare( "UPDATE %i SET status = 'removed', resolved_by = %d, resolved_at = %s WHERE object_type = 'comment' AND post_id = %d AND status = 'open'", Install::table( 'reports' ), get_current_user_id(), Helpers::now(), $id ) );
+		}
 		return array( 'resolved' => true, 'action' => $action, 'open' => self::open_count(), 'counts' => self::counts() );
 	}
 
@@ -391,31 +417,30 @@ class Moderation {
 		return array( 'restriction' => self::restriction( $id ), 'open' => self::open_count(), 'counts' => self::counts() );
 	}
 
-	public static function restricted() {
-		$ids = get_users(
-			array(
-				'meta_key'     => self::META, // phpcs:ignore WordPress.DB.SlowDBQuery -- small set, staff only
-				'meta_compare' => 'EXISTS',
-				'fields'       => 'ID',
-				'number'       => 200,
-			)
-		);
+	/** Muted and banned members, newest first, a page at a time. */
+	public static function restricted( \WP_REST_Request $req ) {
+		$all   = self::all_restrictions();
+		$page  = max( 1, (int) ( $req['page'] ?? 1 ) );
+		$slice = array_slice( $all, ( $page - 1 ) * 50, 50, true );
+		$users = Helpers::users( array_filter( array_merge( array_keys( $slice ), array_map( fn( $r ) => (int) ( $r['by'] ?? 0 ), $slice ) ) ) );
 		$out   = array();
-		$users = Helpers::users( $ids );
-		foreach ( $ids as $id ) {
-			$r = self::restriction( (int) $id ); // also clears expired mutes
-			if ( $r && isset( $users[ (int) $id ] ) ) {
+		foreach ( $slice as $id => $r ) {
+			if ( isset( $users[ $id ] ) ) {
 				$out[] = array(
-					'user'   => $users[ (int) $id ],
+					'user'   => $users[ $id ],
 					'status' => $r['status'],
-					'until'  => $r['until'],
+					'until'  => $r['until'] ?? null,
 					'reason' => $r['reason'] ?? '',
-					'by'     => Helpers::users( array( (int) ( $r['by'] ?? 0 ) ) )[ (int) ( $r['by'] ?? 0 ) ] ?? null,
+					'by'     => $users[ (int) ( $r['by'] ?? 0 ) ] ?? null,
 					'at'     => $r['at'] ?? null,
 				);
 			}
 		}
-		return array( 'items' => $out, 'counts' => self::counts() );
+		return array(
+			'items'     => $out,
+			'next_page' => count( $all ) > $page * 50 ? $page + 1 : null,
+			'counts'    => self::counts(),
+		);
 	}
 
 	/* ---------- Pinned posts ---------- */

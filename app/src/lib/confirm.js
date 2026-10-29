@@ -10,10 +10,10 @@ import { reactive } from 'vue'
  */
 export const confirmState = reactive({ open: null })
 
-export function askConfirm({ title, text = '', confirm, cancel = '', danger = false }) {
+export function askConfirm({ title, text = '', confirm, cancel = '', danger = false, safe = false }) {
   confirmState.open?.resolve(false) // a second question replaces the first
   return new Promise((resolve) => {
-    confirmState.open = { title, text, confirm, cancel, danger, resolve }
+    confirmState.open = { title, text, confirm, cancel, danger, safe, resolve }
   })
 }
 

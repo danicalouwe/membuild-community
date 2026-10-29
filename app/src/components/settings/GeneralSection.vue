@@ -51,6 +51,12 @@ function pickLogo(e) {
   })
 }
 
+const LOOKS = [
+  { key: 'auto', label: t.__('Match device', 'membuild-community') },
+  { key: 'light', label: t.__('Light', 'membuild-community') },
+  { key: 'dark', label: t.__('Dark', 'membuild-community') },
+]
+
 function removeLogo() {
   logoUpload.value = null
   form.value.logo = null
@@ -60,16 +66,18 @@ function removeLogo() {
 <template>
   <section id="s-general" class="card group">
     <h2>{{ t.__('Your community', 'membuild-community') }}</h2>
+    <p class="intro">{{ t.__('How your community looks to members.', 'membuild-community') }}</p>
 
     <label class="field">
       <span class="label">{{ t.__('Community name', 'membuild-community') }}</span>
       <input v-model="form.name" type="text" maxlength="60" :placeholder="meta.site_name" />
-      <small>{{ t.__('Shown in the top bar and the browser tab. Leave empty to use your site name.', 'membuild-community') }}</small>
+      <small>{{ t.__('Shown in the top bar and the browser tab.', 'membuild-community') }}</small>
     </label>
 
     <label class="field">
       <span class="label">{{ t.__('Description', 'membuild-community') }}</span>
-      <textarea v-model="form.description" rows="2" maxlength="300" :placeholder="t.__('What this community is about, in a sentence or two.', 'membuild-community')" />
+      <textarea v-model="form.description" rows="3" maxlength="300" :placeholder="t.__('What this community is about, in a sentence or two.', 'membuild-community')" />
+      <small>{{ t.__('Shown on your sign-up page and when someone shares a link to the community.', 'membuild-community') }}</small>
     </label>
 
     <div class="field">
@@ -81,7 +89,7 @@ function removeLogo() {
           <span v-else class="initial">{{ initialsOf(form.name || meta.site_name) }}</span>
         </span>
         <button type="button" class="btn" :disabled="logoUpload?.status === 'working'" @click="logoInput.click()">
-          {{ logoUpload?.status === 'working' ? t.__('Uploading…', 'membuild-community') : form.logo ? t.__('Change', 'membuild-community') : t.__('Upload', 'membuild-community') }}
+          {{ logoUpload?.status === 'working' ? t.__('Uploading…', 'membuild-community') : form.logo ? t.__('Change logo', 'membuild-community') : t.__('Upload a logo', 'membuild-community') }}
         </button>
         <button v-if="form.logo" type="button" class="link danger" @click="removeLogo">{{ t.__('Remove', 'membuild-community') }}</button>
         <input ref="logoInput" class="sr-only" type="file" accept="image/*" @change="pickLogo" />
@@ -91,7 +99,8 @@ function removeLogo() {
     </div>
 
     <div class="field">
-      <span class="label">{{ t.__('Color', 'membuild-community') }}</span>
+      <span class="label">{{ t.__('Main color', 'membuild-community') }}</span>
+      <div class="color-row">
       <div class="swatches" role="radiogroup" :aria-label="t.__('Accent color', 'membuild-community')">
         <button
           v-for="hex in meta.accents"
@@ -111,7 +120,6 @@ function removeLogo() {
         </label>
       </div>
       <label class="hex">
-        <span>{{ t.__('Custom', 'membuild-community') }}</span>
         <span class="hex-input" :class="{ bad: !hexValid }">
           <i :style="{ background: form.accent || meta.accents[0] }" aria-hidden="true"></i>
           <input
@@ -128,20 +136,191 @@ function removeLogo() {
           />
         </span>
       </label>
+      </div>
+      <!-- How the colour looks on the things it colours. -->
+      <div class="preview" aria-hidden="true">
+        <span>{{ t.__('Preview', 'membuild-community') }}</span>
+        <b class="p-btn">{{ t.__('Button', 'membuild-community') }}</b>
+        <b class="p-tab">{{ t.__('Selected tab', 'membuild-community') }}</b>
+        <b class="p-link">{{ t.__('A link', 'membuild-community') }}</b>
+      </div>
       <small v-if="!hexValid" class="err">{{ t.__('Use a hex code like #5b4bff.', 'membuild-community') }}</small>
-      <small v-else>{{ t.__('Used for buttons, links and highlights. Pick one, or paste your brand color’s hex code.', 'membuild-community') }}</small>
+      <small v-else>{{ t.__('Used for buttons, links and highlights. Pick one, or type your brand color.', 'membuild-community') }}</small>
     </div>
+
+    <!-- The look members start with; each member can still pick their own in the menu. -->
+    <fieldset class="field">
+      <legend class="label">{{ t.__('Default look', 'membuild-community') }}</legend>
+      <div class="looks" role="radiogroup">
+        <label v-for="l in LOOKS" :key="l.key" class="look" :class="[l.key, { on: (form.display || 'auto') === l.key }]">
+          <input v-model="form.display" type="radio" name="display" :value="l.key" />
+          <span class="shot"><i /><i /><i /></span>
+          <span class="nm"><span class="mark" />{{ l.label }}</span>
+        </label>
+      </div>
+      <small>{{ t.__('Members can still change it for themselves.', 'membuild-community') }}</small>
+    </fieldset>
 
   </section>
 </template>
 
 <style scoped>
+.color-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+}
+
 .hex {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 12px;
   font-weight: 600;
+}
+
+/* Preview: the colour on a button, a selected tab and a link. */
+.preview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin-top: 14px;
+  padding: 12px 16px;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+
+.preview span {
+  color: var(--text-2);
+  font-size: 14px;
+}
+
+.preview b {
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 15px;
+}
+
+.p-btn {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.p-tab {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.p-link {
+  color: var(--accent-text);
+}
+
+/* Default look: three small pictures of the app. */
+.looks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.look {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.look input {
+  position: absolute;
+  opacity: 0;
+}
+
+.shot {
+  position: relative;
+  display: block;
+  width: 132px;
+  height: 84px;
+  overflow: hidden;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: #f3f4f6;
+}
+
+.shot i {
+  position: absolute;
+  left: 12px;
+  height: 7px;
+  border-radius: 4px;
+  background: #d8dbe0;
+}
+
+.shot i:nth-child(1) {
+  top: 12px;
+  width: 44px;
+}
+
+.shot i:nth-child(2) {
+  top: 30px;
+  right: 12px;
+  height: 26px;
+  border-radius: 6px;
+  background: #fff;
+}
+
+.shot i:nth-child(3) {
+  top: 64px;
+  width: 30px;
+  background: var(--accent);
+}
+
+.dark .shot {
+  background: #18191c;
+}
+
+.dark .shot i:nth-child(1) {
+  background: #3a3d44;
+}
+
+.dark .shot i:nth-child(2) {
+  background: #24262b;
+}
+
+/* Match device: half light, half dark. */
+.auto .shot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #18191c;
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+  opacity: 0.92;
+}
+
+.auto .shot i {
+  z-index: 1;
+}
+
+.look.on .shot {
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text);
+}
+
+.nm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.mark {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border-strong);
+  border-radius: 50%;
+}
+
+.look.on .mark {
+  border-color: var(--text);
+  background: radial-gradient(circle, var(--surface) 0 28%, var(--text) 31%);
 }
 
 /* The settings page's own input style, with the color shown inside it. */

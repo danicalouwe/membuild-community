@@ -630,6 +630,8 @@ list( $s ) = mbcom_call( $blocker, 'GET', "/posts/{$pest_post['id']}" );
 mbcom_check( 'unblocking brings everything back', 200 === $s, (string) $s );
 mbcom_call( $pest, 'DELETE', "/posts/{$pest_post['id']}" );
 
+// Open reports left by earlier runs of these tests (the test site only) would push this one past the pages checked.
+$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->prefix}mbcom_reports WHERE status = 'open' AND created_at < %s", gmdate( 'Y-m-d H:i:s', time() - HOUR_IN_SECONDS ) ) );
 list( $s ) = mbcom_call( $blocker, 'POST', '/reports', array( 'object_type' => 'member', 'object_id' => $pest, 'reason' => 'spam' ) );
 mbcom_check( 'members can report a profile', 200 === $s, (string) $s );
 $profile_report = false;
@@ -863,7 +865,8 @@ $by    = function ( $kind, $id ) use ( &$items ) { // by reference: $items chang
 };
 mbcom_check( 'open courses and their lessons are found', $by( 'course', $open_c ) && $by( 'lesson', $open_l ) );
 mbcom_check( 'a locked course’s lessons show by title, with the lock', $by( 'lesson', $lock_l ) && 'groups' === $by( 'lesson', $lock_l )['lock']['reason'] && array( 'Ocelot club' ) === $by( 'lesson', $lock_l )['lock']['groups'] );
-mbcom_check( '…but their text is never quoted', '' === $by( 'lesson', $lock_l )['snippet'] && ! str_contains( wp_json_encode( $items ), '1234' ) );
+// Only the words shown (titles and quotes): a file name or a time can contain "1234" by chance.
+mbcom_check( '…but their text is never quoted', '' === $by( 'lesson', $lock_l )['snippet'] && ! array_filter( $items, fn( $i ) => str_contains( ( $i['title'] ?? '' ) . ' ' . ( $i['snippet'] ?? '' ), '1234' ) ) );
 mbcom_check( '…nor searched', ! array_filter( $find( $finder, 'vault', 'courses' )['items'], fn( $i ) => $i['id'] === $lock_l ) );
 mbcom_check( 'an open lesson is found by its text too', (bool) array_filter( $find( $finder, 'handshake', 'courses' )['items'], fn( $i ) => 'lesson' === $i['kind'] && $i['id'] === $open_l ) );
 mbcom_check( 'a course hidden when locked doesn’t appear at all', ! $by( 'course', $hide_c ) && ! $by( 'lesson', $hide_l ) );
@@ -1450,7 +1453,7 @@ $overview = function () {
 	return ob_get_clean();
 };
 $html = $overview();
-mbcom_check( 'while the card is up, the overview’s numbers sit blurred behind it', str_contains( $html, 'name="email"' ) && str_contains( $html, 'class="mbcom-gated" inert' ) && str_contains( $html, 'mbcom-stats' ) );
+mbcom_check( 'while the card is up, the overview’s numbers stay readable (nothing blurred)', str_contains( $html, 'name="email"' ) && ! str_contains( $html, 'mbcom-gated' ) );
 \MemBuild\Community\Usage::skip();
 $html = $overview();
 mbcom_check( '…and “Not now” clears the way', ! str_contains( $html, 'name="email"' ) && ! str_contains( $html, 'mbcom-gated' ) && str_contains( $html, 'mbcom-stats' ) );
@@ -1679,6 +1682,156 @@ wp_delete_user( $lb_new );
 $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE user_id IN (%d, %d)', $stats, $lb_a, $lb_b ) );
 delete_transient( 'mbcom_level_distribution' );
 
+mbcom_section( 'Settings V2' );
+list( $s, $set ) = mbcom_call( $admin, 'PUT', '/settings', array( 'display' => 'dark', 'signup_label' => 'Become a member', 'login_headline' => 'Learn and grow together.', 'login_text' => 'A short line.' ) );
+mbcom_check( 'Settings keep the default look, the join button’s words and the login page’s lines', 200 === $s && 'dark' === $set['settings']['display'] && 'Become a member' === $set['settings']['signup_label'] && 'Learn and grow together.' === $set['settings']['login_headline'], (string) $s );
+mbcom_check( '…and members’ app starts in that look', 'dark' === \MemBuild\Community\Settings::public_config()['display'] );
+list( , $set ) = mbcom_call( $admin, 'PUT', '/settings', array( 'display' => 'purple' ) );
+mbcom_check( '…a look that isn’t one falls back to Match device', 'auto' === $set['settings']['display'] );
+list( $s ) = mbcom_call( $admin, 'PUT', '/settings', array( 'login_picture' => array( 'id' => 999999 ) ) );
+mbcom_check( '…a login picture must be the admin’s own upload', 400 === $s, (string) $s );
+list( , $gk ) = mbcom_call( $admin, 'POST', '/settings/gifs/check', array( 'key' => 'not a key!' ) );
+mbcom_check( 'a GIPHY key that can’t be one is “Not working” without asking GIPHY', false === $gk['working'] );
+list( $s ) = mbcom_call( $member, 'POST', '/settings/gifs/check', array( 'key' => str_repeat( 'a', 32 ) ) );
+mbcom_check( '…and only admins can check keys', 403 === $s || 401 === $s, (string) $s );
+mbcom_call( $admin, 'PUT', '/settings', array( 'display' => 'auto', 'signup_label' => '', 'login_headline' => '', 'login_text' => '' ) );
+
+mbcom_section( 'Emails and first run' );
+$fr_m = mbcom_user( 'mbct_fr_new' );
+delete_user_meta( $fr_m, \MemBuild\Community\First_Run::WELCOMED ); // fresh each run
+$fr_mail = array();
+$fr_cap = function ( $r, $a ) use ( &$fr_mail ) {
+	$fr_mail[] = $a;
+	return true;
+};
+add_filter( 'pre_wp_mail', $fr_cap, 10, 2 );
+update_user_meta( $fr_m, \MemBuild\Community\Email::UNCONFIRMED, time() - 4 * DAY_IN_SECONDS );
+\MemBuild\Community\Email::send_welcome( $fr_m );
+mbcom_check( 'the welcome email has the confirm button', $fr_mail && str_contains( $fr_mail[0]['message'], 'mbcom_confirm=' . $fr_m ) && str_contains( $fr_mail[0]['subject'], 'Welcome' ) );
+mbcom_check( '…and Home asks them to confirm after a few days', \MemBuild\Community\Email::banner( $fr_m ) );
+mbcom_check( '…while no activity emails go to an unconfirmed address', false === \MemBuild\Community\Email::send_summary( $fr_m ) );
+$fr_q = wp_parse_args( wp_parse_url( \MemBuild\Community\Email::confirm_url( $fr_m ), PHP_URL_QUERY ) );
+$fr_bad = wp_parse_args( wp_parse_url( add_query_arg( 'email', 'x', \MemBuild\Community\Email::confirm_url( $fr_m + 1 ) ), PHP_URL_QUERY ) );
+mbcom_check( 'confirm links are signed per member', $fr_q['sig'] !== ( $fr_bad['sig'] ?? '' ) );
+delete_user_meta( $fr_m, \MemBuild\Community\Email::UNCONFIRMED );
+mbcom_check( 'once confirmed, the banner goes', ! \MemBuild\Community\Email::banner( $fr_m ) );
+$fr_u = get_userdata( $fr_m );
+$fr_r = \MemBuild\Community\Email::reset_email( array( 'to' => $fr_u->user_email, 'subject' => '', 'message' => '', 'headers' => array() ), 'K', $fr_u->user_login, $fr_u );
+mbcom_check( 'the password reset email is in the community look with the link written out', str_contains( $fr_r['message'], 'reset-password' ) && str_contains( implode( ' ', $fr_r['headers'] ), 'text/html' ) );
+$fr_mail = array();
+wp_update_user( array( 'ID' => $fr_m, 'first_name' => 'Zoë & "Al"' ) );
+\MemBuild\Community\Email::send_welcome( $fr_m );
+mbcom_check( 'a name with & reads normally in the subject (not &amp;)', str_contains( $fr_mail[0]['subject'] ?? '', 'Zoë & "Al"' ), $fr_mail[0]['subject'] ?? '' );
+remove_filter( 'pre_wp_mail', $fr_cap, 10 );
+wp_set_current_user( $fr_m );
+$fr_s = \MemBuild\Community\First_Run::member_steps( $fr_m );
+mbcom_check( 'a new member gets the welcome list with joining done', is_array( $fr_s ) && true === $fr_s['joined'] && false === $fr_s['hello'] );
+mbcom_call( $fr_m, 'POST', '/first-run/hide' );
+mbcom_check( '…and Hide hides it', null === \MemBuild\Community\First_Run::member_steps( $fr_m ) );
+mbcom_check( 'the owner’s steps are only for admins', null === \MemBuild\Community\First_Run::config()['owner'] );
+list( $s ) = mbcom_call( $fr_m, 'POST', '/first-run/invited' );
+mbcom_check( '…and only admins can mark the invite step', 403 === $s || 401 === $s, (string) $s );
+wp_set_current_user( $admin );
+mbcom_check( 'the owner’s six steps', array( 'look', 'email', 'key', 'course', 'post', 'invite' ) === array_keys( \MemBuild\Community\First_Run::owner_steps() ) );
+
+mbcom_section( 'Moderation V2' );
+$md_a = mbcom_user( 'mbct_md_amy' );
+$md_b = mbcom_user( 'mbct_md_bo' );
+list( , $md_p ) = mbcom_call( $md_a, 'POST', '/posts', array( 'content' => 'Moderation V2 post' ) );
+list( , $md_c ) = mbcom_call( $md_b, 'POST', "/posts/{$md_p['id']}/comments", array( 'content' => 'A rude reply' ) );
+mbcom_call( $md_a, 'POST', '/reports', array( 'object_type' => 'comment', 'object_id' => $md_c['id'], 'reason' => 'harassment', 'note' => 'Not the first time.' ) );
+mbcom_call( $md_b, 'POST', '/reports', array( 'object_type' => 'post', 'object_id' => $md_p['id'], 'reason' => 'spam' ) );
+$md_prev = new ReflectionMethod( '\\MemBuild\\Community\\Moderation', 'preview' );
+$md_prev->setAccessible( true );
+mbcom_check( 'a reported comment says whose post it’s on', $md_prev->invoke( null, 'comment', (int) $md_c['id'] )['on'] === get_userdata( $md_a )->display_name );
+$md_pp = $md_prev->invoke( null, 'post', (int) $md_p['id'] );
+mbcom_check( '…and a reported post in Home has no course', array_key_exists( 'course', $md_pp ) && null === $md_pp['course'] );
+// Take it down and mute in one step (two calls from the app).
+mbcom_call( $admin, 'POST', "/moderation/reports/comment/{$md_c['id']}", array( 'action' => 'remove' ) );
+list( , $md_r ) = mbcom_call( $admin, 'POST', "/members/{$md_b}/restriction", array( 'status' => 'muted', 'days' => 0 ) );
+mbcom_check( 'Mute until I unmute has no end date', 'muted' === ( $md_r['restriction']['status'] ?? '' ) && null === $md_r['restriction']['until'] );
+mbcom_call( $admin, 'POST', "/members/{$md_b}/restriction", array( 'status' => 'none' ) );
+mbcom_call( $admin, 'POST', "/moderation/reports/post/{$md_p['id']}", array( 'action' => 'keep' ) );
+
+// Taking a post down settles the reports on its comments.
+list( , $md_p2 ) = mbcom_call( $md_a, 'POST', '/posts', array( 'content' => 'Moderation V2 second post' ) );
+list( , $md_c2 ) = mbcom_call( $md_b, 'POST', "/posts/{$md_p2['id']}/comments", array( 'content' => 'Another reply' ) );
+mbcom_call( $md_a, 'POST', '/reports', array( 'object_type' => 'comment', 'object_id' => $md_c2['id'], 'reason' => 'spam' ) );
+mbcom_call( $md_b, 'POST', '/reports', array( 'object_type' => 'post', 'object_id' => $md_p2['id'], 'reason' => 'spam' ) );
+mbcom_call( $admin, 'POST', "/moderation/reports/post/{$md_p2['id']}", array( 'action' => 'remove' ) );
+mbcom_check( 'taking a post down settles the reports on its comments', 'removed' === $wpdb->get_var( $wpdb->prepare( "SELECT status FROM {$wpdb->prefix}mbcom_reports WHERE object_type = 'comment' AND object_id = %d", $md_c2['id'] ) ) );
+// Muted & banned: every one counted (no 200 cap), ended mutes left out, a page at a time.
+$md_many = array();
+for ( $i = 0; $i < 230; $i++ ) {
+	$md_many[] = $md_u = mbcom_user( "mbct_md_many{$i}" );
+	update_user_meta( $md_u, 'mbcom_restriction', array( 'status' => 'muted', 'until' => $i < 10 ? gmdate( 'c', time() - 60 ) : null, 'by' => $admin, 'at' => gmdate( 'c' ) ) );
+}
+list( , $md_l1 ) = mbcom_call( $admin, 'GET', '/moderation/members' );
+list( , $md_l2 ) = mbcom_call( $admin, 'GET', '/moderation/members' );
+mbcom_check( 'Muted & banned counts everyone, the same every time, without ended mutes', $md_l1['counts']['members'] === $md_l2['counts']['members'] && $md_l1['counts']['members'] >= 220 && 50 === count( $md_l1['items'] ) && 2 === $md_l1['next_page'], wp_json_encode( array( $md_l1['counts']['members'], $md_l2['counts']['members'], count( $md_l1['items'] ), $md_l1['next_page'] ) ) );
+foreach ( $md_many as $md_u ) {
+	delete_user_meta( $md_u, 'mbcom_restriction' );
+}
+
+mbcom_section( 'Search V2' );
+$se_a = mbcom_user( 'mbct_se_amy' );
+list( , $se_post ) = mbcom_call( $se_a, 'POST', '/posts', array( 'content' => "## Zebrafish notes\n**for** the club" ) );
+list( , $se_ev ) = mbcom_call( $admin, 'POST', '/events', array( 'title' => 'Zebrafish meetup', 'at' => gmdate( 'c', strtotime( '+3 days' ) ), 'where' => 'online', 'url' => 'https://example.com/zoom' ) );
+list( , $res ) = mbcom_call( $se_a, 'GET', '/search', array( 'q' => 'zebrafish' ) );
+mbcom_check( 'All gives each kind a count and the total', 1 === ( $res['groups']['posts']['count'] ?? 0 ) && 1 === ( $res['groups']['events']['count'] ?? 0 ) && $res['total'] >= 2, wp_json_encode( array_map( fn( $g ) => $g['count'], $res['groups'] ?? array() ) ) );
+mbcom_check( '…events are their own group, not posts', array( (int) $se_post['id'] ) === wp_list_pluck( $res['groups']['posts']['items'], 'id' ) && 'event' === ( $res['groups']['events']['items'][0]['kind'] ?? '' ) );
+mbcom_check( '…and snippets are plain words, no ** or ##', 'Zebrafish notes for the club' === $res['groups']['posts']['items'][0]['snippet'], $res['groups']['posts']['items'][0]['snippet'] ?? '' );
+list( $s, $around ) = mbcom_call( $se_a, 'GET', '/search/around' );
+mbcom_check( 'Look around counts members, courses, upcoming events and places', 200 === $s && $around['members'] > 0 && $around['events'] >= 1 && array_key_exists( 'courses', $around ), wp_json_encode( $around ) );
+mbcom_call( $se_a, 'DELETE', "/posts/{$se_post['id']}" );
+mbcom_call( $admin, 'DELETE', "/posts/{$se_ev['id']}" );
+
+mbcom_section( 'Stories V2' );
+$st_a = mbcom_user( 'mbct_st_amy' );
+$st_b = mbcom_user( 'mbct_st_bo' );
+list( $s, $sto ) = mbcom_call( $st_a, 'POST', '/stories', array( 'text' => 'In our colour', 'background' => 'community' ) );
+mbcom_check( 'a text story can use the community’s own colour', 201 === $s && 'community' === $sto['background'], (string) $s );
+list( , $sto2 ) = mbcom_call( $st_a, 'POST', '/stories', array( 'text' => 'Slate', 'background' => 'slate' ) );
+list( , $sto3 ) = mbcom_call( $st_a, 'POST', '/stories', array( 'text' => 'Odd', 'background' => 'plaid' ) );
+mbcom_check( '…and the new colours, while a made-up one falls back to the default', 'slate' === $sto2['background'] && 'grape' === $sto3['background'] );
+mbcom_call( $st_b, 'POST', "/stories/{$sto['id']}/view" );
+list( , $tray ) = mbcom_call( $st_a, 'GET', '/stories' );
+$mine = array_values( array_filter( $tray['groups'], fn( $g ) => $g['is_me'] ) )[0]['stories'] ?? array();
+$first = array_values( array_filter( $mine, fn( $x ) => $x['id'] === $sto['id'] ) )[0] ?? array();
+mbcom_check( 'your own story lists the faces of who saw it', array( $st_b ) === wp_list_pluck( $first['seen_faces'] ?? array(), 'id' ), wp_json_encode( $first['seen_faces'] ?? null ) );
+list( , $tray_b ) = mbcom_call( $st_b, 'GET', '/stories' );
+$theirs = array_values( array_filter( $tray_b['groups'], fn( $g ) => $g['author']['id'] === $st_a ) )[0]['stories'][0] ?? array();
+mbcom_check( '…and nobody else sees them', ! array_key_exists( 'seen_faces', $theirs ) );
+foreach ( array( $sto, $sto2, $sto3 ) as $x ) {
+	mbcom_call( $st_a, 'DELETE', "/stories/{$x['id']}" );
+}
+
+mbcom_section( 'How many levels' );
+$lv_user = mbcom_user( 'mbct_lv_amy' );
+$stats   = $wpdb->prefix . 'mbcom_member_stats';
+$wpdb->replace( $stats, array( 'user_id' => $lv_user, 'points' => 300, 'level' => 5, 'updated_at' => current_time( 'mysql', true ) ) );
+list( , $lvc ) = mbcom_call( $admin, 'POST', '/courses', array( 'title' => 'Level seven course' ) );
+mbcom_call( $admin, 'PUT', "/courses/{$lvc['id']}", array( 'access' => 'level', 'unlock_level' => 7 ) );
+list( , $got ) = mbcom_call( $admin, 'GET', '/settings' );
+mbcom_check( 'the form starts with the nine default levels and knows which courses unlock at a level', \MemBuild\Community\Points::LEVELS === $got['settings']['level_points'] && in_array( (int) $lvc['id'], array_column( $got['level_courses'], 'id' ), true ) && array( 0, 40, 200 ) === $got['suggested_levels'][3] );
+list( $s ) = mbcom_call( $admin, 'PUT', '/settings', array( 'level_points' => array( 0, 50, 40 ) ) );
+mbcom_check( 'levels that don’t go up are refused', 400 === $s, (string) $s );
+list( $s ) = mbcom_call( $admin, 'PUT', '/settings', array( 'level_points' => array( 5, 50, 400 ) ) );
+mbcom_check( '…and so is a first level above 0', 400 === $s, (string) $s );
+list( $s ) = mbcom_call( $admin, 'PUT', '/settings', array( 'level_points' => array( 0, 50 ) ) );
+mbcom_check( '…and fewer than 3 levels', 400 === $s, (string) $s );
+list( $s, $set ) = mbcom_call( $admin, 'PUT', '/settings', array( 'level_points' => array( 0, 10, 50, 150, 400 ) ) );
+mbcom_check( '5 levels saved', 200 === $s && array( 0, 10, 50, 150, 400 ) === \MemBuild\Community\Points::thresholds() && 5 === count( $set['config']['levelNames'] ), (string) $s );
+mbcom_check( '…a member keeps their points and their level is worked out again (300 pts: level 4)', array( 'points' => 300, 'level' => 4 ) === \MemBuild\Community\Points::stats_for( array( $lv_user ) )[ $lv_user ] );
+mbcom_check( '…a course that unlocked at level 7 now unlocks at the top level, 5', 5 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT unlock_level FROM %i WHERE id = %d', $wpdb->prefix . 'mbcom_courses', $lvc['id'] ) ) );
+mbcom_check( '…and a level for a new member comes from the new points', 5 === \MemBuild\Community\Points::level_for( 99999 ) && 2 === \MemBuild\Community\Points::level_for( 10 ) );
+list( $s ) = mbcom_call( $admin, 'PUT', "/courses/{$lvc['id']}", array( 'unlock_level' => 8 ) );
+mbcom_check( '…a course can’t be set above the top level', 5 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT unlock_level FROM %i WHERE id = %d', $wpdb->prefix . 'mbcom_courses', $lvc['id'] ) ) );
+list( , $set ) = mbcom_call( $admin, 'PUT', '/settings', array( 'level_points' => \MemBuild\Community\Points::LEVELS ) );
+mbcom_check( 'back to 9: the defaults are stored as “none set” and the member is level 5 again', array() === \MemBuild\Community\Settings::get( 'level_points' ) && 5 === \MemBuild\Community\Points::level_of( $lv_user ) && 9 === count( $set['config']['levelNames'] ) );
+mbcom_call( $admin, 'DELETE', "/courses/{$lvc['id']}" );
+$wpdb->delete( $stats, array( 'user_id' => $lv_user ) );
+
 mbcom_section( 'Places and Events together' );
 mbcom_call( $admin, 'PUT', '/settings', array( 'features' => array( 'places' => true ) ) );
 $pa  = mbcom_user( 'mbct_pe_ann' );
@@ -1826,6 +1979,109 @@ mbcom_check( '…a broken choice is ignored (owner view)', ! \MemBuild\Community
 unset( $_COOKIE['mbcom_as_member'] );
 wp_set_current_user( $admin );
 mbcom_check( 'back to your view: an admin again', \MemBuild\Community\Helpers::can_manage() && \MemBuild\Community\Settings::is_staff( $admin ) );
+
+mbcom_section( 'Muted chats, For you and Alerts' );
+mbcom_call( $ben, 'POST', "/messages/threads/{$tid}/messages", array( 'content' => 'Are you there?' ) );
+list( , $inb ) = mbcom_call( $ana, 'GET', '/messages/threads' );
+$row    = current( array_filter( $inb['items'], fn( $t ) => (int) $t['id'] === $tid ) );
+$before = (int) $inb['unread'];
+mbcom_check( 'a new message counts towards the Messages badge', $row && $row['unread'] > 0 && false === $row['muted'] && $before >= $row['unread'] );
+list( $s, $mu ) = mbcom_call( $ana, 'PUT', "/messages/threads/{$tid}/mute" );
+mbcom_check( 'a member can mute a chat, and it stops counting', 200 === $s && true === $mu['muted'] && $before - $row['unread'] === (int) $mu['unread'], wp_json_encode( $mu ) );
+list( , $inb ) = mbcom_call( $ana, 'GET', '/messages/threads' );
+$row = current( array_filter( $inb['items'], fn( $t ) => (int) $t['id'] === $tid ) );
+mbcom_check( '…it stays in the list, marked muted, with its own unread count', $row && true === $row['muted'] && $row['unread'] > 0 );
+list( , $pl ) = mbcom_call( $ana, 'GET', '/messages/pulse' );
+mbcom_check( '…and the live badge leaves it out too', (int) $pl['unread'] === (int) $mu['unread'] );
+$mbcom_mails = array();
+$wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->prefix}mbcom_messages SET created_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 15 MINUTE) WHERE thread_id = %d", $tid ) );
+$wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->prefix}mbcom_notifications SET read_at = UTC_TIMESTAMP() WHERE user_id = %d", $ana ) );
+delete_user_meta( $ana, 'mbcom_email_last' );
+delete_user_meta( $ana, 'mbcom_last_active' );
+\MemBuild\Community\Email::send_summary( $ana );
+$mute_mail = implode( ' ', array_map( fn( $m ) => $m['message'], array_filter( $mbcom_mails, fn( $m ) => 'mbct_ana@example.test' === $m['to'] ) ) );
+mbcom_check( '…and no email about a muted chat', false === strpos( $mute_mail, 'sent you' ), substr( wp_strip_all_tags( $mute_mail ), 0, 120 ) );
+list( $s ) = mbcom_call( $cy, 'PUT', "/messages/threads/{$tid}/mute" );
+mbcom_check( 'outsiders can’t mute someone else’s chat', in_array( $s, array( 403, 404 ), true ), (string) $s );
+list( $s, $um ) = mbcom_call( $ana, 'DELETE', "/messages/threads/{$tid}/mute" );
+mbcom_check( 'unmuting brings it back into the count', 200 === $s && false === $um['muted'] && $before === (int) $um['unread'], wp_json_encode( $um ) );
+$mbcom_mails = array();
+delete_user_meta( $ana, 'mbcom_email_last' );
+delete_user_meta( $ana, 'mbcom_last_active' );
+\MemBuild\Community\Email::send_summary( $ana );
+$mute_mail = implode( ' ', array_map( fn( $m ) => $m['message'], array_filter( $mbcom_mails, fn( $m ) => 'mbct_ana@example.test' === $m['to'] ) ) );
+mbcom_check( '…and into the emails', false !== strpos( $mute_mail, 'sent you' ) );
+update_user_meta( $ana, 'mbcom_muted_chats', array( '5 OR 1=1', -3, 'x' ) );
+mbcom_check( 'a broken mute list can’t change the SQL', ' AND m.thread_id NOT IN (5)' === \MemBuild\Community\Rest_Messages::not_muted_sql( $ana, 'm.thread_id' ) );
+delete_user_meta( $ana, 'mbcom_muted_chats' );
+
+list( , $grp ) = mbcom_call( $ana, 'POST', '/messages/threads', array( 'user_ids' => array( $ben, $cy ) ) );
+$gid = (int) ( $grp['id'] ?? 0 );
+list( $s, $rn ) = mbcom_call( $ben, 'PUT', "/messages/threads/{$gid}", array( 'title' => '  Launch crew  ' ) );
+mbcom_check( 'anyone in a group can rename it, and spaces around the name are dropped', 200 === $s && 'Launch crew' === $rn['title'], wp_json_encode( $rn['title'] ?? $rn ) );
+list( , $rn ) = mbcom_call( $ana, 'PUT', "/messages/threads/{$gid}", array( 'title' => str_repeat( 'é', 120 ) ) );
+mbcom_check( '…a very long name is cut to 80 characters', 80 === mb_strlen( (string) $rn['title'] ) );
+list( , $rn ) = mbcom_call( $ana, 'PUT', "/messages/threads/{$gid}", array( 'title' => '<b>Bold</b> crew' ) );
+mbcom_check( '…tags are stripped', 'Bold crew' === $rn['title'], (string) $rn['title'] );
+list( , $rn ) = mbcom_call( $ana, 'PUT', "/messages/threads/{$gid}", array( 'title' => '   ' ) );
+mbcom_check( '…and an empty name goes back to the members’ names', null === $rn['title'] );
+list( $s ) = mbcom_call( $ana, 'PUT', "/messages/threads/{$tid}", array( 'title' => 'Not a group' ) );
+mbcom_check( '…a one-to-one chat has no name to change', 400 === $s, (string) $s );
+
+mbcom_call( $admin, 'PUT', '/settings', array( 'features' => array( 'reels' => true ) ) );
+$mt = $wpdb->prefix . 'mbcom_media';
+$embed_row = function ( $user, $provider ) use ( $wpdb, $mt ) {
+	$wpdb->insert( $mt, array( 'user_id' => $user, 'kind' => 'embed', 'url' => 'https://www.youtube-nocookie.com/embed/abcdefghijk', 'mime' => 'embed/' . $provider, 'width' => 9, 'height' => 16, 'meta' => wp_json_encode( array( 'provider' => $provider, 'id' => 'abcdefghijk', 'title' => 'A short', 'author' => 'Someone', 'vertical' => true ) ), 'created_at' => current_time( 'mysql', true ) ) );
+	return (int) $wpdb->insert_id;
+};
+list( $s, $yt_reel ) = mbcom_call( $ana, 'POST', '/posts', array( 'type' => 'reel', 'content' => 'Worth a watch', 'media_ids' => array( $embed_row( $ana, 'youtube' ) ) ) );
+mbcom_check( 'a YouTube Short can be shared as a reel', 201 === $s && 'reel' === $yt_reel['type'] && 'embed' === $yt_reel['media'][0]['kind'], (string) $s );
+list( $s ) = mbcom_call( $ana, 'POST', '/posts', array( 'type' => 'reel', 'content' => 'Vimeo', 'media_ids' => array( $embed_row( $ana, 'vimeo' ) ) ) );
+mbcom_check( '…but not a Vimeo link (those go in a normal post)', 400 === $s, (string) $s );
+list( $s ) = mbcom_call( $ben, 'POST', '/posts', array( 'type' => 'reel', 'content' => 'Not mine', 'media_ids' => array( $embed_row( $ana, 'youtube' ) ) ) );
+mbcom_check( '…and nobody can post someone else’s link', 400 === $s, (string) $s );
+list( $s ) = mbcom_call( $ben, 'DELETE', "/posts/{$yt_reel['id']}" );
+mbcom_check( 'members can’t remove someone else’s reel', in_array( $s, array( 403, 404 ), true ), (string) $s );
+list( $s ) = mbcom_call( $admin, 'DELETE', "/posts/{$yt_reel['id']}" );
+mbcom_check( '…the owner can (Remove reel)', 200 === $s, (string) $s );
+$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE user_id = %d AND kind = %s AND post_id IS NULL', $mt, $ana, 'embed' ) );
+
+// The chat list: tabs and search answered by the server, pages that never skip a chat.
+$tm = $wpdb->prefix . 'mbcom_threads';
+$wpdb->query( $wpdb->prepare( "UPDATE {$tm} t JOIN {$wpdb->prefix}mbcom_thread_members m ON m.thread_id = t.id AND m.user_id = %d SET t.last_message_at = %s WHERE t.last_message_id > 0", $ana, gmdate( 'Y-m-d H:i:s', time() - 60 ) ) ); // the same time for all: only ids tell them apart
+list( , $all ) = mbcom_call( $ana, 'GET', '/messages/threads' );
+$seen_ids = array();
+$cursor   = array();
+do {
+	list( , $pg ) = mbcom_call( $ana, 'GET', '/messages/threads', $cursor );
+	$seen_ids     = array_merge( $seen_ids, array_column( $pg['items'], 'id' ) );
+	$last         = end( $pg['items'] );
+	$cursor       = $last ? array( 'before' => $last['last_at'], 'before_id' => $last['id'] ) : array();
+} while ( $pg['has_more'] && $last );
+$total_chats = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$tm} t JOIN {$wpdb->prefix}mbcom_thread_members m ON m.thread_id = t.id AND m.user_id = %d AND m.left_at IS NULL WHERE t.last_message_id > 0", $ana ) );
+mbcom_check( 'chat pages reach every chat once, even when they share a time', count( $seen_ids ) === $total_chats && count( array_unique( $seen_ids ) ) === $total_chats, count( $seen_ids ) . ' of ' . $total_chats );
+mbcom_call( $ben, 'POST', "/messages/threads/{$gid}/messages", array( 'content' => 'Hello group' ) );
+list( , $grp_only ) = mbcom_call( $ana, 'GET', '/messages/threads', array( 'filter' => 'groups' ) );
+mbcom_check( 'the Groups tab lists only groups', in_array( $gid, array_column( $grp_only['items'], 'id' ), true ) && ! array_filter( $grp_only['items'], fn( $t ) => 'group' !== $t['type'] ) );
+mbcom_call( $ben, 'POST', "/messages/threads/{$tid}/messages", array( 'content' => 'Unread tab test' ) );
+list( , $unr ) = mbcom_call( $ana, 'GET', '/messages/threads', array( 'filter' => 'unread' ) );
+mbcom_check( 'the Unread tab lists only chats with new messages', $unr['items'] && ! array_filter( $unr['items'], fn( $t ) => ! $t['unread'] ) && in_array( $tid, array_column( $unr['items'], 'id' ), true ) );
+$ben_name = get_userdata( $ben )->display_name;
+list( , $found ) = mbcom_call( $ana, 'GET', '/messages/threads', array( 'search' => mb_substr( $ben_name, 0, 4 ) ) );
+mbcom_check( 'chat search finds a chat by a member’s name', in_array( $tid, array_column( $found['items'], 'id' ), true ) );
+list( , $none ) = mbcom_call( $ana, 'GET', '/messages/threads', array( 'search' => "%' OR 1=1 --" ) );
+mbcom_check( '…and SQL-looking text finds nothing', array() === $none['items'] );
+
+list( $s, $fy ) = mbcom_call( $ana, 'GET', '/home/for-you' );
+mbcom_check( 'For you answers with an event, a course and new members (each may be empty)', 200 === $s && array_key_exists( 'event', $fy ) && array_key_exists( 'course', $fy ) && array_key_exists( 'members', $fy ) );
+mbcom_check( '…new members this week counts people who just joined, not you', $fy['members'] && $fy['members']['count'] >= 1 && ! in_array( $ana, array_column( $fy['members']['faces'], 'id' ), true ) && count( $fy['members']['faces'] ) <= 3 );
+list( $s ) = mbcom_call( 0, 'GET', '/home/for-you' );
+mbcom_check( '…and is only for members', in_array( $s, array( 401, 403 ), true ), (string) $s );
+
+mbcom_call( $ben, 'POST', "/posts/{$p3['id']}/comments", array( 'content' => 'One more for the alerts' ) );
+list( , $al ) = mbcom_call( $ana, 'GET', '/notifications' );
+$real = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_notifications WHERE user_id = %d AND read_at IS NULL", $ana ) );
+mbcom_check( 'Alerts tell the app how many are unread (for “Unread · 3”)', isset( $al['unread'] ) && $real === (int) $al['unread'] && $real > 0, wp_json_encode( array( $al['unread'] ?? null, $real ) ) );
 
 /* ---------------------------------------------------------------- */
 echo "\n{$GLOBALS['mbcom_passed']} passed, {$GLOBALS['mbcom_failed']} failed\n";

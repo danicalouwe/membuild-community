@@ -15,6 +15,15 @@ import { t } from '../lib/i18n.js'
  * saves as you go; it isn't part of the settings form.
  */
 const groups = ref([])
+// Which memberships are open: closed to start (just a name and count each), so a long list
+// stays short; with only one, it opens; a new one opens by itself.
+const open = ref(new Set())
+const isOpen = (g) => open.value.has(g.id)
+function toggleOpen(g) {
+  const next = new Set(open.value)
+  next.has(g.id) ? next.delete(g.id) : next.add(g.id)
+  open.value = next
+}
 const roles = ref([])
 const courses = ref([])
 const loaded = ref(false)
@@ -33,6 +42,7 @@ async function load() {
   await run(async () => {
     const res = await api.groups()
     groups.value = res.items.map(withForm)
+    if (groups.value.length === 1) open.value = new Set([groups.value[0].id])
     roles.value = res.roles
     courses.value = res.courses
   })
@@ -64,6 +74,7 @@ async function create() {
   busy.value = false
   if (group) {
     groups.value = [...groups.value, withForm(group)].sort((a, b) => a.name.localeCompare(b.name))
+    open.value = new Set([...open.value, group.id])
     creating.value = null
   }
 }
@@ -192,11 +203,15 @@ const removeLabel = (name) => t.sprintf(/* translators: %s: a name */ t.__('Remo
       <button class="btn btn-lg btn-primary" @click="creating = { name: '', courses: new Set() }"><Icon name="plus" :size="18" /> {{ t.__('New membership', 'membuild-community') }}</button>
     </div>
 
-    <section v-for="g in groups" :key="g.id" class="one">
+    <section v-for="g in groups" :key="g.id" class="one" :class="{ shut: !isOpen(g) }">
       <header class="one-head">
-        <h3>{{ g.name }} <span>{{ membersOf(g.total) }}</span></h3>
-        <button class="btn btn-lg btn-ghost" @click="renaming = { group: g, name: g.name }"><Icon name="pencil" :size="18" /> {{ t.__('Rename', 'membuild-community') }}</button>
+        <button type="button" class="opener" :aria-expanded="isOpen(g)" :aria-controls="`ms-${g.id}`" @click="toggleOpen(g)">
+          <Icon name="chevronDown" :size="20" class="chev" />
+          <h3>{{ g.name }} <span>{{ membersOf(g.total) }}</span></h3>
+        </button>
+        <button v-if="isOpen(g)" class="btn btn-lg btn-ghost" @click="renaming = { group: g, name: g.name }"><Icon name="pencil" :size="18" /> {{ t.__('Rename', 'membuild-community') }}</button>
       </header>
+      <div v-show="isOpen(g)" :id="`ms-${g.id}`" class="one-body">
 
       <div class="part">
         <span class="part-icon"><Icon name="cap" :size="18" /></span>
@@ -267,6 +282,7 @@ const removeLabel = (name) => t.sprintf(/* translators: %s: a name */ t.__('Remo
           <p>{{ t.__('Its courses stay. Members lose the courses only this membership opened.', 'membuild-community') }}</p>
         </div>
         <button class="btn btn-lg red-line" @click="deleting = g">{{ t.__('Delete…', 'membuild-community') }}</button>
+      </div>
       </div>
     </section>
 
@@ -445,6 +461,32 @@ h2 {
   justify-content: space-between;
   gap: 12px;
   padding-bottom: 14px;
+}
+
+.opener {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 52px;
+  margin: -6px 0;
+  color: var(--text);
+  text-align: left;
+}
+
+.chev {
+  flex: none;
+  color: var(--text-2);
+  transition: transform 0.2s ease;
+}
+
+.shut .chev {
+  transform: rotate(-90deg);
+}
+
+.shut .one-head {
+  padding-bottom: 0;
 }
 
 .one-head h3 {
@@ -639,7 +681,7 @@ h2 {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-top: 8px;
+  margin-top: 32px; /* well apart from the Get access button above */
   padding: 16px 18px;
   border: 1px solid var(--danger-line);
   border-radius: 12px;

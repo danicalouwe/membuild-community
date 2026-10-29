@@ -43,6 +43,41 @@ class Giphy {
 				'permission_callback' => fn() => Rest_Feed::logged_in() && (bool) self::config(),
 			)
 		);
+		// Settings › GIFs: does GIPHY take this key? (Working / Not working beside the field.)
+		register_rest_route(
+			MEMBUILD_COMMUNITY_REST_NS,
+			'/settings/gifs/check',
+			array(
+				'methods'             => 'POST',
+				'callback'            => array( __CLASS__, 'check' ),
+				'permission_callback' => fn() => is_user_logged_in() && Helpers::can_manage(),
+				'args'                => array( 'key' => array( 'type' => 'string', 'required' => true ) ),
+			)
+		);
+	}
+
+	/**
+	 * Asks GIPHY for one trending GIF with the key: 200 means it works, 401/403 that it
+	 * doesn't. Only the key goes to GIPHY. The answer is kept a day per key.
+	 */
+	public static function check( \WP_REST_Request $req ) {
+		$key = trim( (string) $req['key'] );
+		if ( ! preg_match( '/^[A-Za-z0-9]{20,64}$/', $key ) ) {
+			return array( 'working' => false );
+		}
+		$cache  = 'mbcom_giphy_ok_' . md5( $key );
+		$cached = get_transient( $cache );
+		if ( false !== $cached ) {
+			return array( 'working' => '1' === $cached );
+		}
+		$res  = wp_remote_get( add_query_arg( array( 'api_key' => rawurlencode( $key ), 'limit' => 1 ), 'https://api.giphy.com/v1/gifs/trending' ), array( 'timeout' => 6 ) );
+		$code = (int) wp_remote_retrieve_response_code( $res );
+		if ( ! $code ) {
+			return array( 'working' => null ); // GIPHY didn't answer: say nothing either way
+		}
+		$ok = 200 === $code;
+		set_transient( $cache, $ok ? '1' : '0', DAY_IN_SECONDS );
+		return array( 'working' => $ok );
 	}
 
 	/** { key, rating } for the app, or null while no key is set. */

@@ -2,12 +2,13 @@
 import { ref, watch } from 'vue'
 import { api } from '../../api.js'
 import { around, t } from '../../lib/i18n.js'
+import Icon from '../Icon.vue'
 import { useSettings } from './context.js'
 
 const DELIVERY = [
-  { key: 'default', label: t.__('Your server', 'membuild-community'), hint: t.__('Uses the mail your web host provides. Nothing to set up.', 'membuild-community') },
-  { key: 'resend', label: 'Resend', hint: t.__('Reliable delivery with just an API key. Free for small communities.', 'membuild-community') },
-  { key: 'smtp', label: t.__('Another email service (SMTP)', 'membuild-community'), hint: t.__('Any email service: Brevo, Postmark, SendGrid, Mailgun, Gmail…', 'membuild-community') },
+  { key: 'default', icon: 'server', label: t.__('Your web host', 'membuild-community'), hint: t.__('Nothing to set up.', 'membuild-community') },
+  { key: 'resend', icon: 'send', label: 'Resend', hint: t.__('Reliable, free for small communities.', 'membuild-community'), tag: t.__('Recommended', 'membuild-community') },
+  { key: 'smtp', icon: 'mail', label: t.__('Another service', 'membuild-community'), hint: t.__('Brevo, Postmark, SendGrid, Gmail…', 'membuild-community') },
 ]
 
 const { form, meta, dirty } = useSettings()
@@ -23,14 +24,14 @@ async function sendTest() {
   testResult.value = null
   try {
     const res = await api.testEmail()
-    testResult.value = { ok: true, message: t.sprintf(/* translators: %s: email address */ t.__('Sent to %s. Check your inbox (and spam folder).', 'membuild-community'), res.to) }
+    const at = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(new Date())
+    testResult.value = { ok: true, to: res.to, at }
   } catch (err) {
     testResult.value = { ok: false, message: err.message }
   } finally {
     testing.value = false
   }
 }
-const sendsTo = (address) => t.sprintf(/* translators: %s: email address */ t.__('Sends to %s.', 'membuild-community'), address)
 const goesThrough = (plugin) => t.sprintf(/* translators: %s: name of the SMTP plugin, e.g. "WP Mail SMTP" */ t.__('Emails will go through %s.', 'membuild-community'), plugin)
 </script>
 
@@ -40,12 +41,14 @@ const goesThrough = (plugin) => t.sprintf(/* translators: %s: name of the SMTP p
     <p class="intro">{{ t.__('Set this up before you invite members, so their password and sign-up emails arrive.', 'membuild-community') }}</p>
 
     <fieldset class="field">
-      <legend class="label">{{ t.__('Sending email', 'membuild-community') }}</legend>
-      <div class="delivery">
-        <label v-for="d in DELIVERY" :key="d.key" class="option" :class="{ on: form.email.mode === d.key }">
+      <legend class="label">{{ t.__('How emails are sent', 'membuild-community') }}</legend>
+      <div class="choices cols-3">
+        <label v-for="d in DELIVERY" :key="d.key" class="choice tile" :class="{ on: form.email.mode === d.key }">
           <input v-model="form.email.mode" type="radio" name="delivery" :value="d.key" />
+          <span class="tile-ic"><Icon :name="d.icon" :size="18" /></span><span class="mark" />
           <strong>{{ d.label }}</strong>
           <small>{{ d.hint }}</small>
+          <span v-if="d.tag" class="tag">{{ d.tag }}</span>
         </label>
       </div>
 
@@ -55,9 +58,8 @@ const goesThrough = (plugin) => t.sprintf(/* translators: %s: name of the SMTP p
           {{ t.__("It's already installed on this site, so delivery follows its settings.", 'membuild-community') }}
         </template>
         <template v-else>
-          <strong>{{ t.__('Delivery depends on your web host.', 'membuild-community') }}</strong>
-          {{ t.__('Many hosts send email slowly, limit how many go out per hour, or land in spam folders, especially on shared hosting.', 'membuild-community') }}
-          {{ t.__('For reliable delivery, connect Resend or another email service.', 'membuild-community') }}
+          <Icon name="alert" :size="16" /> <strong>{{ t.__('Web host email often lands in spam.', 'membuild-community') }}</strong>
+          {{ t.__('For emails members actually get, choose Resend or another service.', 'membuild-community') }}
         </template>
       </div>
 
@@ -112,11 +114,19 @@ const goesThrough = (plugin) => t.sprintf(/* translators: %s: name of the SMTP p
       </div>
 
       <div class="test-row">
-        <button type="button" class="btn" :disabled="testing || dirty" @click="sendTest">{{ testing ? t.__('Sending…', 'membuild-community') : t.__('Send test email', 'membuild-community') }}</button>
+        <button type="button" class="btn" :disabled="testing || dirty" @click="sendTest">{{ testing ? t.__('Sending…', 'membuild-community') : t.__('Send a test email', 'membuild-community') }}</button>
         <small v-if="dirty">{{ t.__('Save your changes first.', 'membuild-community') }}</small>
-        <small v-else-if="testResult" :class="testResult.ok ? 'ok' : 'err'">{{ testResult.message }}</small>
-        <small v-else>{{ sendsTo(meta.admin_email) }}</small>
+        <small v-else>{{ t.sprintf(/* translators: %s: email address */ t.__('Goes to %s.', 'membuild-community'), meta.admin_email) }}</small>
       </div>
+      <!-- What happened, in plain words: where it went, or why it didn't and the one fix. -->
+      <p v-if="testResult?.ok" class="result ok-box" role="status">
+        <Icon name="check" :size="18" />
+        <span><strong>{{ t.sprintf(/* translators: 1: email address, 2: a time */ t.__('Sent to %1$s at %2$s.', 'membuild-community'), testResult.to, testResult.at) }}</strong> {{ t.__('Check your inbox. If it isn’t there in a few minutes, look in spam; if it’s there, choose Resend above so members’ emails arrive.', 'membuild-community') }}</span>
+      </p>
+      <p v-else-if="testResult" class="result bad-box" role="alert">
+        <Icon name="alert" :size="18" />
+        <span><strong>{{ t.__('The email didn’t send.', 'membuild-community') }}</strong> {{ testResult.message }} <template v-if="form.email.mode === 'default'">{{ t.__('Choose Resend above (free for small communities, about 5 minutes to set up), then press Send a test email again.', 'membuild-community') }} <a href="https://resend.com/docs/introduction" target="_blank" rel="noopener">{{ t.__('How to set up Resend', 'membuild-community') }}</a></template></span>
+      </p>
     </fieldset>
 
     <label class="toggle-row">
@@ -128,3 +138,36 @@ const goesThrough = (plugin) => t.sprintf(/* translators: %s: name of the SMTP p
     </label>
   </section>
 </template>
+
+<style scoped>
+.result {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 14px 0 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.result :deep(svg) {
+  flex: none;
+  margin-top: 3px;
+}
+
+.ok-box {
+  background: var(--ok-soft);
+  color: var(--ok-text);
+}
+
+.bad-box {
+  background: var(--danger-soft, #fdecec);
+  color: var(--danger-text);
+}
+
+.bad-box a {
+  color: inherit;
+  font-weight: 700;
+}
+</style>

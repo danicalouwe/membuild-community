@@ -3,7 +3,7 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api.js'
 import { startAttachment } from '../lib/attachments.js'
-import { levelLabel } from '../config.js'
+import { cfg, levelLabel } from '../config.js'
 import BaseDialog from './BaseDialog.vue'
 import BuilderLessonEditor from './BuilderLessonEditor.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
@@ -457,7 +457,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
             <span>
               <strong>{{ t.__('Members who reach a level', 'membuild-community') }}</strong><small>{{ t.__('Rewards active members.', 'membuild-community') }}</small>
               <select v-if="course.access === 'level'" :value="Math.max(2, course.unlock_level)" :aria-label="t.__('Level needed', 'membuild-community')" @change="saveCourse({ unlock_level: Number($event.target.value) })">
-                <option v-for="n in 8" :key="n" :value="n + 1">{{ levelLabel(n + 1) }}</option>
+                <option v-for="n in (cfg.community.levelNames.length || 9) - 1" :key="n" :value="n + 1">{{ levelLabel(n + 1) }}</option>
               </select>
             </span>
           </label>

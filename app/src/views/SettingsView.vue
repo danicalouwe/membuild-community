@@ -1,7 +1,8 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
 import { askConfirm } from '../lib/confirm.js'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import Icon from '../components/Icon.vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import { api } from '../api.js'
 import { cfg } from '../config.js'
@@ -32,19 +33,47 @@ import { t } from '../lib/i18n.js'
 // In the order a new owner needs them: who you are, how people join, email
 // (so password emails arrive before you invite anyone), then the rest.
 const SECTIONS = [
-  { id: 'general', label: t.__('Your community', 'membuild-community'), component: GeneralSection },
-  { id: 'joining', label: t.__('Joining & signing in', 'membuild-community'), component: JoiningSection },
-  { id: 'email', label: t.__('Email', 'membuild-community'), component: EmailSection },
-  { id: 'features', label: t.__('Features', 'membuild-community'), component: FeaturesSection },
-  { id: 'permissions', label: t.__('Who can do what', 'membuild-community'), component: PermissionsSection },
-  { id: 'access', label: t.__('Memberships', 'membuild-community'), component: AccessSection, isolated: true },
-  { id: 'points', label: t.__('Points & levels', 'membuild-community'), component: PointsSection },
-  { id: 'video', label: t.__('Video', 'membuild-community'), component: VideoSection },
-  { id: 'gifs', label: t.__('GIFs', 'membuild-community'), component: GifsSection },
-  { id: 'updates', label: t.__('Updates & usage', 'membuild-community'), component: UpdatesSection },
-  { id: 'advanced', label: t.__('Advanced', 'membuild-community'), component: AdvancedSection },
+  { id: 'general', icon: 'home', label: t.__('Your community', 'membuild-community'), component: GeneralSection },
+  { id: 'joining', icon: 'key', label: t.__('Joining & signing in', 'membuild-community'), component: JoiningSection },
+  { id: 'email', icon: 'mail', label: t.__('Email', 'membuild-community'), component: EmailSection },
+  { id: 'features', icon: 'grid', label: t.__('Features', 'membuild-community'), component: FeaturesSection },
+  { id: 'permissions', icon: 'shield', label: t.__('Who can do what', 'membuild-community'), component: PermissionsSection },
+  { id: 'access', icon: 'lock', label: t.__('Memberships', 'membuild-community'), component: AccessSection, isolated: true },
+  { id: 'points', icon: 'trophy', label: t.__('Points & levels', 'membuild-community'), component: PointsSection },
+  { id: 'video', icon: 'video', label: t.__('Video', 'membuild-community'), component: VideoSection },
+  { id: 'gifs', icon: 'gif', label: t.__('GIFs', 'membuild-community'), component: GifsSection },
+  { id: 'updates', icon: 'bell', label: t.__('Updates & usage', 'membuild-community'), component: UpdatesSection },
+  { id: 'advanced', icon: 'settings', label: t.__('Advanced', 'membuild-community'), component: AdvancedSection },
 ]
+// Phones: Settings is a list of sections; each opens on its own page (?s=email).
+const phoneMq = window.matchMedia('(max-width: 767px)')
+const onPhone = ref(phoneMq.matches)
+phoneMq.addEventListener('change', (e) => (onPhone.value = e.matches))
+const router = useRouter()
+const openId = computed(() => (onPhone.value ? route.query.s || '' : ''))
+const shownSections = computed(() => (openId.value ? SECTIONS.filter((s) => s.id === openId.value) : SECTIONS))
+const openSection = (id) => router.push({ query: { s: id } })
+// What's inside each, in a few words, under its name in the phone list.
+const summary = (id) => {
+  const f = form.value
+  if (!f) return ''
+  const mods = (meta.value?.built_in_staff?.length || 0) + (f.moderators?.length || 0)
+  return {
+    general: t.__('Name, logo, colour, default look', 'membuild-community'),
+    joining: t.__('How people join, login page', 'membuild-community'),
+    email: [{ default: t.__('Your web host', 'membuild-community'), resend: 'Resend', smtp: t.__('Another service', 'membuild-community') }[f.email?.mode] || '', t.__('test email', 'membuild-community')].filter(Boolean).join(' · '),
+    features: t.__('Turn parts on and off', 'membuild-community'),
+    permissions: t.sprintf(/* translators: %d: number of moderators and admins */ t._n('%d moderator', '%d moderators', mods, 'membuild-community'), mods),
+    access: t.__('Who can open locked courses', 'membuild-community'),
+    points: t.__('Level names and points', 'membuild-community'),
+    video: f.video?.provider === 'bunny' ? 'Bunny Stream' : t.__('This site', 'membuild-community'),
+    gifs: f.gifs?.key ? t.__('Set up', 'membuild-community') : t.__('Not set up', 'membuild-community'),
+    updates: t.__('New features, usage', 'membuild-community'),
+    advanced: t.__('Address, safety key', 'membuild-community'),
+  }[id]
+}
 
+const route = useRoute()
 const meta = ref(null) // labels, presets and defaults from the server
 const form = ref(null)
 const saved = ref('')
@@ -63,7 +92,6 @@ function take(res) {
   saved.value = JSON.stringify(form.value)
 }
 
-const route = useRoute()
 onMounted(async () => {
   try {
     take(await api.settings())
@@ -120,16 +148,49 @@ function warnUnsaved(e) {
 }
 window.addEventListener('beforeunload', warnUnsaved)
 onBeforeUnmount(() => window.removeEventListener('beforeunload', warnUnsaved))
-onBeforeRouteLeave(async () => !dirty.value || (await askConfirm({ title: t.__('Leave without saving your changes?', 'membuild-community'), confirm: t.__('Leave without saving', 'membuild-community'), cancel: t.__('Stay here', 'membuild-community'), danger: true })))
+onBeforeRouteLeave(async () => !dirty.value || (await askConfirm({ title: t.__('Leave without saving?', 'membuild-community'), text: t.__('You changed some settings. If you leave now, those changes are lost.', 'membuild-community'), confirm: t.__('Discard changes', 'membuild-community'), cancel: t.__('Keep editing', 'membuild-community'), safe: true })))
 
 const scrollTo = (id) => document.getElementById(`s-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+// The side list marks the section you're looking at.
+const current = ref('general')
+let spy = null
+watch(form, (f, old) => {
+  if (!f || old) return
+  nextTick(() => {
+    spy = new IntersectionObserver((entries) => {
+      const seen = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0]
+      if (seen) current.value = seen.target.id.replace('s-', '')
+    }, { rootMargin: '-20% 0px -70% 0px' })
+    SECTIONS.forEach((s) => { const el = document.getElementById(`s-${s.id}`); if (el) spy.observe(el) })
+  })
+})
+onBeforeUnmount(() => spy?.disconnect())
 </script>
 
 <template>
-  <div class="settings">
+  <!-- Phones: the list of sections. -->
+  <div v-if="onPhone && !openId" class="phone-list page-in">
+    <h1>{{ t.__('Community settings', 'membuild-community') }}</h1>
+    <p class="phone-intro">{{ t.__('Changes here affect the whole community.', 'membuild-community') }}</p>
+    <div v-if="!form" class="phone-rows" aria-hidden="true"><div v-for="n in 8" :key="n" class="phone-row"><span class="skeleton" style="width: 40px; height: 40px; border-radius: 12px" /><span style="flex: 1"><span class="skeleton" style="display: block; width: 50%; height: 16px" /><span class="skeleton" style="display: block; width: 70%; height: 12px; margin-top: 8px" /></span></div></div>
+    <nav v-else class="phone-rows">
+      <button v-for="s in SECTIONS" :key="s.id" class="phone-row" @click="openSection(s.id)">
+        <span class="ic"><Icon :name="s.icon" :size="20" /></span>
+        <span class="txt"><strong>{{ s.label }}</strong><small>{{ summary(s.id) }}</small></span>
+        <Icon name="chevronRight" :size="20" />
+      </button>
+    </nav>
+  </div>
+
+  <div v-else class="settings" :class="{ 'one-section': openId }">
+    <!-- Phones, one section: ‹ Settings, then its name. -->
+    <div v-if="openId" class="phone-head">
+      <button class="back" @click="router.push({ query: {} })"><Icon name="chevronLeft" :size="18" /> {{ t.__('Settings', 'membuild-community') }}</button>
+      <h1>{{ SECTIONS.find((s) => s.id === openId)?.label }}</h1>
+    </div>
     <aside class="nav">
       <h1>{{ t.__('Settings', 'membuild-community') }}</h1>
-      <button v-for="s in SECTIONS" :key="s.id" @click="scrollTo(s.id)">{{ s.label }}</button>
+      <button v-for="s in SECTIONS" :key="s.id" :class="{ on: current === s.id }" @click="scrollTo(s.id)">{{ s.label }}</button>
     </aside>
 
     <div class="body">
@@ -138,23 +199,24 @@ const scrollTo = (id) => document.getElementById(`s-${id}`)?.scrollIntoView({ be
 
       <template v-else>
         <!-- display: contents, so each section still sits directly in the column. -->
-        <div v-for="s in SECTIONS" :key="s.id" class="slot" :class="{ styled: !s.isolated }">
+        <div v-for="s in shownSections" :key="s.id" class="slot" :class="{ styled: !s.isolated }">
           <component :is="s.component" />
         </div>
-        <p class="credit">MemBuild - Community · {{ t.__('Built by', 'membuild-community') }} <a href="https://membuild.com/community" target="_blank" rel="noopener">MemBuild</a></p>
+        <p v-if="!openId" class="credit">MemBuild - Community · {{ t.__('Built by', 'membuild-community') }} <a href="https://membuild.com/community" target="_blank" rel="noopener">MemBuild</a></p>
       </template>
     </div>
 
-    <div v-if="dirty || error || notice" class="savebar card" :class="{ ok: notice && !dirty }">
+  </div>
+
+  <div v-if="dirty || error || notice" class="savebar card" :class="{ ok: notice && !dirty, solo: openId, listed: onPhone && !openId }">
       <span v-if="error" class="err">{{ error }}</span>
       <span v-else-if="notice && !dirty">{{ notice }}</span>
-      <span v-else>{{ t.__('You have unsaved changes.', 'membuild-community') }}</span>
+      <span v-else class="unsaved">{{ onPhone ? t.__('Unsaved changes', 'membuild-community') : t.__('You have unsaved changes', 'membuild-community') }}</span>
       <template v-if="dirty">
         <button class="btn" :disabled="saving" @click="discard">{{ t.__('Discard', 'membuild-community') }}</button>
-        <button class="btn btn-primary" :disabled="saving || logoUpload?.status === 'working'" @click="save">{{ saving ? t.__('Saving…', 'membuild-community') : t.__('Save changes', 'membuild-community') }}</button>
+        <button class="btn btn-primary" :disabled="saving || logoUpload?.status === 'working'" @click="save">{{ saving ? t.__('Saving…', 'membuild-community') : onPhone ? t.__('Save', 'membuild-community') : t.__('Save changes', 'membuild-community') }}</button>
       </template>
     </div>
-  </div>
 </template>
 
 <style scoped>
@@ -164,12 +226,12 @@ const scrollTo = (id) => document.getElementById(`s-${id}`)?.scrollIntoView({ be
 }
 
 .settings {
-  max-width: 980px;
-  margin: 16px auto 0;
-  padding: 0 16px 96px;
+  max-width: 1040px;
+  margin: 24px auto 0;
+  padding: 0 16px 120px;
   display: grid;
   grid-template-columns: 200px 1fr;
-  gap: 20px;
+  gap: 24px;
   align-items: start;
 }
 
@@ -182,14 +244,15 @@ const scrollTo = (id) => document.getElementById(`s-${id}`)?.scrollIntoView({ be
 }
 
 .nav h1 {
-  margin: 0 0 10px 10px;
-  font-size: 24px;
+  margin: 0 0 14px 12px;
+  font-size: 26px;
 }
 
 .nav button {
-  padding: 9px 12px;
+  padding: 10px 12px;
   border-radius: 10px;
   text-align: left;
+  font-size: 15px;
   font-weight: 600;
   color: var(--text-2);
 }
@@ -197,6 +260,12 @@ const scrollTo = (id) => document.getElementById(`s-${id}`)?.scrollIntoView({ be
 .nav button:hover {
   background: var(--surface-2);
   color: var(--text);
+}
+
+/* The section in view. */
+.nav button.on {
+  background: var(--accent-soft);
+  color: var(--accent-text);
 }
 
 .body {
@@ -213,23 +282,183 @@ const scrollTo = (id) => document.getElementById(`s-${id}`)?.scrollIntoView({ be
 }
 
 .styled :deep(.group) {
-  padding: 20px 22px;
+  padding: 28px 30px;
+  border-radius: 18px;
   scroll-margin-top: calc(var(--header-h) + 16px);
 }
 
 .styled :deep(.group h2) {
-  margin: 0 0 14px;
-  font-size: 19px;
+  margin: 0 0 6px;
+  font-size: 22px;
 }
 
 .styled :deep(.group h3) {
-  margin: 22px 0 10px;
-  font-size: 16px;
+  margin: 26px 0 12px;
+  font-size: 17px;
 }
 
 .styled :deep(.intro) {
-  margin: -6px 0 14px;
+  margin: 0 0 22px;
   color: var(--text-2);
+  font-size: 15px;
+}
+
+/* A thin line between parts of a section. */
+.styled :deep(.rule) {
+  height: 1px;
+  margin: 24px 0;
+  border: 0;
+  background: var(--border);
+}
+
+/* A grey box that holds what goes with the choice above it. */
+.styled :deep(.sub) {
+  margin: 14px 0 0;
+  padding: 20px;
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+
+.styled :deep(.sub .field:last-child) {
+  margin-bottom: 0;
+}
+
+.styled :deep(.sub input:not([type='radio']):not([type='checkbox'])),
+.styled :deep(.sub textarea),
+.styled :deep(.sub select) {
+  background: var(--surface);
+}
+
+/* Choice cards: a round mark, a title and a line under it. Picked: the main colour's soft fill. */
+.styled :deep(.choices) {
+  display: grid;
+  gap: 10px;
+}
+
+.styled :deep(.choices.cols-2) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.styled :deep(.choices.cols-3) {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.styled :deep(.choices.cols-4) {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.styled :deep(.choice) {
+  position: relative;
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  align-items: start;
+  gap: 4px 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.styled :deep(.choice input) {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.styled :deep(.choice .mark) {
+  grid-row: span 2;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  border: 2px solid var(--border-strong);
+  border-radius: 50%;
+}
+
+.styled :deep(.choice strong) {
+  font-size: 16px;
+}
+
+.styled :deep(.choice small) {
+  grid-column: 2;
+  color: var(--text-2);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.styled :deep(.choice.on) {
+  border: 2px solid var(--accent);
+  padding: 15px 17px;
+  background: var(--accent-soft);
+}
+
+.styled :deep(.choice.on .mark) {
+  border-color: var(--text);
+  background: radial-gradient(circle, var(--surface) 0 28%, var(--text) 31%);
+}
+
+.styled :deep(.choice:has(input:focus-visible)) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.styled :deep(.tag) {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 12px;
+  font-weight: 700;
+  vertical-align: 2px;
+}
+
+/* Tiles: an icon square at the top, the mark at the top right (Email, Who can do what). */
+.styled :deep(.choice.tile) {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+}
+
+.styled :deep(.choice.tile.on) {
+  padding: 15px;
+}
+
+.styled :deep(.tile-ic) {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.styled :deep(.choice.tile .mark) {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
+.styled :deep(.choice.tile .tag) {
+  align-self: flex-start;
+  margin: 8px 0 0;
+}
+
+.styled :deep(.choice.tile.on) {
+  border-color: var(--text);
+  background: var(--surface);
+}
+
+.styled :deep(.choice.tile.on .mark) {
+  border-color: var(--text);
+  background: var(--text) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 12px no-repeat;
+}
+
+.styled :deep(.choice.on .tag) {
+  background: var(--surface);
 }
 
 .styled :deep(.field) {
@@ -247,13 +476,21 @@ const scrollTo = (id) => document.getElementById(`s-${id}`)?.scrollIntoView({ be
 }
 
 .styled :deep(.label) {
-  font-weight: 650;
+  font-size: 16px;
+  font-weight: 700;
   padding: 0;
 }
 
+.styled :deep(.label em) {
+  color: var(--text-2);
+  font-style: normal;
+  font-weight: 400;
+}
+
 .styled :deep(small) {
-  color: var(--text-3);
-  font-size: 13px;
+  color: var(--text-2);
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 .styled :deep(input[type='text']),
@@ -261,12 +498,14 @@ const scrollTo = (id) => document.getElementById(`s-${id}`)?.scrollIntoView({ be
 .styled :deep(input[type='number']),
 .styled :deep(textarea) {
   width: 100%;
-  padding: 9px 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  min-height: 48px;
+  padding: 11px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
   background: var(--surface);
   color: var(--text);
   font: inherit;
+  font-size: 16px;
 }
 
 .styled :deep(textarea) {
@@ -325,10 +564,17 @@ const scrollTo = (id) => document.getElementById(`s-${id}`)?.scrollIntoView({ be
 
 .btn,
 .styled :deep(.btn) {
-  padding: 8px 14px;
-  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: 999px;
   background: var(--surface-2);
-  font-weight: 650;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 700;
 }
 
 /* The grey above would otherwise win over the shared primary style, leaving dark text on grey. */
@@ -441,10 +687,14 @@ const scrollTo = (id) => document.getElementById(`s-${id}`)?.scrollIntoView({ be
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 12px 0;
+  gap: 20px;
+  padding: 16px 0;
   border-top: 1px solid var(--border);
   cursor: pointer;
+}
+
+.styled :deep(.toggle-row strong) {
+  font-size: 16px;
 }
 
 .styled :deep(.toggle-row span) {
@@ -457,8 +707,8 @@ const scrollTo = (id) => document.getElementById(`s-${id}`)?.scrollIntoView({ be
   appearance: none;
   flex: none;
   position: relative;
-  width: 44px;
-  height: 26px;
+  width: 52px;
+  height: 30px;
   border-radius: 999px;
   background: var(--border);
   cursor: pointer;
@@ -470,8 +720,8 @@ const scrollTo = (id) => document.getElementById(`s-${id}`)?.scrollIntoView({ be
   position: absolute;
   top: 3px;
   left: 3px;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 1px 3px rgb(0 0 0 / 25%);
@@ -483,7 +733,7 @@ const scrollTo = (id) => document.getElementById(`s-${id}`)?.scrollIntoView({ be
 }
 
 .styled :deep(.switch:checked::after) {
-  transform: translateX(18px);
+  transform: translateX(22px);
 }
 
 .styled :deep(.switch:focus-visible) {
@@ -584,6 +834,13 @@ const scrollTo = (id) => document.getElementById(`s-${id}`)?.scrollIntoView({ be
 .styled :deep(.rules td:not(:first-child)),
 .styled :deep(.rules th:not(:first-child)) {
   width: 110px;
+  text-align: center;
+}
+
+.styled :deep(.rules td) {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  font-size: 15px;
 }
 
 .styled :deep(.note) {
@@ -601,7 +858,7 @@ const scrollTo = (id) => document.getElementById(`s-${id}`)?.scrollIntoView({ be
 
 .styled :deep(.levels li) {
   display: grid;
-  grid-template-columns: 34px 1fr 120px;
+  grid-template-columns: 34px 1fr 84px;
   align-items: center;
   gap: 10px;
 }
@@ -612,8 +869,8 @@ const scrollTo = (id) => document.getElementById(`s-${id}`)?.scrollIntoView({ be
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: var(--accent-soft);
-  color: var(--accent-text);
+  background: var(--accent);
+  color: var(--accent-ink);
   font-weight: 800;
 }
 
@@ -630,14 +887,29 @@ const scrollTo = (id) => document.getElementById(`s-${id}`)?.scrollIntoView({ be
   display: flex;
   align-items: center;
   gap: 10px;
-  width: min(620px, calc(100% - 32px));
-  padding: 10px 12px 10px 18px;
+  width: min(680px, calc(100% - 32px));
+  padding: 10px 12px 10px 20px;
+  border-radius: 18px;
   box-shadow: 0 12px 28px rgb(0 0 0 / 18%);
+  animation: rise-in 0.22s ease-out;
 }
 
 .savebar > span {
   flex: 1;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+/* "You have unsaved changes" gets a small orange dot. */
+.savebar > span.unsaved::before {
+  content: '';
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 10px;
+  border-radius: 50%;
+  background: #f59e0b;
+  vertical-align: 1px;
 }
 
 .savebar.ok > span {
@@ -690,6 +962,10 @@ const scrollTo = (id) => document.getElementById(`s-${id}`)?.scrollIntoView({ be
   color: #6b4700;
 }
 
+.styled :deep(.callout svg) {
+  vertical-align: -3px;
+}
+
 .styled :deep(.callout.info) {
   background: var(--accent-soft);
   color: var(--text);
@@ -728,12 +1004,14 @@ const scrollTo = (id) => document.getElementById(`s-${id}`)?.scrollIntoView({ be
 .styled :deep(input[type='url']),
 .styled :deep(input[type='password']) {
   width: 100%;
-  padding: 9px 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  min-height: 48px;
+  padding: 11px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
   background: var(--surface);
   color: var(--text);
   font: inherit;
+  font-size: 16px;
 }
 
 .styled :deep(.test-row) {
@@ -754,7 +1032,114 @@ const scrollTo = (id) => document.getElementById(`s-${id}`)?.scrollIntoView({ be
   }
 }
 
+/* Phones: the list of sections, and one section on its own page. */
+.phone-list {
+  padding: 16px 0 24px;
+}
+
+.phone-list h1 {
+  margin: 0 16px 4px;
+  font-size: 28px;
+}
+
+.phone-intro {
+  margin: 0 16px 14px;
+  color: var(--text-2);
+  font-size: 16px;
+}
+
+.phone-rows {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--border);
+}
+
+.phone-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 66px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+}
+
+.phone-row .ic {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.phone-row .txt {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.phone-row strong {
+  font-size: 17px;
+}
+
+.phone-row small {
+  color: var(--text-2);
+  font-size: 14px;
+}
+
+.phone-head {
+  display: none;
+}
+
 @media (max-width: 767px) {
+  .one-section .nav {
+    display: none;
+  }
+
+  .phone-head {
+    display: block;
+    padding: 0 16px 12px;
+  }
+
+  .phone-head .back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 52px;
+    color: var(--text);
+    font-size: 17px;
+    font-weight: 700;
+  }
+
+  .phone-head h1 {
+    margin: 0;
+    font-size: 28px;
+  }
+
+  /* The page's own title stands in for the section's. */
+  .one-section .styled :deep(.group:not(.danger-card) > h2) {
+    display: none;
+  }
+
+  .one-section .styled :deep(.group > .intro:first-of-type) {
+    margin-top: 0;
+  }
+
+  /* The save bar sits where the bottom bar was. */
+  .savebar {
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    transform: none;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    border-radius: 0;
+  }
+
   .styled :deep(.delivery),
   .styled :deep(.delivery.two),
   .styled :deep(.grid2) {
@@ -794,8 +1179,17 @@ const scrollTo = (id) => document.getElementById(`s-${id}`)?.scrollIntoView({ be
     text-align: left;
   }
 
-  .savebar {
-    bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 10px);
+  .savebar.listed {
+    bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+  }
+
+  .styled :deep(.choices.cols-2),
+  .styled :deep(.choices.cols-3) {
+    grid-template-columns: 1fr;
+  }
+
+  .styled :deep(.choices.cols-4) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 .credit {

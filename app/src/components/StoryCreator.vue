@@ -5,28 +5,31 @@ import { api } from '../api.js'
 import { loadStories } from '../stores/stories.js'
 import { pointsMayHaveChanged } from '../stores/me.js'
 import { startAttachment } from '../lib/attachments.js'
-import { BACKGROUNDS } from '../lib/postStyle.js'
+import { STORY_BACKGROUNDS, storyBg } from '../lib/postStyle.js'
+import { cfg } from '../config.js'
+import Avatar from './Avatar.vue'
 import Icon from './Icon.vue'
 import { t } from '../lib/i18n.js'
 import { useDialog } from '../lib/useDialog.js'
 
-// Create a story: a photo or short video (with an optional caption), or text
-// on a colored background. Stories disappear after 24 hours.
+// Create a story, full screen like Facebook: your name and the editor on the left,
+// a live Preview on the right. A photo or short video (with an optional caption), or
+// text on a coloured background (the community's colour first). Gone after 24 hours.
 const props = defineProps({ file: { type: Object, default: null } })
 const emit = defineEmits(['close'])
 
 const mode = ref(props.file ? 'media' : 'choose') // choose | media | text
 const item = ref(null)
 const text = ref('')
-const background = ref('grape')
+const background = ref('community')
 const sharing = ref(false)
 const error = ref('')
 const fileInput = ref(null)
 const textInput = ref(null)
 
-const canShare = computed(() =>
-  mode.value === 'text' ? !!text.value.trim() : item.value && item.value.status !== 'error',
-)
+// A photo or video can be shared once it has finished uploading.
+const canShare = computed(() => (mode.value === 'text' ? !!text.value.trim() : item.value?.status === 'done'))
+const isVideo = computed(() => item.value?.kind === 'video')
 
 function useFile(file) {
   if (!file || !/^(image|video)\//.test(file.type)) return
@@ -46,7 +49,7 @@ function startText() {
 }
 
 async function close() {
-  if ((text.value.trim() || item.value) && !(await askConfirm({ title: t.__('Discard this story?', 'membuild-community'), confirm: t.__('Discard', 'membuild-community'), cancel: t.__('Keep editing', 'membuild-community'), danger: true }))) return
+  if ((text.value.trim() || item.value) && !(await askConfirm({ title: t.__('Discard this story?', 'membuild-community'), text: t.__('What you’ve written won’t be saved.', 'membuild-community'), confirm: t.__('Discard', 'membuild-community'), cancel: t.__('Keep editing', 'membuild-community'), danger: true }))) return
   item.value?.cancel()
   emit('close')
 }
@@ -83,376 +86,532 @@ onMounted(() => {
 
 <template>
   <Teleport to="body">
-    <div class="backdrop" @mousedown.self="close">
-      <div ref="panel" class="dialog" role="dialog" aria-modal="true" :aria-label="t.__('Create story', 'membuild-community')">
-        <header class="top">
-          <button v-if="mode !== 'choose' && !props.file" class="round back" :aria-label="t.__('Back', 'membuild-community')" @click="mode = 'choose'"><Icon name="chevronLeft" :size="22" /></button>
-          <h2>{{ t.__('Create story', 'membuild-community') }}</h2>
-          <button class="round" :aria-label="t.__('Close', 'membuild-community')" @click="close"><Icon name="close" :size="22" /></button>
-        </header>
+    <div ref="panel" class="creator" role="dialog" aria-modal="true" :aria-label="t.__('Create story', 'membuild-community')">
+      <!-- Left: who's posting, the editor, then Discard and Share -->
+      <aside class="left">
+        <button class="round" :aria-label="t.__('Close', 'membuild-community')" @click="close"><Icon name="close" :size="22" /></button>
+        <div class="me">
+          <Avatar :user="cfg.user" :size="64" />
+          <span><strong>{{ t.__('Your story', 'membuild-community') }}</strong><small>{{ cfg.user.name }}</small></span>
+        </div>
 
-        <!-- Choose a type -->
-        <div v-if="mode === 'choose'" class="choose">
-          <button class="option photo" @click="fileInput.click()">
-            <span class="o-icon"><Icon name="image" :size="28" /></span>
-            {{ t.__('Create a photo or video story', 'membuild-community') }}
+        <div class="editor">
+          <template v-if="mode === 'text'">
+            <label class="label" for="story-text">{{ t.__('Your text', 'membuild-community') }}</label>
+            <textarea id="story-text" ref="textInput" v-model="text" v-auto-grow maxlength="250" rows="4" :placeholder="t.__('Start typing', 'membuild-community')" />
+            <span class="label">{{ t.__('Background', 'membuild-community') }}</span>
+            <div class="swatches" role="radiogroup" :aria-label="t.__('Background', 'membuild-community')">
+              <button
+                v-for="(key, i) in STORY_BACKGROUNDS"
+                :key="key"
+                type="button"
+                class="swatch"
+                :class="{ on: background === key }"
+                :style="{ background: storyBg(key).background }"
+                role="radio"
+                :aria-checked="background === key"
+                :aria-label="i === 0 ? t.__('Your community’s colour', 'membuild-community') : t.sprintf(t.__('Colour %d', 'membuild-community'), i + 1)"
+                @click="background = key"
+              />
+            </div>
+            <small class="note">{{ t.__('The first one is your community’s colour.', 'membuild-community') }}</small>
+          </template>
+
+          <template v-else-if="mode === 'media'">
+            <label class="label" for="story-caption">{{ t.__('Caption', 'membuild-community') }} <em>{{ t.__('(optional)', 'membuild-community') }}</em></label>
+            <input id="story-caption" v-model="text" maxlength="250" :placeholder="t.__('Add text to your story', 'membuild-community')" />
+            <div v-if="item?.status === 'working'" class="upload">
+              <span><strong>{{ t.__('Uploading…', 'membuild-community') }}</strong><b>{{ Math.round(item.progress * 100) }}%</b></span>
+              <i><i :style="{ transform: `scaleX(${item.progress})` }" /></i>
+            </div>
+            <p v-if="item?.status === 'error'" class="error">{{ item.error }}</p>
+            <button type="button" class="btn-grey" @click="fileInput.click()"><Icon name="image" :size="18" /> {{ isVideo ? t.__('Choose a different video', 'membuild-community') : t.__('Choose a different photo', 'membuild-community') }}</button>
+          </template>
+
+          <p class="stays"><Icon name="clock" :size="18" /> {{ mode === 'choose' ? t.__('Stays up for 24 hours, then disappears. Every member can see it.', 'membuild-community') : t.__('Stays up for 24 hours.', 'membuild-community') }}</p>
+          <p v-if="error" class="error">{{ error }}</p>
+        </div>
+
+        <footer v-if="mode !== 'choose'" class="actions">
+          <button type="button" class="btn-grey" @click="close">{{ t.__('Discard', 'membuild-community') }}</button>
+          <button type="button" class="btn-share" :disabled="!canShare || sharing" @click="share">{{ sharing ? t.__('Sharing…', 'membuild-community') : t.__('Share to story', 'membuild-community') }}</button>
+        </footer>
+      </aside>
+
+      <!-- Right: the two choices, then a live Preview -->
+      <main class="right">
+        <div v-if="mode === 'choose'" class="choices">
+          <button type="button" class="pick photo" @click="fileInput.click()">
+            <span class="p-icon"><Icon name="image" :size="26" /></span>
+            <span class="p-text"><strong>{{ t.__('Photo or video', 'membuild-community') }}</strong><small>{{ t.__('From your phone or computer', 'membuild-community') }}</small></span>
           </button>
-          <button class="option text" @click="startText">
-            <span class="o-icon">Aa</span>
-            {{ t.__('Create a text story', 'membuild-community') }}
+          <button type="button" class="pick words" @click="startText">
+            <span class="p-icon t">T</span>
+            <span class="p-text"><strong>{{ t.__('Write something', 'membuild-community') }}</strong><small>{{ t.__('Words on a coloured background', 'membuild-community') }}</small></span>
           </button>
         </div>
 
-        <!-- Preview -->
-        <div v-else class="compose">
-          <div class="preview" :style="mode === 'text' ? { background: BACKGROUNDS[background] } : null">
-            <template v-if="mode === 'media' && item">
-              <img v-if="item.kind === 'image'" :src="item.previewUrl" alt="" />
-              <video v-else :src="item.previewUrl" muted playsinline autoplay loop />
-              <p v-if="text.trim()" class="caption">{{ text }}</p>
-              <div v-if="item.status === 'working'" class="progress">
-                {{ item.stage }} {{ Math.round(item.progress * 100) }}%
-                <i :style="{ transform: `scaleX(${item.progress})` }" />
-              </div>
-            </template>
-            <textarea
-              v-else
-              v-auto-grow
-              ref="textInput"
-              v-model="text"
-              class="text-input"
-              maxlength="250"
-              rows="4"
-              :placeholder="t.__('Start typing', 'membuild-community')"
-              :aria-label="t.__('Story text', 'membuild-community')"
-            />
+        <section v-else class="preview-card">
+          <h2>{{ t.__('Preview', 'membuild-community') }}</h2>
+          <div class="stage">
+            <div class="story" :style="mode === 'text' ? storyBg(background) : null">
+              <template v-if="mode === 'media' && item">
+                <img v-if="item.kind === 'image'" :src="item.previewUrl" alt="" />
+                <video v-else :src="item.previewUrl" muted playsinline autoplay loop />
+                <p v-if="text.trim()" class="caption">{{ text }}</p>
+              </template>
+              <p v-else-if="mode === 'text'" class="words-preview" :class="{ empty: !text.trim() }">{{ text.trim() || t.__('Start typing', 'membuild-community') }}</p>
+            </div>
           </div>
+        </section>
+      </main>
 
-          <div class="side">
-            <template v-if="mode === 'text'">
-              <span class="label">{{ t.__('Background', 'membuild-community') }}</span>
-              <div class="swatches" role="radiogroup" :aria-label="t.__('Background', 'membuild-community')">
-                <button
-                  v-for="(css, key) in BACKGROUNDS"
-                  :key="key"
-                  class="swatch"
-                  :class="{ on: background === key }"
-                  :style="{ background: css }"
-                  role="radio"
-                  :aria-checked="background === key"
-                  :aria-label="key"
-                  @click="background = key"
-                />
-              </div>
-            </template>
-            <template v-else>
-              <label class="label" for="story-caption">{{ t.__('Caption (optional)', 'membuild-community') }}</label>
-              <input id="story-caption" v-model="text" class="caption-input" maxlength="250" :placeholder="t.__('Add text to your story', 'membuild-community')" />
-              <button class="btn btn-ghost" @click="fileInput.click()"><Icon name="image" :size="18" /> {{ t.__('Choose another', 'membuild-community') }}</button>
-              <p v-if="item?.status === 'error'" class="error">{{ item.error }}</p>
-            </template>
-            <p class="hint">{{ t.__('Your story is visible to community members for 24 hours.', 'membuild-community') }}</p>
-            <p v-if="error" class="error">{{ error }}</p>
-            <button class="share" :disabled="!canShare || sharing" @click="share">
-              {{ sharing ? (item?.status === 'working' ? t.__('Finishing upload…', 'membuild-community') : t.__('Sharing…', 'membuild-community')) : t.__('Share to story', 'membuild-community') }}
-            </button>
-          </div>
-        </div>
-
-        <input ref="fileInput" class="sr-only" type="file" accept="image/*,video/*" @change="picked" />
-      </div>
+      <input ref="fileInput" class="sr-only" type="file" accept="image/*,video/*" @change="picked" />
     </div>
   </Teleport>
 </template>
 
 <style scoped>
-.backdrop {
+.creator {
   position: fixed;
   inset: 0;
   z-index: 95;
   display: grid;
-  place-items: center;
-  padding: 24px;
-  background: rgb(10 11 13 / 72%);
-}
-
-.dialog {
-  width: min(720px, 100%);
-  max-height: calc(100dvh - 48px);
-  overflow-y: auto;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgb(0 0 0 / 40%);
-}
-
-.top {
-  position: relative;
-  display: grid;
-  place-items: center;
-  height: 60px;
-  border-bottom: 1px solid var(--border);
-}
-
-.top h2 {
-  margin: 0;
-  font-size: 20px;
-}
-
-.round {
-  position: absolute;
-  right: 14px;
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: var(--surface-2);
-  color: var(--text-2);
-}
-
-.round.back {
-  right: auto;
-  left: 14px;
-}
-
-.choose {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-  padding: 32px 20px;
-}
-
-.option {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  width: 220px;
-  aspect-ratio: 220 / 330;
-  border-radius: 12px;
-  color: #fff;
-  font-weight: 700;
-  font-size: 15px;
-  padding: 16px;
-  text-align: center;
-  transition: transform 0.15s ease, filter 0.15s ease;
-}
-
-.option:hover {
-  filter: brightness(1.08);
-}
-
-.option:active {
-  transform: scale(0.98);
-}
-
-.option.photo {
-  background: linear-gradient(160deg, #4f8cff, #7a4dff);
-}
-
-.option.text {
-  background: linear-gradient(160deg, #ff6f91, #ff9671);
-}
-
-.o-icon {
-  display: grid;
-  place-items: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: #fff;
-  color: #1c1d21;
-  font-weight: 800;
-  font-size: 18px;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
-}
-
-.compose {
-  display: flex;
-  gap: 20px;
-  padding: 20px;
-}
-
-.preview {
-  position: relative;
-  flex: none;
-  width: 270px;
-  aspect-ratio: 9 / 16;
-  border-radius: 12px;
-  overflow: hidden;
-  background: #000;
-  display: grid;
-  place-items: center;
-}
-
-.preview img,
-.preview video {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.text-input {
-  width: 100%;
-  padding: 0 20px;
-  border: 0;
-  resize: none;
-  background: transparent;
-  color: #fff;
-  text-align: center;
-  font-size: 24px;
-  font-weight: 750;
-  field-sizing: content;
-}
-
-.text-input::placeholder {
-  color: rgb(255 255 255 / 75%);
-}
-
-.text-input:focus {
-  outline: none;
-}
-
-.caption {
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 40px;
-  margin: 0;
-  padding: 6px 10px;
-  border-radius: 8px;
-  background: rgb(0 0 0 / 45%);
-  color: #fff;
-  font-weight: 650;
-  text-align: center;
-}
-
-.progress {
-  position: absolute;
-  inset: auto 0 0;
-  padding: 8px 12px;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 650;
-  background: linear-gradient(transparent, rgb(0 0 0 / 70%));
-}
-
-.progress i {
-  display: block;
-  height: 3px;
-  margin-top: 4px;
-  border-radius: 2px;
-  background: #fff;
-  transform-origin: left;
-  transition: transform 0.2s linear;
-}
-
-.side {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.label {
-  font-weight: 650;
-  font-size: 14px;
-  color: var(--text-2);
-}
-
-.swatches {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.swatch {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-}
-
-.swatch.on {
-  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent);
-}
-
-.caption-input {
-  height: 40px;
-  padding: 0 12px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface-2);
-}
-
-.btn {
-  align-self: flex-start;
+  grid-template-columns: 400px 1fr;
+  background: var(--bg);
   color: var(--text);
 }
 
-.hint {
-  margin: auto 0 0;
-  font-size: 13px;
-  color: var(--text-3);
+.left {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.round {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: 14px 0 0 18px;
+  border-radius: 50%;
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.round:hover {
+  background: var(--border);
+}
+
+.me {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 22px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.me span {
+  display: flex;
+  flex-direction: column;
+}
+
+.me strong {
+  font-size: 26px;
+  line-height: 1.2;
+}
+
+.me small {
+  font-size: 16px;
+}
+
+.editor {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 22px;
+}
+
+.label {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.label em {
+  color: var(--text-2);
+  font-style: normal;
+  font-weight: 400;
+}
+
+.editor textarea,
+.editor input {
+  width: 100%;
+  min-height: 52px;
+  padding: 13px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  color: var(--text);
+  background: var(--surface);
+  font: inherit;
+  font-size: 16px;
+  resize: none;
+}
+
+.editor textarea {
+  min-height: 120px;
+  margin-bottom: 10px;
+}
+
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(6, 44px);
+  gap: 12px;
+}
+
+.swatch {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 10%);
+}
+
+.swatch.on {
+  box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--text);
+}
+
+.note {
+  color: var(--text-2);
+  font-size: 14px;
+}
+
+.upload span {
+  display: flex;
+  justify-content: space-between;
+  font-size: 15px;
+}
+
+.upload > i {
+  display: block;
+  height: 10px;
+  margin-top: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+
+.upload > i > i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transform-origin: left;
+  transition: transform 0.2s ease;
+}
+
+.btn-grey,
+.btn-share {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 0 20px;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.btn-grey {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.btn-grey:hover {
+  background: var(--border);
+}
+
+.btn-share {
+  color: var(--accent-ink);
+  background: var(--accent);
+}
+
+.btn-share:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.stays {
+  display: flex;
+  gap: 8px;
+  margin: 14px 0 0;
+  color: var(--text-2);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.stays :deep(svg) {
+  flex: none;
+  margin-top: 1px;
 }
 
 .error {
   margin: 0;
   color: var(--danger);
-  font-size: 13px;
 }
 
-.share {
-  height: 44px;
-  border-radius: 8px;
-  background: var(--accent);
-  color: var(--accent-ink);
-  font-weight: 700;
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 16px 22px calc(16px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+}
+
+.right {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 0;
+  padding: 28px;
+}
+
+.choices {
+  display: flex;
+  gap: 24px;
+}
+
+.pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 260px;
+  height: 346px;
+  padding: 24px;
+  border-radius: 16px;
+  color: #fff;
+  text-align: center;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pick:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 18%);
+}
+
+.pick.photo {
+  background: linear-gradient(160deg, #4f7cff 0%, #7b4dff 100%);
+}
+
+.pick.words {
+  background: linear-gradient(160deg, #ff86b0 0%, #ffa07a 100%);
+}
+
+.p-icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 6px;
+  border-radius: 50%;
+  color: #16181d;
+  background: rgb(255 255 255 / 95%);
+}
+
+.p-icon.t {
+  font-size: 30px;
+  font-weight: 500;
+}
+
+.p-text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pick strong {
+  font-size: 20px;
+}
+
+.pick small {
+  font-size: 15px;
+  opacity: 0.92;
+}
+
+.preview-card {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  justify-self: stretch;
+  min-height: 0;
+  padding: 16px 18px 18px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+}
+
+.preview-card h2 {
+  margin: 0 0 14px;
   font-size: 16px;
 }
 
-.share:disabled {
-  background: var(--surface-2);
-  color: var(--text-3);
-  cursor: default;
+.stage {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  min-height: 0;
+  padding: 20px;
+  border-radius: 12px;
+  background: #18191d;
 }
 
+.story {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 100%;
+  max-height: 100%;
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  border-radius: 12px;
+  color: #fff;
+  background: #000;
+}
+
+.story img,
+.story video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.caption {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 24px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgb(0 0 0 / 45%);
+  font-size: 17px;
+  font-weight: 650;
+  text-align: center;
+}
+
+.words-preview {
+  margin: 0;
+  padding: 0 28px;
+  font-size: 28px;
+  font-weight: 750;
+  line-height: 1.3;
+  text-align: center;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.words-preview.empty {
+  opacity: 0.6;
+}
+
+/* Phones: one column. The preview sits on top, the editor under it. */
 @media (max-width: 767px) {
-  .backdrop {
-    padding: 0;
-  }
-
-  .dialog {
-    width: 100%;
-    height: 100dvh;
-    max-height: none;
-    border-radius: 0;
-    border: 0;
-  }
-
-  .choose {
+  .creator {
+    display: flex;
     flex-direction: column;
-    align-items: center;
+    overflow-y: auto;
   }
 
-  .option {
-    width: min(280px, 80vw);
-    aspect-ratio: auto;
-    height: 160px;
+  .left {
+    display: contents;
   }
 
-  .compose {
+  .round {
+    position: absolute;
+    top: calc(env(safe-area-inset-top));
+    left: 0;
+    z-index: 2;
+  }
+
+  .me {
+    order: 1;
+    padding: 70px 16px 16px;
+    background: var(--surface);
+  }
+
+  .me strong {
+    font-size: 22px;
+  }
+
+  .right {
+    display: block;
+    order: 2;
+    padding: 16px;
+  }
+
+  .editor {
+    order: 3;
+    overflow: visible;
+    padding: 16px;
+    background: var(--surface);
+  }
+
+  .actions {
+    position: sticky;
+    bottom: 0;
+    order: 4;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: var(--surface);
+  }
+
+  .choices {
     flex-direction: column;
-    align-items: center;
-  }
-
-  .preview {
-    width: min(260px, 70vw);
-  }
-
-  .side {
+    gap: 14px;
     width: 100%;
+  }
+
+  .pick {
+    flex-direction: row;
+    justify-content: flex-start;
+    width: 100%;
+    height: 120px;
+    text-align: left;
+  }
+
+  .p-text {
+    gap: 4px;
+  }
+
+  .p-icon {
+    flex: none;
+    margin: 0 6px 0 0;
+  }
+
+  .preview-card {
+    padding: 12px;
+  }
+
+  .stage {
+    flex: none;
+    padding: 12px;
+  }
+
+  .story {
+    height: 46dvh;
+    margin: 0 auto;
+  }
+
+  .swatches {
+    grid-template-columns: repeat(6, 44px);
+    justify-content: space-between;
   }
 }
 </style>

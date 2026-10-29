@@ -61,6 +61,11 @@ class Settings {
 			'landing'     => 'members', // members | everyone | off — see Portal::maybe_land()
 			'login_page'  => true, // the community's own login pages; see Login
 			'signup_url'  => '',   // when WordPress registration is off: where "Create new account" goes (e.g. a membership plugin's checkout)
+			'signup_label' => '',  // that button's words ("Become a member"); empty: the plain default
+			'login_headline' => '', // the login and join pages' big line; empty: "Learn, share and grow together."
+			'login_text'  => '',   // the line under it; empty: the community description
+			'login_picture' => null, // array( 'id', 'url' ): the owner's photo beside the form; null: our illustration
+			'display'     => 'auto', // the look members start with: auto (match device) | light | dark; each can change it
 			'min_age'     => 13,   // 0, 13, 16 or 18; asked at sign-up, never stored
 			'terms_url'   => '',
 			'features'    => array( 'places' => false ) + array_fill_keys( self::FEATURES, true ), // Places is the one most communities don't need
@@ -71,6 +76,7 @@ class Settings {
 			'moderators'  => array(),
 			'points'      => array_map( fn( $r ) => array( 'points' => $r[0], 'cap' => $r[1] ), Points::RULES ),
 			'level_names' => array_fill( 0, 9, '' ),
+			'level_points' => array(), // the points each kept level needs, 3–9 of them; empty: the nine defaults (Points::LEVELS)
 			'email'       => array(), // see Email::defaults()
 			'video'       => array(), // see Bunny::defaults()
 			'gifs'        => array( 'key' => '', 'rating' => 'pg' ), // GIPHY; no key, no GIF button (see Giphy)
@@ -183,6 +189,7 @@ class Settings {
 			'accent'      => $s['accent'],
 			'features'    => $s['features'],
 			'memberCovers' => (bool) $s['member_covers'], // covers (or the default one) on member cards
+			'display'     => $s['display'], // the look members start with until they pick their own
 			'courses'     => array_combine( self::COURSE_PARTS, array_map( array( __CLASS__, 'course_part' ), self::COURSE_PARTS ) ),
 			'canPost'     => self::can_post(),
 			'messaging'   => $s['messaging'],
@@ -192,7 +199,7 @@ class Settings {
 			'canSeeAsMember' => current_user_can( 'manage_options' ), // the floating "See it as a member" button
 			'asMember'    => Helpers::as_member_pick(), // { group, level } while seeing it as a member
 			'memberships' => current_user_can( 'manage_options' ) ? array_values( array_map( fn( $g ) => array( 'id' => $g['id'], 'name' => $g['name'] ), Access::groups() ) ) : array(), // the picker's choices
-			'levelNames'  => $s['level_names'],
+			'levelNames'  => array_slice( $s['level_names'], 0, count( Points::thresholds() ) ), // one per kept level
 			'restriction' => Moderation::my_restriction(),
 			'video'       => Bunny::enabled() ? 'bunny' : 'local',
 			'mapTiles'    => self::feature( 'places' ) ? Rest_Places::tiles() : null,
@@ -271,6 +278,7 @@ class Settings {
 		// "Let people create an account" is WordPress's own registration setting, edited here, never copied.
 		$s['registration'] = Login::registration_open();
 		$s['video']      = Bunny::public_settings();
+		$s['level_points'] = Points::thresholds(); // the form always edits the real list, defaults included
 		return array(
 			'settings'   => $s,
 			'smtp_plugin' => Email::smtp_plugin(),
@@ -281,9 +289,13 @@ class Settings {
 			'privacy_url'         => get_privacy_policy_url(),
 			'privacy_admin_url'   => admin_url( 'options-privacy.php' ),
 			'join_url'            => Login::url( 'join' ),
+			'login_url'           => Login::url( 'login', array( 'preview' => '1' ) ), // opens for admins too (see Login::login_page)
 			'accents'    => self::ACCENTS,
 			'rules'      => self::rule_labels(),
 			'thresholds' => Points::thresholds(),
+			'suggested_levels' => array_map( fn( $n ) => Points::suggested( $n ), array_combine( range( 3, 9 ), range( 3, 9 ) ) ),
+			// Courses that unlock at a level, so the form can warn before a level they need goes away.
+			'level_courses' => self::level_courses(),
 			// WordPress editors and admins moderate already; shown so the form isn't misleading.
 			'built_in_staff' => array_values( Helpers::users( get_users( array( 'capability' => 'moderate_comments', 'fields' => 'ID', 'number' => 50 ) ) ) ),
 		);
@@ -320,7 +332,14 @@ class Settings {
 			}
 			$s['slug'] = $slug;
 		}
-		$old_logo = (int) ( $s['logo']['id'] ?? 0 );
+		$old_logo    = (int) ( $s['logo']['id'] ?? 0 );
+		$old_picture = (int) ( $s['login_picture']['id'] ?? 0 );
+		if ( array_key_exists( 'login_picture', $in ) ) {
+			$s['login_picture'] = null === $in['login_picture'] ? null : self::claim_logo( (int) ( $in['login_picture']['id'] ?? 0 ), $s['login_picture'] ?? null );
+			if ( is_wp_error( $s['login_picture'] ) ) {
+				return $s['login_picture'];
+			}
+		}
 		if ( array_key_exists( 'logo', $in ) ) {
 			$s['logo'] = null === $in['logo'] ? null : self::claim_logo( (int) ( $in['logo']['id'] ?? 0 ), $s['logo'] );
 			if ( is_wp_error( $s['logo'] ) ) {
@@ -371,11 +390,34 @@ class Settings {
 			$s['level_names'] = array_pad( array_slice( $names, 0, 9 ), 9, '' );
 		}
 
+		$relevel = false;
+		if ( array_key_exists( 'level_points', $in ) ) {
+			$levels = Points::clean_levels( $in['level_points'] );
+			if ( null === $levels ) {
+				return new \WP_Error( 'mbcom_levels', __( 'Each level needs more points than the one before, starting at 0.', 'membuild-community' ), array( 'status' => 400 ) );
+			}
+			$levels  = Points::LEVELS === $levels ? array() : $levels;
+			$relevel = $levels !== ( Points::clean_levels( $s['level_points'] ) ?? array() );
+			$s['level_points'] = $levels;
+		}
+
 		if ( array_key_exists( 'registration', $in ) && ! is_multisite() ) {
 			update_option( 'users_can_register', $in['registration'] ? 1 : 0 );
 		}
 		if ( array_key_exists( 'signup_url', $in ) ) {
 			$s['signup_url'] = esc_url_raw( (string) $in['signup_url'], array( 'http', 'https' ) );
+		}
+		if ( array_key_exists( 'signup_label', $in ) ) {
+			$s['signup_label'] = mb_substr( sanitize_text_field( (string) $in['signup_label'] ), 0, 40 );
+		}
+		if ( array_key_exists( 'login_headline', $in ) ) {
+			$s['login_headline'] = mb_substr( sanitize_text_field( (string) $in['login_headline'] ), 0, 80 );
+		}
+		if ( array_key_exists( 'login_text', $in ) ) {
+			$s['login_text'] = mb_substr( sanitize_text_field( (string) $in['login_text'] ), 0, 200 );
+		}
+		if ( array_key_exists( 'display', $in ) ) {
+			$s['display'] = in_array( $in['display'], array( 'auto', 'light', 'dark' ), true ) ? $in['display'] : 'auto';
 		}
 		if ( array_key_exists( 'terms_url', $in ) ) {
 			$s['terms_url'] = esc_url_raw( (string) $in['terms_url'], array( 'http', 'https' ) );
@@ -413,9 +455,15 @@ class Settings {
 
 		update_option( self::OPTION, $s, true );
 		self::$cache = null;
+		if ( $relevel ) {
+			self::apply_level_count();
+		}
 		// A replaced or removed logo is deleted, once the new settings are saved.
 		if ( $old_logo && $old_logo !== (int) ( $s['logo']['id'] ?? 0 ) ) {
 			Media::delete( $old_logo );
+		}
+		if ( $old_picture && $old_picture !== (int) ( $s['login_picture']['id'] ?? 0 ) ) {
+			Media::delete( $old_picture );
 		}
 
 		if ( $s['slug'] !== $old ) {
@@ -430,6 +478,23 @@ class Settings {
 	}
 
 	/** The logo is an image the admin just uploaded through /media/uploads. */
+	/** Published or draft courses that unlock at a level: id, title and the level. */
+	private static function level_courses() {
+		global $wpdb;
+		return array_map(
+			fn( $r ) => array( 'id' => (int) $r['id'], 'title' => $r['title'], 'level' => (int) $r['unlock_level'] ),
+			$wpdb->get_results( $wpdb->prepare( "SELECT id, title, unlock_level FROM %i WHERE access = 'level' AND unlock_level > 1 ORDER BY unlock_level, sort_order", Install::table( 'courses' ) ), ARRAY_A )
+		);
+	}
+
+	/** After the levels change: courses above the top level unlock at the top one, and members' levels are worked out again. */
+	private static function apply_level_count() {
+		global $wpdb;
+		$top = count( Points::thresholds() );
+		$wpdb->query( $wpdb->prepare( "UPDATE %i SET unlock_level = %d WHERE access = 'level' AND unlock_level > %d", Install::table( 'courses' ), $top, $top ) );
+		Points::relevel();
+	}
+
 	private static function claim_logo( $media_id, $current ) {
 		global $wpdb;
 		if ( $current && (int) $current['id'] === $media_id ) {
@@ -438,7 +503,7 @@ class Settings {
 		$table = Install::table( 'media' );
 		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT id, url FROM %i WHERE id = %d AND user_id = %d AND kind = 'image' AND post_id IS NULL", $table, $media_id, get_current_user_id() ), ARRAY_A );
 		if ( ! $row ) {
-			return new \WP_Error( 'mbcom_invalid_setting', __( 'Upload the logo again, please.', 'membuild-community' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'mbcom_invalid_setting', __( 'Upload the picture again, please.', 'membuild-community' ), array( 'status' => 400 ) );
 		}
 		$wpdb->update( $table, array( 'post_id' => 0 ), array( 'id' => $row['id'] ) ); // claimed, like a post's photo
 		return array( 'id' => (int) $row['id'], 'url' => $row['url'] );

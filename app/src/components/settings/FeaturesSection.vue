@@ -84,10 +84,31 @@ const { form } = useSettings()
 }
 
 /* Helpful votes and What people are saying sit under Questions, which they need. */
+/* A setting that belongs to the one above it: a soft grey box, set in a little. */
 .toggle-row.nested {
-  margin-left: 28px;
-  padding-left: 16px;
-  border-left: 2px solid var(--border);
+  margin: 0 0 8px 24px;
+  padding: 14px 20px !important; /* the shared row style would otherwise take the sides away */
+  border: 0;
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+
+/* Two in a row share one box. */
+.toggle-row.nested:has(+ .toggle-row.nested) {
+  margin-bottom: 0;
+  border-bottom-right-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.toggle-row.nested + .toggle-row.nested {
+  border-top: 1px solid var(--border);
+  border-top-right-radius: 0;
+  border-top-left-radius: 0;
+}
+
+/* The line under the parent stops at the box. */
+.toggle-row:has(+ .toggle-row.nested) {
+  padding-bottom: 12px;
 }
 
 .toggle-row.nested:has(.switch:disabled) {

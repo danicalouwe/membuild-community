@@ -46,6 +46,7 @@ const stop = () => run(() => api.stopUpdates(), t.__('Stopped. MemBuild no longe
 <template>
   <section id="s-updates" class="card group">
     <h2>{{ t.__('Updates & usage', 'membuild-community') }}</h2>
+    <p class="intro">{{ t.__('Hear about new features, and help us decide what to build next.', 'membuild-community') }}</p>
 
     <div v-if="status" class="field updates">
       <template v-if="status.subscribed">
@@ -60,16 +61,15 @@ const stop = () => run(() => api.stopUpdates(), t.__('Stopped. MemBuild no longe
       </template>
 
       <template v-else>
-        <p class="lead">
-          <strong>{{ t.__('Get the next features before anyone else', 'membuild-community') }}</strong>
-          <small>{{ t.__('An email when something new ships in MemBuild - Community, and the odd question about what to build next. No newsletters, nothing for sale.', 'membuild-community') }}</small>
-        </p>
-        <form class="row" @submit.prevent="subscribe">
-          <input v-model="email" type="email" required :aria-label="t.__('Your email', 'membuild-community')" :disabled="busy" />
-          <button type="submit" class="btn btn-primary" :disabled="busy || !status.allowed">{{ t.__('Keep me updated', 'membuild-community') }}</button>
+        <form class="lead-row" @submit.prevent="subscribe">
+          <p class="lead">
+            <strong>{{ t.__('Get new features first', 'membuild-community') }}</strong>
+            <small>{{ t.__('An email when something new ships, and the odd question. No newsletters, nothing for sale.', 'membuild-community') }}</small>
+          </p>
+          <button type="submit" class="btn btn-primary" :disabled="busy || !status.allowed || !email">{{ t.__('Keep me updated', 'membuild-community') }}</button>
         </form>
         <p class="muted">
-          {{ t.sprintf(/* translators: %s: the site's address */ t.__('We get your email, your site’s address (%s) and name, and the plugin, WordPress and PHP versions. If usage sharing below is on, your community’s numbers come with it. Stop any time here.', 'membuild-community'), status.site_url) }}
+          {{ t.sprintf(/* translators: 1: an email address, 2: the site's address */ t.__('Goes to %1$s. We also get your site’s address (%2$s) and name, and the plugin, WordPress and PHP versions. Stop any time here.', 'membuild-community'), email, status.site_url) }}
           <template v-if="!status.allowed"> {{ t.__('Reports to MemBuild are switched off on this site by code, so this can’t be sent.', 'membuild-community') }}</template>
         </p>
       </template>
@@ -83,9 +83,33 @@ const stop = () => run(() => api.stopUpdates(), t.__('Stopped. MemBuild no longe
 
 <style scoped>
 .updates {
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  padding-bottom: 6px;
+}
+
+.lead-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.lead-row .lead {
+  flex: 1;
+  margin: 0;
+}
+
+.lead-row .btn {
+  flex: none;
+}
+
+.lead strong {
+  font-size: 16px;
+}
+
+@media (max-width: 600px) {
+  .lead-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
 .lead {

@@ -1,4 +1,5 @@
 <script setup>
+import { askConfirm } from '../../lib/confirm.js'
 import { computed, onMounted, ref } from 'vue'
 import { api } from '../../api.js'
 import { t } from '../../lib/i18n.js'
@@ -40,6 +41,16 @@ async function run(fn, success) {
 
 const save = (body) => run(() => api.saveUsage(body))
 const forget = () => run(() => api.forgetUsage(), t.__('Done. MemBuild deleted what it had for this site, and sharing is off.', 'membuild-community'))
+const showSent = ref(false)
+async function forgetAsk() {
+  const yes = await askConfirm({
+    title: t.__('Delete this site’s data at MemBuild?', 'membuild-community'),
+    text: t.__('MemBuild deletes the usage it has for this site, and sharing turns off. The weekly “it’s installed” note still goes out.', 'membuild-community'),
+    confirm: t.__('Delete it', 'membuild-community'),
+    danger: true,
+  })
+  if (yes) forget()
+}
 </script>
 
 <template>
@@ -79,18 +90,18 @@ const forget = () => run(() => api.forgetUsage(), t.__('Done. MemBuild deleted w
       <template v-if="!status.enabled"> {{ t.__('This site is set up as a local or development site, so nothing is sent.', 'membuild-community') }}</template>
     </p>
 
-    <details class="preview">
-      <summary>{{ t.__('See exactly what’s sent', 'membuild-community') }}</summary>
+    <div class="links">
+      <button type="button" class="ulink" :aria-expanded="showSent" @click="showSent = !showSent">{{ t.__('See exactly what’s sent', 'membuild-community') }}</button>
+      <button type="button" class="ulink" :disabled="busy" @click="forgetAsk">{{ t.__('Delete this site’s data at MemBuild', 'membuild-community') }}</button>
+    </div>
+    <div v-if="showSent" class="preview">
       <pre>{{ preview }}</pre>
       <template v-if="subscriberPreview">
         <p class="muted">{{ t.__('With your subscription:', 'membuild-community') }}</p>
         <pre>{{ subscriberPreview }}</pre>
       </template>
-      <div class="actions">
-        <small v-if="lastSent" class="muted">{{ lastSent }}</small>
-        <button type="button" class="btn" :disabled="busy" @click="forget">{{ t.__('Delete this site’s data at MemBuild', 'membuild-community') }}</button>
-      </div>
-    </details>
+      <small v-if="lastSent" class="muted">{{ lastSent }}</small>
+    </div>
 
     <small v-if="result" :class="result.ok ? 'ok' : 'err'" role="status">{{ result.message }}</small>
   </div>
@@ -155,5 +166,26 @@ const forget = () => run(() => api.forgetUsage(), t.__('Done. MemBuild deleted w
 
 .btn:disabled {
   opacity: 0.5;
+}
+</style>
+
+<style scoped>
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin: 4px 0 10px;
+}
+
+.ulink {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
 }
 </style>

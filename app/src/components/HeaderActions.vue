@@ -57,7 +57,7 @@ const community = computed(() =>
   [
     cfg.community.isStaff && { to: '/moderation', icon: 'shield', label: t.__('Moderation', 'membuild-community'), note: messages.reports ? reportsNeed(messages.reports) : '', badge: messages.reports },
     cfg.community.canManage && { to: '/settings', icon: 'settings', label: t.__('Community settings', 'membuild-community') },
-    cfg.adminUrl && { href: cfg.adminUrl, icon: 'dashboard', label: t.__('WordPress dashboard', 'membuild-community') },
+    cfg.adminUrl && { href: cfg.adminUrl, icon: 'wordpress', label: t.__('WordPress dashboard', 'membuild-community') },
   ].filter(Boolean),
 )
 const emailNote = ref('')
@@ -459,7 +459,6 @@ const profileHint = () => t.sprintf(/* translators: %s: the member's level, e.g.
 .looks button.on {
   background: var(--accent-soft);
   color: var(--accent-text);
-  box-shadow: inset 0 0 0 2px var(--accent);
 }
 
 .shortcuts {

@@ -1,5 +1,6 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { showToast } from '../lib/toast.js'
 import Icon from './Icon.vue'
 import PopFrame from './PopFrame.vue'
 import { asMember, memberPick, seeAs } from '../lib/preview.js'
@@ -12,6 +13,23 @@ import { t } from '../lib/i18n.js'
 defineProps({
   docked: { type: Boolean, default: false }, // in the chat dock's column, or on its own
   compact: { type: Boolean, default: false }, // a chat window is open beside it: just the eye, round
+})
+// Always just a round eye, like the pencil: white in your own view; dark with the level in a
+// small lime badge while you're seeing it as a member, so the two are told apart at a glance.
+const round = true
+
+// Just after switching: one short note saying how to get back.
+onMounted(() => {
+  let note = false
+  try {
+    note = sessionStorage.getItem('mbcom-as-member-note') === '1'
+    sessionStorage.removeItem('mbcom-as-member-note')
+  } catch {
+    /* private mode */
+  }
+  if (note && asMember.value && memberPick) {
+    showToast(t.sprintf(/* translators: %d: level number */ t.__('You’re seeing it as a member at Level %d. Press the dark eye to go back.', 'membuild-community'), memberPick.level), '', { icon: 'eye' })
+  }
 })
 
 const memberships = cfg.community.memberships || []
@@ -37,7 +55,7 @@ function press() {
 </script>
 
 <template>
-  <div class="mvt-wrap" :class="{ docked, compact }">
+  <div class="mvt-wrap" :class="{ docked, compact: round }">
     <PopFrame v-if="open" class="pick" :title="t.__('See it as a member', 'membuild-community')" @close="open = false">
       <div class="pick-body">
         <h3>{{ t.__('See it as a member', 'membuild-community') }}</h3>
@@ -51,9 +69,10 @@ function press() {
         <button class="btn btn-lg btn-primary go" @click="seeAs(group, level)"><Icon name="eye" :size="18" /> {{ t.__('See it', 'membuild-community') }}</button>
       </div>
     </PopFrame>
-    <button class="mvt" :class="{ on: asMember }" data-pop-trigger :aria-expanded="asMember ? undefined : open" :title="compact ? `${t.__('You’re:', 'membuild-community')} ${youAre} · ${asMember ? t.__('Back to your view', 'membuild-community') : t.__('See it as a member', 'membuild-community')}` : who || undefined" @click="press">
+    <button class="mvt" :class="{ on: asMember }" data-pop-trigger :aria-expanded="asMember ? undefined : open" :aria-label="round ? `${asMember ? t.__('Back to your view', 'membuild-community') : t.__('See it as a member', 'membuild-community')} (${t.__('You’re:', 'membuild-community')} ${youAre})` : undefined" :title="`${asMember ? t.__('Back to your view', 'membuild-community') : t.__('See it as a member', 'membuild-community')} · ${t.__('You’re:', 'membuild-community')} ${youAre}`" @click="press">
       <Icon name="eye" :size="22" />
-      <span class="txt" :class="{ 'sr-only': compact }">
+      <span v-if="asMember && memberPick" class="lvl" aria-hidden="true">{{ memberPick.level }}</span>
+      <span class="txt" :class="{ 'sr-only': round }" :aria-hidden="round ? 'true' : undefined">
         <small>{{ t.__('You’re:', 'membuild-community') }} <b>{{ youAre }}</b></small>
         <span>{{ asMember ? t.__('Back to your view', 'membuild-community') : t.__('See it as a member', 'membuild-community') }}</span>
       </span>
@@ -205,6 +224,28 @@ select {
 }
 
 /* Beside an open chat: a round eye button in the dock's column, like the pencil. */
+.mvt {
+  position: relative;
+}
+
+/* The level you're seeing it at, on the dark eye. */
+.lvl {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 22px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
 .compact .mvt {
   justify-content: center;
   width: 52px;

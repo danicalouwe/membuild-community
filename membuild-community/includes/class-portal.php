@@ -133,13 +133,16 @@ class Portal {
 			// wp_logout_url() is HTML-escaped (&amp;); the app needs the plain URL or the nonce gets lost.
 			'logoutUrl' => html_entity_decode( wp_logout_url( Login::enabled() ? Login::url( 'login', array( 'loggedout' => '1' ) ) : home_url() ) ),
 			'siteUrl'   => add_query_arg( 'mbcom_site', '1', home_url( '/' ) ),
-			'adminUrl'  => Helpers::can_manage() ? admin_url() : '',
+			'adminUrl'  => Helpers::can_manage() ? admin_url( 'admin.php?page=membuild-community' ) : '', // the plugin's Community overview in wp-admin
 			'shortcuts' => array(
 				'items'   => Menu::items(),
 				'editUrl' => current_user_can( 'edit_theme_options' ) ? Menu::edit_url() : '',
 			),
 			'user'     => Helpers::user( wp_get_current_user() ),
 			'canModerate' => Helpers::can_moderate(),
+			'firstRun'    => First_Run::config(),
+			// "Confirm your email" on Home, a few days after joining while the welcome email is unanswered.
+			'confirmEmail' => Email::banner( get_current_user_id() ) ? array( 'email' => wp_get_current_user()->user_email, 'profileUrl' => get_edit_profile_url() ) : null,
 			'app'      => array(
 				'worker' => wp_parse_url( home_url( '/' . Settings::slug() . '/sw.js' ), PHP_URL_PATH ),
 				// Admins' browsers draw the home-screen icon when there's no logo and the name or color changed.

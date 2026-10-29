@@ -4,6 +4,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api.js'
 import Icon from './Icon.vue'
 import SearchResult from './SearchResult.vue'
+import SearchStart from './SearchStart.vue'
+import { rememberSearch } from '../lib/recentSearches.js'
 import { pushLayer } from '../lib/layers.js'
 import { t } from '../lib/i18n.js'
 import { useLatest } from '../lib/useLatest.js'
@@ -11,9 +13,10 @@ import { searchWords } from '../lib/search.js'
 
 /**
  * The search box in the header. On wide screens it's a box next to the logo;
- * narrower, a button that opens it. While typing, a few results of each kind
- * show underneath; Enter, or "See all results", opens the results page.
- * On phones the button goes straight to the results page, which has its own box.
+ * narrower, a button that opens it. Before typing, a panel shows recent searches
+ * and Look around; while typing, a few results of each kind with how many there
+ * are; Enter, or "See all N results", opens the results page.
+ * On phones the button goes straight to the search page, which has its own box.
  */
 const route = useRoute()
 const router = useRouter()
@@ -32,9 +35,14 @@ const GROUPS = [
   { key: 'posts', label: t.__('Posts', 'membuild-community') },
   { key: 'comments', label: t.__('Comments', 'membuild-community') },
   { key: 'courses', label: t.__('Classroom', 'membuild-community') },
+  { key: 'events', label: t.__('Events', 'membuild-community') },
   { key: 'places', label: t.__('Places', 'membuild-community') },
 ]
-const shown = computed(() => GROUPS.filter((g) => groups.value?.[g.key]?.items.length))
+// Under the box: up to 3 members and 2 of everything else, so all the kinds fit.
+const shown = computed(() => GROUPS.filter((g) => groups.value?.[g.key]?.items.length).map((g) => ({ ...g, items: groups.value[g.key].items.slice(0, g.key === 'members' ? 3 : 2), count: groups.value[g.key].count, max: groups.value[g.key].count_max })))
+const total = ref(0)
+const totalMax = ref(false) // some kinds have more than 99: the total reads "500+"
+const typing = computed(() => words.value.length > 0)
 const empty = computed(() => groups.value && !loading.value && !shown.value.length)
 
 let timer = null
@@ -52,7 +60,11 @@ async function load() {
   loading.value = true
   try {
     const res = await api.search(query.value.trim())
-    if (current()) groups.value = res.groups
+    if (current()) {
+      groups.value = res.groups
+      total.value = res.total || 0
+      totalMax.value = !!res.total_max
+    }
   } catch {
     if (current()) groups.value = {}
   } finally {
@@ -85,6 +97,7 @@ onBeforeUnmount(hide)
 function seeAll() {
   const q = query.value.trim()
   if (!searchWords(q).length) return
+  rememberSearch(q)
   hide()
   input.value?.blur()
   router.push({ name: 'search', query: { q } })
@@ -111,7 +124,17 @@ watch(
   },
 )
 
-const seeAllLabel = computed(() => t.sprintf(/* translators: %s: the search text */ t.__('See all results for “%s”', 'membuild-community'), query.value.trim()))
+const seeAllLabel = computed(() => t.sprintf(/* translators: 1: number of results, 2: the search text */ t._n('See %1$s result for “%2$s”', 'See all %1$s results for “%2$s”', total.value, 'membuild-community'), totalMax.value ? `${total.value.toLocaleString()}+` : total.value.toLocaleString(), query.value.trim()))
+const heading = (g) => `${g.label} · ${g.max ? '99+' : g.count}`
+function pickRecent(r) {
+  query.value = r
+  nextTick(() => input.value?.focus())
+}
+// Opening a result counts as a search worth remembering.
+function opened() {
+  rememberSearch(query.value)
+  hide()
+}
 const noneLabel = computed(() => t.sprintf(/* translators: %s: the search text */ t.__('Nothing matches “%s”.', 'membuild-community'), query.value.trim()))
 </script>
 
@@ -140,14 +163,23 @@ const noneLabel = computed(() => t.sprintf(/* translators: %s: the search text *
       </label>
     </form>
 
-    <div v-if="open && (groups || loading)" id="mbcom-search-panel" class="panel card" :aria-busy="loading">
-      <p v-if="loading && !groups" class="note">{{ t.__('Searching…', 'membuild-community') }}</p>
-      <p v-else-if="empty" class="note">{{ noneLabel }}</p>
-      <section v-for="g in shown" :key="g.key">
-        <h2>{{ g.label }}</h2>
-        <SearchResult v-for="item in groups[g.key].items" :key="item.kind + item.id" :item="item" :words="words" @open="hide" />
-      </section>
-      <button v-if="groups && !empty" type="button" class="all" @click="seeAll"><Icon name="search" :size="16" /> {{ seeAllLabel }}</button>
+    <div v-if="open" id="mbcom-search-panel" class="panel card" :aria-busy="loading">
+      <SearchStart v-if="!typing" @pick="pickRecent" @open="hide" />
+      <template v-else>
+        <div class="list">
+          <template v-if="loading && !groups">
+            <div v-for="n in 4" :key="n" class="sk"><span class="skeleton" /><span><span class="skeleton" /><span class="skeleton" /></span></div>
+          </template>
+          <p v-else-if="empty" class="note">{{ noneLabel }}</p>
+          <section v-for="g in shown" :key="g.key">
+            <h2>{{ heading(g) }}</h2>
+            <SearchResult v-for="item in g.items" :key="item.kind + item.id" :item="item" :words="words" @open="opened" />
+          </section>
+        </div>
+        <div v-if="groups && !empty" class="all-wrap">
+          <button type="button" class="all" @click="seeAll"><Icon name="search" :size="18" /> {{ seeAllLabel }} <Icon name="arrowRight" :size="18" /></button>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -212,41 +244,99 @@ const noneLabel = computed(() => t.sprintf(/* translators: %s: the search text *
   top: calc(100% + 8px);
   left: 0;
   z-index: 40;
-  width: 380px;
-  max-height: min(70vh, 560px);
-  overflow-y: auto;
-  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  width: 580px;
+  max-width: calc(100vw - 32px);
+  max-height: min(80vh, 800px);
+  padding: 10px 0 0;
+  overflow: hidden;
+  border-radius: 16px;
   box-shadow: 0 12px 32px rgb(16 24 40 / 16%);
 }
 
-.panel h2 {
-  margin: 10px 12px 4px;
-  color: var(--text-3);
-  font-size: 13px;
-  font-weight: 600;
+.panel > .start {
+  overflow-y: auto;
+  padding-bottom: 12px;
 }
 
-.panel section:first-of-type h2 {
+.list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 0 6px;
+}
+
+.list h2 {
+  margin: 12px 16px 4px;
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.list section:first-of-type h2 {
   margin-top: 4px;
 }
 
 .note {
-  margin: 12px;
+  margin: 16px;
   color: var(--text-2);
+  font-size: 16px;
+}
+
+.sk {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+}
+
+.sk > .skeleton {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+}
+
+.sk > span:last-child {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sk > span:last-child .skeleton:first-child {
+  width: 40%;
+  height: 15px;
+}
+
+.sk > span:last-child .skeleton:last-child {
+  width: 75%;
+  height: 12px;
+}
+
+/* See all stays pinned at the bottom while the list scrolls. */
+.all-wrap {
+  padding: 8px 12px 12px;
 }
 
 .all {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 10px;
   width: 100%;
-  margin-top: 6px;
-  padding: 12px;
-  border-top: 1px solid var(--border);
-  background: none;
-  color: var(--accent-text);
-  font-weight: 600;
-  text-align: left;
+  min-height: 56px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.all:hover {
+  background: var(--border);
 }
 
 /* Medium screens: a button in the header, the box drops down under it.

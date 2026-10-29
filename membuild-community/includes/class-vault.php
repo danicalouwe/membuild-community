@@ -65,7 +65,7 @@ class Vault {
 
 	/** Why something that needs the key can't be saved right now, or null when it can. */
 	public static function paused() {
-		return self::ready() ? null : new \WP_Error( 'mbcom_key_missing', __( 'This can’t be saved until the site owner restores the community’s encryption key.', 'membuild-community' ), array( 'status' => 503 ) );
+		return self::ready() ? null : new \WP_Error( 'mbcom_key_missing', __( 'This can’t be saved until the site owner puts the community’s safety key back.', 'membuild-community' ), array( 'status' => 503 ) );
 	}
 
 	/** Forgets the key loaded for this request (after a restore, and in tests). */
@@ -112,7 +112,7 @@ class Vault {
 	 */
 	public static function start_over() {
 		if ( self::ready() ) {
-			return new \WP_Error( 'mbcom_key_ok', __( 'The encryption key is working, so there’s nothing to start over.', 'membuild-community' ), array( 'status' => 400 ) );
+			return new \WP_Error( 'mbcom_key_ok', __( 'The safety key is working, so there’s nothing to start over.', 'membuild-community' ), array( 'status' => 400 ) );
 		}
 		$stored = self::store( bin2hex( random_bytes( SODIUM_CRYPTO_AEAD_XCHACHA20POLY1305_IETF_KEYBYTES ) ) );
 		if ( is_wp_error( $stored ) ) {

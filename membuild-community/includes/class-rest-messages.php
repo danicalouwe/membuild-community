@@ -15,6 +15,7 @@ defined( 'ABSPATH' ) || exit;
  *   GET    /messages/threads/{id}                chat details and members
  *   PUT    /messages/threads/{id}                {title} rename a group
  *   POST   /messages/threads/{id}/leave          leave a group
+ *   PUT|DELETE /messages/threads/{id}/mute       mute a chat (no emails, not in the count) or unmute it
  *   GET    /messages/threads/{id}/messages       ?before= older page
  *   POST   /messages/threads/{id}/messages       {content, media_ids?, reply_to_id?}
  *   POST   /messages/threads/{id}/read           {message_id}
@@ -33,6 +34,8 @@ class Rest_Messages {
 	const MAX_GROUP   = 50;
 	const RATE_LIMIT  = 30; // messages per minute, per member
 	const TYPING_SECS = 6;
+	const MAX_TITLE   = 80; // characters in a group's name
+	const MUTED       = 'mbcom_muted_chats'; // user meta: ids of the chats someone muted
 
 	public static function register_routes() {
 		$auth = array( 'MemBuild\Community\Rest_Feed', 'logged_in' );
@@ -42,6 +45,7 @@ class Rest_Messages {
 			'/messages/threads'                 => array( array( 'GET', 'inbox' ), array( 'POST', 'start' ) ),
 			"/messages/threads/{$id}"           => array( array( 'GET', 'thread' ), array( 'PUT', 'rename' ) ),
 			"/messages/threads/{$id}/leave"     => array( array( 'POST', 'leave' ) ),
+			"/messages/threads/{$id}/mute"      => array( array( 'PUT', 'mute' ), array( 'DELETE', 'unmute' ) ),
 			"/messages/threads/{$id}/messages"  => array( array( 'GET', 'history' ), array( 'POST', 'send' ) ),
 			"/messages/threads/{$id}/read"      => array( array( 'POST', 'read' ) ),
 			"/messages/threads/{$id}/typing"    => array( array( 'POST', 'typing' ) ),
@@ -68,30 +72,31 @@ class Rest_Messages {
 		$me      = get_current_user_id();
 		$threads = Install::table( 'threads' );
 		$members = Install::table( 'thread_members' );
+		// The tabs (All, Unread, Groups) and the chat search are answered here, so they
+		// reach every chat, not only the 30 loaded first.
+		$where = array( 't.last_message_id > 0' );
+		$vals  = array();
 		if ( $req['before'] ) {
-			$rows = $wpdb->get_results(
-				$wpdb->prepare(
-					'SELECT t.*, m.last_read_id FROM %i t JOIN %i m ON m.thread_id = t.id AND m.user_id = %d AND m.left_at IS NULL
-					WHERE t.last_message_id > 0 AND t.last_message_at < %s ORDER BY t.last_message_at DESC LIMIT 31',
-					$threads,
-					$members,
-					$me,
-					gmdate( 'Y-m-d H:i:s', strtotime( (string) $req['before'] ) )
-				),
-				ARRAY_A
-			);
-		} else {
-			$rows = $wpdb->get_results(
-				$wpdb->prepare(
-					'SELECT t.*, m.last_read_id FROM %i t JOIN %i m ON m.thread_id = t.id AND m.user_id = %d AND m.left_at IS NULL
-					WHERE t.last_message_id > 0 ORDER BY t.last_message_at DESC LIMIT 31',
-					$threads,
-					$members,
-					$me
-				),
-				ARRAY_A
-			);
+			// Chats with the same time are told apart by id, so none are skipped between pages.
+			$at      = gmdate( 'Y-m-d H:i:s', strtotime( (string) $req['before'] ) );
+			$where[] = '(t.last_message_at < %s OR (t.last_message_at = %s AND t.id < %d))';
+			array_push( $vals, $at, $at, $req['before_id'] ? (int) $req['before_id'] : PHP_INT_MAX );
 		}
+		if ( 'groups' === $req['filter'] ) {
+			$where[] = "t.type = 'group'";
+		} elseif ( 'unread' === $req['filter'] ) {
+			$where[] = $wpdb->prepare( "EXISTS (SELECT 1 FROM %i msg WHERE msg.thread_id = t.id AND msg.id > m.last_read_id AND msg.user_id <> %d AND msg.status = 'sent')", Install::table( 'messages' ), $me );
+		}
+		$search = trim( sanitize_text_field( (string) $req['search'] ) );
+		if ( '' !== $search ) {
+			$like    = '%' . $wpdb->esc_like( mb_substr( $search, 0, 60 ) ) . '%';
+			$where[] = $wpdb->prepare( '(t.title LIKE %s OR EXISTS (SELECT 1 FROM %i o JOIN %i u ON u.ID = o.user_id WHERE o.thread_id = t.id AND o.user_id <> %d AND o.left_at IS NULL AND u.display_name LIKE %s))', $like, $members, $wpdb->users, $me, $like );
+		}
+		$rows = $wpdb->get_results(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- each $where part is fixed SQL or prepared above; values are bound.
+			$wpdb->prepare( 'SELECT t.*, m.last_read_id FROM %i t JOIN %i m ON m.thread_id = t.id AND m.user_id = %d AND m.left_at IS NULL WHERE ' . implode( ' AND ', $where ) . ' ORDER BY t.last_message_at DESC, t.id DESC LIMIT 31', array_merge( array( $threads, $members, $me ), $vals ) ),
+			ARRAY_A
+		);
 		$has_more = count( $rows ) > 30;
 		$rows     = array_slice( $rows, 0, 30 );
 		return array(
@@ -150,7 +155,7 @@ class Rest_Messages {
 		if ( 'group' !== $thread['type'] ) {
 			return new \WP_Error( 'mbcom_not_group', __( 'Only group chats have a name.', 'membuild-community' ), array( 'status' => 400 ) );
 		}
-		$wpdb->update( Install::table( 'threads' ), array( 'title' => sanitize_text_field( $req['title'] ?? '' ) ?: null ), array( 'id' => $thread['id'] ) );
+		$wpdb->update( Install::table( 'threads' ), array( 'title' => mb_substr( trim( sanitize_text_field( (string) ( $req['title'] ?? '' ) ) ), 0, self::MAX_TITLE ) ?: null ), array( 'id' => $thread['id'] ) );
 		return self::thread_payload( (int) $thread['id'] );
 	}
 
@@ -165,6 +170,39 @@ class Rest_Messages {
 		}
 		$wpdb->update( Install::table( 'thread_members' ), array( 'left_at' => Helpers::now() ), array( 'thread_id' => $thread['id'], 'user_id' => get_current_user_id() ) );
 		return array( 'left' => true );
+	}
+
+	/** @return int[] the chats a member muted */
+	public static function muted( $user_id ) {
+		return array_values( array_filter( array_map( 'intval', (array) get_user_meta( $user_id, self::MUTED, true ) ), fn( $id ) => $id > 0 ) );
+	}
+
+	/** SQL that leaves out a member's muted chats, for a thread id column. Ids are ints, so they're safe inline. */
+	public static function not_muted_sql( $user_id, $column ) {
+		$ids = self::muted( $user_id );
+		return $ids ? " AND {$column} NOT IN (" . implode( ',', $ids ) . ')' : '';
+	}
+
+	public static function mute( \WP_REST_Request $req ) {
+		return self::set_muted( (int) $req['id'], true );
+	}
+
+	public static function unmute( \WP_REST_Request $req ) {
+		return self::set_muted( (int) $req['id'], false );
+	}
+
+	private static function set_muted( $thread_id, $on ) {
+		$thread = self::member_thread( $thread_id );
+		if ( is_wp_error( $thread ) ) {
+			return $thread;
+		}
+		$me  = get_current_user_id();
+		$ids = array_diff( self::muted( $me ), array( (int) $thread['id'] ) );
+		if ( $on ) {
+			$ids[] = (int) $thread['id'];
+		}
+		update_user_meta( $me, self::MUTED, array_values( array_slice( $ids, -500 ) ) );
+		return array( 'muted' => $on, 'unread' => self::unread_total() );
 	}
 
 	/* ---------- Messages ---------- */
@@ -577,7 +615,7 @@ class Rest_Messages {
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM %i msg JOIN %i m ON m.thread_id = msg.thread_id AND m.user_id = %d AND m.left_at IS NULL
-				WHERE msg.id > m.last_read_id AND msg.user_id <> %d AND msg.status = 'sent'",
+				WHERE msg.id > m.last_read_id AND msg.user_id <> %d AND msg.status = 'sent'" . self::not_muted_sql( get_current_user_id(), 'msg.thread_id' ),
 				Install::table( 'messages' ),
 				Install::table( 'thread_members' ),
 				get_current_user_id(),
@@ -634,6 +672,7 @@ class Rest_Messages {
 		$last  = array_filter( array_map( 'intval', wp_list_pluck( $rows, 'last_message_id' ) ) );
 		$lasts = $last ? $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE id IN (' . implode( ',', array_fill( 0, count( $last ), '%d' ) ) . ')', array_merge( array( Install::table( 'messages' ) ), $last ) ), OBJECT_K ) : array();
 
+		$muted  = self::muted( $me );
 		$unread = array();
 		foreach ( $wpdb->get_results(
 			$wpdb->prepare(
@@ -648,7 +687,7 @@ class Rest_Messages {
 
 		return array_values(
 			array_map(
-				function ( $t ) use ( $members, $users, $lasts, $unread, $me ) {
+				function ( $t ) use ( $members, $users, $lasts, $unread, $me, $muted ) {
 					$id     = (int) $t['id'];
 					$others = array_values( array_filter( array_map( fn( $uid ) => $uid !== $me ? ( $users[ $uid ] ?? null ) : null, $members[ $id ] ?? array() ) ) );
 					$lm     = $lasts[ (int) $t['last_message_id'] ] ?? null;
@@ -664,6 +703,8 @@ class Rest_Messages {
 							'created_at' => Helpers::iso( $lm->created_at ),
 						) : null,
 						'unread'       => $unread[ $id ] ?? 0,
+						'muted'        => in_array( $id, $muted, true ),
+						'last_at'      => Helpers::iso( $t['last_message_at'] ), // where the next page of chats starts
 					);
 				},
 				$rows

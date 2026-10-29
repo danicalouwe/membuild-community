@@ -1,6 +1,9 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import Icon from '../Icon.vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import { api } from '../../api.js'
+import { cfg } from '../../config.js'
 import { t } from '../../lib/i18n.js'
 
 /**
@@ -12,19 +15,31 @@ const status = ref(null) // { state, source, saved_at, file }
 const busy = ref(false)
 const result = ref(null) // { ok, message }
 const pasted = ref('')
+const kept = ref(false) // step 1 done in this visit: step 2 lights up
 const confirmingStartOver = ref(false)
 
 const working = computed(() => status.value?.state === 'ok')
 // Built here, not in the template: translator notes don't survive template compilation.
-const storedIn = computed(() => t.sprintf(/* translators: %s: file path, such as wp-content/mbcom-key.php */ t.__('It’s stored in %s. Make sure your backups include that file.', 'membuild-community'), status.value?.file))
+const storedIn = computed(() => t.sprintf(/* translators: %s: file path, such as wp-content/mbcom-key.php */ t.__('If someone else looks after your website, tell them the key is in the file %s, so it’s included in backups.', 'membuild-community'), status.value?.file))
 const savedOn = computed(() =>
   status.value?.saved_at
     ? t.sprintf(/* translators: %s: a date */ t.__('Copy saved on %s', 'membuild-community'), new Date(status.value.saved_at).toLocaleDateString(undefined, { dateStyle: 'medium' }))
     : '',
 )
 
+// Arriving from the setup guide (settings#s-key): bring the box to the middle, ring it, and
+// put the cursor on Copy key, so the next thing to do is right there.
+const route = useRoute()
+const box = ref(null)
+const spot = ref(false)
 onMounted(async () => {
   status.value = await api.encryption().catch(() => null)
+  if (route.hash !== '#s-key') return
+  await nextTick()
+  box.value?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  spot.value = true
+  setTimeout(() => (spot.value = false), 2600)
+  setTimeout(() => box.value?.querySelector('.actions .btn')?.focus({ preventScroll: true }), 500)
 })
 
 async function run(fn, success) {
@@ -44,26 +59,28 @@ async function run(fn, success) {
 const copyKey = () =>
   run(async () => {
     await navigator.clipboard.writeText((await api.encryptionKey()).key)
-  }, t.__('Copied. Paste it into your password manager.', 'membuild-community'))
+  }, t.__('Copied. Paste it into your password manager.', 'membuild-community')).then(() => result.value?.ok && (kept.value = true))
 
 const downloadKey = () =>
   run(async () => {
     const { key } = await api.encryptionKey()
     const text = [
-      t.__('MemBuild - Community encryption key', 'membuild-community'),
+      t.__('MemBuild Community safety key', 'membuild-community'),
       location.host,
       '',
       key,
       '',
-      t.__('Private messages on this site are encrypted with this key. If the site is moved or restored and messages can’t be read, paste it into Community settings → Advanced → Encryption key.', 'membuild-community'),
+      t.__('This key keeps your members’ private messages secret. If your website moves to a new web host and old messages can’t be read, paste it into Community settings → Advanced → Safety key.', 'membuild-community'),
       t.__('Keep it private, like a password.', 'membuild-community'),
     ].join('\n')
     const link = document.createElement('a')
     link.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }))
-    link.download = `community-key-${location.host.replace(/[^a-z0-9.-]/gi, '')}.txt`
+    // "Membership Makers - safety key (MemBuild Community) 2026-10-29.txt": easy to find again in Downloads or a password manager.
+    const name = (cfg.siteName || location.host).replace(/[\\/:*?"<>|]+/g, '').trim() || 'Community'
+    link.download = `${name} - ${t.__('safety key', 'membuild-community')} (MemBuild Community) ${new Date().toISOString().slice(0, 10)}.txt`
     link.click()
     URL.revokeObjectURL(link.href)
-  }, t.__('Downloaded. Keep the file somewhere safe, away from the website.', 'membuild-community'))
+  }, t.__('Downloaded. Keep the file somewhere safe, away from the website.', 'membuild-community')).then(() => result.value?.ok && (kept.value = true))
 
 const markSaved = () => run(() => api.encryptionAction('saved'))
 const restore = () =>
@@ -81,18 +98,47 @@ const startOver = () =>
 </script>
 
 <template>
-  <div v-if="status" class="field key" :class="{ problem: !working }">
-    <span class="label">{{ t.__('Encryption key', 'membuild-community') }}</span>
+  <div v-if="status" id="s-key" ref="box" class="field key" :class="{ problem: !working, spot }">
+    <span class="label">{{ t.__('Safety key', 'membuild-community') }}</span>
 
     <template v-if="working">
-      <p>{{ t.__('Private messages are encrypted with a key kept on your server. Keep a copy somewhere safe, like a password manager. If the site is ever moved or restored without it, members’ messages can’t be read.', 'membuild-community') }}</p>
+      <p class="keep"><Icon name="key" :size="18" /> <span><strong>{{ t.__('This key keeps your members’ private messages secret.', 'membuild-community') }}</strong> {{ t.__('If your website ever moves to a new web host, you’ll need it to read the old messages. Keep a spare copy somewhere safe, like a password manager or a note you won’t lose.', 'membuild-community') }}</span></p>
       <p v-if="status.source === 'constant'" class="muted">{{ t.__('The key is set in wp-config.php (MEMBUILD_COMMUNITY_KEY).', 'membuild-community') }}</p>
-      <p v-else class="muted">{{ storedIn }}</p>
-      <div class="actions">
-        <button type="button" class="btn" :disabled="busy" @click="copyKey">{{ t.__('Copy key', 'membuild-community') }}</button>
-        <button type="button" class="btn" :disabled="busy" @click="downloadKey">{{ t.__('Download key', 'membuild-community') }}</button>
-        <button v-if="!status.saved_at && status.source !== 'constant'" type="button" class="btn primary" :disabled="busy" @click="markSaved">{{ t.__('I’ve saved it', 'membuild-community') }}</button>
-        <small v-else-if="savedOn" class="ok">{{ savedOn }}</small>
+      <!-- Two steps: keep a copy, then say so. The key itself is never shown on the page. -->
+      <ol v-if="status.source !== 'constant'" class="steps">
+        <li :class="{ done: kept || status.saved_at }">
+          <span class="n"><Icon v-if="kept || status.saved_at" name="check" :size="15" /><template v-else>1</template></span>
+          <div class="step">
+            <strong>{{ t.__('Keep a copy', 'membuild-community') }}</strong>
+            <small>{{ t.__('Copy it into your password manager, or download it as a file. Either one is enough.', 'membuild-community') }}</small>
+            <div class="actions">
+              <button type="button" class="btn" :disabled="busy" @click="copyKey"><Icon name="copy" :size="16" /> {{ t.__('Copy key', 'membuild-community') }}</button>
+              <span class="or">{{ t.__('or', 'membuild-community') }}</span>
+              <button type="button" class="btn" :disabled="busy" @click="downloadKey"><Icon name="download" :size="16" /> {{ t.__('Download key', 'membuild-community') }}</button>
+            </div>
+            <small v-if="result" :class="result.ok ? 'ok' : 'err'" role="status">{{ result.message }}</small>
+          </div>
+        </li>
+        <li :class="{ done: status.saved_at, next: kept && !status.saved_at }">
+          <span class="n"><Icon v-if="status.saved_at" name="check" :size="15" /><template v-else>2</template></span>
+          <div class="step">
+            <strong>{{ t.__('Tell us you’ve saved it', 'membuild-community') }}</strong>
+            <template v-if="status.saved_at">
+              <small class="ok saved"><Icon name="check" :size="15" /> {{ savedOn }}</small>
+            </template>
+            <template v-else>
+              <small>{{ t.__('So we stop reminding you.', 'membuild-community') }}</small>
+              <div class="actions">
+                <button type="button" class="btn primary" :disabled="busy" @click="markSaved">{{ t.__('Done, I’ve saved it', 'membuild-community') }}</button>
+              </div>
+            </template>
+          </div>
+        </li>
+      </ol>
+      <p v-if="status.source !== 'constant'" class="muted after">{{ storedIn }}</p>
+      <div v-else class="actions">
+        <button type="button" class="btn" :disabled="busy" @click="copyKey"><Icon name="copy" :size="16" /> {{ t.__('Copy key', 'membuild-community') }}</button>
+        <button type="button" class="btn" :disabled="busy" @click="downloadKey"><Icon name="download" :size="16" /> {{ t.__('Download key', 'membuild-community') }}</button>
       </div>
     </template>
 
@@ -115,7 +161,7 @@ const startOver = () =>
       </details>
     </template>
 
-    <small v-if="result" :class="result.ok ? 'ok' : 'err'" role="status">{{ result.message }}</small>
+    <small v-if="result && (!working || status.source === 'constant')" :class="result.ok ? 'ok' : 'err'" role="status">{{ result.message }}</small>
   </div>
 </template>
 
@@ -124,6 +170,20 @@ const startOver = () =>
   padding: 14px;
   border: 1px solid var(--border);
   border-radius: 12px;
+}
+
+.key.spot {
+  animation: spot 2.6s ease-out;
+}
+
+@keyframes spot {
+  0%,
+  60% {
+    box-shadow: 0 0 0 4px var(--accent);
+  }
+  100% {
+    box-shadow: 0 0 0 4px transparent;
+  }
 }
 
 .key.problem {
@@ -140,12 +200,79 @@ const startOver = () =>
   font-size: 14px;
 }
 
+.muted.after {
+  margin-top: 16px;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin-top: 6px;
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin: 10px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+
+.steps li {
+  display: flex;
+  gap: 14px;
+}
+
+.n {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.steps li.done .n {
+  background: #1f7a49;
+  color: #fff;
+}
+
+.steps li.next .n {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.step {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.step strong {
+  font-size: 16px;
+}
+
+.step > small {
+  color: var(--text-2);
+  font-size: 15px;
+}
+
+.step > small.ok {
+  color: var(--ok-text, #1f7a49);
+}
+
+.or {
+  color: var(--text-2);
+  font-size: 15px;
 }
 
 .actions input {
@@ -182,5 +309,39 @@ const startOver = () =>
   align-items: center;
   gap: 8px;
   margin: 8px 0;
+}
+</style>
+
+<style scoped>
+.keep {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 4px 0 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #fff3d6;
+  color: #6b4700;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.keep :deep(svg) {
+  flex: none;
+  margin-top: 2px;
+}
+
+.saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+}
+
+@media (prefers-color-scheme: dark) {
+  .keep {
+    background: #3a2c0b;
+    color: #f5c451;
+  }
 }
 </style>

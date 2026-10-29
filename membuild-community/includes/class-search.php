@@ -11,12 +11,14 @@ namespace MemBuild\Community;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * One search box for members, posts, comments and the Classroom.
+ * One search box for members, posts, comments, the Classroom, events and places.
  *
- *   GET /search ?q=&type=all|members|posts|comments|courses&page=
+ *   GET /search ?q=&type=all|members|posts|comments|courses|events|places&page=
+ *   GET /search/around                 counts for "Look around" before typing
  *
- * type=all returns a few of each kind for the dropdown under the search box;
- * any other type returns one kind, a page at a time, for the results page.
+ * type=all returns a few of each kind, with how many there are of each, for the
+ * dropdown and the results page's All tab; any other type returns one kind, a
+ * page at a time.
  *
  * It shows only what the member could already open, using the same rules as
  * the rest of the community:
@@ -36,7 +38,8 @@ class Search {
 
 	const INDEX_HOOK   = 'mbcom_search_index';
 	const INDEX_OPTION = 'mbcom_search_index'; // table => 'ready' | 'failed'
-	const PER_GROUP    = 4;   // results per kind in the dropdown
+	const PER_GROUP    = 3;   // results per kind in the dropdown and the All tab
+	const COUNT_UP_TO  = 99;  // counts stop here ("99+")
 	const PAGE_SIZE    = 20;  // results per page on the results page
 	const SNIPPET      = 140; // characters around the first match
 
@@ -54,9 +57,18 @@ class Search {
 				'permission_callback' => Rest_Feed::feature( 'search' ),
 				'args'                => array(
 					'q'    => array( 'type' => 'string', 'required' => true ),
-					'type' => array( 'enum' => array( 'all', 'members', 'posts', 'comments', 'courses', 'places' ), 'default' => 'all' ),
+					'type' => array( 'enum' => array( 'all', 'members', 'posts', 'comments', 'courses', 'events', 'places' ), 'default' => 'all' ),
 					'page' => array( 'type' => 'integer', 'default' => 1, 'minimum' => 1, 'maximum' => 50 ),
 				),
+			)
+		);
+		register_rest_route(
+			MEMBUILD_COMMUNITY_REST_NS,
+			'/search/around',
+			array(
+				'methods'             => 'GET',
+				'callback'            => array( __CLASS__, 'around' ),
+				'permission_callback' => Rest_Feed::feature( 'search' ),
 			)
 		);
 	}
@@ -67,23 +79,25 @@ class Search {
 		$q     = self::clean_query( (string) $req['q'] );
 		$words = self::words( $q );
 		$type  = (string) $req['type'];
-		$kinds = array( 'members', 'posts', 'comments', 'courses', 'places' );
-		if ( ! Settings::feature( 'places' ) ) {
-			$kinds = array_diff( $kinds, array( 'places' ) );
-		}
-		if ( ! Settings::feature( 'classroom' ) ) {
-			$kinds = array_diff( $kinds, array( 'courses' ) );
-		}
+		$kinds = self::kinds();
 		if ( 'all' === $type ) {
 			$groups = array();
+			$total  = 0;
+			$capped = false;
 			foreach ( $kinds as $kind ) {
-				$found           = $words ? self::$kind( $words, self::PER_GROUP, 0 ) : array();
+				// One query per kind gives both the first few and how many (up to COUNT_UP_TO).
+				$found           = $words ? self::$kind( $words, self::COUNT_UP_TO, 0 ) : array();
+				$count           = min( count( $found ), self::COUNT_UP_TO );
+				$total          += $count;
+				$capped          = $capped || count( $found ) > self::COUNT_UP_TO;
 				$groups[ $kind ] = array(
-					'items' => array_slice( $found, 0, self::PER_GROUP ),
-					'more'  => count( $found ) > self::PER_GROUP,
+					'items'     => array_slice( $found, 0, self::PER_GROUP ),
+					'count'     => $count,
+					'more'      => count( $found ) > self::PER_GROUP,
+					'count_max' => count( $found ) > self::COUNT_UP_TO, // show "99+"
 				);
 			}
-			return array( 'query' => $q, 'groups' => $groups );
+			return array( 'query' => $q, 'groups' => $groups, 'total' => $total, 'total_max' => $capped ); // total_max: some counts stopped at 99, so show "500+"
 		}
 		if ( ! in_array( $type, $kinds, true ) ) {
 			return new \WP_Error( 'mbcom_feature_off', __( 'This part of the community is turned off.', 'membuild-community' ), array( 'status' => 403 ) );
@@ -95,6 +109,43 @@ class Search {
 			'items'     => array_slice( $found, 0, self::PAGE_SIZE ),
 			'next_page' => count( $found ) > self::PAGE_SIZE ? $page + 1 : null,
 		);
+	}
+
+	/** The kinds this community searches (switched-off parts are left out). */
+	private static function kinds() {
+		$kinds = array( 'members', 'posts', 'comments', 'courses', 'events', 'places' );
+		foreach ( array( 'courses' => 'classroom', 'events' => 'events', 'places' => 'places' ) as $kind => $feature ) {
+			if ( ! Settings::feature( $feature ) ) {
+				$kinds = array_diff( $kinds, array( $kind ) );
+			}
+		}
+		return array_values( $kinds );
+	}
+
+	/**
+	 * "Look around", shown before anything is typed: how many members, courses,
+	 * upcoming events and places this member can see.
+	 */
+	public static function around() {
+		global $wpdb;
+		$out = array( 'members' => Helpers::member_total() );
+		if ( Settings::feature( 'classroom' ) ) {
+			$rows           = Helpers::can_manage()
+				? $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i', Install::table( 'courses' ) ), ARRAY_A )
+				: $wpdb->get_results( $wpdb->prepare( "SELECT * FROM %i WHERE status = 'published'", Install::table( 'courses' ) ), ARRAY_A );
+			$out['courses'] = count( array_filter( $rows, fn( $c ) => ! Access::hidden( $c ) ) );
+		}
+		if ( Settings::feature( 'events' ) ) {
+			list( $seen, $vals ) = Events::visible_sql();
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $seen is fixed SQL with placeholders from visible_sql(); values are bound.
+			$out['events'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status = 'published' AND event_at IS NOT NULL AND event_at + INTERVAL event_minutes MINUTE > %s AND {$seen}", array_merge( array( Install::table( 'posts' ), Helpers::now() ), $vals ) ) );
+		}
+		if ( Settings::feature( 'places' ) ) {
+			list( $seen, $vals ) = Rest_Places::access_sql();
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $seen is fixed SQL with placeholders from access_sql(); values are bound.
+			$out['places'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status = 'published' AND {$seen}", array_merge( array( Install::table( 'places' ) ), $vals ) ) );
+		}
+		return $out;
 	}
 
 	/** Plain text, one line, at most 100 characters. */
@@ -125,9 +176,19 @@ class Search {
 		return array( implode( ' AND ', array_fill( 0, count( $words ), "{$column} LIKE %s" ) ), array_map( fn( $w ) => '%' . $wpdb->esc_like( $w ) . '%', $words ) );
 	}
 
+	/** Text as people read it: no tags, and no Markdown marks (**bold**, ## headings, [links](…), list dashes). */
+	public static function plain( $text ) {
+		$text = wp_strip_all_tags( html_entity_decode( (string) $text, ENT_QUOTES, 'UTF-8' ) );
+		$text = preg_replace( '/!?\[([^\]]*)\]\([^)]*\)/u', '$1', $text );       // [text](url) and images
+		$text = preg_replace( '/^\s{0,3}(#{1,6}|>|[-*+]|\d+[.)])\s+/mu', '', $text ); // headings, quotes, list marks
+		$text = preg_replace( '/(\*\*|__|~~|`)/u', '', $text );                     // bold, strike, code
+		$text = preg_replace( '/(?<![\p{L}\p{N}])[*_]([^*_\n]+)[*_](?![\p{L}\p{N}])/u', '$1', $text ); // *italic*
+		return trim( preg_replace( '/\s+/u', ' ', $text ) );
+	}
+
 	/** The text around the first word found, with "…" where it was cut. */
 	public static function snippet( $text, array $words ) {
-		$text = trim( preg_replace( '/\s+/u', ' ', wp_strip_all_tags( html_entity_decode( (string) $text, ENT_QUOTES, 'UTF-8' ) ) ) );
+		$text = self::plain( $text );
 		if ( mb_strlen( $text ) <= self::SNIPPET ) {
 			return $text;
 		}
@@ -191,9 +252,12 @@ class Search {
 		// Posts in courses show only to members who can open that course and lesson.
 		list( $seen, $seen_vals ) = Discussions::visible_sql();
 		list( $ev, $ev_vals )     = Events::visible_sql();
+		if ( Settings::feature( 'events' ) ) {
+			$ev = "event_at IS NULL AND {$ev}"; // events have their own group
+		}
 		$rows            = $wpdb->get_results(
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $m comes from match(), $seen and $ev from visible_sql(): fixed SQL with placeholders; $reels is a fixed literal; values are bound.
-			$wpdb->prepare( "SELECT id, user_id, type, content, course_id, lesson_id, event_at, event_title, reactions_count, comments_count, created_at FROM %i WHERE status = 'published'{$reels} AND {$seen} AND {$ev} AND ({$m} OR event_title LIKE %s) ORDER BY id DESC LIMIT %d OFFSET %d", array_merge( array( $posts ), $seen_vals, $ev_vals, $vals, array( '%' . $wpdb->esc_like( $words[0] ) . '%', $limit + 1, $offset ) ) ),
+			$wpdb->prepare( "SELECT id, user_id, type, content, course_id, lesson_id, event_at, event_title, reactions_count, comments_count, created_at FROM %i WHERE status = 'published'{$reels} AND {$seen} AND {$ev} AND {$m} ORDER BY id DESC LIMIT %d OFFSET %d", array_merge( array( $posts ), $seen_vals, $ev_vals, $vals, array( $limit + 1, $offset ) ) ),
 			ARRAY_A
 		);
 		$rows  = Blocks::filter( $rows );
@@ -283,11 +347,13 @@ class Search {
 			return array();
 		}
 		$has_all = fn( $text ) => ! array_filter( $words, fn( $w ) => false === mb_stripos( wp_strip_all_tags( (string) $text ), $w ) );
-		$out     = array();
+		// Lesson counts for every course in one query (not one per course).
+		$counts = wp_list_pluck( $wpdb->get_results( $wpdb->prepare( 'SELECT course_id, COUNT(*) AS n FROM %i GROUP BY course_id', Install::table( 'lessons' ) ), ARRAY_A ), 'n', 'course_id' );
+		$out    = array();
 		foreach ( $courses as $c ) {
 			$by_title = $has_all( $c['title'] );
 			if ( $by_title || ( ! $c['lock'] && $has_all( $c['description'] ) ) ) {
-				$out[] = self::course_item( $c, $by_title ? '' : self::snippet( $c['description'], $words ) );
+				$out[] = self::course_item( $c, $by_title ? '' : self::snippet( $c['description'], $words ), (int) ( $counts[ $c['id'] ] ?? 0 ) );
 			}
 		}
 
@@ -331,6 +397,41 @@ class Search {
 		return array_slice( $out, $offset, $limit + 1 );
 	}
 
+	/** Events by title or description: upcoming soonest first, then past ones, newest first. */
+	private static function events( array $words, $limit, $offset ) {
+		global $wpdb;
+		$fields = array();
+		$args   = array( Install::table( 'posts' ) );
+		foreach ( $words as $w ) {
+			$fields[] = '(event_title LIKE %s OR content LIKE %s OR event_venue LIKE %s)';
+			$like     = '%' . $wpdb->esc_like( $w ) . '%';
+			array_push( $args, $like, $like, $like );
+		}
+		list( $seen, $vals ) = Events::visible_sql(); // group-only events stay with their group
+		$fields[]            = $seen;
+		array_push( $args, ...$vals );
+		$now = Helpers::now();
+		array_push( $args, $now, $now, $limit + 1, $offset );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- fixed fragments with placeholders per word; every value is bound.
+		$rows  = $wpdb->get_results( $wpdb->prepare( "SELECT id, user_id, event_title, event_at, event_minutes, event_where, event_venue, event_tz, event_status FROM %i WHERE status = 'published' AND event_at IS NOT NULL AND " . implode( ' AND ', $fields ) . ' ORDER BY (event_at + INTERVAL event_minutes MINUTE > %s) DESC, CASE WHEN event_at + INTERVAL event_minutes MINUTE > %s THEN event_at END ASC, event_at DESC LIMIT %d OFFSET %d', $args ), ARRAY_A );
+		$rows  = Blocks::filter( $rows );
+		return array_map(
+			fn( $r ) => array(
+				'kind'   => 'event',
+				'id'     => (int) $r['id'],
+				'title'  => $r['event_title'],
+				'at'     => Helpers::iso( $r['event_at'] ),
+				'tz'     => $r['event_tz'] ?: null,
+				'where'  => $r['event_where'],
+				'venue'  => $r['event_venue'],
+				'status' => $r['event_status'],
+				'past'   => strtotime( $r['event_at'] . ' UTC' ) + 60 * (int) $r['event_minutes'] <= time(),
+				'link'   => array( 'name' => 'event', 'params' => array( 'id' => (int) $r['id'] ) ),
+			),
+			$rows
+		);
+	}
+
 	/** Published places by name, address or perk. */
 	private static function places( array $words, $limit, $offset ) {
 		global $wpdb;
@@ -362,14 +463,13 @@ class Search {
 		);
 	}
 
-	private static function course_item( array $c, $snippet ) {
-		global $wpdb;
+	private static function course_item( array $c, $snippet, $lessons ) {
 		return array(
 			'kind'    => 'course',
 			'id'      => (int) $c['id'],
 			'title'   => $c['title'],
 			'cover'   => $c['cover_url'] ?: null,
-			'lessons' => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE course_id = %d', Install::table( 'lessons' ), $c['id'] ) ),
+			'lessons' => $lessons,
 			'snippet' => $snippet,
 			'lock'    => $c['lock'],
 			'draft'   => 'published' !== $c['status'],

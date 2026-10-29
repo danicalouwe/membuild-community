@@ -17,6 +17,7 @@ const props = defineProps({
   tick: { type: String, default: '' }, // e.g. "I understand this can't be undone"
   busy: { type: Boolean, default: false },
   z: { type: Number, default: 90 }, // above another dialog: the "ask first" box uses 210
+  safe: { type: Boolean, default: false }, // staying is the main button (Leave without saving? → Keep editing)
 })
 const emit = defineEmits(['confirm', 'close'])
 const ticked = ref(false)
@@ -36,8 +37,14 @@ const ticked = ref(false)
         <span>{{ tick }}</span>
       </label>
       <div class="actions">
-        <button type="button" class="btn btn-lg btn-ghost" @click="emit('close')">{{ cancel || t.__('Cancel', 'membuild-community') }}</button>
-        <button type="button" class="btn btn-lg" :class="danger ? 'red' : 'btn-primary'" :disabled="busy || (!!tick && !ticked)" @click="emit('confirm')">{{ confirm }}</button>
+        <template v-if="safe">
+          <button type="button" class="btn btn-lg btn-ghost" :disabled="busy" @click="emit('confirm')">{{ confirm }}</button>
+          <button type="button" class="btn btn-lg btn-primary" @click="emit('close')">{{ cancel || t.__('Cancel', 'membuild-community') }}</button>
+        </template>
+        <template v-else>
+          <button type="button" class="btn btn-lg btn-ghost" @click="emit('close')">{{ cancel || t.__('Cancel', 'membuild-community') }}</button>
+          <button type="button" class="btn btn-lg" :class="danger ? 'red' : 'btn-primary'" :disabled="busy || (!!tick && !ticked)" @click="emit('confirm')">{{ confirm }}</button>
+        </template>
       </div>
     </div>
   </BaseDialog>

@@ -157,7 +157,7 @@ class Health {
 	}
 
 	private static function key_settings_url() {
-		return home_url( '/' . Settings::slug() . '/settings#s-advanced' );
+		return home_url( '/' . Settings::slug() . '/settings?s=advanced#s-key' );
 	}
 
 	private static function key_problem() {
@@ -204,8 +204,8 @@ class Health {
 		}
 		return sprintf(
 			'<div class="mb-notice mb-notice--warn mbcom-key-card"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5 7V5a3 3 0 016 0v2"/></svg><div class="mb-notice__body"><div class="mb-notice__title">%s</div><div class="mb-notice__text">%s</div></div><a class="mb-btn mb-btn--quiet mb-btn--sm" href="%s">%s</a></div>',
-			esc_html__( 'Save a copy of your community’s encryption key.', 'membuild-community' ),
-			esc_html__( 'Private messages are encrypted with a key kept on your server. Keep a copy somewhere safe, like a password manager. If the site is ever moved or restored without it, members’ messages can’t be read.', 'membuild-community' ),
+			esc_html__( 'Save a spare copy of your community’s safety key.', 'membuild-community' ),
+			esc_html__( 'This key keeps your members’ private messages secret. If your website ever moves to a new web host, you’ll need it to read the old messages. Keep a spare copy somewhere safe, like a password manager or a note you won’t lose.', 'membuild-community' ),
 			esc_url( self::key_settings_url() ),
 			esc_html__( 'Save the key', 'membuild-community' )
 		);

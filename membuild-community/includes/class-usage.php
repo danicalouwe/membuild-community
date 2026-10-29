@@ -364,19 +364,18 @@ class Usage {
 		echo '<input type="hidden" name="action" value="mbcom_usage">';
 		printf(
 			'<h2>%s</h2><p class="mbcom-muted">%s</p>',
-			esc_html__( 'Get the next features before anyone else', 'membuild-community' ),
+			esc_html__( 'While you’re here: get the next features first', 'membuild-community' ),
 			esc_html__( 'An email when something new ships in MemBuild - Community, and the odd question about what to build next. No newsletters, nothing for sale.', 'membuild-community' )
 		);
 		echo '<div class="mbcom-setup-fields">';
 		printf( '<label><span>%s</span><input type="email" name="email" value="%s" required></label>', esc_html__( 'Your email', 'membuild-community' ), esc_attr( wp_get_current_user()->user_email ) );
-		printf( '<label><span>%s</span><input type="text" value="%s" readonly></label>', esc_html__( 'Your site', 'membuild-community' ), esc_attr( home_url() ) );
-		printf( '<label><span>%s</span><select name="niche"><option value="">%s</option>', esc_html__( 'What is it about?', 'membuild-community' ), esc_html__( 'Choose one', 'membuild-community' ) );
+		printf( '<label><span>%s</span><select name="niche"><option value="">%s</option>', esc_html__( 'What is it about? (optional)', 'membuild-community' ), esc_html__( 'Choose one', 'membuild-community' ) );
 		foreach ( self::niches() as $key => $label ) {
 			printf( '<option value="%s"%s>%s</option>', esc_attr( $key ), selected( $state['niche'], $key, false ), esc_html( $label ) );
 		}
 		echo '</select></label>';
 		printf( '<label class="mbcom-setup-other"><span>%s</span><input type="text" name="niche_other" maxlength="40" value="%s"></label>', esc_html__( 'In a few words', 'membuild-community' ), esc_attr( $state['niche_other'] ) );
-		printf( '<label><span>%s</span><select name="size"><option value="">%s</option>', esc_html__( 'How many members do you expect?', 'membuild-community' ), esc_html__( 'Choose one', 'membuild-community' ) );
+		printf( '<label><span>%s</span><select name="size"><option value="">%s</option>', esc_html__( 'How many members do you expect? (optional)', 'membuild-community' ), esc_html__( 'Choose one', 'membuild-community' ) );
 		foreach ( self::sizes() as $key => $label ) {
 			printf( '<option value="%s"%s>%s</option>', esc_attr( $key ), selected( $state['size'], $key, false ), esc_html( $label ) );
 		}

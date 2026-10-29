@@ -140,7 +140,9 @@ class Login {
 
 	private static function login_page() {
 		$redirect = self::redirect_target();
-		if ( is_user_logged_in() ) {
+		// Settings › "Open the login page": admins see it as visitors do, without logging out.
+		$preview = isset( $_GET['preview'] ) && Helpers::can_manage() && 'GET' === Helpers::method(); // phpcs:ignore WordPress.Security.NonceVerification -- read-only
+		if ( is_user_logged_in() && ! $preview ) {
 			wp_safe_redirect( $redirect ?: Portal::url() );
 			exit;
 		}
@@ -167,7 +169,7 @@ class Login {
 					array(
 						'user_login'    => $login,
 						'user_password' => isset( $_POST['pwd'] ) ? (string) wp_unslash( $_POST['pwd'] ) : '', // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- passwords are not altered
-						'remember'      => true, // like Facebook: stay logged in on this device
+						'remember'      => ! empty( $_POST['rememberme'] ), // "Keep me logged in", ticked to start
 					),
 					is_ssl()
 				);
@@ -399,7 +401,7 @@ class Login {
 				exit;
 			}
 		}
-		self::render( 'reset', array( 'error' => $error, 'login' => $login, 'key' => $key, 'name' => $user->display_name ) );
+		self::render( 'reset', array( 'error' => $error, 'login' => $login, 'key' => $key, 'name' => $user->display_name, 'email' => $user->user_email ) );
 	}
 
 	/** Why a new password can't be used, or '' when it can. Password-policy plugins add rules through the core hook. */
@@ -441,7 +443,11 @@ class Login {
 		status_header( 200 );
 		self::styles();
 		$name     = Settings::name();
-		$tagline  = (string) Settings::get( 'description' );
+		$tagline  = (string) ( Settings::get( 'login_text' ) ?: Settings::get( 'description' ) );
+		// The owner's own big line (its last word in the community's color), and their photo or our illustration.
+		$headline = trim( (string) Settings::get( 'login_headline' ) );
+		$picture  = Settings::get( 'login_picture' )['url'] ?? '';
+		$join_label = Settings::get( 'signup_url' ) && ! get_option( 'users_can_register' ) ? trim( (string) Settings::get( 'signup_label' ) ) : '';
 		$logo     = Settings::get( 'logo' )['url'] ?? '';
 		$initials = Settings::initials();
 		$signup   = self::signup_link();

@@ -24,6 +24,11 @@ defined( 'ABSPATH' ) || exit;
  *   POST /settings/test-email    (admin) send a test to yourself
  *   GET  /me/email               your email preferences
  *   PUT  /me/email               { frequency: instant|daily|off, messages, activity }
+ *   POST /me/email/confirm       send the welcome email (with its confirm button) again
+ *
+ * Soft confirm: someone who joins is in at once and gets a welcome email whose button
+ * confirms the address. Until they press it, no activity emails go to them (password
+ * resets always do), and after a few days Home shows a calm banner to send it again.
  */
 class Email {
 
@@ -34,6 +39,8 @@ class Email {
 	const PREFS         = 'mbcom_email_prefs';
 	const LAST_SENT     = 'mbcom_email_last';
 	const LAST_ACTIVE   = 'mbcom_last_active';
+	const UNCONFIRMED   = 'mbcom_email_unconfirmed'; // set when someone joins; removed when they confirm
+	const BANNER_AFTER  = 3 * DAY_IN_SECONDS;         // Home asks only after a few days
 
 	/* ---------- Settings ---------- */
 
@@ -130,6 +137,9 @@ class Email {
 	 * @return true|\WP_Error
 	 */
 	public static function send( $to, $subject, $html, $text, array $headers = array() ) {
+		// Names come from WordPress with "&" stored as "&amp;": the subject and plain text are not HTML.
+		$subject   = html_entity_decode( wp_strip_all_tags( $subject ), ENT_QUOTES, 'UTF-8' );
+		$text      = html_entity_decode( $text, ENT_QUOTES, 'UTF-8' );
 		$e         = self::settings();
 		$from_mail = $e['from_email'] ?: get_option( 'admin_email' );
 		$from_name = $e['from_name'] ?: Settings::name();
@@ -220,21 +230,30 @@ class Email {
 				array( 'methods' => 'PUT', 'callback' => array( __CLASS__, 'save_prefs' ), 'permission_callback' => $member ),
 			)
 		);
+		register_rest_route( MEMBUILD_COMMUNITY_REST_NS, '/me/email/confirm', array( 'methods' => 'POST', 'callback' => array( __CLASS__, 'resend_welcome' ), 'permission_callback' => $member ) );
 	}
 
 	public static function test() {
 		$user = wp_get_current_user();
 		$name = Settings::name();
+		$how  = self::delivery_label();
+		$spam = 'default' === self::settings()['mode']
+			? __( 'Members’ emails may land there too. Choose Resend in Settings › Email.', 'membuild-community' )
+			: __( 'Members’ emails may land there too. Check the sender settings in Settings › Email.', 'membuild-community' );
 		$html = self::layout(
-			__( 'Test email', 'membuild-community' ),
-			'<p style="margin:0 0 12px">' . esc_html__( 'If you can read this, community emails are working.', 'membuild-community' ) . '</p>'
-				. '<p style="margin:0;color:#6b7280">' . esc_html( self::delivery_label() ) . '</p>',
-			home_url( '/' . Settings::slug() . '/settings' ),
-			__( 'Back to settings', 'membuild-community' ),
-			''
+			__( 'Your emails are working', 'membuild-community' ),
+			self::para( esc_html( $how ) )
+				. '<div style="margin-top:16px;padding:14px 16px;border-radius:12px;background:#fff3d6;color:#7a4e00;font-size:16px;line-height:1.5"><strong>' . esc_html__( 'Found this in spam?', 'membuild-community' ) . '</strong> ' . esc_html( $spam ) . '</div>',
+			home_url( '/' . Settings::slug() . '/settings?s=email' ),
+			__( 'Back to Settings', 'membuild-community' ),
+			'',
+			/* translators: %s: community name */
+			sprintf( __( '%s · sent from Settings › Email', 'membuild-community' ), $name )
 		);
-		/* translators: %s: community name */
-		$result = self::send( $user->user_email, sprintf( __( 'Test email from %s', 'membuild-community' ), $name ), $html, __( 'If you can read this, community emails are working.', 'membuild-community' ) );
+		$result = self::send( $user->user_email, __( 'Your community emails are working', 'membuild-community' ), $html, __( 'Your emails are working.', 'membuild-community' ) . ' ' . $how );
+		if ( true === $result ) {
+			update_option( 'mbcom_test_email_ok', time(), false ); // setup guide: emails were checked
+		}
 		if ( is_wp_error( $result ) ) {
 			return new \WP_Error( 'mbcom_mail_failed', $result->get_error_message(), array( 'status' => 502 ) );
 		}
@@ -244,13 +263,14 @@ class Email {
 	private static function delivery_label() {
 		$mode = self::settings()['mode'];
 		if ( 'resend' === $mode ) {
-			return 'Sent through Resend.';
+			return __( 'This test came through Resend.', 'membuild-community' );
 		}
 		if ( 'smtp' === $mode ) {
-			return 'Sent through your SMTP server.';
+			return __( 'This test came through your SMTP server.', 'membuild-community' );
 		}
 		$plugin = self::smtp_plugin();
-		return $plugin ? "Sent through {$plugin}." : 'Sent through your web host’s mail.';
+		/* translators: %s: the name of an email plugin */
+		return $plugin ? sprintf( __( 'This test came through %s.', 'membuild-community' ), $plugin ) : __( 'This test came through your web host’s mail.', 'membuild-community' );
 	}
 
 	/* ---------- Member preferences ---------- */
@@ -311,6 +331,139 @@ class Email {
 			}
 		);
 		add_action( 'template_redirect', array( __CLASS__, 'maybe_unsubscribe' ), 0 );
+		add_action( 'template_redirect', array( __CLASS__, 'maybe_confirm' ), 0 );
+		// Anyone who joins (our join page, wp-admin, a membership plugin's checkout) gets the welcome email.
+		add_action( 'user_register', array( __CLASS__, 'on_register' ), 20 );
+		add_filter( 'retrieve_password_notification_email', array( __CLASS__, 'reset_email' ), 10, 4 );
+	}
+
+	/* ---------- Welcome and soft confirm ---------- */
+
+	/** A new account: mark the address as not confirmed yet and send the welcome email once the request is done. */
+	public static function on_register( $user_id ) {
+		if ( ! self::settings()['enabled'] || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
+			return; // no community emails, or an import from the command line: nothing to confirm
+		}
+		update_user_meta( $user_id, self::UNCONFIRMED, time() );
+		add_action( 'shutdown', fn() => self::send_welcome( (int) $user_id ) ); // after other plugins have saved the name
+	}
+
+	public static function is_confirmed( $user_id ) {
+		return ! get_user_meta( (int) $user_id, self::UNCONFIRMED, true );
+	}
+
+	/** For the app: whether Home should show "Confirm your email" (only after a few days). */
+	public static function banner( $user_id ) {
+		$since = (int) get_user_meta( (int) $user_id, self::UNCONFIRMED, true );
+		return $since && time() - $since > self::BANNER_AFTER && self::settings()['enabled'];
+	}
+
+	public static function confirm_url( $user_id ) {
+		$user = get_userdata( $user_id );
+		return add_query_arg( array( 'mbcom_confirm' => (int) $user_id, 'sig' => substr( hash_hmac( 'sha256', 'confirm|' . (int) $user_id . '|' . strtolower( $user ? $user->user_email : '' ), wp_salt( 'nonce' ) ), 0, 24 ) ), home_url( '/' ) );
+	}
+
+	/** The welcome email: three first steps, and the button that confirms their address. */
+	public static function send_welcome( $user_id ) {
+		$user = get_userdata( $user_id );
+		if ( ! $user || ! $user->user_email ) {
+			return false;
+		}
+		$name  = Settings::name();
+		$first = $user->first_name ?: $user->display_name;
+		$about = Settings::get( 'login_text' ) ?: Settings::get( 'description' );
+		$steps = array_filter(
+			array(
+				array( __( 'Say hello', 'membuild-community' ), __( 'Tell everyone what you’re working on in Home.', 'membuild-community' ) ),
+				Settings::feature( 'classroom' ) ? array( __( 'Start a course', 'membuild-community' ), __( 'Your first lesson takes about 10 minutes.', 'membuild-community' ) ) : null,
+				array( __( 'Add a photo', 'membuild-community' ), __( 'People reply more to a face.', 'membuild-community' ) ),
+			)
+		);
+		$list = '';
+		$text = '';
+		foreach ( array_values( $steps ) as $i => $st ) {
+			$list .= '<tr><td valign="top" style="width:28px;padding:0 12px 16px 0"><div style="width:28px;height:28px;border-radius:50%;background:#f2fbd9;color:#4d6b00;font-size:15px;font-weight:800;line-height:28px;text-align:center">' . ( $i + 1 ) . '</div></td>'
+				. '<td valign="top" style="padding:2px 0 16px"><div style="font-size:17px;font-weight:700;color:#16181d">' . esc_html( $st[0] ) . '</div><div style="font-size:16px;color:#4a4f59">' . esc_html( $st[1] ) . '</div></td></tr>';
+			$text .= ( $i + 1 ) . '. ' . $st[0] . ': ' . $st[1] . "\n";
+		}
+		$intro = $about
+			/* translators: 1: community description */
+			? esc_html( $about ) . ' ' . esc_html__( 'Here’s a good place to start:', 'membuild-community' )
+			: esc_html__( 'Here’s a good place to start:', 'membuild-community' );
+		$confirmed = self::is_confirmed( $user_id );
+		$body      = self::para( $intro )
+			. '<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:20px">' . $list . '</table>'
+			. ( $confirmed ? '' : '<div style="margin-top:4px;padding:14px 16px;border-radius:12px;background:#f2fbd9;color:#16181d;font-size:16px;line-height:1.5"><strong>' . esc_html__( 'One quick thing:', 'membuild-community' ) . '</strong> ' . esc_html__( 'press the button below so we know this email address is yours. Then we can send you updates when people reply to you.', 'membuild-community' ) . '</div>' );
+		$url  = $confirmed ? Portal::url() : self::confirm_url( $user_id );
+		$html = self::layout(
+			/* translators: %s: member's first name */
+			sprintf( __( 'Welcome, %s. You’re in!', 'membuild-community' ), $first ),
+			$body,
+			$url,
+			$confirmed ? __( 'Open the community', 'membuild-community' ) : __( 'Confirm my email and open the community', 'membuild-community' ),
+			'',
+			/* translators: %s: community name */
+			sprintf( __( 'You’re getting this because you joined %s.', 'membuild-community' ), $name )
+		);
+		/* translators: 1: community name, 2: member's first name */
+		$subject = sprintf( __( 'Welcome to %1$s, %2$s', 'membuild-community' ), $name, $first );
+		/* translators: %s: member's first name */
+		$plain = sprintf( __( 'Welcome, %s. You’re in!', 'membuild-community' ), $first ) . "\n\n" . $text . "\n" . ( $confirmed ? '' : __( 'Confirm your email:', 'membuild-community' ) . ' ' ) . $url;
+		return true === self::send( $user->user_email, $subject, $html, $plain );
+	}
+
+	/** "Send it again" on the Home banner: at most three an hour. */
+	public static function resend_welcome() {
+		$me   = get_current_user_id();
+		$slow = Helpers::throttle( 'welcome', 3, HOUR_IN_SECONDS );
+		if ( $slow ) {
+			return $slow;
+		}
+		if ( self::is_confirmed( $me ) ) {
+			return array( 'sent' => false, 'confirmed' => true );
+		}
+		$user = wp_get_current_user();
+		if ( ! self::send_welcome( $me ) ) {
+			return new \WP_Error( 'mbcom_mail_failed', __( 'The email could not be sent. Try again in a few minutes.', 'membuild-community' ), array( 'status' => 502 ) );
+		}
+		return array( 'sent' => true, 'to' => $user->user_email );
+	}
+
+	/** The welcome email's button: confirms the address, then opens the community. */
+	public static function maybe_confirm() {
+		if ( ! isset( $_GET['mbcom_confirm'], $_GET['sig'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification -- signed link
+			return;
+		}
+		$user_id = (int) $_GET['mbcom_confirm']; // phpcs:ignore WordPress.Security.NonceVerification
+		$parts   = wp_parse_args( wp_parse_url( self::confirm_url( $user_id ), PHP_URL_QUERY ) ?: '' );
+		if ( get_userdata( $user_id ) && hash_equals( (string) ( $parts['sig'] ?? '' ), sanitize_text_field( wp_unslash( $_GET['sig'] ) ) ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+			delete_user_meta( $user_id, self::UNCONFIRMED );
+		}
+		wp_safe_redirect( Portal::url() );
+		exit;
+	}
+
+	/** WordPress's password reset email, in the same look as every other community email. */
+	public static function reset_email( $email, $key, $login, $user ) {
+		if ( ! Login::enabled() ) {
+			return $email;
+		}
+		$link  = Login::url( 'reset-password', array( 'login' => $login, 'key' => $key ) );
+		$name  = Settings::name();
+		$email['message'] = self::layout(
+			__( 'Choose a new password', 'membuild-community' ),
+			/* translators: %s: community name */
+			self::para( esc_html( sprintf( __( 'Someone asked to reset the password for your %s account. If it was you, press the button. It works for 24 hours.', 'membuild-community' ), $name ) ) ),
+			$link,
+			__( 'Choose a new password', 'membuild-community' ),
+			'',
+			__( 'Didn’t ask for this? Ignore this email and your password stays the same.', 'membuild-community' ),
+			esc_html__( 'Button not working? Copy this link:', 'membuild-community' ) . ' <a href="' . esc_url( $link ) . '" style="color:#4a4f59;word-break:break-all">' . esc_html( $link ) . '</a>'
+		);
+		/* translators: %s: community name */
+		$email['subject'] = sprintf( __( 'Reset your %s password', 'membuild-community' ), $name );
+		$email['headers'] = array_merge( (array) $email['headers'], array( 'Content-Type: text/html; charset=UTF-8' ) );
+		return $email;
 	}
 
 	/**
@@ -377,8 +530,8 @@ class Email {
 			return false;
 		}
 		$prefs = self::prefs( $user_id );
-		if ( 'off' === $prefs['frequency'] ) {
-			return false;
+		if ( 'off' === $prefs['frequency'] || ! self::is_confirmed( $user_id ) ) {
+			return false; // emails off, or an address nobody has confirmed yet
 		}
 		$last_sent = (int) get_user_meta( $user_id, self::LAST_SENT, true );
 		if ( 'daily' === $prefs['frequency'] && time() - $last_sent < DAY_IN_SECONDS ) {
@@ -390,12 +543,13 @@ class Email {
 
 		$since  = gmdate( 'Y-m-d H:i:s', $last_sent ?: 0 );
 		$cutoff = gmdate( 'Y-m-d H:i:s', time() - self::ACTIVE_WINDOW );
-		$items  = array();
+		$base   = home_url( '/' . Settings::slug() );
+		$sections = array(); // each: html, text, count (updates it stands for)
 
 		// Comments and replies, and event reminders, each as the member chose.
 		$types = array_merge(
 			$prefs['activity'] ? array( 'post_comment', 'comment_reply' ) : array(),
-			$prefs['events'] ? array( 'event_reminder', 'event_changed', 'event_cancelled' ) : array()
+			$prefs['events'] && Settings::feature( 'events' ) ? array( 'event_reminder', 'event_changed', 'event_cancelled' ) : array()
 		);
 		if ( $types ) {
 			$rows = $wpdb->get_results(
@@ -405,40 +559,62 @@ class Email {
 				),
 				ARRAY_A
 			);
-			$actors = Helpers::users( array_merge( ...array_map( fn( $r ) => array_slice( array_map( 'intval', explode( ',', (string) $r['actor_ids'] ) ), 0, 2 ), $rows ?: array( array( 'actor_ids' => '' ) ) ) ) );
+			$comments = Install::table( 'comments' );
 			foreach ( $rows as $r ) {
 				$data = json_decode( (string) $r['data'], true ) ?: array();
+				$post = (int) $r['post_id'];
 				if ( str_starts_with( $r['type'], 'event_' ) ) {
-					// Event reminders and changes: the title says what, the quote says when.
-					$title   = match ( $r['type'] ) {
-						/* translators: %s: event title */
-						'event_reminder'  => sprintf( ! empty( $data['soon'] ) ? __( 'Starting soon: %s', 'membuild-community' ) : __( 'Tomorrow: %s', 'membuild-community' ), $data['title'] ?? '' ),
-						/* translators: %s: event title */
-						'event_changed'   => sprintf( __( 'New time: %s', 'membuild-community' ), $data['title'] ?? '' ),
-						/* translators: %s: event title */
-						default           => sprintf( __( 'Cancelled: %s', 'membuild-community' ), $data['title'] ?? '' ),
-					};
-					$items[] = array( 'title' => $title, 'quote' => 'event_cancelled' === $r['type'] ? '' : (string) ( $data['when'] ?? '' ), 'url' => Events::url( (int) $r['post_id'] ) );
+					$sections[] = self::event_section( $r['type'], $post, $data );
 					continue;
 				}
-				$names   = array_values( array_filter( array_map( fn( $id ) => $actors[ (int) $id ]['name'] ?? null, array_slice( explode( ',', (string) $r['actor_ids'] ), 0, 2 ) ) ) );
-				$who     = self::who( $names, (int) $r['actors_count'] );
-				$what    = 'comment_reply' === $r['type'] ? __( 'replied to your comment', 'membuild-community' ) : __( 'commented on your post', 'membuild-community' );
-				$items[] = array(
-					'title' => "{$who} {$what}",
-					'quote' => $data['comment'] ?? ( $data['snippet'] ?? '' ),
-					'url'   => home_url( '/' . Settings::slug() . '/?post=' . (int) $r['post_id'] ),
+				if ( 'post_comment' === $r['type'] ) {
+					// The newest few comments on their post, each as a bubble with the person's photo.
+					$list  = Blocks::filter( $wpdb->get_results( $wpdb->prepare( 'SELECT user_id, content FROM %i WHERE post_id = %d AND user_id <> %d AND created_at > %s ORDER BY id DESC LIMIT 3', $comments, $post, $user_id, $since ), ARRAY_A ) );
+					$users = Helpers::users( wp_list_pluck( $list, 'user_id' ) );
+					$html  = '<p style="margin:0 0 12px;font-size:16px;color:#4a4f59">' . esc_html( sprintf( /* translators: %s: the start of the post */ __( 'On “%s”', 'membuild-community' ), $data['snippet'] ?? '' ) ) . '</p>';
+					$text  = '';
+					foreach ( array_reverse( $list ) as $c ) {
+						$u     = $users[ (int) $c['user_id'] ] ?? null;
+						$html .= self::bubble( $u, self::short( $c['content'] ) );
+						$text .= '  ' . ( $u['name'] ?? '' ) . ': ' . self::short( $c['content'] ) . "\n";
+					}
+					$n          = max( 1, (int) $r['actors_count'] );
+					$sections[] = array(
+						'html'  => self::section( _n( 'New comment on your post', 'New comments on your post', $n, 'membuild-community' ), $html, $base . '/?post=' . $post, __( 'See all comments', 'membuild-community' ) ),
+						'text'  => strtoupper( _n( 'New comment on your post', 'New comments on your post', $n, 'membuild-community' ) ) . "\n" . $text . '  ' . $base . '/?post=' . $post . "\n",
+						'count' => max( 1, count( $list ) ),
+						'title' => sprintf( /* translators: %s: who */ __( '%s commented on your post', 'membuild-community' ), self::who( array_column( $users, 'name' ), $n ) ),
+					);
+					continue;
+				}
+				// A reply: their own comment, faded, with the replies indented under it.
+				$mine    = $wpdb->get_var( $wpdb->prepare( 'SELECT content FROM %i WHERE id = %d', $comments, $r['object_id'] ) );
+				$list    = Blocks::filter( $wpdb->get_results( $wpdb->prepare( 'SELECT user_id, content FROM %i WHERE parent_id = %d AND user_id <> %d AND created_at > %s ORDER BY id DESC LIMIT 3', $comments, $r['object_id'], $user_id, $since ), ARRAY_A ) );
+				$users   = Helpers::users( array_merge( array( $user_id ), wp_list_pluck( $list, 'user_id' ) ) );
+				$me      = $users[ $user_id ] ?? null;
+				$html    = $mine ? self::bubble( $me ? array( 'name' => __( 'You', 'membuild-community' ) ) + $me : null, self::short( $mine ), true ) : '';
+				$text    = $mine ? '  ' . __( 'You', 'membuild-community' ) . ': ' . self::short( $mine ) . "\n" : '';
+				foreach ( array_reverse( $list ) as $c ) {
+					$u     = $users[ (int) $c['user_id'] ] ?? null;
+					$html .= self::bubble( $u, self::short( $c['content'] ), false, true );
+					$text .= '    ' . ( $u['name'] ?? '' ) . ': ' . self::short( $c['content'] ) . "\n";
+				}
+				$n          = max( 1, (int) $r['actors_count'] );
+				$sections[] = array(
+					'html'  => self::section( _n( 'A reply to your comment', 'Replies to your comment', $n, 'membuild-community' ), $html, $base . '/?post=' . $post, __( 'Reply', 'membuild-community' ) ),
+					'text'  => strtoupper( _n( 'A reply to your comment', 'Replies to your comment', $n, 'membuild-community' ) ) . "\n" . $text . '  ' . $base . '/?post=' . $post . "\n",
+					'count' => max( 1, count( $list ) ),
+					'title' => sprintf( /* translators: %s: who */ __( '%s replied to your comment', 'membuild-community' ), self::who( array_column( array_diff_key( $users, array( $user_id => 1 ) ), 'name' ), $n ) ),
 				);
 			}
 		}
 
-		$unread_chats = array();
 		if ( $prefs['messages'] && Settings::feature( 'messages' ) ) {
 			$unread_chats = $wpdb->get_results(
 				$wpdb->prepare(
 					'SELECT m.thread_id, COUNT(*) AS n, MAX(m.id) AS last_id, SUBSTRING_INDEX(GROUP_CONCAT(DISTINCT m.user_id ORDER BY m.id DESC), ",", 2) AS senders
 					FROM %i tm JOIN %i m ON m.thread_id = tm.thread_id
-					WHERE tm.user_id = %d AND tm.left_at IS NULL AND m.id > tm.last_read_id AND m.user_id <> %d AND m.status = \'sent\' AND m.created_at > %s AND m.created_at <= %s
+					WHERE tm.user_id = %d AND tm.left_at IS NULL AND m.id > tm.last_read_id AND m.user_id <> %d AND m.status = \'sent\' AND m.created_at > %s AND m.created_at <= %s' . Rest_Messages::not_muted_sql( $user_id, 'm.thread_id' ) . '
 					GROUP BY m.thread_id ORDER BY last_id DESC LIMIT 5',
 					Install::table( 'thread_members' ),
 					Install::table( 'messages' ),
@@ -449,58 +625,66 @@ class Email {
 				),
 				ARRAY_A
 			);
-			$senders = Helpers::users( array_merge( ...array_map( fn( $c ) => array_map( 'intval', explode( ',', $c['senders'] ) ), $unread_chats ?: array( array( 'senders' => '' ) ) ) ) );
-			foreach ( $unread_chats as $c ) {
-				$names = array_values( array_filter( array_map( fn( $id ) => $senders[ (int) $id ]['name'] ?? null, explode( ',', $c['senders'] ) ) ) );
-				$n     = (int) $c['n'];
-				$who   = $names ? wp_sprintf( '%l', $names ) : __( 'Someone', 'membuild-community' ); // "Ana and Ben", in the site's language
-				if ( 1 === $n ) {
-					/* translators: %s: who sent it */
-					$title = sprintf( __( '%s sent you a message', 'membuild-community' ), $who );
-				} else {
+			if ( $unread_chats ) {
+				$senders = Helpers::users( array_merge( ...array_map( fn( $c ) => array_map( 'intval', explode( ',', $c['senders'] ) ), $unread_chats ) ) );
+				$html    = '';
+				$text    = '';
+				$total   = 0;
+				$title   = '';
+				foreach ( $unread_chats as $c ) {
+					$ids   = array_map( 'intval', explode( ',', $c['senders'] ) );
+					$names = array_values( array_filter( array_map( fn( $id ) => $senders[ $id ]['name'] ?? null, $ids ) ) );
+					$n     = (int) $c['n'];
+					$total += $n;
+					$who   = $names ? wp_sprintf( '%l', $names ) : __( 'Someone', 'membuild-community' ); // "Ana and Ben", in the site's language
 					/* translators: 1: who sent it, 2: number of messages */
-					$title = sprintf( _n( '%1$s sent you %2$d message', '%1$s sent you %2$d messages', $n, 'membuild-community' ), $who, $n );
+					$line  = sprintf( _n( '%1$s sent you %2$d message', '%1$s sent you %2$d messages', $n, 'membuild-community' ), $who, $n );
+					$title = $title ?: $line;
+					// Only who and how many: private messages are never copied into emails (email isn't private).
+					$html .= self::bubble( $senders[ $ids[0] ] ?? null, '', false, false, '<strong>' . esc_html( $who ) . '</strong> ' . esc_html( sprintf( _n( 'sent you %d message', 'sent you %d messages', $n, 'membuild-community' ), $n ) ) );
+					$text .= '  ' . $line . "\n";
 				}
-				$items[] = array(
+				$html      .= '<p style="margin:2px 0 0 52px;font-size:14px;color:#6b7280">&#128274; ' . esc_html__( 'Messages are private, so we never copy them into emails.', 'membuild-community' ) . '</p>';
+				$sections[] = array(
+					'html'  => self::section( __( 'New messages', 'membuild-community' ), $html, $base . '/messages/' . (int) $unread_chats[0]['thread_id'], _n( 'Read it', 'Read them', $total, 'membuild-community' ) ),
+					'text'  => strtoupper( __( 'New messages', 'membuild-community' ) ) . "\n" . $text . '  ' . $base . '/messages/' . (int) $unread_chats[0]['thread_id'] . "\n",
+					'count' => count( $unread_chats ),
 					'title' => $title,
-					'quote' => '', // private messages are never copied into emails: email isn't private
-					'url'   => home_url( '/' . Settings::slug() . '/messages/' . (int) $c['thread_id'] ),
 				);
 			}
 		}
 
 		// Mark the time either way, so the same items are never emailed twice.
 		update_user_meta( $user_id, self::LAST_SENT, time() );
-		if ( ! $items ) {
+		$sections = array_values( array_filter( $sections ) );
+		if ( ! $sections ) {
 			return false;
 		}
 
 		$name    = Settings::name();
-		$subject = 1 === count( $items )
-			? wp_strip_all_tags( $items[0]['title'] )
+		$count   = array_sum( array_column( $sections, 'count' ) );
+		$subject = 1 === count( $sections )
+			? wp_strip_all_tags( $sections[0]['title'] )
 			/* translators: 1: number of updates, 2: community name */
-			: sprintf( __( '%1$d new updates in %2$s', 'membuild-community' ), count( $items ), $name );
+			: sprintf( _n( '%1$d new update in %2$s', '%1$d new updates in %2$s', $count, 'membuild-community' ), $count, $name );
 
-		$rows_html = '';
-		$rows_text = '';
-		foreach ( $items as $it ) {
-			$rows_html .= '<tr><td style="padding:12px 0;border-top:1px solid #eceef1">'
-				. '<a href="' . esc_url( $it['url'] ) . '" style="color:#111214;font-weight:600;text-decoration:none">' . esc_html( $it['title'] ) . '</a>'
-				. ( $it['quote'] ? '<div style="margin-top:4px;color:#5d6370">“' . esc_html( $it['quote'] ) . '”</div>' : '' )
-				. '</td></tr>';
-			$rows_text .= "• {$it['title']}" . ( $it['quote'] ? "\n  “{$it['quote']}”" : '' ) . "\n  {$it['url']}\n\n";
-		}
 		$unsub = self::unsubscribe_url( $user_id );
-		$html  = self::layout(
+		$body  = '';
+		foreach ( $sections as $i => $sec ) {
+			$body .= '<div style="' . ( $i ? 'margin-top:24px;padding-top:24px;border-top:1px solid #eceef1' : 'margin-top:20px;padding-top:20px;border-top:1px solid #eceef1' ) . '">' . $sec['html'] . '</div>';
+		}
+		$html = self::layout(
 			/* translators: %s: member's first name */
 			sprintf( __( 'Hi %s, here’s what you missed', 'membuild-community' ), ( $user->first_name ?: $user->display_name ) ),
-			'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">' . $rows_html . '</table>',
-			home_url( '/' . Settings::slug() . '/' ),
+			$body,
+			$base . '/',
 			/* translators: %s: community name */
 			sprintf( __( 'Open %s', 'membuild-community' ), $name ),
-			$unsub
+			$unsub,
+			/* translators: %s: community name */
+			sprintf( 'daily' === $prefs['frequency'] ? __( 'You’re a member of %s. You get one summary a day.', 'membuild-community' ) : __( 'You’re a member of %s. You get these as things happen.', 'membuild-community' ), $name )
 		);
-		$text = $rows_text . "\n" . __( 'Stop these emails:', 'membuild-community' ) . ' ' . $unsub;
+		$text = implode( "\n", array_column( $sections, 'text' ) ) . "\n" . __( 'Choose which emails you get:', 'membuild-community' ) . ' ' . $base . '/me/emails' . "\n" . __( 'Stop these emails:', 'membuild-community' ) . ' ' . $unsub;
 
 		$result = self::send(
 			$user->user_email,
@@ -510,6 +694,80 @@ class Email {
 			array( 'List-Unsubscribe: <' . $unsub . '>', 'List-Unsubscribe-Post: List-Unsubscribe=One-Click' )
 		);
 		return true === $result;
+	}
+
+	/* ---------- Pieces of the activity email ---------- */
+
+	/** One section: a small grey heading, its content, then a "See all ›" link. */
+	private static function section( $label, $html, $url, $link ) {
+		return '<p style="margin:0 0 12px;font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#6b7280">' . esc_html( $label ) . '</p>'
+			. $html
+			. '<p style="margin:14px 0 0"><a href="' . esc_url( $url ) . '" style="color:#16181d;font-size:16px;font-weight:700;text-decoration:underline">' . esc_html( $link ) . ' &#8250;</a></p>';
+	}
+
+	/**
+	 * A chat bubble with the person's photo, like in the community. $faded for your own
+	 * comment above a reply; $indent for a reply under it; $raw for a ready-escaped line.
+	 */
+	private static function bubble( $user, $words, $faded = false, $indent = false, $raw = '' ) {
+		$photo = $user && ! empty( $user['avatar'] )
+			? '<img src="' . esc_url( $user['avatar'] ) . '" width="36" height="36" alt="' . esc_attr( $user['name'] ?? '' ) . '" style="display:block;width:36px;height:36px;border-radius:50%">'
+			: '<div style="width:36px;height:36px;border-radius:50%;background:#e6e9ee"></div>';
+		$inner = $raw
+			? '<div style="font-size:16px;line-height:1.45;color:#16181d">' . $raw . '</div>'
+			: '<div style="font-size:15px;font-weight:700;color:' . ( $faded ? '#6b7280' : '#16181d' ) . '">' . esc_html( $user['name'] ?? __( 'A member', 'membuild-community' ) ) . '</div>'
+				. '<div style="margin-top:2px;font-size:16px;line-height:1.45;color:' . ( $faded ? '#6b7280' : '#16181d' ) . '">' . esc_html( $words ) . '</div>';
+		$bg    = $raw ? '#f2fbd9' : ( $faded ? '#f6f7f9' : '#f0f2f5' );
+		return '<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 10px ' . ( $indent ? '44px' : '0' ) . '"><tr>'
+			. '<td valign="top" style="width:36px;padding-right:12px">' . $photo . '</td>'
+			. '<td valign="top" style="background:' . $bg . ';border-radius:18px;padding:10px 14px">' . $inner . '</td>'
+			. '</tr></table>';
+	}
+
+	/** An event reminder, a new time or a cancellation, as a date card. */
+	private static function event_section( $type, $post_id, array $data ) {
+		global $wpdb;
+		$e = $wpdb->get_row( $wpdb->prepare( 'SELECT event_title, event_at, event_minutes, event_where, event_venue, event_tz FROM %i WHERE id = %d', Install::table( 'posts' ), $post_id ), ARRAY_A );
+		if ( ! $e || ! $e['event_at'] ) {
+			return null;
+		}
+		$tz    = $e['event_tz'] ? new \DateTimeZone( $e['event_tz'] ) : wp_timezone();
+		$start = strtotime( $e['event_at'] . ' UTC' );
+		$end   = $start + 60 * (int) $e['event_minutes'];
+		$label = match ( $type ) {
+			'event_changed'   => __( 'New time for an event', 'membuild-community' ),
+			'event_cancelled' => __( 'Event cancelled', 'membuild-community' ),
+			default           => ! empty( $data['soon'] ) ? __( 'Event starting soon', 'membuild-community' ) : __( 'Event tomorrow', 'membuild-community' ),
+		};
+		$where = 'online' === $e['event_where'] ? __( 'Online, link on the event page', 'membuild-community' ) : ( $e['event_venue'] ?: __( 'In person', 'membuild-community' ) );
+		/* translators: 1: start time, 2: end time */
+		$when  = sprintf( __( '%1$s to %2$s', 'membuild-community' ), wp_date( get_option( 'time_format' ), $start, $tz ), wp_date( get_option( 'time_format' ) . ' T', $end, $tz ) );
+		$gone  = 'event_cancelled' === $type;
+		$card  = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e3e6ea;border-radius:14px"><tr>'
+			. '<td valign="middle" style="width:66px;padding:14px 0 14px 14px">'
+			. '<table role="presentation" cellpadding="0" cellspacing="0" style="width:66px;border:1px solid #e3e6ea;border-radius:10px;text-align:center">'
+			. '<tr><td style="background:' . esc_attr( self::accent() ) . ';color:' . esc_attr( self::ink() ) . ';font-size:12px;font-weight:800;padding:3px 0;border-radius:9px 9px 0 0">' . esc_html( strtoupper( wp_date( 'M', $start, $tz ) ) ) . '</td></tr>'
+			. '<tr><td style="font-size:24px;font-weight:800;line-height:1;padding:6px 0 2px;color:#16181d">' . esc_html( wp_date( 'j', $start, $tz ) ) . '</td></tr>'
+			. '<tr><td style="font-size:11px;font-weight:700;color:#6b7280;padding:0 0 6px">' . esc_html( strtoupper( wp_date( 'D', $start, $tz ) ) ) . '</td></tr>'
+			. '</table></td>'
+			. '<td valign="middle" style="padding:14px 16px">'
+			. '<div style="font-size:17px;font-weight:700;color:#16181d;' . ( $gone ? 'text-decoration:line-through' : '' ) . '">' . esc_html( $e['event_title'] ) . '</div>'
+			. '<div style="margin-top:4px;font-size:15px;color:#4a4f59">' . esc_html( $gone ? __( 'This event won’t go ahead.', 'membuild-community' ) : $when . ' · ' . $where ) . '</div>'
+			. '</td></tr></table>';
+		$url   = Events::url( $post_id );
+		return array(
+			'html'  => self::section( $label, $card, $url, __( 'See the event', 'membuild-community' ) ),
+			'text'  => strtoupper( $label ) . "\n  " . $e['event_title'] . ( $gone ? '' : "\n  " . $when . ' · ' . $where ) . "\n  " . $url . "\n",
+			'count' => 1,
+			/* translators: 1: what happened ("Event tomorrow"), 2: event title */
+			'title' => sprintf( __( '%1$s: %2$s', 'membuild-community' ), $label, $e['event_title'] ),
+		);
+	}
+
+	/** Words for a bubble: plain text, one paragraph, at most about 200 characters. */
+	private static function short( $text ) {
+		$text = Search::plain( (string) $text );
+		return mb_strlen( $text ) > 200 ? rtrim( mb_substr( $text, 0, 190 ) ) . '…' : $text;
 	}
 
 	private static function who( array $names, $count ) {
@@ -529,26 +787,55 @@ class Email {
 
 	/* ---------- Template ---------- */
 
-	/** A simple email that reads well in every mail app: logo or initials, a heading, the body, one button. */
-	private static function layout( $heading, $body, $button_url, $button_label, $unsubscribe_url ) {
+	private static function accent() {
+		return Color::tokens( Settings::get( 'accent' ) )['accent'];
+	}
+
+	private static function ink() {
+		return Color::tokens( Settings::get( 'accent' ) )['ink'];
+	}
+
+	/**
+	 * One layout for every email: the community's logo (or initials) and name, one white card
+	 * with a 24px heading, 17px words and one pill button in the community's colour, then a
+	 * footer saying why it came and, for activity emails, Choose which emails you get · Unsubscribe.
+	 * Tables and inline styles, system fonts, so it reads the same in every mail app
+	 * (Outlook for Windows just shows square corners).
+	 *
+	 * @param string $why   The footer line ("You're a member of …"). Empty: just the community name.
+	 * @param string $after Small lines under the card, already escaped (the reset link written out).
+	 */
+	private static function layout( $heading, $body, $button_url, $button_label, $unsubscribe_url, $why = '', $after = '' ) {
 		$name   = Settings::name();
-		$accent = Settings::get( 'accent' ) ?: '#3b5bfd';
+		$accent = self::accent();
 		$logo   = Settings::get( 'logo' )['url'] ?? null;
+		$font   = '-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,Helvetica,Arial,sans-serif';
 		$mark   = $logo
-			? '<img src="' . esc_url( $logo ) . '" width="44" height="44" alt="" style="border-radius:10px;display:block">'
-			: '<div style="width:44px;height:44px;border-radius:10px;background:' . esc_attr( $accent ) . ';color:#fff;font:800 17px/44px system-ui,sans-serif;text-align:center">' . esc_html( Settings::initials() ) . '</div>';
-		$foot   = $unsubscribe_url
-			? '<a href="' . esc_url( $unsubscribe_url ) . '" style="color:#8b909b">' . esc_html__( 'Unsubscribe from these emails', 'membuild-community' ) . '</a>'
+			? '<img src="' . esc_url( $logo ) . '" width="40" height="40" alt="' . esc_attr( $name ) . '" style="display:block;width:40px;height:40px;border-radius:10px">'
+			: '<div style="width:40px;height:40px;border-radius:10px;background:' . esc_attr( $accent ) . ';color:' . esc_attr( self::ink() ) . ';font:800 15px/40px ' . $font . ';text-align:center">' . esc_html( Settings::initials() ) . '</div>';
+		$links  = $unsubscribe_url
+			? '<br><a href="' . esc_url( home_url( '/' . Settings::slug() . '/me/emails' ) ) . '" style="color:#4a4f59;font-weight:700">' . esc_html__( 'Choose which emails you get', 'membuild-community' ) . '</a> &nbsp;·&nbsp; <a href="' . esc_url( $unsubscribe_url ) . '" style="color:#4a4f59;font-weight:700">' . esc_html__( 'Unsubscribe', 'membuild-community' ) . '</a>'
 			: '';
-		return '<!doctype html><html><body style="margin:0;background:#f4f5f7;padding:24px 12px;font:15px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#16181d">'
+		$button = $button_url
+			? '<tr><td style="padding-top:28px"><a href="' . esc_url( $button_url ) . '" style="display:inline-block;background:' . esc_attr( $accent ) . ';color:' . esc_attr( self::ink() ) . ';font-size:17px;font-weight:700;text-decoration:none;padding:15px 28px;border-radius:999px">' . esc_html( $button_label ) . '</a></td></tr>'
+			: '';
+		return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"></head>'
+			. '<body style="margin:0;background:#f3f4f6;padding:28px 12px;font:17px/1.55 ' . $font . ';color:#16181d">'
 			. '<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">'
-			. '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#fff;border-radius:14px;padding:24px">'
-			. '<tr><td style="padding-bottom:16px">' . $mark . '</td></tr>'
-			. '<tr><td><h1 style="margin:0 0 12px;font-size:20px">' . esc_html( $heading ) . '</h1>' . $body . '</td></tr>'
-			. '<tr><td style="padding-top:20px"><a href="' . esc_url( $button_url ) . '" style="display:inline-block;background:' . esc_attr( $accent ) . ';color:#fff;font-weight:700;text-decoration:none;padding:11px 18px;border-radius:10px">' . esc_html( $button_label ) . '</a></td></tr>'
-			. '</table>'
-			. '<p style="max-width:520px;margin:14px auto 0;font-size:12px;color:#8b909b;text-align:center">' . esc_html( $name ) . ( $foot ? ' · ' . $foot : '' ) . '</p>'
-			. '</td></tr></table></body></html>';
+			. '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px">'
+			. '<tr><td style="padding:0 4px 16px"><table role="presentation" cellpadding="0" cellspacing="0"><tr><td>' . $mark . '</td><td style="padding-left:12px;font-size:17px;font-weight:700;color:#16181d">' . esc_html( $name ) . '</td></tr></table></td></tr>'
+			. '<tr><td style="background:#ffffff;border-radius:16px;padding:32px">'
+			. '<table role="presentation" width="100%" cellpadding="0" cellspacing="0">'
+			. '<tr><td><h1 style="margin:0;font-size:24px;line-height:1.3;color:#16181d">' . esc_html( $heading ) . '</h1>' . $body . '</td></tr>'
+			. $button
+			. '</table></td></tr>'
+			. '<tr><td style="padding:18px 8px 0;font-size:14px;line-height:1.7;color:#6b7280;text-align:center">' . esc_html( $why ?: $name ) . $links . ( $after ? '<br>' . $after : '' ) . '</td></tr>'
+			. '</table></td></tr></table></body></html>';
+	}
+
+	/** A paragraph in the card: 17px, grey-black, the space above built in. */
+	private static function para( $text, $tone = '#4a4f59' ) {
+		return '<p style="margin:14px 0 0;font-size:17px;line-height:1.55;color:' . $tone . '">' . $text . '</p>';
 	}
 
 	/* ---------- Unsubscribe ---------- */

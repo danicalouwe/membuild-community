@@ -9,6 +9,11 @@ import PostCard from '../components/PostCard.vue'
 import ReelsTray from '../components/ReelsTray.vue'
 import StoriesStrip from '../components/StoriesStrip.vue'
 import Icon from '../components/Icon.vue'
+import DayOne from '../components/DayOne.vue'
+import ForYou from '../components/ForYou.vue'
+import { api } from '../api.js'
+import { showToast } from '../lib/toast.js'
+import { useRouter } from 'vue-router'
 import { t } from '../lib/i18n.js'
 
 const sort = ref(sessionStorage.getItem('mbcom-sort') || 'latest')
@@ -76,6 +81,27 @@ onBeforeUnmount(() => {
   stopWatching()
   observer?.disconnect()
 })
+/* "Confirm your email": a few days after joining, while the welcome email is unanswered. */
+const confirm = computed(() => cfg.confirmEmail)
+const sending = ref(false)
+async function sendAgain() {
+  sending.value = true
+  try {
+    const res = await api.resendWelcome()
+    if (res.confirmed) cfg.confirmEmail = null
+    else showToast(t.sprintf(/* translators: %s: an email address */ t.__('Sent again to %s.', 'membuild-community'), res.to))
+  } catch (err) {
+    showToast(err.message)
+  } finally {
+    sending.value = false
+  }
+}
+
+/* An empty Home for the owner: ask for the welcome post. */
+const router = useRouter()
+const ownerEmpty = computed(() => list.value.loaded && !list.value.items.length && !list.value.pinned.length && cfg.community.canManage && sort.value === 'latest')
+const writeWelcome = () => router.replace({ query: { write: 1 } })
+
 const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waiting to be shown */ t._n('%d new post', '%d new posts', n, 'membuild-community'), n)
 </script>
 
@@ -86,6 +112,18 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
         <Icon name="arrowUp" :size="16" /> {{ newPosts(newCount) }}
       </button>
     </Transition>
+
+    <div v-if="confirm" class="confirm" role="status">
+      <Icon name="mail" :size="22" />
+      <span class="c-words"><strong>{{ t.__('Confirm your email to get updates', 'membuild-community') }}</strong><span>{{ t.sprintf(/* translators: %s: an email address */ t.__('We sent a link to %s.', 'membuild-community'), confirm.email) }}</span></span>
+      <button type="button" class="c-send" :disabled="sending" @click="sendAgain">{{ t.__('Send it again', 'membuild-community') }}</button>
+      <a class="c-wrong" :href="confirm.profileUrl">{{ t.__('Wrong email?', 'membuild-community') }}</a>
+    </div>
+
+    <aside class="day-one-slot">
+      <DayOne />
+      <ForYou />
+    </aside>
 
     <Composer v-if="cfg.community.canPost && !cfg.community.restriction" @posted="scrollTop" />
     <StoriesStrip v-if="feature('stories')" />
@@ -107,6 +145,12 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
     <p v-if="list.error" class="status">
       {{ t.__("Couldn't load posts.", 'membuild-community') }} <button class="retry" @click="loadMore(list)">{{ t.__('Try again', 'membuild-community') }}</button>
     </p>
+    <section v-else-if="ownerEmpty" class="card first-post">
+      <span class="wave"><Icon name="hand" :size="30" /></span>
+      <strong>{{ t.__('Your community is ready for its first post', 'membuild-community') }}</strong>
+      <p>{{ t.__('New members see the newest post first. A short hello from you, and what they can expect here, makes them feel welcome.', 'membuild-community') }}</p>
+      <button type="button" class="btn-main" @click="writeWelcome">{{ t.__('Write a welcome post', 'membuild-community') }}</button>
+    </section>
     <p v-else-if="list.loaded && !list.items.length" class="status">{{ t.__('No posts yet. Be the first to say hi 👋', 'membuild-community') }}</p>
     <p v-else-if="list.loaded && !list.hasMore" class="status">{{ t.__("You're all caught up ✨", 'membuild-community') }}</p>
 
@@ -115,6 +159,107 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
 </template>
 
 <style scoped>
+/* Day one: in the right column on wide screens, at the top of the feed otherwise. */
+.day-one-slot {
+  order: -1;
+}
+
+@media (min-width: 1200px) {
+  .day-one-slot {
+    position: fixed;
+    top: calc(var(--header-h) + 16px);
+    right: 16px;
+    z-index: 5;
+    width: min(296px, calc((100vw - 640px) / 2 - 32px));
+    max-height: calc(100dvh - var(--header-h) - 32px);
+    overflow-y: auto;
+  }
+}
+
+.confirm {
+  order: -2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  padding: 16px 20px;
+  border-radius: 14px;
+  color: var(--warn-text);
+  background: var(--warn-soft);
+}
+
+.c-words {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: min(200px, 100%);
+  font-size: 15px;
+  overflow-wrap: anywhere; /* a very long email address breaks instead of running off */
+}
+
+.c-words strong {
+  font-size: 16px;
+}
+
+.c-send {
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 999px;
+  color: var(--warn-soft);
+  background: var(--warn-text);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.c-wrong {
+  color: var(--warn-text);
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.first-post {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 44px 28px;
+  text-align: center;
+}
+
+.wave {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  color: var(--accent-text);
+  background: var(--accent-soft);
+}
+
+.first-post strong {
+  font-size: 22px;
+}
+
+.first-post p {
+  max-width: 440px;
+  margin: 0;
+  color: var(--text-2);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.btn-main {
+  min-height: 52px;
+  margin-top: 6px;
+  padding: 0 26px;
+  border-radius: 999px;
+  color: var(--accent-ink);
+  background: var(--accent);
+  font-size: 17px;
+  font-weight: 700;
+}
+
 .feed {
   max-width: 640px;
   margin: 0 auto;

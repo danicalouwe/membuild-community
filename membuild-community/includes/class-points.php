@@ -33,6 +33,41 @@ class Points {
 	/** Points needed for levels 1–9: steeper each level, Skool-style. */
 	const LEVELS = array( 0, 5, 20, 65, 155, 515, 2015, 8015, 33015 );
 
+	/** Suggested points when a community keeps fewer levels (3–8); 9 uses LEVELS. */
+	const SUGGESTED = array(
+		3 => array( 0, 40, 200 ),
+		4 => array( 0, 20, 100, 400 ),
+		5 => array( 0, 10, 50, 150, 400 ),
+		6 => array( 0, 10, 50, 150, 500, 1500 ),
+		7 => array( 0, 5, 20, 65, 155, 515, 2015 ),
+		8 => array( 0, 5, 20, 65, 155, 515, 2015, 8015 ),
+	);
+
+	public static function suggested( $count ) {
+		return self::SUGGESTED[ (int) $count ] ?? self::LEVELS;
+	}
+
+	/**
+	 * A valid set of level points: 3 to 9 levels, the first at 0, each more than the one before.
+	 *
+	 * @return int[]|null Null when it isn't valid.
+	 */
+	public static function clean_levels( $points ) {
+		if ( ! is_array( $points ) ) {
+			return null;
+		}
+		$points = array_map( 'intval', array_values( $points ) );
+		if ( count( $points ) < 3 || count( $points ) > 9 || 0 !== $points[0] ) {
+			return null;
+		}
+		for ( $i = 1; $i < count( $points ); $i++ ) {
+			if ( $points[ $i ] <= $points[ $i - 1 ] || $points[ $i ] > 10000000 ) {
+				return null;
+			}
+		}
+		return $points;
+	}
+
 	public static function rules() {
 		/**
 		 * Points per action and their daily caps, after the community's own settings.
@@ -46,9 +81,9 @@ class Points {
 		/**
 		 * Points needed for each level, starting with level 1.
 		 *
-		 * @param int[] $thresholds Nine ascending point totals.
+		 * @param int[] $thresholds Three to nine ascending point totals, the first 0.
 		 */
-		return apply_filters( 'membuild_community/level_thresholds', self::LEVELS );
+		return apply_filters( 'membuild_community/level_thresholds', self::clean_levels( Settings::get( 'level_points' ) ) ?? self::LEVELS );
 	}
 
 	public static function level_for( $points ) {
@@ -276,6 +311,20 @@ class Points {
 	 * finished lessons and courses), oldest first, applying the daily caps.
 	 * Streaks are not reconstructed. Used after installing on an existing site.
 	 */
+	/** Works out every member's level again (after the levels change); their points stay. Nobody is notified. */
+	public static function relevel() {
+		global $wpdb;
+		$stats = Install::table( 'member_stats' );
+		$t     = self::thresholds();
+		$case  = 'CASE';
+		for ( $i = count( $t ) - 1; $i >= 1; $i-- ) {
+			$case .= $wpdb->prepare( ' WHEN points >= %d THEN %d', $t[ $i ], $i + 1 );
+		}
+		$case .= ' ELSE 1 END';
+		$wpdb->query( $wpdb->prepare( 'UPDATE %i SET level = ' . $case, $stats ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- built from prepared pieces
+		delete_transient( 'mbcom_level_distribution' );
+	}
+
 	/**
 	 * Recomputes every member's total and level from the ledger in two queries.
 	 *

@@ -2,7 +2,7 @@
 import { defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { cfg } from '../config.js'
 import { stories, loadStories } from '../stores/stories.js'
-import { BACKGROUNDS } from '../lib/postStyle.js'
+import { storyBg } from '../lib/postStyle.js'
 import Avatar from './Avatar.vue'
 import Icon from './Icon.vue'
 import { t } from '../lib/i18n.js'
@@ -82,7 +82,7 @@ onBeforeUnmount(() => window.removeEventListener('resize', update))
           <img v-if="s.kind === 'photo'" class="poster" :src="s.url" alt="" loading="lazy" decoding="async" />
           <img v-else-if="s.kind === 'video' && s.poster" class="poster" :src="s.poster" alt="" loading="lazy" decoding="async" />
           <video v-if="s.kind === 'video'" class="poster hover-video" :src="s.url" muted playsinline loop preload="none" />
-          <span v-else-if="s.kind === 'text'" class="poster text" :style="{ background: BACKGROUNDS[s.background] }">{{ s.text }}</span>
+          <span v-else-if="s.kind === 'text'" class="poster text" :style="storyBg(s.background)">{{ s.text }}</span>
         </template>
         <span class="ring" :class="{ unseen: g.has_unseen }"><Avatar :user="g.author" :size="36" /></span>
         <span class="name">{{ g.is_me ? t.__('Your story', 'membuild-community') : g.author.name }}</span>

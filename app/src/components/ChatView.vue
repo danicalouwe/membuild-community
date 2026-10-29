@@ -1,17 +1,18 @@
 <script setup>
 import { activeLabel, isOnline } from '../lib/online.js'
 import { askConfirm } from '../lib/confirm.js'
+import { showToast } from '../lib/toast.js'
 import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import GifMedia from './GifMedia.vue'
 import { gifBox } from '../lib/gifBox.js'
 import { api } from '../api.js'
 import { cfg } from '../config.js'
-import { watchChat, pulseNow, takeShareDraft } from '../stores/messages.js'
+import { messages, watchChat, pulseNow, takeShareDraft } from '../stores/messages.js'
 import { startAttachment, startGif } from '../lib/attachments.js'
 import { giphyOn } from '../lib/giphy.js'
 import { emojiFor } from '../lib/reactions.js'
 import ReactionPicker from './ReactionPicker.vue'
-import { BACKGROUNDS } from '../lib/postStyle.js'
+import { storyBg } from '../lib/postStyle.js'
 import { sharedIn } from '../lib/links.js'
 
 // The message's text once its community link became a card: the URL comes out, the words stay.
@@ -40,7 +41,7 @@ const props = defineProps({
   // A small window docked at the bottom right instead of the Messages page pane.
   docked: { type: Boolean, default: false },
 })
-const emit = defineEmits(['back', 'left', 'read', 'loaded', 'minimize', 'close', 'expand'])
+const emit = defineEmits(['back', 'left', 'read', 'loaded', 'minimize', 'close', 'expand', 'muted', 'renamed'])
 
 const chat = ref(null)
 const blockedNotice = ref(false) // shown after blocking from this chat
@@ -385,7 +386,7 @@ async function unsend(m) {
   try {
     Object.assign(m, await api.unsend(m.id))
   } catch (err) {
-    alert(err.message)
+    showToast(err.message)
   }
 }
 
@@ -397,14 +398,28 @@ const reactionSummary = (m) => {
 
 /* ---------- Group ---------- */
 
+// Rename turns the name in the header into a box with Save and Cancel (no browser pop-up).
+const renaming = ref(null) // the name being typed, or null
+const renameBox = ref(null)
+const savingName = ref(false)
 async function rename() {
   closeHeaderMenu()
-  const name = prompt(t.__('Group name', 'membuild-community'), chat.value.title || '')
-  if (name === null) return
+  renaming.value = chat.value.title || ''
+  await nextTick()
+  renameBox.value?.focus()
+  renameBox.value?.select()
+}
+async function saveName() {
+  if (savingName.value) return
+  savingName.value = true
   try {
-    chat.value = await api.renameChat(props.threadId, name)
+    chat.value = await api.renameChat(props.threadId, renaming.value.trim())
+    renaming.value = null
+    emit('renamed', chat.value)
   } catch (err) {
-    alert(err.message)
+    showToast(err.message)
+  } finally {
+    savingName.value = false
   }
 }
 
@@ -417,7 +432,22 @@ async function blockOther() {
     await api.block(person.id)
     blockedNotice.value = true
   } catch (err) {
-    alert(err.message)
+    showToast(err.message)
+  }
+}
+
+// Muted chats stay in the list, but send no emails and don't count towards the Messages badge.
+async function toggleMute() {
+  closeHeaderMenu()
+  const on = !chat.value.muted
+  try {
+    const res = await api.muteChat(props.threadId, on)
+    chat.value = { ...chat.value, muted: res.muted }
+    messages.unread = res.unread
+    emit('muted', res.muted)
+    showToast(res.muted ? t.__('Chat muted. You won’t get emails about it.', 'membuild-community') : t.__('Chat unmuted.', 'membuild-community'), '', { icon: res.muted ? 'bellOff' : 'bell' })
+  } catch (err) {
+    showToast(err.message)
   }
 }
 
@@ -428,11 +458,16 @@ async function leave() {
     await api.leaveChat(props.threadId)
     emit('left')
   } catch (err) {
-    alert(err.message)
+    showToast(err.message)
   }
 }
 
-const memberCount = (n) => t.sprintf(/* translators: %d: number of members */ t._n('%d member', '%d members', n, 'membuild-community'), n)
+// "Mei, Tyler, Danica and you" under a group's name; a long group ends "and 12 more".
+const groupNames = computed(() => {
+  const first = others.value.map((u) => u.name.split(' ')[0])
+  if (first.length > 4) return t.sprintf(/* translators: 1: three first names, 2: how many more people */ t.__('%1$s and %2$d more', 'membuild-community'), first.slice(0, 3).join(', ') + ', ' + t.__('you', 'membuild-community'), first.length - 3)
+  return listNames([...first, t.__('you', 'membuild-community')])
+})
 const notSent = (reason) => t.sprintf(/* translators: %s: why the message wasn't sent */ t.__('Not sent · %s', 'membuild-community'), reason)
 const typingLabel = (people) => t.sprintf(/* translators: %s: the names of the people typing */ t.__('%s typing', 'membuild-community'), listNames(people.map((u) => u.name)))
 const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the person being replied to */ t.__('Replying to %s', 'membuild-community'), name)
@@ -454,10 +489,12 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
             <button role="menuitem" @click="closeHeaderMenu(); emit('expand')"><Icon name="expand" :size="20" /> {{ t.__('Open in Messages', 'membuild-community') }}</button>
             <template v-if="isGroup">
               <button role="menuitem" @click="rename"><Icon name="pencil" :size="20" /> {{ t.__('Rename group', 'membuild-community') }}</button>
+              <button role="menuitem" @click="toggleMute"><Icon :name="chat.muted ? 'bell' : 'bellOff'" :size="20" /> {{ chat.muted ? t.__('Unmute this chat', 'membuild-community') : t.__('Mute this chat', 'membuild-community') }}</button>
               <hr class="sep" /><button role="menuitem" class="danger" @click="leave"><Icon name="logout" :size="20" /> {{ t.__('Leave group', 'membuild-community') }}</button>
             </template>
             <template v-else-if="others[0]">
               <RouterLink role="menuitem" :to="{ name: 'member', params: { id: others[0].id } }" @click="closeHeaderMenu"><Icon name="user" :size="20" /> {{ t.__('View profile', 'membuild-community') }}</RouterLink>
+              <button role="menuitem" @click="toggleMute"><Icon :name="chat.muted ? 'bell' : 'bellOff'" :size="20" /> {{ chat.muted ? t.__('Unmute this chat', 'membuild-community') : t.__('Mute this chat', 'membuild-community') }}</button>
               <hr class="sep" /><button role="menuitem" class="danger" @click="blockOther"><Icon name="block" :size="20" /> {{ t.__('Block', 'membuild-community') }}</button>
             </template>
           </div>
@@ -467,27 +504,47 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
       <button class="icon small" :aria-label="t.__('Minimize chat', 'membuild-community')" :title="t.__('Minimize chat', 'membuild-community')" @click="emit('minimize')"><Icon name="minus" :size="20" /></button>
       <button class="icon small" :aria-label="t.__('Close chat', 'membuild-community')" :title="t.__('Close chat', 'membuild-community')" @click="emit('close')"><Icon name="close" :size="20" /></button>
     </header>
-    <header v-else class="head">
+    <div v-if="docked && renaming !== null" class="rename-dock">
+      <form v-if="renaming !== null" class="rename" @submit.prevent="saveName" @keydown.esc.stop="renaming = null">
+        <div class="rename-row">
+          <input ref="renameBox" v-model="renaming" maxlength="80" :aria-label="t.__('Group name', 'membuild-community')" :placeholder="others.map((u) => u.name.split(' ')[0]).join(', ')" />
+          <button type="submit" class="btn btn-lg btn-primary" :disabled="savingName">{{ t.__('Save', 'membuild-community') }}</button>
+          <button type="button" class="btn btn-lg btn-ghost" @click="renaming = null">{{ t.__('Cancel', 'membuild-community') }}</button>
+        </div>
+        <small>{{ t.__('Everyone in the group sees the new name. Leave it empty to use the members’ names.', 'membuild-community') }}</small>
+      </form>
+    </div>
+    <header v-if="!docked" class="head">
       <button class="icon back" :aria-label="t.__('Back to chats', 'membuild-community')" @click="emit('back')"><Icon name="chevronLeft" :size="22" /></button>
       <template v-if="chat">
         <span class="faces" :class="{ group: isGroup }">
           <Avatar v-for="u in others.slice(0, 2)" :key="u.id" :user="u" :size="isGroup ? 30 : 40" :online="!isGroup" />
         </span>
-        <div class="who">
+        <form v-if="renaming !== null" class="rename" @submit.prevent="saveName" @keydown.esc.stop="renaming = null">
+          <div class="rename-row">
+            <input ref="renameBox" v-model="renaming" maxlength="80" :aria-label="t.__('Group name', 'membuild-community')" :placeholder="others.map((u) => u.name.split(' ')[0]).join(', ')" />
+            <button type="submit" class="btn btn-lg btn-primary" :disabled="savingName">{{ t.__('Save', 'membuild-community') }}</button>
+            <button type="button" class="btn btn-lg btn-ghost" @click="renaming = null">{{ t.__('Cancel', 'membuild-community') }}</button>
+          </div>
+          <small>{{ t.__('Everyone in the group sees the new name. Leave it empty to use the members’ names.', 'membuild-community') }}</small>
+        </form>
+        <div v-else class="who">
           <strong>{{ title }}</strong>
-          <span v-if="isGroup">{{ memberCount(others.length + 1) }}</span>
+          <span v-if="isGroup">{{ groupNames }}</span>
           <span v-else-if="others[0] && activeLabel(others[0])" :class="{ now: isOnline(others[0]) }">{{ activeLabel(others[0]) }}</span>
           <span v-else-if="others[0]">{{ t.sprintf(t.__('Level %d', 'membuild-community'), others[0].level) }}</span>
         </div>
-        <div v-if="isGroup || others[0]" :ref="headerMenuRoot" class="menu-wrap">
+        <div v-if="renaming === null && (isGroup || others[0])" :ref="headerMenuRoot" class="menu-wrap">
           <button :ref="headerMenuTrigger" class="icon" :aria-label="t.__('Chat options', 'membuild-community')" aria-haspopup="menu" :aria-expanded="headerMenu" @click="toggleHeaderMenu"><Icon name="more" :size="22" /></button>
           <div v-if="headerMenu" :ref="headerMenuList" class="menu" role="menu" @keydown="onHeaderMenuKey">
             <template v-if="isGroup">
               <button role="menuitem" @click="rename"><Icon name="pencil" :size="20" /> {{ t.__('Rename group', 'membuild-community') }}</button>
+              <button role="menuitem" @click="toggleMute"><Icon :name="chat.muted ? 'bell' : 'bellOff'" :size="20" /> {{ chat.muted ? t.__('Unmute this chat', 'membuild-community') : t.__('Mute this chat', 'membuild-community') }}</button>
               <hr class="sep" /><button role="menuitem" class="danger" @click="leave"><Icon name="logout" :size="20" /> {{ t.__('Leave group', 'membuild-community') }}</button>
             </template>
             <template v-else>
               <RouterLink role="menuitem" :to="{ name: 'member', params: { id: others[0].id } }" @click="closeHeaderMenu"><Icon name="user" :size="20" /> {{ t.__('View profile', 'membuild-community') }}</RouterLink>
+              <button role="menuitem" @click="toggleMute"><Icon :name="chat.muted ? 'bell' : 'bellOff'" :size="20" /> {{ chat.muted ? t.__('Unmute this chat', 'membuild-community') : t.__('Mute this chat', 'membuild-community') }}</button>
               <hr class="sep" /><button role="menuitem" class="danger" @click="blockOther"><Icon name="block" :size="20" /> {{ t.__('Block', 'membuild-community') }}</button>
             </template>
           </div>
@@ -521,7 +578,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
               </div>
 
               <div v-if="row.m.story" class="story-card">
-                <span class="story-thumb" :style="row.m.story.thumb ? null : { background: BACKGROUNDS[row.m.story.background] }">
+                <span class="story-thumb" :style="row.m.story.thumb ? null : storyBg(row.m.story.background)">
                   <img v-if="row.m.story.thumb" :src="row.m.story.thumb" alt="" />
                   <small v-else>{{ row.m.story.text }}</small>
                 </span>
@@ -717,6 +774,76 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
   margin-left: -12px;
   box-shadow: 0 0 0 2px var(--surface);
   border-radius: 50%;
+}
+
+.rename {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rename-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.rename input {
+  flex: 1;
+  min-width: 0;
+  height: 52px;
+  padding: 0 16px;
+  border: 2px solid var(--accent-text);
+  border-radius: 12px;
+  background: var(--surface);
+  font: inherit;
+  font-size: 17px;
+}
+
+.rename input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.rename .btn {
+  flex: none;
+  border-radius: 999px;
+  padding: 0 24px;
+}
+
+.rename small {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.rename-dock {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.rename-dock .rename-row {
+  flex-wrap: wrap;
+}
+
+.rename-dock input {
+  flex-basis: 100%;
+}
+
+/* Phones: the box on its own line, Save and Cancel under it. */
+@media (max-width: 600px) {
+  .rename-row {
+    flex-wrap: wrap;
+  }
+
+  .rename input {
+    flex-basis: 100%;
+  }
+
+  .rename .btn {
+    flex: 1;
+  }
 }
 
 .who {

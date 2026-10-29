@@ -19,6 +19,11 @@ function setCookie(value) {
 
 /** See it as a member of `group` (0 = no membership) at `level`. */
 export function seeAs(group = 0, level = 1) {
+  try {
+    sessionStorage.setItem('mbcom-as-member-note', '1') // after the reload: "You're seeing it as a member…"
+  } catch {
+    /* private mode: no note */
+  }
   setCookie(`m${group || ''}.${level}`)
 }
 

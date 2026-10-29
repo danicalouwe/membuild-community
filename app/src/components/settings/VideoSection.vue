@@ -36,24 +36,22 @@ async function copyHook() {
 <template>
   <section id="s-video" class="card group">
     <h2>{{ t.__('Video', 'membuild-community') }}</h2>
-    <fieldset class="field">
-      <legend class="label">{{ t.__('Where videos are stored', 'membuild-community') }}</legend>
-      <div class="delivery two">
-        <label class="option" :class="{ on: form.video.provider === 'local' }">
-          <input v-model="form.video.provider" type="radio" name="video" value="local" />
-          <strong>{{ t.__('This site', 'membuild-community') }}</strong>
-          <small>{{ t.__('Videos are compressed in the browser and stored with your other uploads. Fine for small communities.', 'membuild-community') }}</small>
-        </label>
-        <label class="option" :class="{ on: form.video.provider === 'bunny' }">
-          <input v-model="form.video.provider" type="radio" name="video" value="bunny" />
-          <strong>Bunny Stream</strong>
-          <small>{{ t.__('Videos upload straight to Bunny and stream smoothly at any size, without slowing your host.', 'membuild-community') }}</small>
-        </label>
-      </div>
-    </fieldset>
+    <p class="intro">{{ t.__('Where members’ videos and your lesson videos are kept.', 'membuild-community') }}</p>
+    <div class="choices cols-2">
+      <label class="choice" :class="{ on: form.video.provider === 'local' }">
+        <input v-model="form.video.provider" type="radio" name="video" value="local" />
+        <span class="mark" /><strong>{{ t.__('This site', 'membuild-community') }}</strong>
+        <small>{{ t.__('Stored with your other uploads. Fine for small communities.', 'membuild-community') }}</small>
+      </label>
+      <label class="choice" :class="{ on: form.video.provider === 'bunny' }">
+        <input v-model="form.video.provider" type="radio" name="video" value="bunny" />
+        <span class="mark" /><strong>Bunny Stream<span class="tag">{{ t.__('Best for courses', 'membuild-community') }}</span></strong>
+        <small>{{ t.__('Smooth streaming at any size, without slowing your host. A few dollars a month.', 'membuild-community') }}</small>
+      </label>
+    </div>
 
     <template v-if="form.video.provider === 'bunny'">
-      <p class="intro">{{ bunnyHelp[0] }}<strong>{{ t.__('Stream → your video library → API', 'membuild-community') }}</strong>{{ bunnyHelp[1] }} {{ t.__('Copy the details from there. Stories always stay on this site.', 'membuild-community') }}</p>
+      <p class="intro bunny-help">{{ bunnyHelp[0] }}<strong>{{ t.__('Stream → your video library → API', 'membuild-community') }}</strong>{{ bunnyHelp[1] }} {{ t.__('Copy the details from there. Stories always stay on this site.', 'membuild-community') }}</p>
       <div class="grid2">
         <label class="field">
           <span class="label">{{ t.__('Video library ID', 'membuild-community') }}</span>
@@ -87,3 +85,9 @@ async function copyHook() {
     </p>
   </section>
 </template>
+
+<style scoped>
+.bunny-help {
+  margin-top: 18px;
+}
+</style>

@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../api.js'
 import { messages } from '../stores/messages.js'
@@ -18,6 +18,7 @@ const filter = ref('all')
 const items = ref([])
 const nextPage = ref(null)
 const loading = ref(true)
+const unread = ref(0)
 
 async function load(reset = true) {
   loading.value = true
@@ -25,6 +26,7 @@ async function load(reset = true) {
     const res = await api.notifications(filter.value, reset ? 1 : nextPage.value)
     items.value = reset ? res.items : [...items.value, ...res.items]
     nextPage.value = res.next_page
+    unread.value = res.unread ?? items.value.filter((n) => !n.read).length
   } finally {
     loading.value = false
   }
@@ -71,10 +73,61 @@ const eventLine = (n) => (n.type === 'event_reminder' ? (n.data.soon ? t.__('Sta
 /** The sentence split around the names, so the names can be bold: [before, after]. */
 const sentence = (n) => around(ACTIONS[n.type]?.() || '%s')
 
+/* Today / This week / Earlier, with every level-up in a group folded into one row:
+   "You reached Level 4 · 3 new levels this week". */
+const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+function bucket(iso) {
+  const today = startOfDay(new Date())
+  const at = new Date(iso).getTime()
+  if (at >= today) return 'today'
+  if (at >= today - 6 * 86400000) return 'week'
+  return 'earlier'
+}
+const GROUP_LABELS = {
+  today: () => t.__('Today', 'membuild-community'),
+  week: () => t.__('This week', 'membuild-community'),
+  earlier: () => t.__('Earlier', 'membuild-community'),
+}
+const groups = computed(() => {
+  const out = []
+  for (const n of items.value) {
+    const key = bucket(n.updated_at)
+    let g = out[out.length - 1]
+    if (!g || g.key !== key) out.push((g = { key, rows: [] }))
+    if (n.type !== 'level_up') {
+      g.rows.push(n)
+      continue
+    }
+    const first = g.rows.find((r) => r.type === 'level_up')
+    if (!first) {
+      g.rows.push({ ...n, merged: [n], data: { ...n.data, courses: [...(n.data.courses || [])] } })
+      continue
+    }
+    first.merged.push(n)
+    first.read = first.read && n.read
+    first.data.level = Math.max(first.data.level, n.data.level) // the highest one reached (levels can drop when the owner has fewer)
+    for (const c of n.data.courses || []) if (!first.data.courses.includes(c)) first.data.courses.push(c)
+  }
+  return out
+})
+const fmtDay = new Intl.DateTimeFormat(undefined, { weekday: 'long' })
+const fmtEarlier = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' })
+function when(n) {
+  const key = bucket(n.updated_at)
+  if (key === 'today') return timeAgo(n.updated_at)
+  return (key === 'week' ? fmtDay : fmtEarlier).format(new Date(n.updated_at))
+}
+const levelsLine = (n) => t.sprintf(/* translators: %d: how many levels were reached */ t._n('%d new level', '%d new levels', n.merged.length, 'membuild-community'), n.merged.length)
+const groupLevelsLine = (key, n) => (key === 'week' ? t.sprintf(/* translators: %s: e.g. "3 new levels" */ t.__('%s this week.', 'membuild-community'), levelsLine(n)) : key === 'today' ? t.sprintf(/* translators: %s: e.g. "3 new levels" */ t.__('%s today.', 'membuild-community'), levelsLine(n)) : levelsLine(n) + '.')
+
 async function open(n) {
-  if (!n.read) {
-    n.read = true
-    api.readNotification(n.id).catch(() => {})
+  for (const one of n.merged || [n]) {
+    const real = items.value.find((i) => i.id === one.id)
+    if (real && !real.read) {
+      real.read = true
+      unread.value = Math.max(0, unread.value - 1)
+      api.readNotification(real.id).catch(() => {})
+    }
   }
   emit('navigate')
   router.push(n.link)
@@ -82,26 +135,30 @@ async function open(n) {
 
 async function readAll() {
   items.value.forEach((n) => (n.read = true))
+  unread.value = 0
   await api.readAllNotifications().catch(() => {})
   messages.notifications = 0
 }
 const reachedLevel = (level) => t.sprintf(/* translators: %d: level number */ t.__('You reached Level %d!', 'membuild-community'), level)
+const reachedLevelPlain = (level) => t.sprintf(/* translators: %d: level number */ t.__('You reached Level %d', 'membuild-community'), level)
 const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles, e.g. "Basics and Advanced" */ t.__('You unlocked %s.', 'membuild-community'), listNames(courses))
 </script>
 
 <template>
   <div class="panel" :class="{ page }">
     <header class="head">
-      <h2>{{ t.__('Notifications', 'membuild-community') }}</h2>
-      <button v-if="items.some((n) => !n.read)" class="link" @click="readAll">{{ t.__('Mark all as read', 'membuild-community') }}</button>
+      <h2>{{ t.__('Alerts', 'membuild-community') }}</h2>
+      <button v-if="unread || items.some((n) => !n.read)" class="link" @click="readAll">{{ t.__('Mark all as read', 'membuild-community') }}</button>
     </header>
     <div class="filters" role="tablist">
       <button role="tab" :aria-selected="filter === 'all'" :class="{ on: filter === 'all' }" @click="filter = 'all'">{{ t.__('All', 'membuild-community') }}</button>
-      <button role="tab" :aria-selected="filter === 'unread'" :class="{ on: filter === 'unread' }" @click="filter = 'unread'">{{ t.__('Unread', 'membuild-community') }}</button>
+      <button role="tab" :aria-selected="filter === 'unread'" :class="{ on: filter === 'unread' }" @click="filter = 'unread'">{{ unread ? t.sprintf(/* translators: %d: how many unread alerts */ t.__('Unread · %d', 'membuild-community'), unread) : t.__('Unread', 'membuild-community') }}</button>
     </div>
 
     <ul class="list">
-      <li v-for="n in items" :key="n.id">
+      <template v-for="g in groups" :key="g.key">
+      <li class="group-label">{{ GROUP_LABELS[g.key]() }}</li>
+      <li v-for="n in g.rows" :key="n.id">
         <button class="item" :class="{ unread: !n.read }" @click="open(n)">
           <span class="pic">
             <span v-if="n.type === 'level_up'" class="level">{{ n.data.level }}</span>
@@ -117,7 +174,11 @@ const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles
             </span>
           </span>
           <span class="text">
-            <span v-if="n.type === 'level_up'" class="sentence">
+            <span v-if="n.type === 'level_up' && n.merged.length > 1" class="sentence">
+              <strong>{{ reachedLevelPlain(n.data.level) }}</strong>
+              <span class="course">{{ groupLevelsLine(g.key, n) }}<template v-if="n.data.courses?.length">{{ ' ' + unlockedCourses(n.data.courses) }}</template></span>
+            </span>
+            <span v-else-if="n.type === 'level_up'" class="sentence">
               <strong>{{ reachedLevel(n.data.level) }}</strong>
               <!-- The space lives inside the text: Vue drops a lone leading space. -->
               <template v-if="n.data.courses?.length">{{ ' ' + unlockedCourses(n.data.courses) }}</template>
@@ -136,11 +197,12 @@ const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles
             <span v-else class="sentence">
               {{ sentence(n)[0] }}<strong>{{ who(n) }}</strong>{{ sentence(n)[1] }}<template v-if="n.data.snippet">: “{{ n.data.snippet }}”</template>
             </span>
-            <span class="when">{{ timeAgo(n.updated_at) }}</span>
+            <span class="when">{{ when(n) }}</span>
           </span>
           <span v-if="!n.read" class="dot" :aria-label="t.__('Unread', 'membuild-community')" />
         </button>
       </li>
+      </template>
       <li v-if="loading && !items.length" class="state">{{ t.__('Loading…', 'membuild-community') }}</li>
       <li v-else-if="!items.length" class="state">
         <Icon name="bell" :size="34" />
@@ -220,6 +282,27 @@ const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles
 
 .item:hover {
   background: var(--surface-2);
+}
+
+.item.unread {
+  background: var(--accent-soft);
+}
+
+.item.unread:hover {
+  background: color-mix(in srgb, var(--accent-soft) 80%, var(--accent) 20%);
+}
+
+.list li + li:not(.group-label) .item.unread {
+  margin-top: 2px;
+}
+
+.group-label {
+  padding: 14px 8px 6px;
+  font-size: 13px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
 }
 
 .pic {
