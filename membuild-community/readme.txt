@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.13.6
+Stable tag: 1.13.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,16 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.13.7 =
+* Security: logging in is harder to abuse. Wrong passwords from many places slow an account down instead of locking its owner out, people sharing one internet address (an office, a proxy) no longer lock each other out, the Join and Forgot password pages no longer reveal which emails have accounts, and a login form sent from another site is refused.
+* Security: "Keep me logged in" now ends two years after logging in, and editors keep WordPress's usual 14 days.
+* Blocking now covers stories (opening, reacting, replying, "Seen by"), group chats, "who reacted", replies and reports.
+* Reports only count for posts the reporter can see, so a few accounts can't hide a post they were never shown.
+* Limits on stories (30 a day), reactions and story replies, so one member can't flood others.
+* Payments: refunding or ending an old order no longer takes away access a newer purchase pays for, and a forwarded receipt link no longer shows the buyer's name and email.
+* Uploads count toward the daily limit from the moment they start, updates only install from this plugin's own GitHub releases, and the community can't be shown inside another site's frame.
+* Smaller fixes: comment search follows group-only events, courses hidden until they open aren't named on the Leaderboard, and the suggested privacy text is clearer about messages.
 
 = 1.13.6 =
 * Ready for Community themes: add-ons that give the community a whole new look. A theme can restyle every screen and fill 27 named places (the Classroom's course list, a post card, the top bar, Lesson done, the Leaderboard's podium and more). Without a theme nothing changes.

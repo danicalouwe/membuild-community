@@ -445,7 +445,11 @@ class Fluent_Cart {
 		);
 	}
 
-	/** Removes the memberships a purchase gave (people added by hand keep theirs). */
+	/**
+	 * Removes the memberships a purchase gave (people added by hand keep theirs). Only when this
+	 * order is the one that gave it: a member who bought again (a new subscription after
+	 * cancelling, a second one-time order) keeps the access the newer order pays for.
+	 */
 	private static function take_back( $order, array $groups ) {
 		$user_id = self::buyer( $order, null );
 		if ( ! $user_id ) {
@@ -453,7 +457,7 @@ class Fluent_Cart {
 		}
 		$bought = (array) get_user_meta( $user_id, self::BOUGHT, true );
 		foreach ( $groups as $group_id ) {
-			if ( isset( $bought[ $group_id ] ) ) {
+			if ( isset( $bought[ $group_id ] ) && (int) $bought[ $group_id ] === (int) $order->id ) {
 				Access::remove( $group_id, $user_id );
 				unset( $bought[ $group_id ] );
 			}

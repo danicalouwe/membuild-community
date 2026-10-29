@@ -88,9 +88,14 @@ class Media {
 			return new \WP_Error( 'mbcom_too_big', sprintf( __( 'Files must be under %d MB.', 'membuild-community' ), $max_mb ), array( 'status' => 413 ) );
 		}
 
-		if ( ! Settings::is_staff( $user_id ) && self::uploaded_today( $user_id ) + $size > self::daily_bytes() ) {
+		// The day's limit counts every upload from the moment it starts, finished or not, so
+		// many half-done uploads can't fill the disk.
+		$started = self::started_today( $user_id );
+		if ( ! Settings::is_staff( $user_id ) && max( self::uploaded_today( $user_id ), array_sum( $started ) ) + $size > self::daily_bytes() ) {
 			return new \WP_Error( 'mbcom_daily_limit', __( 'You’ve uploaded a lot today. Please try again tomorrow.', 'membuild-community' ), array( 'status' => 429 ) );
 		}
+		$started[] = $size;
+		set_transient( 'mbcom_up_day_' . (int) $user_id, array( 'since' => self::started_since( $user_id ), 'sizes' => $started ), DAY_IN_SECONDS );
 
 		self::cleanup_stale();
 
@@ -124,6 +129,18 @@ class Media {
 		 * @param int $bytes Bytes per day. Default 2 GB.
 		 */
 		return (int) apply_filters( 'membuild_community/daily_upload_bytes', self::DAILY_BYTES );
+	}
+
+	/** The sizes of the uploads a member started in the last day (finished or not). */
+	private static function started_today( $user_id ) {
+		$day = get_transient( 'mbcom_up_day_' . (int) $user_id );
+		return is_array( $day ) && ( $day['since'] ?? 0 ) > time() - DAY_IN_SECONDS ? array_map( 'intval', (array) $day['sizes'] ) : array();
+	}
+
+	/** When the member's current day of uploads began. */
+	private static function started_since( $user_id ) {
+		$day = get_transient( 'mbcom_up_day_' . (int) $user_id );
+		return is_array( $day ) && ( $day['since'] ?? 0 ) > time() - DAY_IN_SECONDS ? (int) $day['since'] : time();
 	}
 
 	private static function uploaded_today( $user_id ) {

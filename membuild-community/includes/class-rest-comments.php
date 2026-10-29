@@ -179,7 +179,7 @@ class Rest_Comments {
 		$reply_to  = 0;
 		if ( ! empty( $req['parent_id'] ) ) {
 			$parent = self::get( (int) $req['parent_id'] );
-			if ( ! $parent || (int) $parent['post_id'] !== (int) $post['id'] ) {
+			if ( ! $parent || (int) $parent['post_id'] !== (int) $post['id'] || Blocks::hides( (int) $parent['user_id'] ) ) {
 				return new \WP_Error( 'mbcom_bad_parent', __( 'That comment no longer exists.', 'membuild-community' ), array( 'status' => 400 ) );
 			}
 			// Keep threads one level deep: a reply to a reply joins the same top-level comment.
@@ -263,8 +263,12 @@ class Rest_Comments {
 			$type = 'like'; // (the old "down" dislike is gone since 1.8.3; its rows stay uncounted)
 		}
 		$comment = self::get( $id );
-		if ( ! $comment || ! Rest_Feed::row( (int) $comment['post_id'] ) ) {
+		if ( ! $comment || Blocks::hides( (int) $comment['user_id'] ) || ! Rest_Feed::row( (int) $comment['post_id'] ) ) {
 			return new \WP_Error( 'mbcom_not_found', __( 'Comment not found.', 'membuild-community' ), array( 'status' => 404 ) );
+		}
+		$slow = Helpers::throttle( 'react', 120, 10 * MINUTE_IN_SECONDS );
+		if ( $slow ) {
+			return $slow;
 		}
 		$wpdb->query(
 			$wpdb->prepare(
@@ -306,6 +310,11 @@ class Rest_Comments {
 		$wpdb->delete( Install::table( 'reactions' ), array( 'object_type' => 'comment', 'object_id' => $id, 'user_id' => get_current_user_id() ) );
 		/** This action is documented above. */
 		do_action( 'membuild_community/reaction_changed', 'comment', $id, get_current_user_id(), null );
+		// The counts only for a comment you can still see.
+		$comment = self::get( $id );
+		if ( ! $comment || Blocks::hides( (int) $comment['user_id'] ) || ! Rest_Feed::row( (int) $comment['post_id'] ) ) {
+			return array( 'deleted' => true );
+		}
 		return self::reaction_state( $id );
 	}
 

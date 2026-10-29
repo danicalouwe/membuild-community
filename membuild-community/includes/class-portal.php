@@ -122,6 +122,9 @@ class Portal {
 			);
 		}
 		status_header( 200 );
+		// The app is never shown inside another site's frame (clickjacking on Settings and the like).
+		header( 'X-Frame-Options: SAMEORIGIN' );
+		header( "Content-Security-Policy: frame-ancestors 'self'" );
 
 		$config = array(
 			'restUrl'  => esc_url_raw( rest_url( MEMBUILD_COMMUNITY_REST_NS ) ),

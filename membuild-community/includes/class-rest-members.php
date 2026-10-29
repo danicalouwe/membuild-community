@@ -160,7 +160,7 @@ class Rest_Members {
 		$id   = (int) $req['id'];
 		$user = get_userdata( $id );
 		// Someone I blocked stays reachable, so I can unblock them; someone who blocked me isn't.
-		if ( ! $user || ( Blocks::hides( $id ) && ! Blocks::i_blocked( $id ) ) ) {
+		if ( ! $user || ( is_multisite() && ! is_user_member_of_blog( $id ) ) || ( Blocks::hides( $id ) && ! Blocks::i_blocked( $id ) ) ) {
 			return new \WP_Error( 'mbcom_not_found', __( 'This member was not found.', 'membuild-community' ), array( 'status' => 404 ) );
 		}
 		$me     = get_current_user_id();

@@ -229,7 +229,7 @@ class Rest_Gamification {
 		}
 		$total  = max( 1, Helpers::member_total() );
 		$titles = array();
-		foreach ( $wpdb->get_results( $wpdb->prepare( "SELECT unlock_level, title FROM %i WHERE status = 'published' AND access = 'level' ORDER BY sort_order", Install::table( 'courses' ) ), ARRAY_A ) as $c ) {
+		foreach ( $wpdb->get_results( $wpdb->prepare( "SELECT unlock_level, title FROM %i WHERE status = 'published' AND access = 'level' AND hide_locked = 0 ORDER BY sort_order", Install::table( 'courses' ) ), ARRAY_A ) as $c ) {
 			$titles[ (int) $c['unlock_level'] ][] = $c['title'];
 		}
 		$counts = $wpdb->get_results( $wpdb->prepare( 'SELECT level, COUNT(*) n FROM %i GROUP BY level', Install::table( 'member_stats' ) ), OBJECT_K );
@@ -254,9 +254,12 @@ class Rest_Gamification {
 	/** Published courses that unlock at a level, so a level-up can say what opened. */
 	private static function course_unlocks() {
 		global $wpdb;
-		return array_map(
-			fn( $r ) => array( 'level' => (int) $r['unlock_level'], 'title' => $r['title'], 'id' => (int) $r['id'] ),
-			$wpdb->get_results( $wpdb->prepare( "SELECT id, title, unlock_level FROM %i WHERE status = 'published' AND access = 'level' AND unlock_level > 1 ORDER BY unlock_level", Install::table( 'courses' ) ), ARRAY_A )
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM %i WHERE status = 'published' AND access = 'level' AND unlock_level > 1 ORDER BY unlock_level", Install::table( 'courses' ) ), ARRAY_A );
+		return array_values(
+			array_map(
+				fn( $r ) => array( 'level' => (int) $r['unlock_level'], 'title' => $r['title'], 'id' => (int) $r['id'] ),
+				array_filter( $rows, fn( $r ) => ! Access::hidden( $r ) ) // a course hidden until it opens isn't named before then
+			)
 		);
 	}
 }

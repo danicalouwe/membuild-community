@@ -111,7 +111,7 @@ class Rest_Messages {
 		global $wpdb;
 		$me     = get_current_user_id();
 		$others = array_values( array_diff( array_unique( array_map( 'intval', (array) $req['user_ids'] ) ), array( $me ) ) );
-		$others = array_values( array_filter( $others, fn( $id ) => (bool) get_userdata( $id ) ) );
+		$others = array_values( array_filter( $others, fn( $id ) => (bool) get_userdata( $id ) && ( ! is_multisite() || is_user_member_of_blog( $id ) ) ) );
 		if ( ! $others ) {
 			return new \WP_Error( 'mbcom_no_people', __( 'Choose who to message.', 'membuild-community' ), array( 'status' => 400 ) );
 		}
@@ -219,6 +219,9 @@ class Rest_Messages {
 			: $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i WHERE thread_id = %d ORDER BY id DESC LIMIT %d', Install::table( 'messages' ), $thread['id'], self::PAGE + 1 ), ARRAY_A );
 		$has_more = count( $rows ) > self::PAGE;
 		$rows     = array_reverse( array_slice( $rows, 0, self::PAGE ) );
+		if ( 'group' === $thread['type'] ) {
+			$rows = Blocks::filter( $rows ); // in a group, blocking hides each other's messages
+		}
 		return array( 'items' => self::format_messages( $rows ), 'has_more' => $has_more );
 	}
 
@@ -373,13 +376,17 @@ class Rest_Messages {
 	private static function pulse_thread( $thread_id, $after ) {
 		global $wpdb;
 		$me = get_current_user_id();
-		if ( is_wp_error( self::member_thread( $thread_id ) ) ) {
+		$thread = self::member_thread( $thread_id );
+		if ( is_wp_error( $thread ) ) {
 			return null;
 		}
 		$rows = $wpdb->get_results(
 			$wpdb->prepare( 'SELECT * FROM %i WHERE thread_id = %d AND id > %d ORDER BY id ASC LIMIT 100', Install::table( 'messages' ), $thread_id, $after ),
 			ARRAY_A
 		);
+		if ( 'group' === $thread['type'] ) {
+			$rows = Blocks::filter( $rows );
+		}
 		// Changes to messages already on screen (unsent, reactions) since the last pulse are not tracked here; the app refreshes those on focus.
 		$members = self::members( $thread_id );
 		$typing  = array();
@@ -452,8 +459,15 @@ class Rest_Messages {
 		if ( (int) $story['user_id'] === $me ) {
 			return new \WP_Error( 'mbcom_own_story', __( 'You cannot reply to your own story.', 'membuild-community' ), array( 'status' => 400 ) );
 		}
+		if ( Blocks::hides( (int) $story['user_id'] ) ) {
+			return new \WP_Error( 'mbcom_not_found', __( 'This story is no longer available.', 'membuild-community' ), array( 'status' => 404 ) );
+		}
 		if ( ! Settings::can_message( $me, array( (int) $story['user_id'] ) ) ) {
 			return new \WP_Error( 'mbcom_messaging_staff', __( 'You can message admins and moderators here.', 'membuild-community' ), array( 'status' => 403 ) );
+		}
+		$slow = Helpers::throttle( 'story_reply', 60, HOUR_IN_SECONDS );
+		if ( $slow ) {
+			return $slow;
 		}
 		$thread_id = self::direct_thread( $me, (int) $story['user_id'] );
 		$preview   = array(

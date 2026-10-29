@@ -459,7 +459,7 @@ class Rest_Feed {
 			);
 		}
 		$has_more = count( $rows ) > $per;
-		$rows     = array_slice( $rows, 0, $per );
+		$rows     = Blocks::filter( array_slice( $rows, 0, $per ) ); // not people you blocked, or who blocked you
 		$users    = Helpers::users( wp_list_pluck( $rows, 'user_id' ) );
 
 		return array(
@@ -495,6 +495,11 @@ class Rest_Feed {
 		$type    = in_array( $req['type'], Helpers::REACTIONS, true ) ? $req['type'] : 'like';
 		if ( ! self::row( $post_id ) ) {
 			return new \WP_Error( 'mbcom_not_found', __( 'Post not found.', 'membuild-community' ), array( 'status' => 404 ) );
+		}
+		// Plenty for real use; stops a loop that rings someone's bell over and over.
+		$slow = Helpers::throttle( 'react', 120, 10 * MINUTE_IN_SECONDS );
+		if ( $slow ) {
+			return $slow;
 		}
 		$table = Install::table( 'reactions' );
 		$wpdb->query(

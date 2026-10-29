@@ -301,9 +301,10 @@ class Search {
 		list( $m, $vals ) = self::match( 'comments', 'c.content', $words );
 		$reels           = Settings::feature( 'reels' ) ? '' : " AND p.type = 'post'";
 		list( $seen, $seen_vals ) = Discussions::visible_sql( 'p' );
+		list( $ev, $ev_vals )     = Events::visible_sql( 'p' ); // comments on a group-only event stay with its group (none when Events is off)
 		$rows            = $wpdb->get_results(
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $m comes from match() and $seen from visible_sql(): fixed SQL with placeholders; $reels is a fixed literal; values are bound.
-			$wpdb->prepare( "SELECT c.id, c.post_id, c.user_id, c.content, c.created_at, p.user_id AS post_user, p.content AS post_content FROM %i c INNER JOIN %i p ON p.id = c.post_id AND p.status = 'published'{$reels} AND {$seen} WHERE {$m} ORDER BY c.id DESC LIMIT %d OFFSET %d", array_merge( array( Install::table( 'comments' ), Install::table( 'posts' ) ), $seen_vals, $vals, array( $limit + 1, $offset ) ) ),
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $m comes from match(), $seen and $ev from visible_sql(): fixed SQL with placeholders; $reels is a fixed literal; values are bound.
+			$wpdb->prepare( "SELECT c.id, c.post_id, c.user_id, c.content, c.created_at, p.user_id AS post_user, p.content AS post_content FROM %i c INNER JOIN %i p ON p.id = c.post_id AND p.status = 'published'{$reels} AND {$seen} AND {$ev} WHERE {$m} ORDER BY c.id DESC LIMIT %d OFFSET %d", array_merge( array( Install::table( 'comments' ), Install::table( 'posts' ) ), $seen_vals, $ev_vals, $vals, array( $limit + 1, $offset ) ) ),
 			ARRAY_A
 		);
 		$rows  = Blocks::filter( Blocks::filter( $rows ), 'post_user' ); // neither the comment's author nor the post's

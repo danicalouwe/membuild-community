@@ -183,8 +183,11 @@ foreach ( array( $ana, $ben, $cy ) as $u ) {
 	list( , $rep ) = mbcom_call( $u, 'POST', '/reports', array( 'object_type' => 'post', 'object_id' => $p2, 'reason' => 'spam' ) );
 }
 mbcom_check( 'three reports hide a post', ! empty( $rep['hidden'] ) );
-list( $s ) = mbcom_call( $dee, 'POST', '/reports', array( 'object_type' => 'post', 'object_id' => $p2, 'reason' => 'spam' ) );
+list( , $own ) = mbcom_call( $dee, 'POST', '/posts', array( 'content' => 'My own post, still up.' ) );
+list( $s ) = mbcom_call( $dee, 'POST', '/reports', array( 'object_type' => 'post', 'object_id' => (int) $own['id'], 'reason' => 'spam' ) );
 mbcom_check( "you can't report your own post", 400 === $s, (string) $s );
+list( $s ) = mbcom_call( $dee, 'POST', '/reports', array( 'object_type' => 'post', 'object_id' => $p2, 'reason' => 'spam' ) );
+mbcom_check( '…and a post that is already hidden can’t be reported (404)', 404 === $s, (string) $s );
 list( $s ) = mbcom_call( $ana, 'GET', '/moderation/reports' );
 mbcom_check( "members can't open the review queue", 403 === $s, (string) $s );
 list( $s, $q ) = mbcom_call( $admin, 'GET', '/moderation/reports' );
@@ -770,7 +773,7 @@ mbcom_check( 'removing the logo deletes it', ! \MemBuild\Community\Media::get( (
 
 /* ---------------------------------------------------------------- */
 mbcom_section( 'Updates from GitHub releases (with a stand-in for GitHub)' );
-$fake_release = array( 'tag_name' => 'v9.9.0', 'body' => 'New things.', 'html_url' => 'https://github.com/x/y/releases/v9.9.0', 'published_at' => '2026-10-15T00:00:00Z', 'assets' => array( array( 'name' => 'membuild-community-9.9.0.zip', 'browser_download_url' => 'https://github.com/x/y/releases/download/v9.9.0/membuild-community-9.9.0.zip' ) ) );
+$fake_release = array( 'tag_name' => 'v9.9.0', 'body' => 'New things.', 'html_url' => 'https://github.com/x/y/releases/v9.9.0', 'published_at' => '2026-10-15T00:00:00Z', 'assets' => array( array( 'name' => 'membuild-community-9.9.0.zip', 'browser_download_url' => 'https://github.com/danicalouwe/membuild-community/releases/download/v9.9.0/membuild-community-9.9.0.zip' ) ) );
 $asked        = 0;
 $stand_in     = function ( $pre, $args, $url ) use ( &$fake_release, &$asked ) {
 	if ( ! str_contains( $url, 'api.github.com/repos/' ) ) {
@@ -2104,6 +2107,38 @@ mbcom_check( '…a login without “Keep me logged in” is left to end', ! call
 $tok_mgr->destroy( $old_tok );
 mbcom_check( '…and logging out still ends it', ! call_user_func( array( $NS . 'Login', 'renew_session' ), $ana, array( 'token' => $old_tok, 'expiration' => time() ) ) && null === $tok_mgr->get( $old_tok ) );
 $tok_mgr->destroy( $short_tok );
+
+mbcom_section( 'Security review, 30 Oct' );
+$sr_a = mbcom_user( 'mbct_sr_ada' );
+$sr_c = mbcom_user( 'mbct_sr_cleo' );
+list( , $sr_story ) = mbcom_call( $sr_a, 'POST', '/stories', array( 'text' => 'Only for people I haven’t blocked' ) );
+list( , $sr_post )  = mbcom_call( $sr_a, 'POST', '/posts', array( 'content' => 'A post by Ada' ) );
+mbcom_call( $sr_c, 'POST', "/posts/{$sr_post['id']}/reaction", array( 'type' => 'love' ) );
+mbcom_call( $sr_c, 'PUT', "/posts/{$sr_post['id']}/reaction", array( 'type' => 'love' ) );
+mbcom_call( $sr_a, 'PUT', "/members/{$sr_c}/block" );
+list( $s ) = mbcom_call( $sr_c, 'POST', "/stories/{$sr_story['id']}/view" );
+mbcom_check( 'someone blocked can’t open your story by its number', 404 === $s, (string) $s );
+list( $s ) = mbcom_call( $sr_c, 'PUT', "/stories/{$sr_story['id']}/reaction", array( 'type' => 'love' ) );
+mbcom_check( '…or react to it', 404 === $s, (string) $s );
+list( $s ) = mbcom_call( $sr_c, 'POST', "/stories/{$sr_story['id']}/reply", array( 'content' => 'hi' ) );
+mbcom_check( '…or reply to it', 404 === $s, (string) $s );
+list( $s ) = mbcom_call( $sr_c, 'POST', '/reports', array( 'object_type' => 'post', 'object_id' => (int) $sr_post['id'], 'reason' => 'spam' ) );
+mbcom_check( 'someone blocked can’t report (and so help hide) your post', 404 === $s, (string) $s );
+list( , $sr_who ) = mbcom_call( $sr_a, 'GET', "/posts/{$sr_post['id']}/reactions" );
+mbcom_check( 'who reacted leaves out people you blocked', ! in_array( $sr_c, array_map( fn( $i ) => (int) $i['user']['id'], $sr_who['items'] ?? array() ), true ), wp_json_encode( $sr_who ) );
+mbcom_call( $sr_a, 'DELETE', "/members/{$sr_c}/block" );
+mbcom_call( $sr_a, 'DELETE', "/stories/{$sr_story['id']}" );
+list( $s ) = mbcom_call( $sr_c, 'DELETE', "/lessons/{$draft_l}/complete" );
+mbcom_check( 'a draft course’s lessons can’t be found by marking them not done', 404 === $s, (string) $s );
+$sr_ed = mbcom_user( 'mbct_sr_editor', 'editor' );
+mbcom_check( 'editors keep WordPress’s 14 days, not a year', 14 * DAY_IN_SECONDS === apply_filters( 'auth_cookie_expiration', 14 * DAY_IN_SECONDS, $sr_ed, true ) );
+$sr_tok  = WP_Session_Tokens::get_instance( $sr_a );
+$sr_long = $sr_tok->create( time() + 3 * DAY_IN_SECONDS );
+$sr_sess = $sr_tok->get( $sr_long );
+$sr_sess['login'] = time() - 2 * YEAR_IN_SECONDS;
+$sr_tok->update( $sr_long, $sr_sess );
+mbcom_check( 'a login two years old isn’t renewed again, however often it’s used', ! call_user_func( array( 'MemBuild\\Community\\Login', 'renew_session' ), $sr_a, array( 'token' => $sr_long, 'expiration' => $sr_sess['expiration'] ) ) );
+$sr_tok->destroy( $sr_long );
 
 /* ---------------------------------------------------------------- */
 echo "\n{$GLOBALS['mbcom_passed']} passed, {$GLOBALS['mbcom_failed']} failed\n";

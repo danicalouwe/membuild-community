@@ -201,7 +201,8 @@ class Rest_Courses {
 	public static function uncomplete( \WP_REST_Request $req ) {
 		global $wpdb;
 		$lesson = self::lesson_row( (int) $req['id'] );
-		if ( ! $lesson ) {
+		$course = $lesson ? self::course_row( (int) $lesson['course_id'] ) : null;
+		if ( ! $lesson || ! $course || Access::hidden( $course ) ) { // drafts and hidden courses: as if they weren't there
 			return new \WP_Error( 'mbcom_not_found', __( 'Lesson not found.', 'membuild-community' ), array( 'status' => 404 ) );
 		}
 		$removed = $wpdb->delete( Install::table( 'lesson_progress' ), array( 'user_id' => get_current_user_id(), 'lesson_id' => $lesson['id'] ) );

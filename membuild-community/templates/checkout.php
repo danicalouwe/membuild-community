@@ -32,7 +32,9 @@ $mbcom_period  = array(
 $mbcom_paid    = 'paid' === $mbcom_view['step'];
 $mbcom_first   = $mbcom_paid ? Portal::url() . '/classroom/' . ( $mbcom_perks[0]['id'] ?? '' ) : '';
 $mbcom_buyer   = $mbcom_paid ? ( $mbcom_view['order']->customer ?? null ) : null;
-$mbcom_hello   = $mbcom_paid ? ( $mbcom_buyer->first_name ?? '' ) ?: ( $mbcom_user->first_name ?: $mbcom_user->display_name ) : '';
+// The buyer's name and email only for the buyer: a receipt link can be forwarded.
+$mbcom_mine    = $mbcom_paid && $mbcom_user->exists() && (int) ( $mbcom_buyer->user_id ?? 0 ) === (int) $mbcom_user->ID;
+$mbcom_hello   = $mbcom_mine ? ( $mbcom_buyer->first_name ?? '' ) ?: ( $mbcom_user->first_name ?: $mbcom_user->display_name ) : '';
 
 add_filter( 'show_admin_bar', '__return_false' );
 ?><!doctype html>
@@ -92,7 +94,7 @@ add_filter( 'show_admin_bar', '__return_false' );
 				</h1>
 				<p>
 					<?php
-					$mbcom_email = $mbcom_buyer->email ?? $mbcom_user->user_email;
+					$mbcom_email = $mbcom_mine ? ( $mbcom_buyer->email ?? $mbcom_user->user_email ) : __( 'the buyer’s email', 'membuild-community' );
 					echo esc_html(
 						$mbcom_perks
 							/* translators: 1: membership name, 2: course name, 3: email address */

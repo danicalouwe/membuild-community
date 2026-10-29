@@ -85,7 +85,7 @@ class Notifications {
 
 	public static function on_level_up( $user_id, $level ) {
 		global $wpdb;
-		$courses = $wpdb->get_col( $wpdb->prepare( "SELECT title FROM %i WHERE status = 'published' AND unlock_level = %d", Install::table( 'courses' ), $level ) );
+		$courses = $wpdb->get_col( $wpdb->prepare( "SELECT title FROM %i WHERE status = 'published' AND access = 'level' AND unlock_level = %d", Install::table( 'courses' ), $level ) );
 		self::notify( (int) $user_id, 'level_up', 'level', (int) $level, 0, 0, array( 'level' => (int) $level, 'courses' => $courses ) );
 	}
 

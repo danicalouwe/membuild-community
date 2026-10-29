@@ -233,8 +233,15 @@ class Bunny {
 
 	public static function complete( \WP_REST_Request $req ) {
 		$row = Media::get( (int) $req['id'] );
-		if ( ! $row || (int) $row['user_id'] !== get_current_user_id() ) {
+		if ( ! $row || (int) $row['user_id'] !== get_current_user_id() || 'video/bunny' !== $row['mime'] ) {
 			return new \WP_Error( 'mbcom_not_found', __( 'Video not found.', 'membuild-community' ), array( 'status' => 404 ) );
+		}
+		if ( 'uploading' !== ( ( json_decode( (string) $row['meta'], true ) ?: array() )['status'] ?? 'uploading' ) ) {
+			return Media::format( $row ); // already done: nothing to ask Bunny again
+		}
+		$slow = Helpers::throttle( 'bunny_complete', 30, HOUR_IN_SECONDS );
+		if ( $slow ) {
+			return $slow;
 		}
 		self::set_status( $row, 'processing' );
 		self::refresh( Media::get( (int) $row['id'] ), true );

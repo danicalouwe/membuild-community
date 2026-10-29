@@ -22,11 +22,14 @@ class Login {
 
 	const PAGES             = array( 'login', 'join', 'forgot-password', 'reset-password' );
 	const MIN_PASSWORD      = 8;
-	const MAX_FAILS         = 10;  // failed logins per address …
-	const MAX_ACCOUNT_FAILS = 20;  // … or per account, from anywhere …
+	const MAX_PAIR_FAILS    = 10;  // failed logins for one account from one address, then refused …
+	const MAX_FAILS         = 30;  // … or from one address, whatever the account (a shared office or proxy still gets in) …
+	const MAX_ACCOUNT_FAILS = 20;  // … or for one account from anywhere: slowed down, never refused, so nobody can lock a member out …
 	const FAIL_WINDOW       = 900; // … in 15 minutes
 	const MAX_RESETS        = 5;   // reset emails per address per hour
+	const MAX_ACCOUNT_RESETS = 3;  // reset emails per account per hour
 	const MAX_SIGNUPS       = 5;   // new accounts per address per hour
+	const MAX_JOIN_TRIES    = 15;  // sign-up attempts per address per hour (so the form can't be used to test emails)
 	const AGE_COOKIE        = 'mbcom_age_check'; // set after a too-young answer, so the form can't simply be retried
 	const KEEP              = YEAR_IN_SECONDS; // "Keep me logged in" lasts a year, restarted while they keep using it
 
@@ -44,9 +47,9 @@ class Login {
 
 	/* ---------- Staying logged in (so the installed app doesn't keep asking) ---------- */
 
-	/** People who can run the site keep WordPress's own 14 days; members stay a year. */
+	/** People who can run or edit the site keep WordPress's own 14 days; members stay a year. */
 	private static function keeps( $user_id ) {
-		return $user_id && ! user_can( $user_id, 'manage_options' );
+		return $user_id && ! user_can( $user_id, 'manage_options' ) && ! user_can( $user_id, 'edit_others_posts' ) && ! user_can( $user_id, 'unfiltered_html' );
 	}
 
 	public static function keep_length( $length, $user_id, $remember ) {
@@ -78,6 +81,10 @@ class Login {
 		$session = $tokens->get( $cookie['token'] );
 		// Without "Keep me logged in" a session lasts 2 days: leave those alone.
 		if ( ! $session || empty( $session['login'] ) || $session['expiration'] - $session['login'] < 3 * DAY_IN_SECONDS ) {
+			return false;
+		}
+		// However often it's used, a login ends two years after it began: a stolen cookie can't live forever.
+		if ( time() - (int) $session['login'] > 2 * self::KEEP - DAY_IN_SECONDS ) {
 			return false;
 		}
 		$session['expiration'] = time() + self::KEEP;
@@ -206,11 +213,15 @@ class Login {
 
 		if ( 'POST' === Helpers::method() ) {
 			$login = isset( $_POST['log'] ) ? sanitize_text_field( wp_unslash( $_POST['log'] ) ) : '';
-			if ( ! isset( $_POST['_mbcom_login'] ) || ! wp_verify_nonce( sanitize_key( $_POST['_mbcom_login'] ), 'mbcom_login' ) ) {
+			$account = self::account_key( $login );
+			if ( ! isset( $_POST['_mbcom_login'] ) || ! wp_verify_nonce( sanitize_key( $_POST['_mbcom_login'] ), 'mbcom_login' ) || self::cross_site() ) {
 				$error = __( 'The page timed out. Please try again.', 'membuild-community' );
-			} elseif ( self::too_many( 'fail', self::MAX_FAILS ) || self::too_many( 'fail_' . strtolower( $login ), self::MAX_ACCOUNT_FAILS ) ) {
+			} elseif ( self::too_many( 'fail', self::MAX_FAILS ) || self::too_many( 'pair_' . $account, self::MAX_PAIR_FAILS ) ) {
 				$error = __( 'Too many tries. Wait a few minutes, then try again.', 'membuild-community' );
 			} else {
+				if ( self::too_many( 'fail_' . $account, self::MAX_ACCOUNT_FAILS ) ) {
+					sleep( 2 ); // many wrong tries from all over: each one waits, the member's own login still works
+				}
 				$user = wp_signon(
 					array(
 						'user_login'    => $login,
@@ -222,7 +233,8 @@ class Login {
 				if ( is_wp_error( $user ) ) {
 					// Counted per address and per account, so one shared address (a proxy) can't lock everyone out alone.
 					self::count( 'fail', self::FAIL_WINDOW );
-					self::count( 'fail_' . strtolower( $login ), self::FAIL_WINDOW );
+					self::count( 'pair_' . $account, self::FAIL_WINDOW );
+					self::count( 'fail_' . $account, self::FAIL_WINDOW );
 					// One message for every failure, so the form doesn't reveal which emails have accounts.
 					$error = '' === $login || empty( $_POST['pwd'] )
 						? __( 'Enter your email or username and your password.', 'membuild-community' )
@@ -317,6 +329,10 @@ class Login {
 		if ( ! is_email( $values['email'] ) ) {
 			return new \WP_Error( 'mbcom_email', __( 'Enter a valid email address.', 'membuild-community' ) );
 		}
+		if ( self::too_many( 'join_try', self::MAX_JOIN_TRIES ) ) {
+			return new \WP_Error( 'mbcom_slow_down', __( 'Too many tries. Wait a while, then try again.', 'membuild-community' ) );
+		}
+		self::count( 'join_try', HOUR_IN_SECONDS );
 		if ( email_exists( $values['email'] ) ) {
 			return new \WP_Error( 'mbcom_email_taken', __( 'There’s already an account with this email. Log in, or reset your password if you’ve forgotten it.', 'membuild-community' ) );
 		}
@@ -409,8 +425,16 @@ class Login {
 			} else {
 				self::count( 'reset', HOUR_IN_SECONDS );
 				$user = is_email( $value ) ? get_user_by( 'email', $value ) : get_user_by( 'login', $value );
-				if ( $user && ! Moderation::is_banned( $user->ID ) ) {
-					Email::through_delivery( fn() => retrieve_password( $user->user_login ) ); // through Resend/SMTP when set up
+				if ( $user && ! Moderation::is_banned( $user->ID ) && ! self::too_many( 'resetacct_' . $user->ID, self::MAX_ACCOUNT_RESETS ) ) {
+					self::count( 'resetacct_' . $user->ID, HOUR_IN_SECONDS );
+					// Sent once this reply has gone, so it takes as long whether or not the account exists.
+					$login_name = $user->user_login;
+					add_action( 'shutdown', function () use ( $login_name ) {
+						if ( function_exists( 'fastcgi_finish_request' ) ) {
+							fastcgi_finish_request();
+						}
+						Email::through_delivery( fn() => retrieve_password( $login_name ) ); // through Resend/SMTP when set up
+					} );
 				}
 				// The same answer either way, so nobody can test which emails have accounts.
 				$sent = $value;
@@ -470,8 +494,27 @@ class Login {
 		if ( str_starts_with( $kind, 'fail_' ) ) {
 			return 'mbcom_fail_acct_' . md5( substr( $kind, 5 ) ); // one account, from any address
 		}
+		if ( str_starts_with( $kind, 'resetacct_' ) ) {
+			return 'mbcom_' . $kind; // one account, from any address
+		}
 		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
-		return 'mbcom_' . $kind . '_' . md5( $ip );
+		return 'mbcom_' . $kind . '_' . md5( $ip ); // pair_… is one account from one address
+	}
+
+	/** One key per account, whether they typed their email or their username (and for names with no account). */
+	private static function account_key( $login ) {
+		$user = is_email( $login ) ? get_user_by( 'email', $login ) : get_user_by( 'login', $login );
+		return $user ? 'u' . $user->ID : 'n' . md5( strtolower( $login ) );
+	}
+
+	/** A form sent from another site (login CSRF): the browser says so in Sec-Fetch-Site or Origin. */
+	private static function cross_site() {
+		$fetch = isset( $_SERVER['HTTP_SEC_FETCH_SITE'] ) ? sanitize_key( wp_unslash( $_SERVER['HTTP_SEC_FETCH_SITE'] ) ) : '';
+		if ( 'cross-site' === $fetch ) {
+			return true;
+		}
+		$origin = isset( $_SERVER['HTTP_ORIGIN'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_ORIGIN'] ) ) : '';
+		return '' !== $origin && 'null' !== $origin && wp_parse_url( $origin, PHP_URL_HOST ) !== wp_parse_url( home_url(), PHP_URL_HOST );
 	}
 
 	private static function too_many( $kind, $max ) {

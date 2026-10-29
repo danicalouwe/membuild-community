@@ -47,7 +47,7 @@ class Problems {
 			array(
 				'methods'             => 'POST',
 				'callback'            => array( __CLASS__, 'rest_report' ),
-				'permission_callback' => 'is_user_logged_in',
+				'permission_callback' => array( 'MemBuild\\Community\\Rest_Feed', 'logged_in' ), // members of the community; not banned accounts
 			)
 		);
 	}
@@ -140,9 +140,22 @@ class Problems {
 		}
 		if ( count( $all ) > self::LIMIT ) {
 			// Newest first; within the same second, the one recorded last wins (the sort is stable, so reverse first).
+			// The app's reports (sent from members' browsers) and the server's are kept apart, so a flood of
+			// one kind never pushes the other off the page.
 			$all = array_reverse( $all, true );
 			uasort( $all, fn( $a, $b ) => $b['last'] <=> $a['last'] );
-			$all = array_slice( $all, 0, self::LIMIT, true );
+			$keep = array();
+			foreach ( array( 'php', 'js' ) as $k ) { // each kind is sure of half …
+				$keep += array_slice( array_filter( $all, fn( $p ) => ( 'js' === $p['kind'] ? 'js' : 'php' ) === $k ), 0, (int) ( self::LIMIT / 2 ), true );
+			}
+			foreach ( $all as $sig => $p ) { // … and the newest of the rest fill what's left
+				if ( count( $keep ) >= self::LIMIT ) {
+					break;
+				}
+				$keep += array( $sig => $p );
+			}
+			uasort( $keep, fn( $a, $b ) => $b['last'] <=> $a['last'] );
+			$all = $keep;
 		}
 		update_option( self::OPTION, $all, false );
 		return $sig;
@@ -239,7 +252,7 @@ class Problems {
 		Admin::shell_open(
 			'problems',
 			__( 'Problems', 'membuild-community' ),
-			__( 'Errors in the Community plugin’s own code, caught on this site: PHP crashes in its files, and errors the community app hit in the browser. Each line is one place in the code, with how often it happened. Nothing here is a member’s doing, and nothing from this page leaves the site unless “Share usage” is on, which sends the lines below without the stack or the site’s address.', 'membuild-community' ),
+			__( 'Errors in the Community plugin’s own code, caught on this site: PHP crashes in its files, and errors the community app hit in the browser. Each line is one place in the code, with how often it happened. Lines from the app are sent by members’ browsers, so a strange one may not be a real error. Nothing from this page leaves the site unless “Share usage” is on, which sends the lines below without the stack or the site’s address.', 'membuild-community' ),
 			$state
 		);
 		if ( ! $all ) {

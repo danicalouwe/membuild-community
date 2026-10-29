@@ -94,7 +94,7 @@ class Rest_Stories {
 				'SELECT s.*, v.id AS seen, v.reaction AS my_reaction FROM %i s
 				LEFT JOIN %i v ON v.story_id = s.id AND v.user_id = %d
 				WHERE s.expires_at > UTC_TIMESTAMP()
-				ORDER BY s.created_at ASC LIMIT 2000',
+				ORDER BY s.created_at DESC LIMIT 2000',
 				$stories,
 				$views,
 				$me
@@ -102,7 +102,7 @@ class Rest_Stories {
 			ARRAY_A
 		);
 
-		$rows   = Blocks::filter( $rows );
+		$rows   = array_reverse( Blocks::filter( $rows ) ); // the newest 2,000, shown oldest first
 		$users  = Helpers::users( wp_list_pluck( $rows, 'user_id' ) );
 		$groups = array();
 		foreach ( $rows as $row ) {
@@ -117,7 +117,7 @@ class Rest_Stories {
 		// Your own stories show the last few people who saw them ("Seen by 12" with faces).
 		if ( isset( $groups[ $me ] ) ) {
 			foreach ( $groups[ $me ]['stories'] as &$mine ) {
-				$ids = array_map( 'intval', $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE story_id = %d ORDER BY viewed_at DESC LIMIT 3', $views, $mine['id'] ) ) );
+				$ids = array_slice( Blocks::filter( array_map( 'intval', $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE story_id = %d ORDER BY viewed_at DESC LIMIT 12', $views, $mine['id'] ) ) ) ), 0, 3 );
 				$faces = Helpers::users( $ids );
 				$mine['seen_faces'] = array_values( array_filter( array_map( fn( $id ) => $faces[ $id ] ?? null, $ids ) ) );
 			}
@@ -143,6 +143,11 @@ class Rest_Stories {
 		$blocked = Moderation::guard();
 		if ( $blocked ) {
 			return $blocked;
+		}
+		// A day's stories are few; this keeps one member from filling everyone's tray.
+		$slow = Helpers::throttle( 'story', 30, DAY_IN_SECONDS );
+		if ( $slow ) {
+			return $slow;
 		}
 		$me         = get_current_user_id();
 		$text       = Helpers::clean_text( $req['text'] ?? '', 250 );
@@ -202,7 +207,7 @@ class Rest_Stories {
 	public static function view( \WP_REST_Request $req ) {
 		global $wpdb;
 		$story = self::get( (int) $req['id'], true );
-		if ( ! $story ) {
+		if ( ! $story || Blocks::hides( (int) $story['user_id'] ) ) {
 			return new \WP_Error( 'mbcom_not_found', __( 'This story is no longer available.', 'membuild-community' ), array( 'status' => 404 ) );
 		}
 		$me = get_current_user_id();
@@ -227,7 +232,7 @@ class Rest_Stories {
 		global $wpdb;
 		$story = self::get( (int) $req['id'], true );
 		$type  = in_array( $req['type'], Helpers::REACTIONS, true ) ? $req['type'] : 'like';
-		if ( ! $story ) {
+		if ( ! $story || Blocks::hides( (int) $story['user_id'] ) ) {
 			return new \WP_Error( 'mbcom_not_found', __( 'This story is no longer available.', 'membuild-community' ), array( 'status' => 404 ) );
 		}
 		if ( (int) $story['user_id'] === get_current_user_id() ) {
@@ -263,6 +268,7 @@ class Rest_Stories {
 			$wpdb->prepare( 'SELECT user_id, reaction, viewed_at FROM %i WHERE story_id = %d ORDER BY viewed_at DESC LIMIT 500', Install::table( 'story_views' ), $story['id'] ),
 			ARRAY_A
 		);
+		$rows  = Blocks::filter( $rows ); // people the author blocked, or who blocked them, aren't listed
 		$users = Helpers::users( wp_list_pluck( $rows, 'user_id' ) );
 		return array(
 			'count' => count( $rows ),

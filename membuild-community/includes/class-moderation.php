@@ -149,12 +149,17 @@ class Moderation {
 			// A profile: the member themselves. Staff profiles can't be reported here.
 			return get_userdata( $id ) && ! Settings::is_staff( $id ) ? array( 'author_id' => (int) $id, 'post_id' => 0, 'status' => 'published' ) : null;
 		}
+		// Only what the reporter can see: not a post in a course they can't open, a group-only event,
+		// or something by a member they blocked or who blocked them (so three accounts can't hide it).
 		if ( 'post' === $type ) {
-			$row = $wpdb->get_row( $wpdb->prepare( 'SELECT id, user_id, status FROM %i WHERE id = %d', Install::table( 'posts' ), $id ), ARRAY_A );
-			return $row && 'deleted' !== $row['status'] ? array( 'author_id' => (int) $row['user_id'], 'post_id' => (int) $row['id'], 'status' => $row['status'] ) : null;
+			$row = Rest_Feed::row( $id );
+			return $row ? array( 'author_id' => (int) $row['user_id'], 'post_id' => (int) $row['id'], 'status' => $row['status'] ) : null;
 		}
 		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT id, user_id, post_id FROM %i WHERE id = %d', Install::table( 'comments' ), $id ), ARRAY_A );
-		return $row ? array( 'author_id' => (int) $row['user_id'], 'post_id' => (int) $row['post_id'], 'status' => 'published' ) : null;
+		if ( ! $row || Blocks::hides( (int) $row['user_id'] ) || ! Rest_Feed::row( (int) $row['post_id'] ) ) {
+			return null;
+		}
+		return array( 'author_id' => (int) $row['user_id'], 'post_id' => (int) $row['post_id'], 'status' => 'published' );
 	}
 
 	public static function report( \WP_REST_Request $req ) {

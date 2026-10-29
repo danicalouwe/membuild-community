@@ -63,8 +63,10 @@ class Updater {
 		$release = 200 === wp_remote_retrieve_response_code( $response ) ? json_decode( wp_remote_retrieve_body( $response ), true ) : null;
 		$zip     = '';
 		foreach ( (array) ( $release['assets'] ?? array() ) as $asset ) {
-			if ( str_starts_with( (string) ( $asset['name'] ?? '' ), self::ZIP_START ) && str_ends_with( (string) $asset['name'], '.zip' ) ) {
-				$zip = (string) $asset['browser_download_url'];
+			// Only a zip on this repo's own GitHub release downloads, never a link to anywhere else.
+			$link = (string) ( $asset['browser_download_url'] ?? '' );
+			if ( str_starts_with( (string) ( $asset['name'] ?? '' ), self::ZIP_START ) && str_ends_with( (string) $asset['name'], '.zip' ) && str_starts_with( $link, 'https://github.com/' . self::REPO . '/releases/download/' ) ) {
+				$zip = $link;
 			}
 		}
 		$found = array(
