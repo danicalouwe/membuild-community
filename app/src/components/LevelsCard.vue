@@ -9,7 +9,8 @@ import { t } from '../lib/i18n.js'
 /**
  * You, your level and how far to the next, then every level: its points, how many members
  * are there, and the course it unlocks. Levels above yours are greyed with a lock.
- * `stacked` (the phone's Levels & points page): points · % on one line, Unlocks on the next.
+ * Each level: points · % on one line, Unlocks on the next. `stacked` (the phone's Levels
+ * & points page) drops the card around it.
  */
 const props = defineProps({
   levels: { type: Array, default: () => [] },
@@ -35,20 +36,21 @@ const toNext = computed(() =>
         <span>{{ levelLabel(mine) }}</span>
       </div>
     </header>
-    <div class="bar" role="progressbar" :aria-valuenow="progress?.percent || 0" aria-valuemin="0" aria-valuemax="100"><i :style="{ width: `${Math.max(progress?.percent || 0, 3)}%` }" /></div>
-    <p class="to-next">{{ toNext }}</p>
+
+    <div class="progress">
+      <div class="bar" role="progressbar" :aria-valuenow="progress?.percent || 0" aria-valuemin="0" aria-valuemax="100"><i :style="{ width: `${Math.max(progress?.percent || 0, 3)}%` }" /></div>
+      <p class="to-next">{{ toNext }}</p>
+    </div>
+
+    <!-- A ladder: one line joins the levels, filled up to yours. -->
     <ol>
-      <li v-for="l in levels" :key="l.level" :class="{ mine: l.level === mine, locked: l.level > mine }">
+      <li v-for="l in levels" :key="l.level" :class="{ reached: l.level < mine, mine: l.level === mine, locked: l.level > mine }">
         <span class="lnum"><Icon v-if="l.level > mine" name="lock" :size="13" /><template v-else>{{ l.level }}</template></span>
         <span class="ltext">
           <strong>{{ levelLabel(l.level) }}</strong>
-          <template v-if="stacked">
-            <small>{{ pointCount(l.min) }}<template v-if="l.percent"> · {{ share(l.percent) }}</template></small>
-            <small v-for="c in l.courses" :key="c" class="unlock"><Icon name="book" :size="14" /> {{ t.sprintf(/* translators: %s: a course */ t.__('Unlocks %s', 'membuild-community'), c) }}</small>
-          </template>
-          <small v-else>{{ pointCount(l.min) }}<template v-if="l.courses.length"> · {{ t.sprintf(/* translators: %s: course titles */ t.__('unlocks %s', 'membuild-community'), l.courses.join(', ')) }}</template></small>
+          <small>{{ pointCount(l.min) }}<template v-if="l.percent"> · {{ share(l.percent) }}</template></small>
+          <small v-for="c in l.courses" :key="c" class="unlock"><Icon name="book" :size="14" /> {{ t.sprintf(/* translators: %s: a course */ t.__('Unlocks %s', 'membuild-community'), c) }}</small>
         </span>
-        <span v-if="!stacked && l.percent" class="pct">{{ share(l.percent) }}</span>
       </li>
     </ol>
   </section>
@@ -56,19 +58,19 @@ const toNext = computed(() =>
 
 <style scoped>
 .levels {
-  padding: 18px 18px 14px;
+  padding: 24px;
   border-radius: 16px;
 }
 
 header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 header strong {
   display: block;
-  font-size: 17px;
+  font-size: 18px;
 }
 
 header span {
@@ -77,12 +79,19 @@ header span {
   font-weight: 700;
 }
 
+/* How far to the next level, in its own soft panel. */
+.progress {
+  margin: 20px 0 22px;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+
 .bar {
   height: 8px;
-  margin: 16px 0 8px;
   overflow: hidden;
   border-radius: 999px;
-  background: var(--surface-2);
+  background: color-mix(in srgb, var(--text) 10%, transparent);
 }
 
 .bar i {
@@ -93,7 +102,7 @@ header span {
 }
 
 .to-next {
-  margin: 0 0 12px;
+  margin: 10px 0 0;
   color: var(--text-2);
   font-size: 14px;
 }
@@ -101,60 +110,94 @@ header span {
 ol {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  margin: 0;
+  gap: 4px;
+  /* Rows reach a little past the edge so your level's tint has room; the circles line up with the photo. */
+  margin: 0 -12px;
   padding: 0;
   list-style: none;
 }
 
 li {
+  position: relative;
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px;
-  border-radius: 12px;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 12px;
+  border-radius: 14px;
+}
+
+/* The line down to the next level's circle. */
+li:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  top: 50px;
+  bottom: -12px;
+  left: 27px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--border);
+}
+
+li.reached::before {
+  background: var(--accent);
 }
 
 li.mine {
-  background: var(--accent-soft);
-}
-
-li.locked {
-  opacity: 0.55;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 .lnum {
+  position: relative;
+  z-index: 1;
   display: grid;
   flex: none;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: var(--surface-2);
+  color: var(--text-2);
   font-size: 13px;
   font-weight: 800;
+}
+
+.reached .lnum {
+  background: var(--accent-soft);
+  color: var(--accent-text);
 }
 
 .mine .lnum {
   background: var(--accent);
   color: var(--accent-ink);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 .ltext {
   display: flex;
   flex: 1;
   flex-direction: column;
+  gap: 2px;
   min-width: 0;
+  padding-top: 5px;
 }
 
 .ltext strong {
   font-size: 16px;
+  line-height: 1.35;
 }
 
 .ltext small {
   color: var(--text-2);
   font-size: 13px;
-  line-height: 1.4;
+  line-height: 1.45;
+}
+
+.locked .ltext strong {
+  color: var(--text-2);
+}
+
+.locked .ltext small {
+  color: var(--text-3);
 }
 
 .unlock {
@@ -163,12 +206,11 @@ li.locked {
   gap: 6px;
   margin-top: 4px;
   color: var(--text) !important;
+  font-weight: 600;
 }
 
-.pct {
-  flex: none;
-  color: var(--text-2);
-  font-size: 13px;
+.locked .unlock {
+  color: var(--text-2) !important;
 }
 
 .stacked {

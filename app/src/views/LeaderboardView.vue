@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../api.js'
 import { cfg, levelLabel } from '../config.js'
@@ -10,19 +10,20 @@ import Avatar from '../components/Avatar.vue'
 import Icon from '../components/Icon.vue'
 import LevelsCard from '../components/LevelsCard.vue'
 import EarnPoints from '../components/EarnPoints.vue'
+import PodiumConfetti from '../components/PodiumConfetti.vue'
 import { t } from '../lib/i18n.js'
 
 /**
- * Leaderboard (V2): This week / This month / All time; your spot at the top ("7 more points to
- * pass Emma"); the top 10, then more as you scroll; your own row pinned under a gap when you're further
+ * Leaderboard (V2): This week / This month / All time; the top three on a podium (confetti once
+ * when the page opens), then the rest of the top 10, then more as you scroll; your own row pinned under a gap when you're further
  * down. Beside it (computers): your level and every level, then How to earn points. Phones: one
- * column, your spot and your level in one card, Levels & points on its own page.
+ * column, your level in a card linking to Levels & points on its own page.
  */
 const router = useRouter()
 const PERIODS = [
-  { key: '7', label: t.__('This week', 'membuild-community'), spot: t.__('this week', 'membuild-community') },
-  { key: '30', label: t.__('This month', 'membuild-community'), spot: t.__('this month', 'membuild-community') },
-  { key: 'all', label: t.__('All time', 'membuild-community'), spot: t.__('of all time', 'membuild-community') },
+  { key: '7', label: t.__('This week', 'membuild-community') },
+  { key: '30', label: t.__('This month', 'membuild-community') },
+  { key: 'all', label: t.__('All time', 'membuild-community') },
 ]
 const period = ref('30')
 const data = ref(null)
@@ -47,21 +48,22 @@ async function load() {
 }
 watch(period, load, { immediate: true })
 
-const p = computed(() => PERIODS.find((x) => x.key === period.value))
 const items = computed(() => data.value?.items || [])
 const me = computed(() => data.value?.me || {})
 const visible = computed(() => items.value.slice(0, shown.value))
 // You're further down than the rows on screen: your own row pinned under a gap.
 const pinned = computed(() => me.value.rank && !visible.value.some((i) => i.user.id === cfg.user.id))
-const medal = (rank) => ['🥇', '🥈', '🥉'][rank - 1]
-const spotTitle = computed(() => t.sprintf(/* translators: 1: rank, 2: "this week" / "this month" / "of all time" */ t.__('You’re #%1$d %2$s', 'membuild-community'), me.value.rank, p.value.spot))
-const spotLine = computed(() => {
-  if (me.value.rank === 1) return t.__('You’re leading. Keep it up!', 'membuild-community')
-  if (!me.value.ahead) return ''
-  if (!me.value.ahead.name) return t.sprintf(/* translators: %s: points */ t._n('%s more point to move up', '%s more points to move up', me.value.ahead.needed, 'membuild-community'), me.value.ahead.needed)
-  const first = me.value.ahead.name.split(' ')[0]
-  return t.sprintf(/* translators: 1: points, 2: a first name */ t._n('%1$s more point to pass %2$s', '%1$s more points to pass %2$s', me.value.ahead.needed, 'membuild-community'), me.value.ahead.needed, first)
-})
+// The top three stand on a podium (2nd, 1st, 3rd), once there are three; the list goes on from 4th.
+const podium = computed(() => (items.value.length >= 3 ? [items.value[1], items.value[0], items.value[2]] : []))
+const rows = computed(() => (podium.value.length ? visible.value.slice(3) : visible.value))
+// Confetti on the podium: a burst the first time it shows after the page opens (not on every
+// period switch), then soft pieces drifting behind the cards.
+const burst = ref(true)
+watch(
+  () => podium.value.length,
+  (n) => n && burst.value && setTimeout(() => (burst.value = false), 3200),
+)
+const PLACE = { 1: () => t.__('1st place', 'membuild-community'), 2: () => t.__('2nd place', 'membuild-community'), 3: () => t.__('3rd place', 'membuild-community') }
 const pts = (n) => `${period.value === 'all' ? '' : '+'}${compactNumber(n)}`
 const emptyTitle = computed(() =>
   ({ 7: t.__('No points yet this week', 'membuild-community'), 30: t.__('No points yet this month', 'membuild-community') })[period.value] || t.__('No points yet', 'membuild-community'),
@@ -92,6 +94,61 @@ watch(moreSpot, (el) => {
   io.observe(el)
 })
 onBeforeUnmount(() => io?.disconnect())
+
+// Your row is "stuck" while it rides at the bottom (or, scrolled past, the top) of the screen: it
+// then gets a frosted band around it so the rows behind don't compete. Once you scroll to your
+// own place it sits in the list like any other row.
+const stuck = ref(false)
+let ticking = false
+let dockWatch = null
+function checkStuck() {
+  ticking = false
+  const row = document.querySelector('.list .row.me')
+  const prev = row?.previousElementSibling
+  if (!row || !prev) return (stuck.value = false)
+  // In its place it sits 4px under the row before it; riding at the bottom it's lifted above
+  // that, riding at the top (scrolled past) it's pushed below it.
+  stuck.value = Math.abs(row.getBoundingClientRect().top - prev.getBoundingClientRect().bottom - 4) > 2
+  clearDock(row)
+}
+
+// Computers: the chat dock's round buttons (New message, minimised chats, See it as a member)
+// sit at the bottom right of the screen. Where they'd cover your pinned row, it rides just
+// above the lowest one in its way; elsewhere 16px from the bottom. Measured, not guessed,
+// because where they land depends on the window and its scrollbar.
+function clearDock(row) {
+  if (window.innerWidth < 768) return row.style.removeProperty('--me-bottom')
+  const r = row.getBoundingClientRect()
+  let top = Infinity
+  for (const el of document.querySelectorAll('[data-chat-dock] .rail > *, .mvt-wrap')) {
+    const b = el.getBoundingClientRect()
+    if (b.width && b.bottom > window.innerHeight - 200 && b.left < r.right && b.right > r.left) top = Math.min(top, b.top)
+  }
+  row.style.setProperty('--me-bottom', top === Infinity ? '16px' : `${Math.round(window.innerHeight - top + 12)}px`)
+}
+const onScroll = () => {
+  if (!ticking) {
+    ticking = true
+    requestAnimationFrame(checkStuck)
+  }
+}
+onMounted(() => {
+  // Capture: the page may scroll inside the app's frame rather than the window.
+  document.addEventListener('scroll', onScroll, { passive: true, capture: true })
+  window.addEventListener('resize', onScroll)
+  // The dock's buttons come and go (a chat minimised, closed): measure again.
+  const dockEl = document.querySelector('[data-chat-dock]')
+  if (dockEl) {
+    dockWatch = new MutationObserver(onScroll)
+    dockWatch.observe(dockEl, { childList: true, subtree: true })
+  }
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('scroll', onScroll, { capture: true })
+  window.removeEventListener('resize', onScroll)
+  dockWatch?.disconnect()
+})
+watch([rows, pinned], () => nextTick(checkStuck))
 const writePost = () => router.push({ name: 'feed', query: { write: 1 } })
 </script>
 
@@ -111,12 +168,8 @@ const writePost = () => router.push({ name: 'feed', query: { write: 1 } })
         </div>
       </header>
 
-      <!-- Your spot (phones: with your level under it). -->
-      <div v-if="me.rank || data" class="spot" :class="{ bare: !me.rank }">
-        <div v-if="me.rank" class="spot-top">
-          <span class="spot-rank">#{{ me.rank }}</span>
-          <span><strong>{{ spotTitle }}</strong><small v-if="spotLine">{{ spotLine }}</small></span>
-        </div>
+      <!-- Phones: your level and the way to Levels & points (computers have them beside the board). -->
+      <div v-if="data" class="spot phone-only">
         <RouterLink :to="{ name: 'levels' }" class="spot-level phone-only">
           <strong>{{ t.sprintf(/* translators: %d: level number */ t.__('Level %d', 'membuild-community'), data?.progress?.level || cfg.user.level || 1) }}</strong>
           <span class="mini-bar"><i :style="{ width: `${Math.max(data?.progress?.percent || 0, 4)}%` }" /></span>
@@ -138,9 +191,20 @@ const writePost = () => router.push({ name: 'feed', query: { write: 1 } })
       </div>
 
       <template v-else>
+        <ol v-if="podium.length" class="podium" :class="{ dim: loading }" :aria-label="t.__('Top three', 'membuild-community')">
+          <PodiumConfetti :burst="burst" />
+          <li v-for="item in podium" :key="item.user.id" class="place rise-in" :class="[`p${item.rank}`, { me: item.user.id === cfg.user.id }]" :style="{ '--i': item.rank - 1 }">
+            <span class="ring"><Avatar :user="item.user" :size="item.rank === 1 ? 76 : 60" link /><span class="chip" :aria-label="PLACE[item.rank]?.()">{{ item.rank }}</span></span>
+            <span class="who">
+              <RouterLink :to="{ name: 'member', params: { id: item.user.id } }" class="pname">{{ item.user.name }}</RouterLink>
+              <small v-if="item.user.level">{{ t.sprintf(/* translators: %d: level number */ t.__('Level %d', 'membuild-community'), item.user.level) }}</small>
+            </span>
+            <span class="pts">{{ pts(item.points) }}</span>
+          </li>
+        </ol>
         <ol class="list" :class="{ dim: loading }">
-          <li v-for="item in visible" :key="item.user.id" class="row rise-in" :class="{ me: item.user.id === cfg.user.id }" :style="{ '--i': item.rank - 1 }">
-            <span class="rank">{{ medal(item.rank) || item.rank }}</span>
+          <li v-for="item in rows" :key="item.user.id" class="row rise-in" :class="{ me: item.user.id === cfg.user.id, stuck: stuck && item.user.id === cfg.user.id }" :style="{ '--i': item.rank - 1 }">
+            <span class="rank">{{ item.rank }}</span>
             <Avatar :user="item.user" :size="44" badge link online="top" />
             <RouterLink :to="{ name: 'member', params: { id: item.user.id } }" class="name">{{ item.user.name }}</RouterLink>
             <button v-if="item.user.id !== cfg.user.id" class="btn btn-ghost msg" :disabled="messaging === item.user.id" @click="message(item.user)"><Icon name="messenger" :size="16" /> {{ t.__('Message', 'membuild-community') }}</button>
@@ -148,7 +212,7 @@ const writePost = () => router.push({ name: 'feed', query: { write: 1 } })
           </li>
           <template v-if="pinned">
             <li class="gap" aria-hidden="true">· · ·</li>
-            <li class="row me">
+            <li class="row me" :class="{ stuck }">
               <span class="rank">{{ me.rank }}</span>
               <Avatar :user="me.user || cfg.user" :size="44" badge />
               <RouterLink :to="{ name: 'me' }" class="name">{{ (me.user || cfg.user).name }}</RouterLink>
@@ -165,11 +229,14 @@ const writePost = () => router.push({ name: 'feed', query: { write: 1 } })
 
 <style scoped>
 .board {
+  /* The page fade-in ends with nothing left over: a held opacity would stop your pinned row's
+     frosted band from blurring the rows behind it. */
+  animation-fill-mode: backwards;
   display: grid;
   grid-template-columns: 360px minmax(0, 1fr);
-  gap: 20px;
+  gap: 24px;
   align-items: start;
-  max-width: 1008px;
+  max-width: 1040px;
   margin: 0 auto;
   padding: 28px 16px 48px;
 }
@@ -177,21 +244,25 @@ const writePost = () => router.push({ name: 'feed', query: { write: 1 } })
 .side {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
 .ranks {
-  padding: 0 0 16px;
+  /* The confetti reaches a little past the podium; never past the board's edges. */
+  overflow-x: clip;
+  padding: 0 0 20px;
   border-radius: 16px;
 }
 
 .rank-head {
+  position: relative;
+  z-index: 1; /* above the podium's drifting confetti */
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 16px 18px;
+  gap: 16px;
+  padding: 20px 24px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -221,47 +292,24 @@ h1 {
   color: var(--accent-text);
 }
 
-/* Your spot */
+/* Your level (phones) */
 .spot {
-  margin: 16px 16px 6px;
+  margin: 20px 24px 12px;
   border-radius: 14px;
   background: var(--accent-soft);
-}
-
-.spot.bare {
-  display: none;
-}
-
-.spot-top {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  padding: 18px 20px;
-}
-
-.spot-rank {
-  font-size: 28px;
-  font-weight: 800;
-}
-
-.spot-top strong {
-  display: block;
-  font-size: 18px;
-}
-
-.spot-top small {
-  color: var(--text-2);
-  font-size: 15px;
 }
 
 .phone-only {
   display: none;
 }
 
-/* The list */
+/* The list: rows line up with the heading and the spot card (24px in), with room between them. */
 .list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   margin: 0;
-  padding: 6px 8px 0;
+  padding: 0 12px;
   list-style: none;
   transition: opacity 0.15s;
 }
@@ -273,9 +321,9 @@ h1 {
 .row {
   display: flex;
   align-items: center;
-  gap: 14px;
-  min-height: 60px;
-  padding: 8px 12px;
+  gap: 16px;
+  min-height: 68px;
+  padding: 10px 12px;
   border-radius: 12px;
 }
 
@@ -283,13 +331,228 @@ h1 {
   background: var(--accent-soft);
 }
 
+/* Your own row stays in sight while you scroll (at the bottom until you reach it, then at the top), with a soft glow
+   sweeping across it now and then, so you always know which one is you. The green and the glow
+   are drawn by ::after (so the frosted band, ::before, can sit outside and behind it). */
+.list .row.me {
+  position: sticky;
+  top: calc(var(--header-h) + env(safe-area-inset-top) + 12px);
+  bottom: var(--me-bottom, 16px);
+  z-index: 3;
+  background: none;
+  /* No rise-in fade here: an animated opacity would stop the frosted band seeing the rows behind. */
+  animation: none;
+}
+
+.list .row.me::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 12px;
+  background:
+    linear-gradient(100deg, transparent 35%, color-mix(in srgb, var(--accent) 30%, transparent) 50%, transparent 65%) no-repeat,
+    var(--accent-soft);
+  background-size: 300% 100%, auto;
+  background-position: 150% 0, 0 0;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
+  animation: me-glow 4.5s ease-in-out 1s infinite;
+  pointer-events: none;
+}
+
+.list .row.me.stuck::after {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent), 0 10px 28px rgb(0 0 0 / 0.28);
+}
+
+/* While it rides at the top or bottom: a frosted band around it. */
+.list .row.me::before {
+  content: '';
+  position: absolute;
+  /* (No fading mask: Chrome drops the blur from an element that has one.) */
+  inset: -18px -8px;
+  z-index: -1;
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  opacity: 0;
+  transition: opacity 0.25s;
+  pointer-events: none;
+}
+
+.list .row.me.stuck::before {
+  opacity: 1;
+}
+
+.list .row.me > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes me-glow {
+  0% {
+    background-position: 150% 0, 0 0;
+  }
+
+  45%,
+  100% {
+    background-position: -50% 0, 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .list .row.me::after {
+    animation: none;
+  }
+}
+
 .rank {
+  display: grid;
   flex: none;
-  width: 24px;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--surface-2);
   color: var(--text-2);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.row.me .rank {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* The podium: 2nd, 1st (raised), 3rd, each ringed in its medal colour. */
+.podium {
+  --gold: #f2c14e;
+  --silver: #c3c9d2;
+  --bronze: #d38b55;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: end;
+  gap: 12px;
+  margin: 20px 24px 16px;
+  padding: 0;
+  list-style: none;
+  transition: opacity 0.15s;
+}
+
+.podium.dim {
+  opacity: 0.5;
+}
+
+.place {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 22px 12px 18px;
+  border-radius: 18px;
+  background: var(--surface-2);
+  text-align: center;
+}
+
+.place.p1 {
+  padding-top: 30px;
+  padding-bottom: 26px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--gold) 18%, var(--surface-2)), var(--surface-2));
+}
+
+.place.me {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.ring {
+  position: relative;
+  display: grid;
+  margin: 6px 0 4px;
+  padding: 3px;
+  border-radius: 50%;
+  background: var(--silver);
+}
+
+.p1 .ring {
+  background: var(--gold);
+}
+
+.p3 .ring {
+  background: var(--bronze);
+}
+
+.ring :deep(.avatar-wrap) {
+  border: 3px solid var(--surface-2);
+  border-radius: 50%;
+  box-sizing: content-box;
+}
+
+.chip {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 3px solid var(--surface-2);
+  border-radius: 50%;
+  background: var(--silver);
+  color: #16181d;
+  font-size: 13px;
+  font-weight: 800;
+  transform: translateX(-50%);
+}
+
+.p1 .chip {
+  background: var(--gold);
+}
+
+.p3 .chip {
+  background: var(--bronze);
+}
+
+.pname {
+  /* Up to two lines, so narrow screens show the whole name. */
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  color: var(--text);
   font-size: 16px;
   font-weight: 700;
-  text-align: center;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+.p1 .pname {
+  font-size: 17px;
+}
+
+.pname:hover {
+  text-decoration: underline;
+}
+
+.who {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.who small {
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .name {
@@ -304,11 +567,17 @@ h1 {
   text-decoration: none;
 }
 
+/* Points as a green pill, like How to earn points. */
 .pts {
   flex: none;
-  color: var(--ok-text);
-  font-size: 17px;
+  min-width: 60px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 15px;
   font-weight: 800;
+  text-align: center;
 }
 
 /* Hovering a row (computers): the name underlines and Message shows. */
@@ -388,52 +657,16 @@ h1 {
   line-height: 1.5;
 }
 
-/* Phones: one column, the filters split the width, your level in the spot card. */
-@media (max-width: 767px) {
+/* Tablets and phones: one column (no room for the levels beside it); your level in its own
+   card above the board, linking to Levels & points. */
+@media (max-width: 999px) {
   .board {
     display: block;
-    padding: 12px 0 24px;
+    max-width: 680px;
   }
 
   .side {
     display: none;
-  }
-
-  .ranks {
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
-    background: transparent;
-  }
-
-  .rank-head {
-    flex-direction: column;
-    align-items: stretch;
-    padding: 4px 16px 0;
-    border: 0;
-  }
-
-  h1 {
-    font-size: 26px;
-  }
-
-  .periods button {
-    flex: 1;
-    height: 48px;
-    padding: 0;
-    font-size: 16px;
-  }
-
-  .spot {
-    margin: 14px 16px 6px;
-  }
-
-  .spot.bare {
-    display: block;
-  }
-
-  .spot-top {
-    padding: 16px 18px 14px;
   }
 
   .phone-only {
@@ -445,13 +678,9 @@ h1 {
     gap: 12px;
     min-height: 54px;
     padding: 0 16px 0 18px;
-    border-top: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+    flex: 1;
     color: var(--text);
     text-decoration: none;
-  }
-
-  .spot.bare .spot-level {
-    border-top: 0;
   }
 
   .spot-level strong {
@@ -483,9 +712,77 @@ h1 {
     font-size: 16px;
     font-weight: 700;
   }
+}
+
+
+/* Phones: edge to edge, the filters split the width. */
+@media (max-width: 767px) {
+  .board {
+    padding: 12px 0 24px;
+  }
+
+  .ranks {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  .rank-head {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 4px 16px 0;
+    border: 0;
+  }
+
+  h1 {
+    font-size: 26px;
+  }
+
+  .periods button {
+    flex: 1;
+    height: 48px;
+    padding: 0;
+    font-size: 16px;
+  }
+
+  .spot {
+    margin: 14px 16px 6px;
+  }
 
   .list {
-    padding: 4px 8px 0;
+    padding: 0 4px;
+  }
+
+  /* Under the smaller header, just above the tab bar. */
+  .list .row.me {
+    top: calc(50px + env(safe-area-inset-top) + 10px);
+    bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 10px);
+  }
+
+  .podium {
+    gap: 8px;
+    margin: 18px 16px 12px;
+  }
+
+  .place {
+    padding: 18px 6px 14px;
+  }
+
+  .place.p1 {
+    padding-top: 24px;
+    padding-bottom: 20px;
+  }
+
+  .pname,
+  .p1 .pname {
+    font-size: 15px;
+  }
+
+  .place .pts {
+    min-width: 0;
+    padding: 5px 10px;
+    font-size: 14px;
   }
 }
 </style>

@@ -1027,6 +1027,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
 .lv-mark.locked {
   border-color: transparent;
   background: var(--surface-2);
+  color: var(--text-2); /* also when the lesson was done before the course locked: a grey lock, never white on grey */
 }
 
 /* The bar */

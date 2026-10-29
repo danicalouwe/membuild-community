@@ -61,6 +61,8 @@ export const router = createRouter({
     { path: '/me/emails', name: 'emails', component: () => import('./views/EmailsView.vue') },
     { path: '/me/edit', name: 'profile-edit', component: () => import('./views/EditProfileView.vue') },
     { path: '/me/privacy', name: 'privacy', component: () => import('./views/PrivacyView.vue') },
+    { path: '/me/billing', name: 'billing', component: () => import('./views/BillingView.vue') },
+    { path: '/me/billing/:id([A-Za-z0-9]+)', name: 'billing-item', component: () => import('./views/BillingDetailView.vue'), props: true },
     { path: '/me', name: 'me', component: () => import('./views/MemberView.vue'), props: () => ({ id: cfg.user.id }) },
     { path: '/:rest(.*)*', redirect: '/' },
   ],

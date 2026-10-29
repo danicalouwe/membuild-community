@@ -1,0 +1,152 @@
+/*
+ * The membership checkout (templates/checkout.php): the community's side on the left,
+ * FluentCart's form on the right, restyled to the community's look.
+ * --mb-accent and --mb-ink come from the community's colour, printed inline.
+ */
+html, body.mbck-body { margin: 0; min-height: 100%; background: #fff; }
+html:has(body.mbck-body) { margin-top: 0 !important; } /* no admin bar on this page */
+body.mbck-body #wpadminbar { display: none !important; }
+body.mbck-body {
+	color: #16181d;
+	font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+	-webkit-font-smoothing: antialiased;
+}
+.mbck, .mbck * { box-sizing: border-box; }
+.mbck { display: grid; grid-template-columns: minmax(380px, 44%) 1fr; min-height: 100vh; }
+
+/* Left: the community */
+.mbck-side {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	padding: 56px clamp(32px, 5vw, 72px) 48px;
+	overflow: hidden;
+	color: #fff;
+	background: linear-gradient(160deg, #121318 0%, #1c1f2a 60%, #262a38 100%);
+}
+.mbck-shape { position: absolute; border-radius: 50%; background: color-mix(in srgb, var(--mb-accent) 9%, transparent); pointer-events: none; }
+.mbck-shape.two { background: rgb(255 255 255 / 5%); }
+.mbck-shape.one { right: -120px; top: -90px; width: 340px; height: 340px; }
+.mbck-shape.two { left: -110px; bottom: -140px; width: 320px; height: 320px; }
+.mbck-brand { position: relative; display: inline-flex; align-items: center; gap: 12px; color: #fff; font-size: 15px; font-weight: 650; text-decoration: none; opacity: .94; }
+.mbck-brand:hover { opacity: 1; }
+.mbck-logo { display: grid; place-items: center; width: 36px; height: 36px; overflow: hidden; border-radius: 9px; background: var(--mb-accent); color: var(--mb-ink); font-size: 13px; font-weight: 800; }
+.mbck-logo img { width: 100%; height: 100%; object-fit: cover; }
+.mbck-what { position: relative; margin-top: 64px; }
+.mbck-join { margin: 0; font-size: 16px; opacity: .82; }
+.mbck-price { margin: 6px 0 0; display: flex; align-items: baseline; gap: 8px; }
+.mbck-price strong { font-size: 44px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
+.mbck-price span { font-size: 16px; opacity: .82; }
+.mbck-perks { list-style: none; margin: 34px 0 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.mbck-perks li { display: flex; gap: 10px; align-items: flex-start; }
+.mbck-perks li::before {
+	content: ""; flex: none; width: 16px; height: 16px; margin-top: 3px;
+	background: var(--mb-accent);
+	-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E") center / contain no-repeat;
+	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.mbck-due { position: relative; margin: auto 0 0; padding-top: 18px; border-top: 1px solid rgb(255 255 255 / 20%); display: flex; justify-content: space-between; }
+.mbck-due span { opacity: .85; }
+
+/* Right: the form or the welcome */
+.mbck-main { display: flex; align-items: center; padding: 64px clamp(24px, 6vw, 96px); }
+.mbck-form, .mbck-done { width: 100%; max-width: 540px; }
+.mbck-main h1 { margin: 0 0 6px; font-family: inherit !important; font-size: 28px !important; font-weight: 750 !important; line-height: 1.2; letter-spacing: -.01em; color: #16181d; }
+.mbck-who { margin: 0 0 20px; color: #5d6470; font-size: 15px; }
+.mbck-note { display: flex; gap: 6px; align-items: center; justify-content: center; margin: 14px 0 0; color: #5d6470; font-size: 14px; }
+
+/* FluentCart's form, simplified: one column, our fields, no repeated order summary. */
+.mbck .fct_checkout, .mbck .fluent-cart-checkout-page { margin: 0 !important; padding: 0 !important; max-width: none !important; }
+.mbck .fct_checkout_inner { display: flex !important; flex-direction: column; gap: 0; margin: 0; }
+.mbck .fct_checkout_form, .mbck .fct_checkout_form_items { display: contents !important; }
+.mbck .fct_checkout_form_items > * { order: 1; }
+.mbck .fct_checkout_payment_methods { order: 3; }
+.mbck .fct_checkout_summary { order: 4; margin: 0 !important; padding: 0 !important; border: 0 !important; background: none !important; position: static !important; width: auto !important; }
+.mbck .fct_place_order_btn_wrap { order: 5; margin-top: 8px; }
+/* A membership needs no address: the billing section (fields are off in FluentCart, a saved one shows as a card) goes. */
+.mbck-body:not(.mbck-address) .mbck .fct_checkout_billing_and_shipping,
+.mbck .fct_checkout_shipping_methods.is-hidden { display: none !important; }
+/* The store still asks for an address (see the tip in Settings › Memberships): it shows, styled like the rest. */
+.mbck .fct_checkout_billing_and_shipping .fct_checkout_input_group { gap: 10px; }
+
+.mbck .fct_checkout_form_section { margin: 0 0 18px !important; padding: 0 !important; border: 0 !important; background: none !important; box-shadow: none !important; }
+.mbck .fct_form_section_header { padding: 0 !important; margin: 0 0 8px !important; border: 0 !important; background: none !important; }
+.mbck .fct_form_section_header_label, .mbck .fct_form_section_header h4 { margin: 0; font-size: 15px !important; font-weight: 650 !important; color: #16181d !important; }
+.mbck .fct_form_section_body { padding: 0 !important; }
+.mbck .fct_checkout_input_group { display: flex; flex-direction: column; gap: 14px; border: 0 !important; }
+.mbck .fct_input_wrapper { margin: 0 !important; border: 0 !important; }
+.mbck .fct_input_wrapper input, .mbck .fct_input_wrapper select, .mbck .fct_coupon_input {
+	box-sizing: border-box !important;
+	width: 100% !important;
+	max-width: 100% !important;
+	min-height: 52px !important;
+	padding: 0 16px !important;
+	border: 1px solid #d5d8dd !important;
+	border-radius: 12px !important;
+	background: #fff !important;
+	color: #16181d !important;
+	font: inherit !important;
+	font-size: 16px !important;
+	box-shadow: none !important;
+}
+.mbck .fct_input_wrapper input:focus, .mbck .fct_input_wrapper select:focus, .mbck .fct_coupon_input:focus { outline: none !important; border: 2px solid #16181d !important; padding: 0 15px !important; }
+.mbck .fct_form_error { font-size: 14px; color: #c5221f; }
+
+/* Payment methods as big choice cards */
+.mbck .fct_payment_methods_list { display: flex; flex-direction: column; gap: 10px; border: 0 !important; }
+.mbck .fct_payment_methods_list > * { border: 1px solid #d5d8dd !important; border-radius: 14px !important; background: #fff !important; overflow: hidden; }
+.mbck .fct_payment_methods_list > *:has(input:checked) { border: 2px solid #16181d !important; }
+.mbck .fct_payment_methods_list label { min-height: 60px; font-size: 16px; font-weight: 650; }
+
+/* Only the discount code is left from the summary */
+.mbck .fct_summary { border: 0 !important; background: none !important; padding: 0 !important; box-shadow: none !important; }
+.mbck .fct_summary .fct_form_section_header,
+.mbck .fct_summary .fct_items_wrapper,
+.mbck .fct_summary_items_list > li:not(:has(.fct_coupon)) { display: none !important; }
+.mbck .fct_summary_items, .mbck .fct_summary_items_list { margin: 0 !important; padding: 0 !important; border: 0 !important; list-style: none; }
+.mbck .fct_coupon_toggle, .mbck .fct_coupon_toggle a { display: inline-block; padding: 0 !important; margin: 0 0 18px !important; border: 0 !important; background: none !important; color: #16181d !important; font-size: 15px !important; font-weight: 650 !important; text-decoration: none; }
+.mbck .fct_coupon { padding: 0 !important; border: 0 !important; background: none !important; }
+.mbck .fct_coupon_toggle a:hover { text-decoration: underline; }
+
+/* The main button: the community's colour, a big pill */
+.mbck .fct_place_order_btn {
+	width: 100% !important;
+	min-height: 56px !important;
+	border: 0 !important;
+	border-radius: 999px !important;
+	background: var(--mb-accent) !important;
+	color: var(--mb-ink) !important;
+	font: inherit !important;
+	font-size: 17px !important;
+	font-weight: 800 !important;
+	box-shadow: none !important;
+	cursor: pointer;
+}
+.mbck .fct_place_order_btn:hover { filter: brightness(.96); }
+
+/* Paid */
+.mbck-tick { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: #e5f4ea; color: #2fb36b; }
+.mbck-done h1 { margin-top: 22px; font-size: 30px; }
+.mbck-done p { margin: 0 0 28px; color: #5d6470; font-size: 17px; line-height: 1.5; }
+.mbck-go { display: inline-grid; place-items: center; min-width: 280px; min-height: 56px; padding: 0 28px; border-radius: 999px; background: var(--mb-accent); color: var(--mb-ink); font-size: 17px; font-weight: 800; text-decoration: none; }
+.mbck-back { display: block; margin-top: 18px; color: #16181d; font-size: 15px; font-weight: 650; text-decoration: none; }
+.mbck-back:hover { text-decoration: underline; }
+
+/* Phones: a short coloured band on top, the form under it */
+@media (max-width: 860px) {
+	.mbck { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+	.mbck-side { padding: 22px 20px 24px; }
+	.mbck-what { margin-top: 18px; }
+	.mbck-price strong { font-size: 34px; }
+	.mbck-perks, .mbck-due, .mbck-shape.two { display: none; }
+	.mbck-main { align-items: flex-start; padding: 24px 20px 32px; }
+	.mbck-main h1 { font-size: 24px; }
+}
+
+/* FluentCart's small label inside the field ("Name *"): no box of its own, so the field's round corners show. */
+.mbck .fct_input_wrapper::after { background: transparent !important; border: 0 !important; right: 16px !important; color: #5d6470 !important; }
+.mbck .fct_summary_items_list > li:has(.fct_coupon) { padding: 0 !important; margin: 0 !important; border: 0 !important; }
+.mbck .fct_summary_box, .mbck .fct_summary .fct_form_section_body, .mbck .fct_form_section_body_inner, .mbck .fct_summary .fct_checkout_form_section { padding: 0 !important; margin: 0 !important; }
+.mbck .fct_coupon_toggle, .mbck .fct_coupon_toggle a { margin-bottom: 12px !important; }
+.mbck .fct_coupon_field { position: relative; margin: 0 0 16px !important; padding: 0 !important; border: 0 !important; }
+.mbck .fct_coupon_icon { display: none !important; } /* the tag icon sat on top of the words */

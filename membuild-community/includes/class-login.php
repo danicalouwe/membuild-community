@@ -28,6 +28,7 @@ class Login {
 	const MAX_RESETS        = 5;   // reset emails per address per hour
 	const MAX_SIGNUPS       = 5;   // new accounts per address per hour
 	const AGE_COOKIE        = 'mbcom_age_check'; // set after a too-young answer, so the form can't simply be retried
+	const KEEP              = YEAR_IN_SECONDS; // "Keep me logged in" lasts a year, restarted while they keep using it
 
 	public static function register_hooks() {
 		add_filter( 'login_url', array( __CLASS__, 'login_url' ), 10, 2 );
@@ -37,6 +38,51 @@ class Login {
 		add_filter( 'register_url', array( __CLASS__, 'register_url' ) );
 		add_filter( 'retrieve_password_title', array( __CLASS__, 'reset_email_title' ), 10, 1 );
 		add_filter( 'retrieve_password_message', array( __CLASS__, 'reset_email_message' ), 10, 4 );
+		add_filter( 'auth_cookie_expiration', array( __CLASS__, 'keep_length' ), 10, 3 );
+		add_action( 'init', array( __CLASS__, 'renew_login' ), 20 );
+	}
+
+	/* ---------- Staying logged in (so the installed app doesn't keep asking) ---------- */
+
+	/** People who can run the site keep WordPress's own 14 days; members stay a year. */
+	private static function keeps( $user_id ) {
+		return $user_id && ! user_can( $user_id, 'manage_options' );
+	}
+
+	public static function keep_length( $length, $user_id, $remember ) {
+		return $remember && self::keeps( $user_id ) ? self::KEEP : $length;
+	}
+
+	/**
+	 * WordPress counts "Keep me logged in" from the moment of logging in, so a member who
+	 * opens the app every day is still asked again. At most once a day, a remembered login
+	 * that's in use gets a fresh year: same session (nonces and other devices are untouched),
+	 * so logging out or a removed account still ends it at once.
+	 */
+	public static function renew_login() {
+		if ( headers_sent() || wp_doing_cron() || ! is_user_logged_in() ) {
+			return;
+		}
+		$cookie = wp_parse_auth_cookie( '', 'logged_in' );
+		if ( $cookie && self::renew_session( get_current_user_id(), $cookie ) ) {
+			wp_set_auth_cookie( get_current_user_id(), true, '', $cookie['token'] );
+		}
+	}
+
+	/** Moves the session's end a year out; false when it's not due, not remembered, or not a member's. */
+	public static function renew_session( $user_id, array $cookie ) {
+		if ( ! self::keeps( $user_id ) || empty( $cookie['token'] ) || (int) $cookie['expiration'] > time() + self::KEEP - DAY_IN_SECONDS ) {
+			return false;
+		}
+		$tokens  = \WP_Session_Tokens::get_instance( $user_id );
+		$session = $tokens->get( $cookie['token'] );
+		// Without "Keep me logged in" a session lasts 2 days: leave those alone.
+		if ( ! $session || empty( $session['login'] ) || $session['expiration'] - $session['login'] < 3 * DAY_IN_SECONDS ) {
+			return false;
+		}
+		$session['expiration'] = time() + self::KEEP;
+		$tokens->update( $cookie['token'], $session );
+		return true;
 	}
 
 	public static function enabled() {

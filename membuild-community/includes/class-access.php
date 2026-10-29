@@ -85,6 +85,10 @@ class Access {
 						'period' => in_array( $g['period'], self::PERIODS, true ) ? $g['period'] : 'once',
 					),
 				);
+				// Sold with FluentCart: the button follows the product (price, link), or goes when it can't be bought.
+				if ( Fluent_Cart::link_of( $g['id'] ) ) {
+					self::$groups[ (int) $g['id'] ]['offer'] = Fluent_Cart::live_offer( $g['id'], (string) ( $g['cta_label'] ?: __( 'Get access', 'membuild-community' ) ) );
+				}
 			}
 		}
 		return self::$groups;
@@ -239,6 +243,7 @@ class Access {
 		$by_role = $g['roles'] ? array_map( 'intval', get_users( array( 'role__in' => $g['roles'], 'fields' => 'ID', 'number' => 5000 ) ) ) : array();
 		return $g + array(
 			'role_names'   => array_values( array_map( fn( $r ) => translate_user_role( $names[ $r ] ?? $r ), $g['roles'] ) ),
+			'fluentcart'   => Fluent_Cart::active() ? Fluent_Cart::link_of( $g['id'] ) : 0, // the FluentCart product that sells it
 			'member_count' => count( $manual ), // "People you added"
 			'total'        => count( array_unique( array_merge( $manual, $by_role ) ) ), // everyone in it, by hand or by role
 			'courses'      => array_values(
@@ -273,6 +278,11 @@ class Access {
 			'items'   => array_values( array_map( array( __CLASS__, 'format_group' ), self::groups() ) ),
 			'roles'   => self::roles(),
 			'courses' => array_values( array_map( fn( $c ) => array( 'id' => (int) $c['id'], 'title' => $c['title'] ), self::all_courses() ) ),
+			// FluentCart's products, for "Sold with FluentCart" (null when it isn't active).
+			'fluentcart' => Fluent_Cart::active() ? array_map( fn( $p ) => array_intersect_key( $p, array_flip( array( 'id', 'label' ) ) ), Fluent_Cart::products() ) : null,
+			// When FluentCart still asks for a billing address: the tip's link to switch it off.
+			'fluentcart_logo'    => Fluent_Cart::active() ? Fluent_Cart::logo() : '',
+			'fluentcart_address' => Fluent_Cart::active() && Fluent_Cart::asks_address() ? Fluent_Cart::fields_url() : null,
 		);
 	}
 
@@ -328,6 +338,9 @@ class Access {
 		if ( isset( $req['course_ids'] ) ) {
 			self::set_courses( $id, $req['course_ids'] );
 		}
+		if ( ! empty( $req['fluentcart'] ) && Fluent_Cart::active() ) {
+			Fluent_Cart::set_link( $id, (int) $req['fluentcart'] );
+		}
 		self::forget();
 		$res = rest_ensure_response( self::format_group( self::groups()[ $id ] ) );
 		$res->set_status( 201 );
@@ -361,6 +374,12 @@ class Access {
 		if ( isset( $req['course_ids'] ) ) {
 			self::set_courses( $id, $req['course_ids'] );
 		}
+		if ( isset( $req['fluentcart'] ) && Fluent_Cart::active() ) {
+			Fluent_Cart::set_link( $id, (int) $req['fluentcart'] ); // sets the button's link and price from the product
+		}
+		if ( isset( $req['offer'] ) && false === $req['offer'] ) {
+			Fluent_Cart::set_link( $id, 0 );
+		}
 		self::forget();
 		return self::format_group( self::groups()[ $id ] );
 	}
@@ -371,6 +390,7 @@ class Access {
 		$id = (int) $req['id'];
 		$wpdb->delete( Install::table( 'group_members' ), array( 'group_id' => $id ) );
 		$wpdb->delete( Install::table( 'groups' ), array( 'id' => $id ) );
+		Fluent_Cart::set_link( $id, 0 );
 		self::forget();
 		return array( 'deleted' => true );
 	}

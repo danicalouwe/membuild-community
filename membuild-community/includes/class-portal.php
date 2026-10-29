@@ -141,6 +141,7 @@ class Portal {
 			'user'     => Helpers::user( wp_get_current_user() ),
 			'canModerate' => Helpers::can_moderate(),
 			'firstRun'    => First_Run::config(),
+			'billing'     => Fluent_Cart::billing_count( get_current_user_id() ), // the menu's Billing (null: FluentCart off or nothing sold)
 			// "Confirm your email" on Home, a few days after joining while the welcome email is unanswered.
 			'confirmEmail' => Email::banner( get_current_user_id() ) ? array( 'email' => wp_get_current_user()->user_email, 'profileUrl' => get_edit_profile_url() ) : null,
 			'app'      => array(

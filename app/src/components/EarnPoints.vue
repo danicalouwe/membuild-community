@@ -37,31 +37,36 @@ const rows = computed(() =>
       <li v-for="r in rows" :key="r.reason">
         <span class="ic"><Icon :name="r.icon" :size="18" /></span>
         <span class="txt"><span>{{ r.label }}</span><small v-if="r.cap">{{ r.cap }}</small></span>
-        <strong>+{{ r.rule.points }}</strong>
+        <strong class="pts">+{{ r.rule.points }}</strong>
       </li>
     </ul>
   </section>
 </template>
 
 <style scoped>
+/* Same rhythm as the levels ladder above it: 24px in, round icons on one left edge, no lines. */
 .earn {
-  padding: 20px 18px 8px;
+  padding: 24px 24px 16px;
   border-radius: 16px;
 }
 
 h2 {
   margin: 0;
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .intro {
-  margin: 4px 0 10px;
+  margin: 6px 0 14px;
   color: var(--text-2);
   font-size: 14px;
+  line-height: 1.45;
 }
 
 ul {
-  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 -12px;
   padding: 0;
   list-style: none;
 }
@@ -69,38 +74,55 @@ ul {
 li {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 0;
-  border-top: 1px solid var(--border);
-}
-
-li:first-child {
-  border-top: 0;
+  gap: 14px;
+  min-height: 56px;
+  padding: 10px 12px;
+  border-radius: 14px;
 }
 
 .ic {
   display: grid;
   flex: none;
   place-items: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   background: var(--surface-2);
+  color: var(--text);
+}
+
+.ic :deep(svg) {
+  width: 16px;
+  height: 16px;
 }
 
 .txt {
   display: flex;
   flex: 1;
   flex-direction: column;
-  font-size: 16px;
+  gap: 2px;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
 }
 
 .txt small {
   color: var(--text-2);
   font-size: 13px;
+  font-weight: 400;
 }
 
-li strong {
-  font-size: 16px;
+/* The points as a small green pill, all the same width so they line up. */
+.pts {
+  flex: none;
+  min-width: 54px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 14px;
+  font-weight: 800;
+  text-align: center;
 }
 </style>

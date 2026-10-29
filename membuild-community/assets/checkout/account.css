@@ -1,0 +1,78 @@
+/* FluentCart's account page in the community's look (templates/account.php). */
+html:has(body.mbac-body) { margin-top: 0 !important; }
+body.mbac-body { margin: 0; background: #f4f5f7; color: #16181d; font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+body.mbac-body #wpadminbar { display: none !important; }
+.mbac-top, .mbac, .mbac * { box-sizing: border-box; }
+.mbac-top { display: flex; align-items: center; gap: 28px; height: 64px; padding: 0 24px; background: #fff; border-bottom: 1px solid #e3e5e8; }
+.mbac-back, .mbac-brand { display: inline-flex; align-items: center; gap: 10px; color: #16181d; text-decoration: none; }
+.mbac-back { font-size: 15px; font-weight: 700; }
+.mbac-back:hover span { text-decoration: underline; }
+.mbac-logo { display: grid; place-items: center; width: 36px; height: 36px; overflow: hidden; border-radius: 9px; background: var(--mb-accent); color: var(--mb-ink); font-size: 13px; font-weight: 800; }
+.mbac-logo img { width: 100%; height: 100%; object-fit: cover; }
+.mbac-brand strong { font-size: 16px; }
+.mbac { max-width: 1080px; margin: 0 auto; padding: 32px 24px 56px; }
+.mbac h1 { margin: 0 0 4px; font-family: inherit !important; font-size: 30px !important; font-weight: 750 !important; line-height: 1.2; color: #16181d; letter-spacing: -.01em; }
+.mbac-who { margin: 0 0 22px; color: #5d6470; font-size: 16px; }
+@media (max-width: 760px) {
+	.mbac-top { height: 56px; padding: 0 16px; gap: 12px; }
+	.mbac-back span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+	.mbac { padding: 18px 16px 40px; }
+	.mbac h1 { font-size: 26px !important; }
+	.mbac-who { margin-bottom: 14px; font-size: 15px; }
+}
+
+/* FluentCart's app: its menu in one card on the left, its pages in cards on the right. */
+.mbac .fct-customer-root-container, .mbac .fct-customer-dashboard-app-container, .mbac .fluent-cart-customer-profile-app { border: 0 !important; background: none !important; box-shadow: none !important; padding: 0 !important; }
+.mbac .fct-customer-dashboard-app-container { display: grid !important; grid-template-columns: 240px 1fr; gap: 24px; align-items: start; }
+.mbac .fct-customer-dashboard-navs-wrap { position: static !important; width: auto !important; min-height: 0 !important; height: auto !important; padding: 10px 10px 4px !important; border: 1px solid #e3e5e8 !important; border-radius: 16px !important; background: #fff !important; }
+.mbac .fct-customer-dashboard-customer-info, .mbac .fct-nav-compact-toggle-wrap, .mbac .fct-customer-logout-btn, .mbac .fct-customer-nav-item-reviews, .mbac .fct-customer-nav-tooltip { display: none !important; }
+.mbac .fct-customer-navs-wrap, .mbac .fct-customer-navs { margin: 0 !important; padding: 0 !important; }
+.mbac .fct-customer-nav-item { margin: 0 !important; list-style: none; }
+.mbac .fct-customer-nav-item::before, .mbac .fct-customer-nav-item::after { display: none !important; }
+.mbac .fct-customer-nav-link { display: flex !important; align-items: center; gap: 12px; min-height: 48px; padding: 0 14px !important; border-radius: 12px !important; color: #16181d !important; font-size: 16px !important; font-weight: 600 !important; text-decoration: none !important; background: none !important; }
+.mbac .fct-customer-nav-link:hover { background: #f1f2f4 !important; }
+.mbac .active_customer_menu .fct-customer-nav-link, .mbac .fct-customer-nav-item.active_customer_menu > a { background: color-mix(in srgb, var(--mb-accent) 16%, #fff) !important; font-weight: 750 !important; }
+.mbac .fct-customer-nav-link-icon { display: none !important; }
+.mbac .fct-customer-dashboard-main-content { padding: 0 !important; border: 0 !important; background: none !important; min-width: 0; }
+.mbac .fct-customer-dashboard-layout-width { max-width: none !important; }
+
+/* Its page: our type sizes, soft white cards, 52px buttons. */
+.mbac .fct-customer-app h1, .mbac .fct-customer-app h2, .mbac .fct-customer-app h3 { font-family: inherit !important; color: #16181d !important; letter-spacing: -.01em; }
+.mbac .fct-customer-app h1, .mbac .fct-customer-app .fct-customer-dashboard-single-subscription > h2, .mbac .fct-customer-app .fct-customer-dashboard-title { font-size: 22px !important; font-weight: 750 !important; }
+.mbac .el-breadcrumb { font-size: 14px !important; font-weight: 650; }
+.mbac .fct-single-order-box, .mbac .fct-customer-app .fct-card { border: 1px solid #e3e5e8 !important; border-radius: 16px !important; background: #fff !important; box-shadow: none !important; overflow: hidden; }
+/* Inside a card, FluentCart's own boxes and rows lose their borders: one card, plain rows. */
+.mbac .fct-single-order-body, .mbac .fct-customer-dashboard-content-table-item, .mbac .fct-product-info-card, .mbac .fct-customer-dashboard-table, .mbac .fct-single-order-box .el-table { border: 0 !important; border-radius: 0 !important; box-shadow: none !important; background: none !important; }
+.mbac .fct-single-order-header { padding: 22px 24px 0 !important; border: 0 !important; background: none !important; }
+.mbac .fct-single-order-header .title { margin: 0 !important; font-size: 19px !important; font-weight: 750 !important; }
+.mbac .fct-single-order-body { padding: 8px 24px 20px !important; }
+.mbac .fct-single-order-box-inner { padding: 0 !important; }
+.mbac .fct-customer-dashboard-content-table-item { padding: 14px 0 !important; border-top: 1px solid #eef0f3 !important; }
+.mbac .fct-customer-dashboard-content-table-item:first-child { border-top: 0 !important; }
+.mbac .fct-single-order-footer { padding: 0 24px 22px !important; margin: 0 !important; }
+.mbac .fct-single-order-box + .fct-single-order-box { margin-top: 16px; }
+.mbac .fct-single-order-box .el-table { padding: 0 12px 8px; }
+.mbac .fct-customer-app { font-size: 15px; color: #16181d; }
+.mbac .fct-customer-app button, .mbac .fct-customer-app .el-button { min-height: 44px; border-radius: 999px !important; font-weight: 700 !important; }
+.mbac .fct-customer-app .el-button--primary, .mbac .fct-customer-app button.primary { background: #16181d !important; border-color: #16181d !important; color: #fff !important; min-height: 52px; padding: 0 22px !important; }
+.mbac .underline-link-button { font-weight: 700 !important; color: #16181d !important; }
+.mbac .fct-badge { border-radius: 999px !important; font-weight: 700 !important; }
+
+/* Phones: one column, the menu as a row of pills */
+@media (max-width: 760px) {
+	.mbac .fct-customer-dashboard-app-container { grid-template-columns: 1fr; gap: 14px; }
+	.mbac .fct-customer-dashboard-navs-wrap { padding: 0 !important; border: 0 !important; background: none !important; overflow-x: auto; }
+	/* FluentCart hides its menu behind a ☰ button on phones; the pills show it instead. */
+	.mbac .fct-customer-dashboard-navs-wrap > div > button, .mbac .fct-customer-dashboard-navs-wrap > button { display: none !important; }
+	.mbac .fct-customer-dashboard-navs-wrap *:has(> .fct-customer-navs-wrap), .mbac .fct-customer-navs-wrap, .mbac .fct-customer-navs { display: flex !important; position: static !important; visibility: visible !important; opacity: 1 !important; transform: none !important; width: auto !important; height: auto !important; box-shadow: none !important; background: none !important; padding: 0 !important; }
+	.mbac .fct-customer-nav-item:not(.fct-customer-nav-item-reviews):not(.fct-customer-nav-item-dashboard), .mbac .fct-customer-nav-link, .mbac .fct-customer-nav-link-text { display: flex !important; visibility: visible !important; }
+	.mbac .fct-customer-navs { flex-direction: row !important; flex-wrap: nowrap !important; gap: 8px !important; }
+	.mbac .fct-customer-dashboard-navs-wrap *:not(.fct-customer-nav-link) { border: 0 !important; margin: 0 !important; min-height: 0 !important; }
+	.mbac .fct-customer-dashboard-navs-wrap { scrollbar-width: none; margin-bottom: 4px !important; }
+	.mbac .fct-customer-navs { display: flex !important; gap: 8px; padding-bottom: 4px !important; }
+	.mbac .fct-customer-nav-item-dashboard { display: none !important; }
+	.mbac .fct-customer-nav-link { flex: none; min-height: 44px; padding: 0 16px !important; border: 1px solid #e3e5e8 !important; border-radius: 999px !important; background: #fff !important; font-size: 15px !important; white-space: nowrap; }
+	.mbac .fct-single-order-header { padding: 18px 18px 0 !important; }
+	.mbac .fct-single-order-body { padding: 6px 18px 16px !important; }
+	.mbac .fct-single-order-footer { padding: 0 18px 18px !important; }
+}

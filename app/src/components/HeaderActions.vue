@@ -1,11 +1,10 @@
 <script setup>
 import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { cfg, feature, levelLabel } from '../config.js'
+import { cfg, feature } from '../config.js'
 import { messages } from '../stores/messages.js'
 import { install, pwa } from '../lib/pwa.js'
 import { display, setDisplay } from '../lib/display.js'
-import { api } from '../api.js'
 import Avatar from './Avatar.vue'
 import Icon from './Icon.vue'
 import { t } from '../lib/i18n.js'
@@ -60,28 +59,19 @@ const community = computed(() =>
     cfg.adminUrl && { href: cfg.adminUrl, icon: 'wordpress', label: t.__('WordPress dashboard', 'membuild-community') },
   ].filter(Boolean),
 )
-const emailNote = ref('')
-const FREQ = { instant: t.__('As it happens', 'membuild-community'), daily: t.__('Once a day', 'membuild-community'), off: t.__('Off', 'membuild-community') }
-let askedEmail = false
-function loadEmailNote() {
-  if (askedEmail) return
-  askedEmail = true
-  api
-    .emailPrefs()
-    .then((p) => (emailNote.value = p?.enabled ? FREQ[p.frequency] || '' : ''))
-    .catch(() => {})
-}
 const you = computed(() => [
   { to: { name: 'profile-edit' }, icon: 'pencil', label: t.__('Edit profile', 'membuild-community') },
-  { to: { name: 'emails' }, icon: 'mail', label: t.__('Emails you get', 'membuild-community'), note: emailNote.value },
+  { to: { name: 'emails' }, icon: 'mail', label: t.__('Emails you get', 'membuild-community') },
+  // Billing: only while memberships are sold with FluentCart (cfg.billing is null otherwise).
+  ...(cfg.billing !== null && cfg.billing !== undefined ? [{ to: { name: 'billing' }, icon: 'card', label: t.__('Billing', 'membuild-community') }] : []),
   // Privacy: whether others see when you're online (only while the owner shows who's online).
   ...(cfg.community.features?.online !== false && cfg.community.features?.messages !== false ? [{ to: { name: 'privacy' }, icon: 'eye', label: t.__('Privacy', 'membuild-community') }] : []),
 ])
 const after = computed(() =>
   [
-    !pwa.standalone && { action: installApp, icon: 'download', label: t.__('Install the app', 'membuild-community'), note: t.__('Open it like an app on your phone', 'membuild-community') },
-    // The site's own home page (the community may have taken it over); its address says which site, whatever it's called.
-    { href: cfg.siteUrl, icon: 'home', label: t.__('Main website', 'membuild-community'), note: siteHost },
+    !pwa.standalone && { action: installApp, icon: 'download', label: t.__('Add to your phone', 'membuild-community') },
+    // The site's own home page (the community may have taken it over).
+    { href: cfg.siteUrl, icon: 'home', label: t.__('Main website', 'membuild-community') },
     { href: cfg.logoutUrl, icon: 'logout', label: t.__('Log out', 'membuild-community') },
   ].filter(Boolean),
 )
@@ -92,14 +82,6 @@ const LOOKS = [
 ]
 const reportsNeed = (n) => t.sprintf(/* translators: %d: reports waiting */ t._n('%d report needs you', '%d reports need you', n, 'membuild-community'), n)
 
-const siteHost = (() => {
-  try {
-    return new URL(cfg.siteUrl).host.replace(/^www\./, '')
-  } catch {
-    return ''
-  }
-})()
-
 const cap = (n, max) => (n > max ? `${max}+` : n)
 
 function toggle(which) {
@@ -108,7 +90,6 @@ function toggle(which) {
     return
   }
   open.value = open.value === which ? null : which
-  if (open.value === 'account' || (open.value === 'shortcuts' && isPhone.value)) loadEmailNote()
 }
 
 function onDoc(e) {
@@ -161,7 +142,6 @@ const accountLabel = () => {
   const name = t.__('Your account', 'membuild-community')
   return cfg.community.isStaff && messages.reports ? t.sprintf(/* translators: 1: "Your account", 2: e.g. "3 reports to review" */ t.__('%1$s, %2$s', 'membuild-community'), name, reportsLabel(messages.reports)) : name
 }
-const profileHint = () => t.sprintf(/* translators: %s: the member's level, e.g. "Level 3 · Builder" */ t.__('%s · See your profile', 'membuild-community'), levelLabel(cfg.user.level))
 </script>
 
 <template>
@@ -188,11 +168,8 @@ const profileHint = () => t.sprintf(/* translators: %s: the member's level, e.g.
         <!-- Phones have no avatar menu, so the grid holds everything. -->
         <template v-if="isPhone">
           <RouterLink to="/me" class="who">
-            <Avatar :user="cfg.user" :size="40" />
-            <span>
-              <strong>{{ cfg.user.name }}</strong>
-              <small>{{ profileHint() }}</small>
-            </span>
+            <Avatar :user="cfg.user" :size="40" badge />
+            <strong>{{ cfg.user.name }}</strong>
           </RouterLink>
           <component :is="i.to ? 'RouterLink' : 'a'" v-for="i in places" :key="i.label" :to="i.to" :href="i.href" class="item"><span class="ic"><Icon :name="i.icon" :size="18" /></span>
             <span v-if="i.note" class="text"><span>{{ i.label }}</span><small>{{ i.note }}</small></span>
@@ -229,7 +206,7 @@ const profileHint = () => t.sprintf(/* translators: %s: the member's level, e.g.
               <div v-if="group.key === 'you'" class="display">
                 <div class="item static">
                   <span class="ic"><Icon name="moon" :size="18" /></span>
-                  <span class="text"><span>{{ t.__('Display', 'membuild-community') }}</span><small>{{ t.__('Light, dark, or match your device', 'membuild-community') }}</small></span>
+                  <span class="text"><span>{{ t.__('Display', 'membuild-community') }}</span></span>
                 </div>
                 <div class="looks" role="radiogroup" :aria-label="t.__('Display', 'membuild-community')">
                   <button v-for="l in LOOKS" :key="l.key" role="radio" :aria-checked="display === l.key" :class="{ on: display === l.key }" @click="setDisplay(l.key)">{{ l.label }}</button>
@@ -294,11 +271,8 @@ const profileHint = () => t.sprintf(/* translators: %s: the member's level, e.g.
       </button>
       <div v-if="open === 'account'" class="menu card account-menu" @keydown="onMenuKey">
         <RouterLink to="/me" class="who">
-          <Avatar :user="cfg.user" :size="40" />
-          <span>
-            <strong>{{ cfg.user.name }}</strong>
-            <small>{{ profileHint() }}</small>
-          </span>
+          <Avatar :user="cfg.user" :size="40" badge />
+          <strong>{{ cfg.user.name }}</strong>
         </RouterLink>
         <template v-for="group in [{ key: 'community', title: t.__('Your community', 'membuild-community'), items: community }, { key: 'you', title: t.__('You', 'membuild-community'), items: you }]" :key="group.key">
           <template v-if="group.items.length">
@@ -312,7 +286,7 @@ const profileHint = () => t.sprintf(/* translators: %s: the member's level, e.g.
             <div v-if="group.key === 'you'" class="display">
               <div class="item static">
                 <span class="ic"><Icon name="moon" :size="18" /></span>
-                <span class="text"><span>{{ t.__('Display', 'membuild-community') }}</span><small>{{ t.__('Light, dark, or match your device', 'membuild-community') }}</small></span>
+                <span class="text"><span>{{ t.__('Display', 'membuild-community') }}</span></span>
               </div>
               <div class="looks" role="radiogroup" :aria-label="t.__('Display', 'membuild-community')">
                 <button v-for="l in LOOKS" :key="l.key" role="radio" :aria-checked="display === l.key" :class="{ on: display === l.key }" @click="setDisplay(l.key)">{{ l.label }}</button>
@@ -519,15 +493,6 @@ const profileHint = () => t.sprintf(/* translators: %s: the member's level, e.g.
   padding: 8px;
   border-radius: 10px;
   color: var(--text);
-}
-
-.who span {
-  display: flex;
-  flex-direction: column;
-}
-
-.who small {
-  color: var(--text-3);
 }
 
 hr {

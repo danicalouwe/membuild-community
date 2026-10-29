@@ -29,7 +29,8 @@ const gets = computed(() => {
   if (n) {
     out.push(
       minutes.value
-        ? t.sprintf(/* translators: 1: number of lessons, 2: minutes */ t._n('%1$d lesson, about %2$d minutes', 'All %1$d lessons, about %2$d minutes', n, 'membuild-community'), n, minutes.value)
+        ? // Two counts, so two plurals: "All 3 lessons, about 1 minute".
+          `${t.sprintf(/* translators: %d: number of lessons */ t._n('%d lesson', 'All %d lessons', n, 'membuild-community'), n)}, ${t.sprintf(/* translators: %d: minutes */ t._n('about %d minute', 'about %d minutes', minutes.value, 'membuild-community'), minutes.value)}`
         : t.sprintf(/* translators: %d: number of lessons */ t._n('%d lesson', 'All %d lessons', n, 'membuild-community'), n),
     )
   }

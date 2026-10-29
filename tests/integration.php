@@ -1994,6 +1994,8 @@ mbcom_check( '…it stays in the list, marked muted, with its own unread count',
 list( , $pl ) = mbcom_call( $ana, 'GET', '/messages/pulse' );
 mbcom_check( '…and the live badge leaves it out too', (int) $pl['unread'] === (int) $mu['unread'] );
 $mbcom_mails = array();
+// Her other chats (some left by earlier runs of these tests) are read, so only the muted one could be emailed.
+$wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->prefix}mbcom_thread_members m SET m.last_read_id = (SELECT COALESCE(MAX(id), 0) FROM {$wpdb->prefix}mbcom_messages) WHERE m.user_id = %d AND m.thread_id <> %d", $ana, $tid ) );
 $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->prefix}mbcom_messages SET created_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 15 MINUTE) WHERE thread_id = %d", $tid ) );
 $wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->prefix}mbcom_notifications SET read_at = UTC_TIMESTAMP() WHERE user_id = %d", $ana ) );
 delete_user_meta( $ana, 'mbcom_email_last' );
@@ -2004,7 +2006,8 @@ mbcom_check( '…and no email about a muted chat', false === strpos( $mute_mail,
 list( $s ) = mbcom_call( $cy, 'PUT', "/messages/threads/{$tid}/mute" );
 mbcom_check( 'outsiders can’t mute someone else’s chat', in_array( $s, array( 403, 404 ), true ), (string) $s );
 list( $s, $um ) = mbcom_call( $ana, 'DELETE', "/messages/threads/{$tid}/mute" );
-mbcom_check( 'unmuting brings it back into the count', 200 === $s && false === $um['muted'] && $before === (int) $um['unread'], wp_json_encode( $um ) );
+list( , $pl2 ) = mbcom_call( $ana, 'GET', '/messages/pulse' );
+mbcom_check( 'unmuting brings it back into the count', 200 === $s && false === $um['muted'] && (int) $um['unread'] >= (int) $row['unread'] && (int) $pl2['unread'] === (int) $um['unread'], wp_json_encode( array( $um, $row['unread'] ) ) );
 $mbcom_mails = array();
 delete_user_meta( $ana, 'mbcom_email_last' );
 delete_user_meta( $ana, 'mbcom_last_active' );
@@ -2082,6 +2085,25 @@ mbcom_call( $ben, 'POST', "/posts/{$p3['id']}/comments", array( 'content' => 'On
 list( , $al ) = mbcom_call( $ana, 'GET', '/notifications' );
 $real = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_notifications WHERE user_id = %d AND read_at IS NULL", $ana ) );
 mbcom_check( 'Alerts tell the app how many are unread (for “Unread · 3”)', isset( $al['unread'] ) && $real === (int) $al['unread'] && $real > 0, wp_json_encode( array( $al['unread'] ?? null, $real ) ) );
+
+mbcom_section( 'Staying logged in' );
+$NS = 'MemBuild\\Community\\';
+$admin_id = (int) ( get_users( array( 'role' => 'administrator', 'number' => 1, 'fields' => 'ID' ) )[0] ?? 0 );
+mbcom_check( '“Keep me logged in” keeps a member logged in for a year', YEAR_IN_SECONDS === apply_filters( 'auth_cookie_expiration', 2 * DAY_IN_SECONDS, $ana, true ) );
+mbcom_check( '…without it, WordPress’s 2 days', 2 * DAY_IN_SECONDS === apply_filters( 'auth_cookie_expiration', 2 * DAY_IN_SECONDS, $ana, false ) );
+mbcom_check( '…site admins keep WordPress’s 14 days', 14 * DAY_IN_SECONDS === apply_filters( 'auth_cookie_expiration', 14 * DAY_IN_SECONDS, $admin_id, true ) );
+$tok_mgr = WP_Session_Tokens::get_instance( $ana );
+$old_tok = $tok_mgr->create( time() + 14 * DAY_IN_SECONDS ); // a remembered login from before this change
+$sess = $tok_mgr->get( $old_tok );
+$sess['login'] = time() - 3 * DAY_IN_SECONDS;
+$tok_mgr->update( $old_tok, $sess );
+mbcom_check( 'a remembered login in use gets a fresh year', call_user_func( array( $NS . 'Login', 'renew_session' ), $ana, array( 'token' => $old_tok, 'expiration' => $sess['expiration'] ) ) && $tok_mgr->get( $old_tok )['expiration'] >= time() + YEAR_IN_SECONDS - 60 );
+mbcom_check( '…but only once a day', ! call_user_func( array( $NS . 'Login', 'renew_session' ), $ana, array( 'token' => $old_tok, 'expiration' => time() + YEAR_IN_SECONDS ) ) );
+$short_tok = $tok_mgr->create( time() + 2 * DAY_IN_SECONDS );
+mbcom_check( '…a login without “Keep me logged in” is left to end', ! call_user_func( array( $NS . 'Login', 'renew_session' ), $ana, array( 'token' => $short_tok, 'expiration' => time() + 2 * DAY_IN_SECONDS ) ) && $tok_mgr->get( $short_tok )['expiration'] <= time() + 2 * DAY_IN_SECONDS );
+$tok_mgr->destroy( $old_tok );
+mbcom_check( '…and logging out still ends it', ! call_user_func( array( $NS . 'Login', 'renew_session' ), $ana, array( 'token' => $old_tok, 'expiration' => time() ) ) && null === $tok_mgr->get( $old_tok ) );
+$tok_mgr->destroy( $short_tok );
 
 /* ---------------------------------------------------------------- */
 echo "\n{$GLOBALS['mbcom_passed']} passed, {$GLOBALS['mbcom_failed']} failed\n";

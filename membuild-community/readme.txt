@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.13.0
+Stable tag: 1.13.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -247,6 +247,7 @@ The community app is built with these open-source libraries, bundled in `assets/
 * Mediabunny, for compressing videos in the browser (MPL-2.0)
 * Leaflet and Leaflet.markercluster, for the Places map (BSD-2-Clause, MIT)
 * Emoji names and categories from emojibase-data (MIT)
+* jsPDF, for saving receipts as PDF files (MIT; loaded only when someone saves one)
 
 == Source code ==
 
@@ -261,6 +262,16 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.13.1 =
+* Sell memberships with FluentCart: in Settings, Memberships, pick the FluentCart product that sells a membership. "Continue to checkout" on a locked course goes straight to a simple checkout in your community's look (your logo and what they get on the left, only the fields that are needed on the right), then a "You're in" page that opens the course. Members are added when the order is paid and removed on a refund. A cancelled subscription keeps access until the end of what was paid for; a paused one closes it until it's resumed.
+* Billing for members who pay with FluentCart: You, Billing lists each paid membership with its price, status and next payment. Billing, membership shows the details and every payment, with Pause, Resume and Cancel (it tells you the date you keep access until) right in the community; only a new card is typed on FluentCart's secure page.
+* Receipts open in a box over the page, with Save as PDF that downloads a real PDF of the receipt with your logo.
+* Keep me logged in now keeps members logged in for a year, renewed while they keep using the community, so the phone app doesn't keep asking. Site admins keep WordPress's 14 days; Log out still ends it at once.
+* The account menu is plainer: no small grey lines under each item, the level number on your photo, and "Add to your phone" in place of "Install the app".
+* Leaderboard: the top three on a podium with gold, silver and bronze, a short burst of confetti when the page opens and a few quiet pieces after, round rank numbers and points in green pills; your own row stays in sight at the bottom (and at the top once you scroll past) with a soft glow until you reach it. The levels card is a ladder showing how far you've climbed, and How to earn points matches it. Tablets get one tidy column.
+* The menu at the top fits at every window size: on tablets and small laptops each section shows its icon with its word underneath, and icons only where even that is too tight.
+* Members without a photo, or whose photo won't load, show their initials instead of a broken image.
 
 = 1.13.0 =
 * First week: a short "Finish setting up" checklist for the owner (with Invite people) and a welcome checklist for new members, beside the Home feed. New members get a welcome email to confirm their address; activity emails wait until they do.

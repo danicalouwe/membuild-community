@@ -26,6 +26,9 @@ function toggleOpen(g) {
 }
 const roles = ref([])
 const courses = ref([])
+const shop = ref(null) // FluentCart's products when it's active: [{ id, label }], else null
+const shopLogo = ref('') // FluentCart's own logo, from its plugin
+const shopAddress = ref(null) // FluentCart's Checkout fields page, when it still asks for a billing address
 const loaded = ref(false)
 const error = ref('')
 
@@ -45,6 +48,9 @@ async function load() {
     if (groups.value.length === 1) open.value = new Set([groups.value[0].id])
     roles.value = res.roles
     courses.value = res.courses
+    shop.value = res.fluentcart || null
+    shopAddress.value = res.fluentcart_address || null
+    shopLogo.value = res.fluentcart_logo || ''
   })
   loaded.value = true
 }
@@ -158,6 +164,13 @@ function saveOffer(g) {
     update(g, { cta_label: f.label, price: f.price, period: f.period, cta_url: f.url })
   }, 600)
 }
+// Sold with FluentCart: picking a product sets the button's link and price on the server.
+async function setProduct(g, id) {
+  const group = await run(() => api.updateGroup(g.id, { fluentcart: Number(id) || 0 }))
+  if (!group) return
+  const i = groups.value.findIndex((x) => x.id === group.id)
+  if (i >= 0) groups.value[i] = withForm(group) // fresh fields: the product's link and price
+}
 function setPeriod(g, p) {
   g.form.period = p
   saveOffer(g)
@@ -263,7 +276,33 @@ const removeLabel = (name) => t.sprintf(/* translators: %s: a name */ t.__('Remo
             <div class="periods" role="radiogroup" :aria-label="t.__('How often they pay', 'membuild-community')">
               <button v-for="[key, label] in PERIODS" :key="key" role="radio" :aria-checked="g.form.period === key" :class="{ on: g.form.period === key }" @click="setPeriod(g, key)">{{ label }}</button>
             </div>
-            <input v-model="g.form.url" class="field url" type="url" placeholder="https://yoursite.com/join" :aria-label="t.__('Your checkout or sign-up page', 'membuild-community')" @input="saveOffer(g)" />
+            <div v-if="shop" class="shop">
+              <div class="shop-head">
+                <img v-if="shopLogo" class="shop-logo" :src="shopLogo" alt="" />
+                <span v-else class="shop-logo" aria-hidden="true">FC</span>
+                <strong>{{ t.__('Sold with FluentCart', 'membuild-community') }}</strong>
+                <span class="shop-on">{{ t.__('Connected', 'membuild-community') }}</span>
+              </div>
+              <label class="shop-label" :for="`shop-${g.id}`">{{ t.__('Product', 'membuild-community') }}</label>
+              <select :id="`shop-${g.id}`" class="field" :value="g.fluentcart || 0" @change="setProduct(g, $event.target.value)">
+                <option :value="0">{{ t.__('Not sold here: I’ll paste a checkout link', 'membuild-community') }}</option>
+                <option v-for="p in shop" :key="p.id" :value="p.id">{{ p.label }}</option>
+              </select>
+              <p v-if="g.fluentcart">{{ t.sprintf(/* translators: %s: membership name */ t.__('The button opens this product’s checkout. A paid order adds the buyer to %s right away; a refund or a cancelled subscription takes them out.', 'membuild-community'), g.name) }}</p>
+              <p v-else-if="!shop.length">{{ t.__('Add a product in FluentCart first, then pick it here.', 'membuild-community') }}</p>
+              <div v-if="g.fluentcart && shopAddress" class="shop-tip" role="note">
+                <Icon name="info" :size="18" />
+                <span>
+                  <strong>{{ t.__('Tip: switch off the billing address', 'membuild-community') }}</strong>
+                  {{ t.__('Your FluentCart checkout still asks for one. A membership doesn’t need it, and leaving it on can stop the order.', 'membuild-community') }}
+                  <a :href="shopAddress" target="_blank" rel="noopener">{{ t.__('Open FluentCart’s Checkout fields', 'membuild-community') }}</a>
+                </span>
+              </div>
+            </div>
+            <template v-if="!g.fluentcart">
+              <input v-model="g.form.url" class="field url" type="url" placeholder="https://yoursite.com/join" :aria-label="t.__('Your checkout or sign-up page', 'membuild-community')" @input="saveOffer(g)" />
+              <p v-if="shop" class="shop-or">{{ t.__('Not using FluentCart? Paste any checkout link instead.', 'membuild-community') }}</p>
+            </template>
             <p class="sees">
               {{ t.__('Members see:', 'membuild-community') }}
               <span class="preview"><Icon name="lock" :size="15" /> {{ offerButton(g.form) }}</span>
@@ -613,6 +652,87 @@ h2 {
   color: var(--text);
   font: inherit;
   font-size: 16px;
+}
+
+.shop {
+  width: 100%;
+  max-width: 560px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+
+.shop-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.shop-logo {
+  flex: none;
+  object-fit: contain;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #e9f0ff;
+  color: #2453d6;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.shop-on {
+  margin-left: auto;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--ok-soft, #e5f4ea);
+  color: #1f7a49;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.shop-tip {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--warn-soft, #fff6e0);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.shop-tip :deep(svg) {
+  flex: none;
+  margin-top: 1px;
+}
+
+.shop-tip strong {
+  display: block;
+}
+
+.shop-tip a {
+  display: inline-block;
+  margin-top: 4px;
+  color: var(--text);
+  font-weight: 650;
+}
+
+.shop-label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 650;
+}
+
+.shop p,
+.shop-or {
+  margin: 8px 0 0;
+  color: var(--text-2);
+  font-size: 14px;
 }
 
 .offer {

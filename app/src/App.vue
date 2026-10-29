@@ -1,5 +1,5 @@
 <script setup>
-import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from './api.js'
 import { cfg, feature, initialsOf } from './config.js'
@@ -43,7 +43,7 @@ const phoneMenuOpen = ref(false)
 window.addEventListener('mbcom:phone-menu-state', (e) => (phoneMenuOpen.value = e.detail))
 const openPhoneMenu = () => window.dispatchEvent(new CustomEvent('mbcom:phone-menu'))
 // Pages without the left sidebar: profiles, your settings pages, Messages (its own chat list is the side column), an event (its own two columns), Places and the Leaderboard.
-const onProfile = computed(() => ['member', 'me', 'profile-edit', 'privacy', 'emails', 'messages', 'event', 'places', 'leaderboard', 'levels', 'settings', 'search', 'moderation'].includes(route.name))
+const onProfile = computed(() => ['member', 'me', 'profile-edit', 'privacy', 'billing', 'billing-item', 'emails', 'messages', 'event', 'places', 'leaderboard', 'levels', 'settings', 'search', 'moderation'].includes(route.name))
 const inLesson = computed(() => inCourse.value && !!route.params.lessonId && !route.query.tab)
 // Single-column pages sit at the exact centre of the window, as on Facebook: the right side
 // reserves the same width as the left column. Grids and maps use the full width beside it.
@@ -107,6 +107,28 @@ function closeLinked() {
 }
 
 // Loads my level and records today's visit (daily point and streak).
+// The top tabs' words: if any word spills out of its tab (or the row out of the bar), show icons
+// only. Checked again whenever the bar changes size.
+const topTabs = ref(null)
+const tight = ref(false)
+function fitTabs() {
+  const nav = topTabs.value
+  if (!nav || !nav.offsetParent) return
+  tight.value = false
+  requestAnimationFrame(() => {
+    const bar = nav.parentElement
+    const spills = [...nav.children].some((tab) => tab.scrollWidth > tab.clientWidth + 1)
+    tight.value = spills || nav.scrollWidth > nav.clientWidth + 1 || bar.scrollWidth > bar.clientWidth + 1
+  })
+}
+onMounted(() => {
+  if (!topTabs.value || !window.ResizeObserver) return
+  const ro = new ResizeObserver(fitTabs)
+  ro.observe(topTabs.value.parentElement)
+  fitTabs()
+})
+watch(() => desktopTabs.value.length, () => nextTick(fitTabs))
+
 onMounted(() => {
   refreshStats()
   startPulse() // unread badges on the Messenger and bell icons
@@ -145,7 +167,7 @@ const isActive = (tab) =>
           </RouterLink>
           <SearchBox v-if="feature('search')" />
         </div>
-        <nav class="top-tabs" :aria-label="t.__('Sections', 'membuild-community')">
+        <nav ref="topTabs" class="top-tabs" :class="{ tight }" :aria-label="t.__('Sections', 'membuild-community')">
           <RouterLink v-for="tab in desktopTabs" :key="tab.name" :to="tab.path" class="top-tab" :class="{ active: isActive(tab) }" :title="tab.label" :aria-label="tab.label">
             <Icon :name="tab.icon" :size="24" />
             <span class="top-label">{{ tab.label }}</span>
@@ -303,15 +325,10 @@ const isActive = (tab) =>
   font-weight: 600;
 }
 
-/* Narrower windows have no left column, so the tabs keep their words and drop the icons to fit. */
-@media (max-width: 1099px) {
-  .top-tab :deep(svg) {
-    display: none;
-  }
-}
-
-/* Tablets: seven words don't fit in a row, so each tab is an icon with its word underneath. */
-@media (min-width: 768px) and (max-width: 999px) {
+/* Tablets and small laptops (no left column): seven words don't fit in a row, so each tab is an
+   icon with its word underneath. Where even that's too tight (a long translation, extra tabs),
+   the words step aside and the icons stay (.tight, measured below). */
+@media (min-width: 768px) and (max-width: 1099px) {
   /* Tablets: every tab the same width, so the row reads as an even strip rather
      than words of different lengths jammed together. */
   .top-tabs {
@@ -336,11 +353,13 @@ const isActive = (tab) =>
   .topbar-inner {
     gap: 10px;
     padding: 0 10px;
-    /* The sides keep what their logo and icons need; the tabs take the rest and shrink first. */
-    grid-template-columns: minmax(max-content, 1fr) minmax(0, auto) minmax(max-content, 1fr);
+    /* The sides keep just what their logo and icons need; the tabs get all the room between
+       them (centred in it) and only drop their words if even that's too tight. */
+    grid-template-columns: max-content minmax(0, 1fr) max-content;
   }
 
   .top-tabs {
+    justify-content: center;
     min-width: 0;
   }
 
@@ -349,6 +368,21 @@ const isActive = (tab) =>
     width: 22px;
     height: 22px;
   }
+}
+
+/* Measured too tight for words: icons only, the words still read out and shown on hover. */
+.top-tabs.tight .top-tab {
+  justify-content: center;
+  min-height: 44px;
+  padding: 8px 10px;
+}
+
+.top-tabs.tight .top-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
 }
 
 /* Wide screens: icons only up top (the words are in the left column), on a wider, taller target. */
