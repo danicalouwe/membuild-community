@@ -384,10 +384,10 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
   align-items: center;
   gap: 12px;
   padding: 10px 10px 10px 16px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--danger-soft);
   color: var(--danger-ink);
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .save-error span {
@@ -399,7 +399,7 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  font-size: 15.5px;
+  font-size: var(--fs-lg);
   color: var(--text-2);
 }
 
@@ -408,10 +408,10 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
   align-items: center;
   gap: 6px;
   padding: 5px 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--ok-soft);
   color: var(--ok-text);
-  font-size: 14.5px;
+  font-size: var(--fs-base);
   font-weight: 700;
 }
 
@@ -444,28 +444,28 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
   height: 60px;
   padding: 0 16px;
   border: 1px solid var(--border-strong, #c9ced6);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--text);
-  font-size: 22px;
+  font-size: var(--fs-4xl);
   font-weight: 750;
 }
 
 .box {
   padding: 18px 20px 20px;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: var(--surface);
 }
 
 .box h3 {
   margin: 0;
-  font-size: 19px;
+  font-size: var(--fs-3xl);
 }
 
 .sub {
   margin: 4px 0 14px;
-  font-size: 15.5px;
+  font-size: var(--fs-lg);
   color: var(--text-2);
 }
 
@@ -476,9 +476,9 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
   gap: 12px;
   padding: 22px 16px;
   border: 2px dashed var(--border-strong, #c9ced6);
-  border-radius: 14px;
+  border-radius: var(--radius);
   text-align: center;
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .drop-btns,
@@ -494,10 +494,10 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
   height: 52px;
   padding: 0 14px;
   border: 1px solid var(--border-strong, #c9ced6);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--text);
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .have-video {
@@ -519,7 +519,7 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
   gap: 12px;
   padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
 }
 
 .pending span,
@@ -531,7 +531,7 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
 .pending strong,
 .fname strong {
   display: block;
-  font-size: 16.5px;
+  font-size: var(--fs-xl);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -543,11 +543,11 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
   margin-bottom: 2px;
   padding: 8px 12px;
   border: 1px solid var(--border-strong);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
   font: inherit;
-  font-size: 16.5px;
+  font-size: var(--fs-xl);
   font-weight: 650;
 }
 
@@ -559,7 +559,7 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
 .pending small,
 .fname small {
   display: block;
-  font-size: 14.5px;
+  font-size: var(--fs-base);
   color: var(--text-2);
 }
 
@@ -579,7 +579,7 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
   margin-top: 10px;
   padding: 14px 16px;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius);
   cursor: pointer;
 }
 
@@ -597,13 +597,13 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
 
 .choice strong {
   display: block;
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .choice small {
   display: block;
   margin-top: 2px;
-  font-size: 15px;
+  font-size: var(--fs-base);
   color: var(--text-2);
 }
 
@@ -613,7 +613,7 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 12px;
-  font-size: 16.5px;
+  font-size: var(--fs-xl);
 }
 
 .days input {
@@ -621,10 +621,10 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
   height: 52px;
   padding: 0 10px;
   border: 1px solid var(--border-strong, #c9ced6);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--text);
-  font-size: 18px;
+  font-size: var(--fs-2xl);
   text-align: center;
 }
 
@@ -633,9 +633,9 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
   margin-top: 12px;
   padding: 12px 14px;
   border: 1px dashed var(--border-strong, #c9ced6);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
-  font-size: 15.5px;
+  font-size: var(--fs-lg);
   line-height: 1.55;
   color: var(--text);
 }
@@ -655,10 +655,10 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
   display: inline-block;
   margin-right: 6px;
   padding: 2px 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--text);
   color: var(--surface);
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }
 
 .warn {
@@ -668,10 +668,10 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
   gap: 12px;
   margin-top: 12px;
   padding: 12px 14px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--warn-soft);
   color: var(--warn-text);
-  font-size: 15.5px;
+  font-size: var(--fs-lg);
 }
 
 .warn span {
@@ -707,7 +707,7 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
   margin-top: 10px;
   padding: 16px 18px;
   border: 1px solid var(--danger-line);
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--danger-soft);
 }
 
@@ -719,14 +719,14 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
 .danger strong {
   display: block;
   color: var(--danger-text);
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .danger small {
   display: block;
   margin-top: 2px;
   color: var(--danger-ink);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .danger-btn {

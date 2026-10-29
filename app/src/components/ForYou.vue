@@ -82,7 +82,7 @@ const newLine = (n) => t.sprintf(/* translators: %d: number of people */ t._n('%
 h2 {
   margin: 0 0 8px;
   padding: 0 8px;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 750;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -95,7 +95,7 @@ h2 {
   gap: 12px;
   min-height: 56px;
   padding: 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   color: inherit;
   text-decoration: none;
 }
@@ -118,7 +118,7 @@ h2 {
   grid-template-rows: auto 1fr;
   overflow: hidden;
   text-align: center;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   box-shadow: inset 0 0 0 1px var(--border);
   line-height: 1;
@@ -128,7 +128,7 @@ h2 {
   padding: 4px 0 3px;
   background: var(--surface-2);
   border-bottom: 1px solid var(--border);
-  font-size: 10px;
+  font-size: var(--fs-3xs);
   font-weight: 750;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -138,7 +138,7 @@ h2 {
 .tile strong {
   display: grid;
   place-items: center;
-  font-size: 18px;
+  font-size: var(--fs-2xl);
 }
 
 /* The course cover inside a ring that fills with progress. */
@@ -193,12 +193,12 @@ h2 {
 }
 
 .words strong {
-  font-size: 15px;
+  font-size: var(--fs-base);
   line-height: 1.3;
 }
 
 .words small {
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--text-2);
   overflow: hidden;
   text-overflow: ellipsis;

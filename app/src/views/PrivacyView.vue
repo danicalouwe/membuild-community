@@ -101,12 +101,12 @@ const me = () => ({ ...cfg.user, active_at: show.value ? new Date().toISOString(
 
 .box {
   padding: 28px 30px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
 }
 
 h2 {
   margin: 0 0 18px;
-  font-size: 20px;
+  font-size: var(--fs-3xl);
 }
 
 .row {
@@ -125,12 +125,12 @@ h2 {
 }
 
 .row strong {
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .row small {
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
   line-height: 1.5;
 }
 
@@ -141,7 +141,7 @@ h2 {
   width: 52px;
   height: 30px;
   margin: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--border-strong);
   cursor: pointer;
   transition: background 0.15s;
@@ -155,8 +155,8 @@ h2 {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 25%);
+  background: var(--on-color);
+  box-shadow: var(--shadow-sm);
   transition: transform 0.15s;
 }
 
@@ -171,7 +171,7 @@ h2 {
 .preview {
   margin-top: 26px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
@@ -180,7 +180,7 @@ h2 {
   padding: 10px 16px;
   background: var(--surface-2);
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: 700;
 }
 
@@ -192,16 +192,16 @@ h2 {
 }
 
 .preview-body strong {
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .preview-body small {
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .preview-body .now {
-  color: #1f7a49;
+  color: var(--ok-text);
   font-weight: 700;
 }
 
@@ -211,7 +211,7 @@ h2 {
   gap: 10px;
   margin: 16px 0 0;
   padding: 14px 18px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface-2);
   color: var(--text-2);
   line-height: 1.5;

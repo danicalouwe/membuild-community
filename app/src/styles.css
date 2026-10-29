@@ -14,8 +14,8 @@
   --cover-default: linear-gradient(120deg, color-mix(in srgb, var(--accent) 55%, #ffffff), color-mix(in srgb, var(--accent) 12%, #f3d7b6));
   --danger: #d93a3a;
   --love: #f0384a;
-  --radius: 14px;
-  --radius-sm: 10px;
+  --radius: calc(14px * var(--roundness));
+  --radius-sm: calc(10px * var(--roundness));
   --shadow: 0 1px 2px rgb(16 24 40 / 6%), 0 1px 3px rgb(16 24 40 / 8%);
   --header-h: 56px;
   --tabbar-h: 60px;
@@ -34,8 +34,62 @@
   --danger-text: #b42318;
   --danger-ink: #7a271a;
   --border-strong: #c9ced6;
+  /* Colours by meaning (theme contract). These stay the same in dark mode. */
+  --on-color: #ffffff; /* text, icons and switch knobs on a strong colour, a photo or a video */
+  --paper: #ffffff; /* things that are always white: a calendar date, a map label, a document */
+  --ink: #16181d; /* dark text on those always-white things */
+  --ok: #2fb36b; /* done ticks, online dots */
+  --ok-strong: #1f8a4c; /* a solid green with white text */
+  --danger-strong: #b42318; /* a solid red button with white text */
+  --warn: #f59e0b; /* a yellow dot: not saved yet */
+  --live: #e5484d; /* happening now: Live, today's month */
+  --highlight: #ffd43b; /* the words that matched a search */
+  --scrim: #000000; /* shading over photos and videos, mixed see-through */
+  --backdrop: #0a0b0d; /* behind a dialog, mixed see-through */
+  --player-bg: #000000; /* the always-dark video player: Reels, Stories, lesson and event videos */
+  --player-surface: #1c1c1f;
+  --player-line: #2c2c30;
+  --player-text: #f2f2f4;
+  --player-muted: #9a9aa2;
+  /* Depth: the card shadow above (--shadow, none in dark mode) and these three. */
+  --shadow-color: #000000;
+  --shadow-sm: 0 1px 4px color-mix(in srgb, var(--shadow-color) 25%, transparent); /* small things: a pin, a chip on a photo */
+  --shadow-pop: 0 8px 24px color-mix(in srgb, var(--shadow-color) 18%, transparent); /* menus, pop-ups, toasts */
+  --shadow-lift: 0 18px 48px color-mix(in srgb, var(--shadow-color) 38%, transparent); /* dialogs and sheets */
   --font: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   color-scheme: light;
+
+  /* ---- Theme contract, Look: a Community theme changes these, every screen reads them. ---- */
+  /* Two dials: scale every text size, and make every corner sharper (<1) or rounder (>1). */
+  --type-scale: 1;
+  --roundness: 1;
+  /* Heading font (titles); the same as the body font unless a theme sets one. */
+  --font-heading: var(--font);
+  /* Text sizes: one name per size in use. 15px and up follow the phone table below
+     (--mb-fs-N), like every other font-size the build turns into a phone size. */
+  --fs-3xs: calc(10px * var(--type-scale));
+  --fs-2xs: calc(11px * var(--type-scale));
+  --fs-xs: calc(12px * var(--type-scale));
+  --fs-sm: calc(13px * var(--type-scale));
+  --fs-md: calc(14px * var(--type-scale));
+  --fs-base: calc(var(--mb-fs-15, 15px) * var(--type-scale));
+  --fs-lg: calc(var(--mb-fs-16, 16px) * var(--type-scale));
+  --fs-xl: calc(var(--mb-fs-17, 17px) * var(--type-scale));
+  --fs-2xl: calc(var(--mb-fs-18, 18px) * var(--type-scale));
+  --fs-3xl: calc(var(--mb-fs-20, 20px) * var(--type-scale));
+  --fs-4xl: calc(var(--mb-fs-22, 22px) * var(--type-scale));
+  --fs-5xl: calc(var(--mb-fs-24, 24px) * var(--type-scale));
+  --fs-6xl: calc(var(--mb-fs-26, 26px) * var(--type-scale));
+  --fs-7xl: calc(var(--mb-fs-28, 28px) * var(--type-scale));
+  --fs-8xl: calc(var(--mb-fs-30, 30px) * var(--type-scale));
+  --fs-9xl: calc(var(--mb-fs-32, 32px) * var(--type-scale)); /* a page's hero title: an event, a member's name */
+  /* Corners (--radius is 14, --radius-sm 10). */
+  --radius-xs: calc(8px * var(--roundness));
+  --radius-md: calc(12px * var(--roundness));
+  --radius-lg: calc(16px * var(--roundness));
+  --radius-xl: calc(18px * var(--roundness));
+  --radius-2xl: calc(24px * var(--roundness));
+  --radius-pill: 999px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -136,7 +190,7 @@ select {
   input,
   textarea,
   select {
-    font-size: max(16px, 1em) !important;
+    font-size: max(16px, 1em) !important; /* exempt: under 16px, iPhones zoom into the field */
   }
 }
 
@@ -186,7 +240,7 @@ video {
   gap: 6px;
   height: 36px;
   padding: 0 16px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-weight: 600;
   transition: transform 0.1s ease, opacity 0.15s ease;
 }
@@ -209,7 +263,7 @@ video {
 .btn-lg {
   height: 52px;
   padding: 0 24px;
-  font-size: 17px;
+  font-size: var(--fs-xl);
   font-weight: 700;
 }
 
@@ -228,7 +282,7 @@ video {
   background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 50%, var(--surface-2) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite linear;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
 }
 
 @keyframes shimmer {
@@ -266,7 +320,7 @@ video {
 @media (hover: hover) {
   .lift:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 24px rgb(0 0 0 / 8%);
+    box-shadow: var(--shadow-pop);
   }
 }
 
@@ -310,7 +364,7 @@ video {
 /* Lesson text (rendered from the safe Markdown subset). */
 .md {
   margin-top: 16px;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   line-height: 1.65;
   overflow-wrap: anywhere;
 }
@@ -318,7 +372,7 @@ video {
 .md img {
   max-width: 100%;
   height: auto;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
 }
 
 .md h2,
@@ -329,11 +383,11 @@ video {
 }
 
 .md h2 {
-  font-size: 21px;
+  font-size: var(--fs-4xl);
 }
 
 .md h3 {
-  font-size: 18px;
+  font-size: var(--fs-2xl);
 }
 
 .md p,
@@ -353,9 +407,9 @@ video {
 
 .md code {
   padding: 1px 6px;
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
   background: var(--surface-2);
-  font-size: 0.92em;
+  font-size: 0.92em; /* exempt: follows the text around it */
 }
 
 .md a {
@@ -378,9 +432,9 @@ video {
   place-items: center;
   width: 22px;
   height: 22px;
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
   background: currentColor;
-  font-size: 8.5px;
+  font-size: var(--fs-3xs);
   font-weight: 900;
   letter-spacing: 0.01em;
   line-height: 1;
@@ -408,12 +462,12 @@ video {
   height: 40px;
   padding: 0 16px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   /* A touch darker than whatever it sits on: white cards, the grey page and dark mode alike. */
   background: color-mix(in srgb, var(--text) 7%, transparent);
   color: var(--text-2);
   font: inherit;
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 650;
   line-height: 1;
   white-space: nowrap;
@@ -440,7 +494,7 @@ video {
   .filter-pill {
     height: 36px;
     padding: 0 12px;
-    font-size: 14px;
+    font-size: var(--fs-md);
   }
 
   .filter-pill::after {
@@ -448,6 +502,14 @@ video {
     position: absolute;
     inset: -4px 0;
   }
+}
+
+/* Titles use the theme's heading font (the body font unless a theme sets one). */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-heading);
 }
 
 /* ---------- Shared kit: one source of truth for the shapes every page repeats ----------
@@ -476,13 +538,13 @@ video {
 /* An inner page's title, and the grey line under it. */
 .page-title {
   margin: 8px 0 4px;
-  font-size: 30px;
+  font-size: var(--fs-8xl);
 }
 
 .page-intro {
   margin: 0 0 22px;
   color: var(--text-2);
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 /* A sentence saying something went wrong (role="alert" where it appears after an action). */
@@ -494,7 +556,7 @@ video {
 
 @media (max-width: 600px) {
   .page-title {
-    font-size: 26px;
+    font-size: var(--fs-6xl);
   }
 }
 
@@ -508,10 +570,10 @@ video {
   align-items: center;
   gap: 5px;
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 700;
   line-height: 1.3;
   white-space: nowrap;
@@ -520,7 +582,7 @@ video {
 .status-tag.lg {
   gap: 6px;
   padding: 6px 14px;
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .status-tag.ok {
@@ -549,8 +611,8 @@ video {
 }
 
 .status-tag.live {
-  background: #e5484d;
-  color: #fff;
+  background: var(--live);
+  color: var(--on-color);
 }
 
 /* An empty state: what a page shows before it has anything. An icon in a soft circle, a short
@@ -579,7 +641,7 @@ video {
 .empty-state-title {
   margin: 0;
   color: var(--text);
-  font-size: 20px;
+  font-size: var(--fs-3xl);
   font-weight: 700;
   line-height: 1.3;
 }
@@ -588,7 +650,7 @@ video {
   max-width: 380px;
   margin: 0;
   color: var(--text-2);
-  font-size: 16px;
+  font-size: var(--fs-lg);
   line-height: 1.5;
 }
 
@@ -608,12 +670,12 @@ video {
 }
 
 .empty-state.small .empty-state-title {
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .empty-state.small .empty-state-text {
   max-width: 300px;
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .empty-state.dashed {
@@ -665,7 +727,7 @@ video {
   box-sizing: border-box;
   height: 40px;
   padding: 0 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--text) 7%, transparent);
   color: var(--text-2);
   cursor: text;
@@ -685,7 +747,7 @@ video {
   box-shadow: none;
   color: var(--text);
   font: inherit;
-  font-size: 15px;
+  font-size: var(--fs-base);
   outline: none;
 }
 

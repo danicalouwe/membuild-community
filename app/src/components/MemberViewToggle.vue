@@ -101,14 +101,14 @@ function press() {
   min-height: 60px;
   padding: 8px 24px 8px 20px;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface);
   color: var(--text);
   font: inherit;
-  font-size: 17px;
+  font-size: var(--fs-xl);
   font-weight: 700;
   white-space: nowrap;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 16%);
+  box-shadow: var(--shadow-pop);
 }
 
 .mvt.on {
@@ -130,7 +130,7 @@ function press() {
   max-width: 260px;
   overflow: hidden;
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 500;
   text-overflow: ellipsis;
 }
@@ -162,13 +162,13 @@ function press() {
 
 .pick-body h3 {
   margin: 0 0 4px;
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .lbl {
   margin: 6px 0 0;
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: 700;
 }
 
@@ -179,7 +179,7 @@ function press() {
   min-height: 44px;
   padding: 0 12px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   font-weight: 600;
   cursor: pointer;
 }
@@ -199,7 +199,7 @@ select {
   min-height: 44px;
   padding: 0 12px;
   border: 1px solid var(--border-strong);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--text);
   font: inherit;
@@ -219,7 +219,7 @@ select {
   .mvt {
     min-height: 54px;
     padding: 6px 18px 6px 16px;
-    font-size: 16px;
+    font-size: var(--fs-lg);
   }
 }
 
@@ -236,10 +236,10 @@ select {
   min-width: 22px;
   height: 22px;
   padding: 0 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent);
   color: var(--accent-ink);
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 800;
   line-height: 22px;
   text-align: center;

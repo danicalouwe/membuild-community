@@ -55,7 +55,7 @@ const breakdown = computed(() =>
   align-items: center;
   gap: 6px;
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 /* Each kind's count, Facebook-style, above the pill while it's hovered or focused. */
@@ -69,11 +69,11 @@ const breakdown = computed(() =>
   gap: 6px;
   min-width: 120px;
   padding: 8px 10px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.22), 0 0 0 1px var(--border);
-  font-size: 13px;
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--shadow-color) 22%, transparent), 0 0 0 1px var(--border);
+  font-size: var(--fs-sm);
   white-space: nowrap;
   pointer-events: none;
 }
@@ -108,7 +108,7 @@ const breakdown = computed(() =>
 
 .stack.clickable {
   cursor: pointer;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 2px;
 }
 

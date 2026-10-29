@@ -395,7 +395,7 @@ defineExpose({
 }
 
 .map :deep(.leaflet-control-attribution) {
-  font-size: 11px;
+  font-size: var(--fs-2xs);
   background: color-mix(in srgb, var(--surface) 85%, transparent);
   color: var(--text-2);
 }
@@ -420,8 +420,8 @@ defineExpose({
   transform: rotate(-45deg);
   background: var(--accent);
   color: var(--accent-ink, #16181d);
-  border: 3px solid #fff;
-  box-shadow: 0 3px 10px rgb(0 0 0 / 30%);
+  border: 3px solid var(--on-color);
+  box-shadow: 0 3px 10px color-mix(in srgb, var(--shadow-color) 30%, transparent);
   transition: transform 0.15s;
 }
 
@@ -439,10 +439,10 @@ defineExpose({
   width: 150px;
   height: 108px;
   overflow: visible;
-  border: 3px solid #fff;
-  border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 4px 14px rgb(0 0 0 / 28%);
+  border: 3px solid var(--on-color);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--shadow-color) 28%, transparent);
   cursor: pointer;
   transition: transform 0.15s;
 }
@@ -454,9 +454,9 @@ defineExpose({
   left: 50%;
   width: 14px;
   height: 14px;
-  background: #fff;
+  background: var(--paper);
   transform: translateX(-50%) rotate(45deg);
-  box-shadow: 3px 3px 6px rgb(0 0 0 / 15%);
+  box-shadow: var(--shadow-sm);
 }
 
 .map :deep(.mbcom-box img),
@@ -464,7 +464,7 @@ defineExpose({
   flex: 1;
   width: 100%;
   min-height: 0;
-  border-radius: 9px 9px 0 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   object-fit: cover;
 }
 
@@ -480,9 +480,9 @@ defineExpose({
   z-index: 1;
   padding: 5px 8px 4px;
   overflow: hidden;
-  background: #fff;
-  color: #16181d;
-  font-size: 13px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: var(--fs-sm);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -516,9 +516,9 @@ defineExpose({
   background: var(--accent);
   color: var(--accent-ink);
   font-weight: 800;
-  font-size: 14px;
-  border: 3px solid #fff;
-  box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 30%, transparent), 0 3px 10px rgb(0 0 0 / 30%);
+  font-size: var(--fs-md);
+  border: 3px solid var(--on-color);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 30%, transparent), 0 3px 10px color-mix(in srgb, var(--shadow-color) 30%, transparent);
   cursor: pointer;
 }
 
@@ -528,10 +528,10 @@ defineExpose({
   place-items: center;
   width: 44px;
   height: 44px;
-  border: 3px solid #fff;
+  border: 3px solid var(--on-color);
   border-radius: 50%;
   background: var(--accent-soft);
-  box-shadow: 0 2px 8px rgb(0 0 0 / 30%);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--shadow-color) 30%, transparent);
   cursor: pointer;
 }
 
@@ -548,7 +548,7 @@ defineExpose({
   display: block;
   width: 44px;
   height: 54px;
-  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 28%));
+  filter: drop-shadow(0 2px 4px color-mix(in srgb, var(--scrim) 28%, transparent));
   transform-origin: 50% 100%;
   transition: transform 0.15s;
 }
@@ -564,7 +564,7 @@ defineExpose({
   width: 0;
   height: 0;
   margin-left: -8px;
-  border-top: 12px solid #fff;
+  border-top: 12px solid var(--on-color);
   border-right: 8px solid transparent;
   border-left: 8px solid transparent;
 }
@@ -596,11 +596,11 @@ defineExpose({
   min-width: 24px;
   height: 24px;
   padding: 0 6px;
-  border: 2px solid #fff;
-  border-radius: 999px;
+  border: 2px solid var(--on-color);
+  border-radius: var(--radius-pill);
   background: var(--accent);
   color: var(--accent-ink);
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-style: normal;
   font-weight: 800;
   line-height: 20px;
@@ -631,9 +631,9 @@ defineExpose({
   bottom: -2px;
   width: 13px;
   height: 13px;
-  border: 2px solid #fff;
+  border: 2px solid var(--on-color);
   border-radius: 50%;
-  background: #1f9d55;
+  background: var(--ok);
 }
 
 .map :deep(.mbcom-new) {
@@ -641,14 +641,14 @@ defineExpose({
   top: -10px;
   left: 24px;
   padding: 1px 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: #e8590c;
-  color: #fff;
-  font-size: 11px;
+  color: var(--on-color);
+  font-size: var(--fs-2xs);
   font-style: normal;
   font-weight: 800;
   white-space: nowrap;
-  box-shadow: 0 1px 4px rgb(0 0 0 / 25%);
+  box-shadow: var(--shadow-sm);
 }
 
 .map :deep(.mbcom-pin.pending) {

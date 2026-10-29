@@ -112,9 +112,9 @@ const lessons = computed(() => props.course.lessons_count || 0)
   width: 96px;
   height: 96px;
   border-radius: 50%;
-  background: #c8f542;
-  color: #111214;
-  box-shadow: 0 0 0 10px rgb(200 245 66 / 14%);
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: 0 0 0 10px color-mix(in srgb, var(--accent) 14%, transparent);
   animation: pop 0.7s cubic-bezier(0.3, 1.6, 0.5, 1);
 }
 
@@ -127,7 +127,7 @@ const lessons = computed(() => props.course.lessons_count || 0)
 h2 {
   position: relative;
   margin: 10px 0 0;
-  font-size: 30px;
+  font-size: var(--fs-8xl);
   line-height: 1.2;
 }
 
@@ -135,7 +135,7 @@ h2 {
   position: relative;
   margin: 0;
   color: var(--text-2);
-  font-size: 18px;
+  font-size: var(--fs-2xl);
   line-height: 1.55;
 }
 
@@ -157,7 +157,7 @@ h2 {
   align-items: center;
   gap: 6px;
   padding: 0 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   font-weight: 700;
   line-height: 24px;
@@ -187,7 +187,7 @@ h2 {
   gap: 4px;
   margin-top: 6px;
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
   text-decoration: none;
 }
 
@@ -201,7 +201,7 @@ h2 {
   }
 
   h2 {
-    font-size: 26px;
+    font-size: var(--fs-6xl);
   }
 }
 

@@ -234,10 +234,10 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 2px;
   padding: 4px 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface);
   border: 1px solid var(--border);
-  box-shadow: 0 10px 30px rgb(0 0 0 / 28%);
+  box-shadow: var(--shadow-pop);
   animation: pop-in 0.14s ease-out;
 }
 
@@ -248,7 +248,7 @@ onBeforeUnmount(() => {
   width: 330px;
   max-width: calc(100vw - 16px);
   padding: 10px 8px 0;
-  border-radius: 14px;
+  border-radius: var(--radius);
 }
 
 .reaction-picker.sheet {
@@ -289,8 +289,8 @@ onBeforeUnmount(() => {
   place-items: center;
   width: 32px;
   height: 32px;
-  border-radius: 8px;
-  font-size: 18px;
+  border-radius: var(--radius-xs);
+  font-size: var(--fs-2xl);
   filter: grayscale(1);
   opacity: 0.75;
 }
@@ -351,7 +351,7 @@ onBeforeUnmount(() => {
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  font-size: 24px;
+  font-size: var(--fs-5xl);
   line-height: 1;
   transition: transform 0.12s ease;
 }
@@ -383,7 +383,7 @@ onBeforeUnmount(() => {
 .heading {
   margin: 4px 4px 6px;
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 650;
 }
 
@@ -403,8 +403,8 @@ onBeforeUnmount(() => {
   display: grid;
   place-items: center;
   height: 38px;
-  border-radius: 8px;
-  font-size: 22px;
+  border-radius: var(--radius-xs);
+  font-size: var(--fs-4xl);
   line-height: 1;
 }
 

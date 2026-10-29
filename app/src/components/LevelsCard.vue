@@ -59,7 +59,7 @@ const toNext = computed(() =>
 <style scoped>
 .levels {
   padding: 24px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
 }
 
 header {
@@ -70,12 +70,12 @@ header {
 
 header strong {
   display: block;
-  font-size: 18px;
+  font-size: var(--fs-2xl);
 }
 
 header span {
   color: var(--accent-text);
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: 700;
 }
 
@@ -83,28 +83,28 @@ header span {
 .progress {
   margin: 20px 0 22px;
   padding: 16px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--surface-2);
 }
 
 .bar {
   height: 8px;
   overflow: hidden;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--text) 10%, transparent);
 }
 
 .bar i {
   display: block;
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent);
 }
 
 .to-next {
   margin: 10px 0 0;
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 ol {
@@ -123,7 +123,7 @@ li {
   align-items: flex-start;
   gap: 14px;
   padding: 12px;
-  border-radius: 14px;
+  border-radius: var(--radius);
 }
 
 /* The line down to the next level's circle. */
@@ -157,7 +157,7 @@ li.mine {
   border-radius: 50%;
   background: var(--surface-2);
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 800;
 }
 
@@ -182,13 +182,13 @@ li.mine {
 }
 
 .ltext strong {
-  font-size: 16px;
+  font-size: var(--fs-lg);
   line-height: 1.35;
 }
 
 .ltext small {
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   line-height: 1.45;
 }
 

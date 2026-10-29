@@ -101,8 +101,8 @@ const tiles = computed(() => {
   transform: rotate(-45deg);
   background: var(--accent);
   color: var(--accent-ink, #16181d);
-  border: 2px solid #fff;
-  box-shadow: 0 2px 6px rgb(0 0 0 / 35%);
+  border: 2px solid var(--on-color);
+  box-shadow: var(--shadow-sm);
 }
 
 .pin > span {

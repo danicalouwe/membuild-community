@@ -98,7 +98,7 @@ const levelLabel = (level) => t.sprintf(/* translators: %d: level number */ t.__
   place-items: center;
   aspect-ratio: 1;
   padding: 0 2px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent);
   color: var(--accent-ink);
   font-weight: 800;
@@ -110,7 +110,7 @@ const levelLabel = (level) => t.sprintf(/* translators: %d: level number */ t.__
   right: 0;
   bottom: 0;
   border-radius: 50%;
-  background: #1f9d55;
+  background: var(--ok);
   box-shadow: 0 0 0 2.5px var(--surface);
 }
 

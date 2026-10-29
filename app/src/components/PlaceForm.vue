@@ -343,7 +343,7 @@ const title = p ? t.__('Edit place', 'membuild-community') : props.canEdit ? t._
 
 .pf-page h1 {
   margin: 6px 0 6px;
-  font-size: 30px;
+  font-size: var(--fs-8xl);
 }
 
 .place-form {
@@ -357,12 +357,12 @@ const title = p ? t.__('Edit place', 'membuild-community') : props.canEdit ? t._
   flex-direction: column;
   gap: 18px;
   padding: 26px 28px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
 }
 
 .box h2 {
   margin: 0;
-  font-size: 20px;
+  font-size: var(--fs-3xl);
 }
 
 .label em {
@@ -379,7 +379,7 @@ const title = p ? t.__('Edit place', 'membuild-community') : props.canEdit ? t._
   gap: 8px;
   min-height: 110px;
   border: 2px dashed var(--border-strong);
-  border-radius: 14px;
+  border-radius: var(--radius);
   color: var(--text-2);
   font-weight: 700;
   cursor: pointer;
@@ -409,8 +409,8 @@ const title = p ? t.__('Edit place', 'membuild-community') : props.canEdit ? t._
   min-height: 52px;
   padding: 12px 16px;
   border: 1px solid var(--border-strong);
-  border-radius: 12px;
-  font-size: 17px;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-xl);
   background: var(--surface);
   color: var(--text);
   font: inherit;
@@ -447,12 +447,12 @@ const title = p ? t.__('Edit place', 'membuild-community') : props.canEdit ? t._
 
 .label {
   font-weight: 700;
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .field small {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .ends {
@@ -474,7 +474,7 @@ const title = p ? t.__('Edit place', 'membuild-community') : props.canEdit ? t._
 
 .kinds button {
   padding: 8px 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
@@ -511,11 +511,11 @@ const title = p ? t.__('Edit place', 'membuild-community') : props.canEdit ? t._
   align-items: flex-start;
   width: 100%;
   padding: 8px;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   background: none;
   color: var(--text);
   text-align: left;
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .matches button:hover {
@@ -532,7 +532,7 @@ const title = p ? t.__('Edit place', 'membuild-community') : props.canEdit ? t._
 .hint,
 .note {
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   margin: 0;
 }
 
@@ -568,7 +568,7 @@ const title = p ? t.__('Edit place', 'membuild-community') : props.canEdit ? t._
   width: 72px;
   height: 52px;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
 }
 
 .actions {
@@ -599,7 +599,7 @@ const title = p ? t.__('Edit place', 'membuild-community') : props.canEdit ? t._
   gap: 4px;
   padding: 16px;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
   text-align: left;
@@ -620,17 +620,17 @@ const title = p ? t.__('Edit place', 'membuild-community') : props.canEdit ? t._
   width: 38px;
   height: 38px;
   margin-bottom: 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--surface-2);
 }
 
 .pick strong {
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .pick small {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .dot {
@@ -654,10 +654,10 @@ const title = p ? t.__('Edit place', 'membuild-community') : props.canEdit ? t._
   gap: 10px;
   margin: 4px 0 0;
   padding: 14px 18px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface-2);
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
   line-height: 1.5;
 }
 
@@ -678,11 +678,11 @@ const title = p ? t.__('Edit place', 'membuild-community') : props.canEdit ? t._
   height: 44px;
   padding: 0 14px;
   border: 1px solid var(--border-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface);
   color: var(--text);
   font: inherit;
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 700;
 }
 
@@ -703,7 +703,7 @@ const title = p ? t.__('Edit place', 'membuild-community') : props.canEdit ? t._
 
 .day-row > strong {
   width: 110px;
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .times {
@@ -743,7 +743,7 @@ const title = p ? t.__('Edit place', 'membuild-community') : props.canEdit ? t._
   align-items: center;
   gap: 10px;
   margin-top: 6px;
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .place-form .same input {
@@ -782,9 +782,9 @@ const title = p ? t.__('Edit place', 'membuild-community') : props.canEdit ? t._
   min-height: 52px;
   padding: 0 14px;
   border: 1px solid var(--border-strong);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
-  font-size: 17px;
+  font-size: var(--fs-xl);
   font-weight: 600;
   cursor: pointer;
 }

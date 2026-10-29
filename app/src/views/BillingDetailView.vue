@@ -155,7 +155,7 @@ h1 {
 .sub {
   margin: 0 0 20px;
   color: var(--text-2);
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .box {
@@ -165,7 +165,7 @@ h1 {
 
 .box h2 {
   margin: 0 0 4px;
-  font-size: 18px;
+  font-size: var(--fs-2xl);
 }
 
 .row {
@@ -174,7 +174,7 @@ h1 {
   gap: 12px;
   padding: 14px 0;
   border-top: 1px solid var(--border);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .box > .row:first-child {
@@ -220,7 +220,7 @@ h1 {
 .actions .btn {
   min-height: 52px;
   padding: 0 22px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   white-space: nowrap;
 }
 
@@ -248,7 +248,7 @@ h1 {
   display: block;
   height: 14px;
   margin: 12px 0;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   background: var(--surface-2);
 }
 

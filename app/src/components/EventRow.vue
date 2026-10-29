@@ -70,7 +70,7 @@ const people = (n) =>
   align-items: center;
   gap: 20px;
   padding: 14px 18px 14px 14px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   color: var(--text);
   text-decoration: none;
   transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
@@ -80,7 +80,7 @@ const people = (n) =>
 @media (hover: hover) {
   .er:hover {
     border-color: var(--border-strong);
-    box-shadow: 0 10px 24px rgb(0 0 0 / 8%);
+    box-shadow: var(--shadow-pop);
     transform: translateY(-2px);
   }
 }
@@ -94,7 +94,7 @@ const people = (n) =>
   flex: none;
   width: 208px;
   aspect-ratio: 16 / 9;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: center / cover no-repeat;
 }
 
@@ -107,22 +107,22 @@ const people = (n) =>
   align-items: center;
   min-width: 46px;
   padding: 5px 8px;
-  border-radius: 10px;
-  background: #fff;
-  color: #111;
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  color: var(--ink);
   line-height: 1.1;
-  box-shadow: 0 1px 4px rgb(0 0 0 / 15%);
+  box-shadow: var(--shadow-sm);
 }
 
 .date small {
-  color: #e5484d;
-  font-size: 11px;
+  color: var(--live);
+  font-size: var(--fs-2xs);
   font-weight: 800;
   text-transform: uppercase;
 }
 
 .date strong {
-  font-size: 21px;
+  font-size: var(--fs-4xl);
 }
 
 .live {
@@ -130,10 +130,10 @@ const people = (n) =>
   right: 10px;
   bottom: 10px;
   padding: 3px 10px;
-  border-radius: 999px;
-  background: #e5484d;
-  color: #fff;
-  font-size: 12px;
+  border-radius: var(--radius-pill);
+  background: var(--live);
+  color: var(--on-color);
+  font-size: var(--fs-xs);
   font-weight: 700;
 }
 
@@ -146,10 +146,10 @@ const people = (n) =>
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: rgb(255 255 255 / 92%);
-  color: #16181d;
+  background: color-mix(in srgb, var(--on-color) 92%, transparent);
+  color: var(--ink);
   transform: translate(-50%, -50%);
-  box-shadow: 0 2px 10px rgb(0 0 0 / 20%);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--shadow-color) 20%, transparent);
 }
 
 .play :deep(path),
@@ -168,18 +168,18 @@ const people = (n) =>
 
 .day {
   color: var(--accent-text);
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: 700;
 }
 
 .when-past {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: 650;
 }
 
 .title {
-  font-size: 18px;
+  font-size: var(--fs-2xl);
   line-height: 1.3;
 }
 
@@ -192,7 +192,7 @@ const people = (n) =>
   align-items: center;
   gap: 8px;
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .line:first-of-type {
@@ -201,7 +201,7 @@ const people = (n) =>
 
 .line small {
   color: var(--text-3);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .replay {
@@ -209,13 +209,13 @@ const people = (n) =>
   align-items: center;
   gap: 8px;
   color: var(--accent-text);
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 700;
 }
 
 .muted {
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .add {
@@ -223,7 +223,7 @@ const people = (n) =>
   padding: 0 16px;
   background: var(--accent);
   color: var(--accent-ink, #16181d);
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 700;
 }
 
@@ -262,11 +262,11 @@ const people = (n) =>
   }
 
   .date small {
-    font-size: 9px;
+    font-size: var(--fs-3xs);
   }
 
   .date strong {
-    font-size: 16px;
+    font-size: var(--fs-lg);
   }
 
   .play {
@@ -275,7 +275,7 @@ const people = (n) =>
   }
 
   .title {
-    font-size: 16px;
+    font-size: var(--fs-lg);
   }
 
   .go {
@@ -293,7 +293,7 @@ const people = (n) =>
   }
 
   .line {
-    font-size: 14.5px;
+    font-size: var(--fs-base);
   }
 }
 </style>

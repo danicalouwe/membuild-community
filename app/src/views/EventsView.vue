@@ -107,7 +107,7 @@ onBeforeUnmount(() => observer?.disconnect())
 
 .head h1 {
   margin: 0 auto 0 0;
-  font-size: 26px;
+  font-size: var(--fs-6xl);
 }
 
 .tabs {
@@ -129,17 +129,17 @@ onBeforeUnmount(() => observer?.disconnect())
 .month h2 {
   margin: 0;
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .month h2.live-h {
-  color: #e5484d;
+  color: var(--live);
   letter-spacing: 0;
   text-transform: none;
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .sk {

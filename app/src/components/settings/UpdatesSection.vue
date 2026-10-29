@@ -102,7 +102,7 @@ const stop = () => run(() => api.stopUpdates(), t.__('Stopped. MemBuild no longe
 }
 
 .lead strong {
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 @media (max-width: 600px) {
@@ -136,7 +136,7 @@ const stop = () => run(() => api.stopUpdates(), t.__('Stopped. MemBuild no longe
 
 .muted {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
   margin: 10px 0 0;
 }
 

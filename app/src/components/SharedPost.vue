@@ -90,7 +90,7 @@ function open() {
   width: 100%;
   max-width: 360px;
   padding: 10px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
   border: 1px solid var(--border);
@@ -106,7 +106,7 @@ function open() {
   flex: none;
   width: 64px;
   height: 64px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   object-fit: cover;
 }
 
@@ -121,7 +121,7 @@ function open() {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--text-2);
   text-transform: uppercase;
@@ -132,7 +132,7 @@ function open() {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .when {
@@ -140,7 +140,7 @@ function open() {
 }
 
 .text {
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.4;
   color: var(--text);
   overflow-wrap: anywhere;

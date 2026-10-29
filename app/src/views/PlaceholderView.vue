@@ -31,14 +31,14 @@ defineProps({ icon: String, title: String, text: String })
   place-items: center;
   width: 64px;
   height: 64px;
-  border-radius: 20px;
+  border-radius: var(--radius-xl);
   background: var(--accent-soft);
   color: var(--accent-text);
 }
 
 h1 {
   margin: 16px 0 6px;
-  font-size: 22px;
+  font-size: var(--fs-4xl);
 }
 
 p {

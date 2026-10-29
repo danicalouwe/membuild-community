@@ -250,7 +250,7 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
 
 .inbox-head h1 {
   margin: 0;
-  font-size: 22px;
+  font-size: var(--fs-4xl);
 }
 
 .new {
@@ -276,7 +276,7 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
   gap: 12px;
   width: 100%;
   padding: 8px 10px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   text-align: left;
 }
 
@@ -336,14 +336,14 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
 }
 
 .text strong {
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .p {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 15px;
+  font-size: var(--fs-base);
   color: var(--text-2);
 }
 
@@ -363,7 +363,7 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
 }
 
 .when {
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--text-3);
 }
 
@@ -386,10 +386,10 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
   min-width: 20px;
   height: 20px;
   padding: 0 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--danger, #e02424);
-  color: #fff;
-  font-size: 12px;
+  color: var(--on-color);
+  font-size: var(--fs-xs);
   font-weight: 800;
 }
 
@@ -419,7 +419,7 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
   place-items: center;
   width: 64px;
   height: 64px;
-  border-radius: 20px;
+  border-radius: var(--radius-xl);
   background: var(--accent-soft);
   color: var(--accent-text);
 }

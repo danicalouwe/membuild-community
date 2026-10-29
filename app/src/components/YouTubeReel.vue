@@ -85,7 +85,7 @@ onBeforeUnmount(() => player?.destroy?.())
   position: relative;
   width: 100%;
   height: 100%;
-  background: #000;
+  background: var(--player-bg);
 }
 
 .host,
@@ -105,13 +105,13 @@ onBeforeUnmount(() => player?.destroy?.())
   align-items: center;
   justify-content: center;
   gap: 10px;
-  color: #ddd;
+  color: var(--player-text);
   text-align: center;
   padding: 24px;
 }
 
 .failed a {
-  color: #fff;
+  color: var(--on-color);
   font-weight: 650;
   text-decoration: underline;
 }

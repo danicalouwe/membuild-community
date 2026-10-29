@@ -311,7 +311,7 @@ const isFirstWait = (l) => {
   justify-content: center;
   gap: 6px 8px;
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-base);
   color: var(--text-2);
 }
 
@@ -322,7 +322,7 @@ const isFirstWait = (l) => {
 
 .kicker {
   margin: 0 0 8px;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -350,7 +350,7 @@ const isFirstWait = (l) => {
 }
 
 .mini-body small {
-  font-size: 14px;
+  font-size: var(--fs-md);
   color: var(--text-2);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -360,7 +360,7 @@ const isFirstWait = (l) => {
 
 .mini-body span {
   margin-top: 6px;
-  font-size: 14.5px;
+  font-size: var(--fs-base);
   font-weight: 700;
   color: var(--accent-text);
 }
@@ -384,7 +384,7 @@ const isFirstWait = (l) => {
 .step,
 .sec {
   width: min(680px, 100%);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   transition: box-shadow 0.3s ease, transform 0.3s ease;
 }
 
@@ -407,7 +407,7 @@ const isFirstWait = (l) => {
   place-items: center;
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--accent);
   color: var(--accent-ink);
 }
@@ -424,7 +424,7 @@ const isFirstWait = (l) => {
 
 .step-text small {
   display: block;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -432,16 +432,16 @@ const isFirstWait = (l) => {
 }
 
 .step-text strong {
-  font-size: 19px;
+  font-size: var(--fs-3xl);
 }
 
 .example {
   flex: 1 1 100%;
   padding: 12px 14px;
   border: 1px dashed var(--border-strong, #c9ced6);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface-2);
-  font-size: 15.5px;
+  font-size: var(--fs-lg);
   line-height: 1.55;
 }
 
@@ -452,7 +452,7 @@ const isFirstWait = (l) => {
 .finish-note {
   flex: 1 1 100%;
   margin: 0;
-  font-size: 15.5px;
+  font-size: var(--fs-lg);
   color: var(--text-2);
 }
 
@@ -462,10 +462,10 @@ const isFirstWait = (l) => {
   gap: 8px;
   min-height: 44px;
   padding: 0 16px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--warn-soft);
   color: var(--warn-text);
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 700;
 }
 
@@ -478,7 +478,7 @@ const isFirstWait = (l) => {
   align-self: center;
   margin: 2px auto;
   min-height: 38px;
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .sec {
@@ -499,11 +499,11 @@ const isFirstWait = (l) => {
 
 .sec header strong {
   flex: 1;
-  font-size: 18px;
+  font-size: var(--fs-2xl);
 }
 
 .sec header small {
-  font-size: 15px;
+  font-size: var(--fs-base);
   color: var(--text-2);
 }
 
@@ -514,7 +514,7 @@ const isFirstWait = (l) => {
   min-height: 60px;
   padding: 8px 8px 8px 14px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   transition: box-shadow 0.3s ease, transform 0.3s ease, background 0.3s ease;
 }
@@ -545,13 +545,13 @@ const isFirstWait = (l) => {
 
 @keyframes lit {
   0% {
-    box-shadow: 0 0 0 0 rgb(200 245 66 / 0%);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent);
   }
   55% {
-    box-shadow: 0 0 0 7px rgb(200 245 66 / 75%);
+    box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 75%, transparent);
   }
   100% {
-    box-shadow: 0 0 0 3px var(--accent), 0 10px 26px rgb(0 0 0 / 14%);
+    box-shadow: 0 0 0 3px var(--accent), 0 10px 26px color-mix(in srgb, var(--shadow-color) 14%, transparent);
   }
 }
 
@@ -591,13 +591,13 @@ const isFirstWait = (l) => {
 
 @keyframes fin {
   0% {
-    box-shadow: 0 0 0 0 rgb(200 245 66 / 0%);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent);
   }
   50% {
-    box-shadow: 0 0 0 12px rgb(200 245 66 / 55%);
+    box-shadow: 0 0 0 12px color-mix(in srgb, var(--accent) 55%, transparent);
   }
   100% {
-    box-shadow: 0 0 0 0 rgb(200 245 66 / 0%);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent);
   }
 }
 
@@ -642,7 +642,7 @@ const isFirstWait = (l) => {
   height: 28px;
   border-radius: 50%;
   background: var(--accent-soft);
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: 700;
 }
 
@@ -654,7 +654,7 @@ const isFirstWait = (l) => {
 .title {
   flex: 1;
   min-width: 0;
-  font-size: 16.5px;
+  font-size: var(--fs-xl);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -667,8 +667,8 @@ const isFirstWait = (l) => {
   gap: 5px;
   min-height: 32px;
   padding: 0 11px;
-  border-radius: 999px;
-  font-size: 14.5px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-base);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -727,7 +727,7 @@ button.chip:not(:disabled):hover {
   display: grid;
   place-items: center;
   padding: 20px;
-  background: rgb(16 24 40 / 35%);
+  background: color-mix(in srgb, var(--backdrop) 35%, transparent);
 }
 
 .pop {
@@ -754,12 +754,12 @@ button.chip:not(:disabled):hover {
 
 .pop header strong {
   display: block;
-  font-size: 19px;
+  font-size: var(--fs-3xl);
 }
 
 .pop header small {
   display: block;
-  font-size: 15px;
+  font-size: var(--fs-base);
   color: var(--text-2);
 }
 
@@ -782,12 +782,12 @@ button.chip:not(:disabled):hover {
 
 .who strong {
   display: block;
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .who small {
   display: block;
-  font-size: 14.5px;
+  font-size: var(--fs-base);
   color: var(--text-2);
 }
 

@@ -67,7 +67,7 @@ const panelStyle = () => ({
   display: grid;
   place-items: center;
   padding: 24px;
-  background: rgb(10 11 13 / 72%);
+  background: color-mix(in srgb, var(--backdrop) 72%, transparent);
   animation: fade 0.15s ease;
 }
 
@@ -84,8 +84,8 @@ const panelStyle = () => ({
   max-height: calc(100dvh - 48px);
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgb(0 0 0 / 40%);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lift);
   overflow: hidden;
   outline: none;
 }
@@ -102,7 +102,7 @@ const panelStyle = () => ({
 
 .top h2 {
   margin: 0;
-  font-size: 19px;
+  font-size: var(--fs-3xl);
   font-weight: 700;
   text-align: center;
   text-transform: none;
@@ -152,7 +152,7 @@ const panelStyle = () => ({
   .phone-sheet .dialog {
     width: 100% !important;
     max-height: 85dvh !important;
-    border-radius: 16px 16px 0 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   }
 }
 </style>

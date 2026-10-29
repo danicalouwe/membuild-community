@@ -70,12 +70,12 @@ const ticked = ref(false)
 
 h2 {
   margin: 0;
-  font-size: 24px;
+  font-size: var(--fs-5xl);
   line-height: 1.25;
 }
 
 .text {
-  font-size: 17px;
+  font-size: var(--fs-xl);
   line-height: 1.55;
   color: var(--text-2);
 }
@@ -86,7 +86,7 @@ h2 {
 
 .text :deep(.note) {
   padding: 12px 14px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--danger-soft);
   color: var(--danger-ink);
 }
@@ -96,7 +96,7 @@ h2 {
   align-items: center;
   gap: 12px;
   min-height: 44px;
-  font-size: 17px;
+  font-size: var(--fs-xl);
   font-weight: 600;
 }
 
@@ -114,7 +114,7 @@ h2 {
 }
 
 .red {
-  background: #b42318;
-  color: #fff;
+  background: var(--danger-strong);
+  color: var(--on-color);
 }
 </style>

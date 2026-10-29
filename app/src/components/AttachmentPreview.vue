@@ -44,17 +44,17 @@ const progressLabel = (item) => t.sprintf(/* translators: 1: upload stage, e.g. 
   position: absolute;
   inset: auto 0 0;
   padding: 6px 8px;
-  font-size: 11px;
+  font-size: var(--fs-2xs);
   font-weight: 600;
-  color: #fff;
-  background: linear-gradient(transparent, rgb(0 0 0 / 70%));
+  color: var(--on-color);
+  background: linear-gradient(transparent, color-mix(in srgb, var(--scrim) 70%, transparent));
 }
 
 .progress i {
   display: block;
   height: 3px;
   margin-top: 4px;
-  background: #fff;
+  background: var(--on-color);
   border-radius: 2px;
   transform-origin: left;
   transition: transform 0.2s linear;
@@ -73,8 +73,8 @@ const progressLabel = (item) => t.sprintf(/* translators: 1: upload stage, e.g. 
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  color: #fff;
-  background: rgb(0 0 0 / 60%);
+  color: var(--on-color);
+  background: color-mix(in srgb, var(--scrim) 60%, transparent);
 }
 
 .remove {

@@ -163,7 +163,7 @@ function paste(e) {
 <style scoped>
 .rich {
   border: 1px solid var(--border-strong, #c9ced6);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   overflow: hidden;
 }
@@ -180,8 +180,8 @@ function paste(e) {
 .tools button {
   height: 44px;
   padding: 0 14px;
-  border-radius: 10px;
-  font-size: 16px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-lg);
   font-weight: 650;
   color: var(--text);
 }
@@ -216,17 +216,17 @@ function paste(e) {
   height: 52px;
   padding: 0 14px;
   border: 1px solid var(--border-strong, #c9ced6);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--text);
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .area {
   position: relative;
   min-height: 160px;
   padding: 14px 16px;
-  font-size: 17px;
+  font-size: var(--fs-xl);
   line-height: 1.6;
   outline: none;
 }
@@ -240,6 +240,6 @@ function paste(e) {
 
 .area :deep(img) {
   max-width: 100%;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
 }
 </style>

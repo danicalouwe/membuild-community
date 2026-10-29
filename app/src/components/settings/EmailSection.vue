@@ -146,8 +146,8 @@ const goesThrough = (plugin) => t.sprintf(/* translators: %s: name of the SMTP p
   gap: 10px;
   margin: 14px 0 0;
   padding: 14px 16px;
-  border-radius: 12px;
-  font-size: 15px;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-base);
   line-height: 1.5;
 }
 

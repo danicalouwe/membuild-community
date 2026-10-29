@@ -111,7 +111,7 @@ async function forgetAsk() {
 .usage {
   padding: 14px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
 }
 
 .answers {
@@ -131,7 +131,7 @@ async function forgetAsk() {
 
 .muted {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
   margin: 10px 0 0;
 }
 
@@ -142,15 +142,15 @@ async function forgetAsk() {
 .preview summary {
   cursor: pointer;
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .preview pre {
   margin: 8px 0;
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   background: var(--surface-2);
-  font-size: 12px;
+  font-size: var(--fs-xs);
   line-height: 1.5;
   overflow-x: auto;
   max-height: 260px;
@@ -183,7 +183,7 @@ async function forgetAsk() {
   background: none;
   color: var(--text);
   font: inherit;
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 700;
   text-decoration: underline;
   cursor: pointer;

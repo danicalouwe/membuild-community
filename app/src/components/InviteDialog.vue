@@ -66,7 +66,7 @@ async function copy(text, what) {
 .title {
   margin: 0;
   padding: 28px 30px 0;
-  font-size: 24px;
+  font-size: var(--fs-5xl);
 }
 
 .body {
@@ -79,13 +79,13 @@ async function copy(text, what) {
 .text {
   margin: 0 0 8px;
   color: var(--text-2);
-  font-size: 16px;
+  font-size: var(--fs-lg);
   line-height: 1.5;
 }
 
 .label {
   margin-top: 6px;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 700;
 }
 
@@ -107,11 +107,11 @@ textarea {
   min-height: 52px;
   padding: 0 16px;
   border: 1px solid var(--border-strong);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: var(--text);
   background: var(--surface);
   font: inherit;
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 textarea {
@@ -129,8 +129,8 @@ textarea {
   gap: 8px;
   min-height: 52px;
   padding: 0 24px;
-  border-radius: 999px;
-  font-size: 17px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xl);
   font-weight: 700;
 }
 
@@ -157,10 +157,10 @@ textarea {
   gap: 10px;
   margin: 10px 0 0;
   padding: 14px 16px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: var(--text-2);
   background: var(--surface-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
   line-height: 1.5;
 }
 
@@ -183,7 +183,7 @@ textarea {
 @media (max-width: 767px) {
   .title {
     padding: 22px 20px 0;
-    font-size: 21px;
+    font-size: var(--fs-4xl);
   }
 
   .body {

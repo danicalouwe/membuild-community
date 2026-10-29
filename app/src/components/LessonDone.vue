@@ -125,10 +125,10 @@ const opensOn = (iso) => t.sprintf(/* translators: %s: a date, e.g. "Thu, Oct 29
   gap: 16px;
   width: min(460px, calc(100vw - 24px)); /* the buttons have their own row, so the card can be narrow */
   padding: 16px 16px 16px 18px;
-  border-radius: 18px;
+  border-radius: var(--radius-xl);
   background: var(--surface);
   border: 1px solid var(--border);
-  box-shadow: 0 16px 40px rgb(0 0 0 / 30%);
+  box-shadow: var(--shadow-lift);
   transform: translateX(-50%);
   overflow: hidden;
 }
@@ -140,9 +140,9 @@ const opensOn = (iso) => t.sprintf(/* translators: %s: a date, e.g. "Thu, Oct 29
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3fd082, #1f9d55);
-  color: #fff;
-  box-shadow: 0 8px 22px rgb(31 157 85 / 35%);
+  background: linear-gradient(135deg, var(--ok), var(--ok-strong));
+  color: var(--on-color);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--ok) 35%, transparent);
   animation: pop 0.6s cubic-bezier(0.3, 1.6, 0.5, 1);
 }
 
@@ -159,12 +159,12 @@ const opensOn = (iso) => t.sprintf(/* translators: %s: a date, e.g. "Thu, Oct 29
 
 .text strong {
   display: block;
-  font-size: 18px;
+  font-size: var(--fs-2xl);
 }
 
 .text p {
   margin: 3px 0 0;
-  font-size: 15.5px;
+  font-size: var(--fs-lg);
   color: var(--text-2);
 }
 
@@ -179,7 +179,7 @@ const opensOn = (iso) => t.sprintf(/* translators: %s: a date, e.g. "Thu, Oct 29
   bottom: 0;
   left: 18px;
   height: 4px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   overflow: hidden;
 }
@@ -338,7 +338,7 @@ const opensOn = (iso) => t.sprintf(/* translators: %s: a date, e.g. "Thu, Oct 29
   }
 
   .text strong {
-    font-size: 17px;
+    font-size: var(--fs-xl);
   }
 
   .text .line {

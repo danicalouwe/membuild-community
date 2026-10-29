@@ -100,11 +100,11 @@ const capFor = (action) => t.sprintf(/* translators: %s: an action that earns po
   height: 52px;
   padding: 0 14px;
   border: 1px solid var(--border-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface);
   color: var(--text);
   font: inherit;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 700;
   cursor: pointer;
 }
@@ -130,7 +130,7 @@ h3 {
   justify-content: flex-end;
   gap: 6px;
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 
@@ -157,7 +157,7 @@ h3 {
 
 .after small {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .after .err {
@@ -172,7 +172,7 @@ h3 {
   background: none;
   color: var(--text);
   font: inherit;
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 700;
   text-decoration: underline;
   cursor: pointer;
@@ -184,10 +184,10 @@ h3 {
   align-items: flex-start;
   margin-top: 14px;
   padding: 14px 16px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--warn-soft);
   color: var(--warn-text);
-  font-size: 15px;
+  font-size: var(--fs-base);
   line-height: 1.5;
 }
 

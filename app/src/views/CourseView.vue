@@ -551,7 +551,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
     gap: 10px;
     margin: 8px 12px;
     padding: 6px 6px 6px 14px;
-    font-size: 15px;
+    font-size: var(--fs-base);
   }
 
   .preview-bar.preview-bar .pv-short {
@@ -568,7 +568,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
   .preview-bar.preview-bar .btn {
     flex: none;
     padding: 0 16px;
-    font-size: 15px;
+    font-size: var(--fs-base);
   }
 
   .preview-bar .pv-long {
@@ -613,15 +613,15 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
   max-width: min(320px, calc(100vw - 24px));
   padding: 8px 12px;
   overflow-wrap: anywhere;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--text);
   color: var(--surface);
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: 600;
   line-height: 1.4;
   transform: translateY(-100%);
   pointer-events: none;
-  box-shadow: 0 6px 18px rgb(0 0 0 / 18%);
+  box-shadow: var(--shadow-pop);
 }
 
 /* A long lesson title stays on one line in the outline (…); pointing at it shows the full title. */
@@ -639,10 +639,10 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
   gap: 12px;
   margin-bottom: 16px;
   padding: 10px 10px 10px 18px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: var(--accent-soft);
   color: var(--text);
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 600;
 }
 
@@ -656,7 +656,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
 
 .how {
   margin-top: 10px !important;
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .cta {
@@ -681,9 +681,9 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
   justify-content: center;
   gap: 6px;
   padding: 16px;
-  border-radius: 12px;
-  background: rgb(0 0 0 / 78%);
-  color: #fff;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--scrim) 78%, transparent);
+  color: var(--on-color);
   text-align: center;
 }
 
@@ -695,7 +695,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
 }
 
 .up-next strong {
-  font-size: 20px;
+  font-size: var(--fs-3xl);
 }
 
 .up-actions {
@@ -705,7 +705,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
 }
 
 .up-actions .btn-ghost {
-  color: #fff;
+  color: var(--on-color);
 }
 
 .lesson-talk {
@@ -739,13 +739,13 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
 }
 
 .lv-wait h2 {
-  font-size: 26px;
+  font-size: var(--fs-6xl);
 }
 
 .card.locked.lv-wait p {
   max-width: 520px;
   margin: 0 auto;
-  font-size: 18px;
+  font-size: var(--fs-2xl);
   line-height: 1.6;
 }
 
@@ -759,10 +759,10 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
   gap: 6px;
   margin-top: 18px;
   padding: 6px 16px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--text);
   color: var(--surface);
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 700;
 }
 
@@ -797,7 +797,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
   align-items: center;
   gap: 6px;
   min-height: 44px;
-  font-size: 17px;
+  font-size: var(--fs-xl);
   font-weight: 650;
   color: var(--text-2);
 }
@@ -846,8 +846,8 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
   gap: 6px;
   height: 44px;
   padding: 0 12px;
-  border-radius: 999px;
-  font-size: 16px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-lg);
   font-weight: 700;
   color: var(--text);
 }
@@ -858,7 +858,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
 
 .lv-draft {
   margin: 0 0 12px;
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 650;
   color: var(--warn-text);
 }
@@ -885,7 +885,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
 
 .lv-cover {
   aspect-ratio: 16 / 9;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 
@@ -902,7 +902,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
 
 .lv-ohead h1 {
   margin: 0 0 12px;
-  font-size: 21px;
+  font-size: var(--fs-4xl);
   line-height: 1.25;
 }
 
@@ -910,14 +910,14 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
   display: flex;
   justify-content: space-between;
   margin-bottom: 8px;
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 650;
   color: var(--text-2);
 }
 
 .lv-track {
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   overflow: hidden;
 }
@@ -938,7 +938,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
 
 .lv-module {
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius);
   padding: 4px 6px 6px;
 }
 
@@ -954,13 +954,13 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
 
 .lv-mhead strong {
   display: block;
-  font-size: 16.5px;
+  font-size: var(--fs-xl);
 }
 
 .lv-mhead small {
   display: block;
   margin-top: 2px;
-  font-size: 14px;
+  font-size: var(--fs-md);
   color: var(--text-2);
 }
 
@@ -986,9 +986,9 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
   width: 100%;
   min-height: 48px;
   padding: 8px 10px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   text-align: left;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 600;
   color: var(--text);
 }
@@ -1004,7 +1004,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
 .lv-none {
   padding: 8px 10px;
   color: var(--text-3);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .lv-mark {
@@ -1019,9 +1019,9 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
 }
 
 .lv-mark.done {
-  border-color: #2fb36b;
-  background: #2fb36b;
-  color: #fff;
+  border-color: var(--ok);
+  background: var(--ok);
+  color: var(--on-color);
 }
 
 .lv-mark.locked {
@@ -1049,15 +1049,15 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
   gap: 4px;
   padding: 4px;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--surface);
 }
 
 .lv-tabs button {
   flex: 1;
   height: 44px;
-  border-radius: 10px;
-  font-size: 16.5px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-xl);
   font-weight: 650;
   color: var(--text-2);
 }
@@ -1110,13 +1110,13 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
 }
 
 .lv-done {
-  background: #1f8a4c; /* solid green, white text: this lesson is done */
-  color: #fff;
+  background: var(--ok-strong); /* solid green, white text: this lesson is done */
+  color: var(--on-color);
   white-space: nowrap;
 }
 
 .lv-done:hover {
-  background: #1a7742;
+  background: color-mix(in srgb, var(--ok-strong) 86%, var(--scrim));
 }
 
 .lv-contents,
@@ -1131,7 +1131,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
 
 .lv-player {
   position: relative;
-  background: #000;
+  background: var(--player-bg);
 }
 
 .lv-player :deep(.credit) {
@@ -1139,7 +1139,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
   padding: 8px 16px;
   background: var(--surface);
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .lv-body {
@@ -1148,12 +1148,12 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
 
 .lv-title {
   margin: 0 0 14px;
-  font-size: 28px;
+  font-size: var(--fs-7xl);
   line-height: 1.2;
 }
 
 .lv-md {
-  font-size: 18px;
+  font-size: var(--fs-2xl);
   line-height: 1.6;
 }
 
@@ -1165,7 +1165,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
 
 .lv-files h3 {
   margin: 0 0 14px;
-  font-size: 20px;
+  font-size: var(--fs-3xl);
 }
 
 .lv-files h3 span {
@@ -1179,7 +1179,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
   gap: 14px;
   padding: 12px 14px;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius);
 }
 
 .lv-fbtns {
@@ -1199,13 +1199,13 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
 
 .lv-fname strong {
   display: block;
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .lv-fname small {
   display: block;
   margin-top: 2px;
-  font-size: 15px;
+  font-size: var(--fs-base);
   color: var(--text-2);
 }
 
@@ -1262,9 +1262,9 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
     height: 48px;
     padding: 0 14px;
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     background: var(--surface);
-    font-size: 16px;
+    font-size: var(--fs-lg);
     font-weight: 650;
   }
 
@@ -1273,7 +1273,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
   }
 
   .lv-tabs button {
-    font-size: 15.5px;
+    font-size: var(--fs-lg);
   }
 
   .lv-main > :not(.lv-bar) {
@@ -1297,7 +1297,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
   }
 
   .lv-title {
-    font-size: 24px;
+    font-size: var(--fs-5xl);
   }
 
   .lv-file {
@@ -1324,7 +1324,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
     padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
     background: var(--surface);
     border-top: 1px solid var(--border);
-    box-shadow: 0 -6px 20px rgb(16 24 40 / 8%);
+    box-shadow: 0 -6px 20px color-mix(in srgb, var(--shadow-color) 8%, transparent);
   }
 
   .lv-dock .btn {

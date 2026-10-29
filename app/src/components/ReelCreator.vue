@@ -255,12 +255,12 @@ onMounted(() => props.file && pick(props.file))
 }
 
 .me strong {
-  font-size: 26px;
+  font-size: var(--fs-6xl);
   line-height: 1.2;
 }
 
 .me small {
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .editor {
@@ -280,7 +280,7 @@ onMounted(() => props.file && pick(props.file))
   gap: 8px;
   padding: 28px 18px;
   border: 2px dashed var(--border-strong);
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--surface-2);
   text-align: center;
 }
@@ -301,12 +301,12 @@ onMounted(() => props.file && pick(props.file))
 }
 
 .drop strong {
-  font-size: 18px;
+  font-size: var(--fs-2xl);
 }
 
 .drop small {
   margin-bottom: 8px;
-  font-size: 15px;
+  font-size: var(--fs-base);
   color: var(--text-2);
 }
 
@@ -316,7 +316,7 @@ onMounted(() => props.file && pick(props.file))
   justify-content: center;
   gap: 8px;
   min-height: 44px;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 700;
   color: var(--text);
 }
@@ -330,7 +330,7 @@ onMounted(() => props.file && pick(props.file))
 }
 
 .label {
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 700;
 }
 
@@ -346,11 +346,11 @@ onMounted(() => props.file && pick(props.file))
   min-height: 52px;
   padding: 13px 16px;
   border: 1px solid var(--border-strong);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: var(--text);
   background: var(--surface);
   font: inherit;
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .editor textarea {
@@ -367,7 +367,7 @@ onMounted(() => props.file && pick(props.file))
 .upload span {
   display: flex;
   justify-content: space-between;
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .upload > i {
@@ -375,14 +375,14 @@ onMounted(() => props.file && pick(props.file))
   height: 10px;
   margin-top: 8px;
   overflow: hidden;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
 }
 
 .upload > i > i {
   display: block;
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent);
   transform-origin: left;
   transition: transform 0.2s ease;
@@ -390,7 +390,7 @@ onMounted(() => props.file && pick(props.file))
 
 .note {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--fs-md);
   color: var(--text-2);
 }
 
@@ -400,7 +400,7 @@ onMounted(() => props.file && pick(props.file))
   gap: 6px;
   margin: 0;
   font-weight: 650;
-  color: #1f7a49;
+  color: var(--ok-text);
 }
 
 .found {
@@ -408,10 +408,10 @@ onMounted(() => props.file && pick(props.file))
   gap: 10px;
   margin: 0;
   padding: 14px 16px;
-  border-radius: 12px;
-  background: #e5f4ea;
-  color: #1d5c36;
-  font-size: 15px;
+  border-radius: var(--radius-md);
+  background: var(--ok-soft);
+  color: var(--ok-text);
+  font-size: var(--fs-base);
   line-height: 1.45;
 }
 
@@ -428,8 +428,8 @@ onMounted(() => props.file && pick(props.file))
   gap: 8px;
   min-height: 52px;
   padding: 0 24px;
-  border-radius: 999px;
-  font-size: 16px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-lg);
   font-weight: 700;
 }
 
@@ -457,7 +457,7 @@ onMounted(() => props.file && pick(props.file))
   gap: 8px;
   margin: 14px 0 0;
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
   line-height: 1.45;
 }
 
@@ -492,13 +492,13 @@ onMounted(() => props.file && pick(props.file))
   min-height: 0;
   padding: 16px 18px 18px;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: var(--surface);
 }
 
 .preview-card h2 {
   margin: 0 0 14px;
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .stage {
@@ -507,8 +507,8 @@ onMounted(() => props.file && pick(props.file))
   place-items: center;
   min-height: 0;
   padding: 20px;
-  border-radius: 12px;
-  background: #18191d;
+  border-radius: var(--radius-md);
+  background: var(--player-surface);
 }
 
 .reel {
@@ -519,10 +519,10 @@ onMounted(() => props.file && pick(props.file))
   max-height: 100%;
   aspect-ratio: 9 / 16;
   overflow: hidden;
-  border: 1px solid rgb(255 255 255 / 55%);
-  border-radius: 12px;
-  color: #fff;
-  background: #24262b;
+  border: 1px solid color-mix(in srgb, var(--on-color) 55%, transparent);
+  border-radius: var(--radius-md);
+  color: var(--on-color);
+  background: var(--player-surface);
 }
 
 .reel img,
@@ -536,9 +536,9 @@ onMounted(() => props.file && pick(props.file))
 
 .empty {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 650;
-  color: rgb(255 255 255 / 55%);
+  color: color-mix(in srgb, var(--on-color) 55%, transparent);
 }
 
 .shade {
@@ -548,13 +548,13 @@ onMounted(() => props.file && pick(props.file))
   flex-direction: column;
   gap: 2px;
   padding: 60px 16px 18px;
-  background: linear-gradient(transparent, rgb(0 0 0 / 70%));
-  font-size: 15px;
+  background: linear-gradient(transparent, color-mix(in srgb, var(--scrim) 70%, transparent));
+  font-size: var(--fs-base);
   line-height: 1.4;
 }
 
 .shade strong {
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .shade span {
@@ -562,7 +562,7 @@ onMounted(() => props.file && pick(props.file))
 }
 
 .shade small {
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: 650;
   opacity: 0.9;
 }
@@ -593,7 +593,7 @@ onMounted(() => props.file && pick(props.file))
   }
 
   .me strong {
-    font-size: 22px;
+    font-size: var(--fs-4xl);
   }
 
   .right {

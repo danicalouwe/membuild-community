@@ -43,12 +43,12 @@ api.leaderboard('all').then((d) => (data.value = d)).catch(() => {})
 
 .back-link {
   min-height: 52px;
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 h1 {
   margin: 0;
-  font-size: 26px;
+  font-size: var(--fs-6xl);
 }
 
 .earn-flat {

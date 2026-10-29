@@ -92,10 +92,10 @@ function toggleSound(e) {
   top: 50%;
   transform: translate(-50%, -50%);
   padding: 8px 14px;
-  border-radius: 999px;
-  background: rgb(0 0 0 / 65%);
-  color: #fff;
-  font-size: 14px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--scrim) 65%, transparent);
+  color: var(--on-color);
+  font-size: var(--fs-md);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -105,7 +105,7 @@ function toggleSound(e) {
   display: block;
   max-height: 620px;
   margin: 0 auto;
-  background: #000;
+  background: var(--player-bg);
   overflow: hidden;
 }
 
@@ -121,9 +121,9 @@ function toggleSound(e) {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #fff;
-  background: rgb(0 0 0 / 55%);
-  border-radius: 999px;
+  color: var(--on-color);
+  background: color-mix(in srgb, var(--scrim) 55%, transparent);
+  border-radius: var(--radius-pill);
 }
 
 .sound {
@@ -138,7 +138,7 @@ function toggleSound(e) {
   left: 10px;
   top: 10px;
   padding: 4px 9px;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 600;
 }
 </style>

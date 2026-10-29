@@ -368,12 +368,12 @@ h1 {
   flex-direction: column;
   gap: 18px;
   padding: 26px 28px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
 }
 
 .box h2 {
   margin: 0;
-  font-size: 20px;
+  font-size: var(--fs-3xl);
 }
 
 .sub {
@@ -403,7 +403,7 @@ h1 {
   align-items: flex-start;
   gap: 8px;
   padding: 10px 14px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
 }
 
 .field .zone-hint.ok {
@@ -429,7 +429,7 @@ select.ask {
 .field small,
 .cover-act small {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.5;
 }
 
@@ -440,11 +440,11 @@ select {
   min-height: 48px;
   padding: 10px 14px;
   border: 1px solid var(--border-strong);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--text);
   font: inherit;
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 textarea {
@@ -462,7 +462,7 @@ textarea {
   flex: none;
   width: 220px;
   aspect-ratio: 16 / 9;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: center / cover no-repeat;
 }
 
@@ -471,10 +471,10 @@ textarea {
   bottom: 10px;
   left: 10px;
   padding: 2px 10px;
-  border-radius: 999px;
-  background: rgb(0 0 0 / 55%);
-  color: #fff;
-  font-size: 12px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--scrim) 55%, transparent);
+  color: var(--on-color);
+  font-size: var(--fs-xs);
   font-weight: 700;
 }
 
@@ -507,7 +507,7 @@ textarea {
   height: 44px;
   padding: 0 18px;
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   color: var(--text);
   font-weight: 650;
@@ -538,7 +538,7 @@ textarea {
   gap: 4px;
   padding: 16px;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
   text-align: left;
@@ -559,17 +559,17 @@ textarea {
   width: 38px;
   height: 38px;
   margin-bottom: 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--surface-2);
 }
 
 .pick strong {
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .pick small {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .dot {
@@ -604,7 +604,7 @@ textarea {
   gap: 8px;
   width: 100%;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   text-align: left;
 }
 
@@ -615,7 +615,7 @@ textarea {
 .mini {
   height: 220px;
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
 }
 
 .remind {
@@ -623,7 +623,7 @@ textarea {
   gap: 10px;
   margin: 0;
   padding: 14px 16px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface-2);
   color: var(--text-2);
   line-height: 1.5;
@@ -641,8 +641,8 @@ textarea {
   align-items: center;
   gap: 10px;
   padding: 12px 12px 12px 20px;
-  border-radius: 16px;
-  box-shadow: 0 8px 28px rgb(0 0 0 / 12%);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop);
 }
 
 .bar span {

@@ -163,13 +163,13 @@ header {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 17px;
+  font-size: var(--fs-xl);
   font-weight: 650;
 }
 
 .see-all {
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .wrap {
@@ -196,9 +196,9 @@ header {
   flex: none;
   width: 192px;
   aspect-ratio: 192 / 343;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
-  background: #111;
+  background: var(--player-bg);
   scroll-snap-align: start;
   transition: transform 0.15s ease;
 }
@@ -236,9 +236,9 @@ header {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  color: #fff;
+  color: var(--on-color);
   fill: currentColor;
-  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 55%));
+  filter: drop-shadow(0 1px 2px color-mix(in srgb, var(--scrim) 55%, transparent));
   opacity: 0;
   transition: opacity 0.15s ease;
 }
@@ -250,7 +250,7 @@ header {
 }
 
 .dots:hover {
-  background: rgb(0 0 0 / 25%);
+  background: color-mix(in srgb, var(--scrim) 25%, transparent);
 }
 
 .reel-menu {
@@ -260,10 +260,10 @@ header {
   flex-direction: column;
   width: 200px;
   padding: 6px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   border: 1px solid var(--border);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 25%);
+  box-shadow: var(--shadow-pop);
 }
 
 .reel-menu button {
@@ -271,7 +271,7 @@ header {
   align-items: center;
   gap: 10px;
   padding: 9px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   font-weight: 600;
   text-align: left;
 }
@@ -293,13 +293,13 @@ header {
   height: 48px;
   margin-top: -24px;
   border-radius: 50%;
-  color: #fff;
-  background: rgb(40 41 46 / 92%);
-  box-shadow: 0 2px 10px rgb(0 0 0 / 35%);
+  color: var(--on-color);
+  background: color-mix(in srgb, var(--player-surface) 92%, transparent);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--shadow-color) 35%, transparent);
 }
 
 .arrow:hover {
-  background: rgb(58 59 64 / 96%);
+  background: color-mix(in srgb, var(--player-line) 96%, transparent);
 }
 
 .arrow.left {

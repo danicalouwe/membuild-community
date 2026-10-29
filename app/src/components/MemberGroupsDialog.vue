@@ -91,7 +91,7 @@ function line(g) {
 .title {
   margin: 0;
   padding: 32px 32px 0;
-  font-size: 24px;
+  font-size: var(--fs-5xl);
 }
 
 .body {
@@ -104,7 +104,7 @@ function line(g) {
 .intro {
   margin: 0 0 8px;
   color: var(--text-2);
-  font-size: 16px;
+  font-size: var(--fs-lg);
   line-height: 1.55;
 }
 
@@ -139,12 +139,12 @@ function line(g) {
 }
 
 .what strong {
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .what small {
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .switch {
@@ -154,7 +154,7 @@ function line(g) {
   width: 52px;
   height: 30px;
   margin: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--border-strong);
   cursor: pointer;
   transition: background 0.15s;
@@ -168,8 +168,8 @@ function line(g) {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 25%);
+  background: var(--on-color);
+  box-shadow: var(--shadow-sm);
   transition: transform 0.15s;
 }
 

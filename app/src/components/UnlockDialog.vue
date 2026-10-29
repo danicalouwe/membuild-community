@@ -143,14 +143,14 @@ const partOf = computed(() =>
 
 h2 {
   margin: 4px 0 0;
-  font-size: 26px;
+  font-size: var(--fs-6xl);
   line-height: 1.25;
 }
 
 .say {
   margin: 0;
   color: var(--text-2);
-  font-size: 17px;
+  font-size: var(--fs-xl);
   line-height: 1.55;
 }
 
@@ -170,7 +170,7 @@ h2 {
   align-items: flex-start;
   gap: 10px;
   padding: 5px 0;
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .gets :deep(svg) {
@@ -184,12 +184,12 @@ h2 {
   align-items: baseline;
   gap: 8px;
   padding: 16px 18px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface-2);
 }
 
 .price b {
-  font-size: 28px;
+  font-size: var(--fs-7xl);
 }
 
 .price span {
@@ -221,13 +221,13 @@ h2 {
   justify-content: space-between;
   margin-top: 4px;
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 650;
 }
 
 .bar {
   height: 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   overflow: hidden;
 }
@@ -242,7 +242,7 @@ h2 {
 .lbl {
   margin: 8px 0 0;
   font-weight: 700;
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .earn li {
@@ -251,7 +251,7 @@ h2 {
   gap: 12px;
   padding: 12px 0;
   border-top: 1px solid var(--border);
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .earn b {
@@ -268,7 +268,7 @@ h2 {
     width: 40px;
     height: 5px;
     margin: 10px auto 0;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     background: var(--border-strong);
   }
 
@@ -281,7 +281,7 @@ h2 {
   }
 
   h2 {
-    font-size: 23px;
+    font-size: var(--fs-5xl);
   }
 }
 </style>

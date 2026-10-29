@@ -187,19 +187,19 @@ function removeLogo() {
   gap: 10px 14px;
   margin-top: 14px;
   padding: 12px 16px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
 }
 
 .preview span {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .preview b {
   padding: 8px 16px;
-  border-radius: 999px;
-  font-size: 15px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-base);
 }
 
 .p-btn {
@@ -242,7 +242,7 @@ function removeLogo() {
   height: 84px;
   overflow: hidden;
   border: 2px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: #f3f4f6;
 }
 
@@ -263,7 +263,7 @@ function removeLogo() {
   top: 30px;
   right: 12px;
   height: 26px;
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
   background: #fff;
 }
 
@@ -338,7 +338,7 @@ function removeLogo() {
   height: 16px;
   border-radius: 50%;
   transform: translateY(-50%);
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 15%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--on-color) 15%, transparent);
   pointer-events: none;
 }
 

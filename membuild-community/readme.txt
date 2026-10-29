@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.13.4
+Stable tag: 1.13.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,13 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.13.5 =
+* Dark mode fixes: the Places "New" tag and news box, the Search topic icons, a few green status words and the Reels "more" menu no longer show as bright light-mode patches.
+* The "Course finished" badge and the Course map's pulse now use your main colour; before, they were always lime.
+* A tidier scale: odd in-between text sizes and corners now snap to the nearest standard step, and event titles and member names share one large size. Most screens look the same; a few lines are a pixel larger.
+* Shadows come in three depths (small, pop-up, lifted), so menus, toasts and dialogs sit on the page the same way everywhere.
+* Groundwork for Community themes: every text size, corner, colour and shadow now comes from one shared set of settings, so a theme can restyle the whole community at once.
 
 = 1.13.4 =
 * Search boxes that look inside one section (a lesson's discussion, Messages, the chats panel, and the emoji, GIF and feeling pickers) now match the filters beside them: the same height, the same grey and round ends, a search icon in each, and a thin ring in your main colour while you type.

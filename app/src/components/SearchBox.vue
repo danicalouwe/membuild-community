@@ -213,7 +213,7 @@ const noneLabel = computed(() => t.sprintf(/* translators: %s: the search text *
   width: 240px;
   height: 40px;
   padding: 0 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   color: var(--text-2);
 }
@@ -230,7 +230,7 @@ const noneLabel = computed(() => t.sprintf(/* translators: %s: the search text *
   border: 0;
   background: transparent;
   color: var(--text);
-  font-size: 15px;
+  font-size: var(--fs-base);
   outline: none;
   box-shadow: none;
 }
@@ -251,8 +251,8 @@ const noneLabel = computed(() => t.sprintf(/* translators: %s: the search text *
   max-height: min(80vh, 800px);
   padding: 10px 0 0;
   overflow: hidden;
-  border-radius: 16px;
-  box-shadow: 0 12px 32px rgb(16 24 40 / 16%);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--shadow-color) 16%, transparent);
 }
 
 .panel > .start {
@@ -270,7 +270,7 @@ const noneLabel = computed(() => t.sprintf(/* translators: %s: the search text *
 .list h2 {
   margin: 12px 16px 4px;
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -283,7 +283,7 @@ const noneLabel = computed(() => t.sprintf(/* translators: %s: the search text *
 .note {
   margin: 16px;
   color: var(--text-2);
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .sk {
@@ -328,10 +328,10 @@ const noneLabel = computed(() => t.sprintf(/* translators: %s: the search text *
   gap: 10px;
   width: 100%;
   min-height: 56px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface-2);
   color: var(--text);
-  font-size: 17px;
+  font-size: var(--fs-xl);
   font-weight: 700;
 }
 

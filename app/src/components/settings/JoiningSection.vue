@@ -167,7 +167,7 @@ function pickPicture(e) {
 <style scoped>
 .look h3 {
   margin: 0 0 16px;
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 /* The two picture choices: a small picture on top, then the mark and words. */
@@ -184,7 +184,7 @@ function pickPicture(e) {
   height: 92px;
   margin-bottom: 8px;
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   color: var(--text-2);
   font-weight: 700;
 }
@@ -198,7 +198,7 @@ function pickPicture(e) {
 .thumb.art b,
 .thumb.art span {
   position: absolute;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
 }
 
 .thumb.art i {
@@ -215,7 +215,7 @@ function pickPicture(e) {
   width: 46px;
   height: 30px;
   background: var(--surface);
-  box-shadow: 0 4px 10px rgb(0 0 0 / 10%);
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--shadow-color) 10%, transparent);
 }
 
 .thumb.art span {

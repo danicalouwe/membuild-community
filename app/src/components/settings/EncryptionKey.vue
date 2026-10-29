@@ -169,7 +169,7 @@ const startOver = () =>
 .key {
   padding: 14px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
 }
 
 .key.spot {
@@ -197,7 +197,7 @@ const startOver = () =>
 
 .muted {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .muted.after {
@@ -235,13 +235,13 @@ const startOver = () =>
   border-radius: 50%;
   background: var(--surface-2);
   color: var(--text);
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 800;
 }
 
 .steps li.done .n {
-  background: #1f7a49;
-  color: #fff;
+  background: var(--ok-strong);
+  color: var(--on-color);
 }
 
 .steps li.next .n {
@@ -258,12 +258,12 @@ const startOver = () =>
 }
 
 .step strong {
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .step > small {
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .step > small.ok {
@@ -272,7 +272,7 @@ const startOver = () =>
 
 .or {
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .actions input {
@@ -288,7 +288,7 @@ const startOver = () =>
 
 .btn.danger {
   background: var(--danger);
-  color: #fff;
+  color: var(--on-color);
 }
 
 .btn:disabled {
@@ -319,10 +319,10 @@ const startOver = () =>
   gap: 10px;
   margin: 4px 0 14px;
   padding: 14px 16px;
-  border-radius: 12px;
-  background: #fff3d6;
-  color: #6b4700;
-  font-size: 15px;
+  border-radius: var(--radius-md);
+  background: var(--warn-soft);
+  color: var(--warn-text);
+  font-size: var(--fs-base);
   line-height: 1.5;
 }
 
@@ -340,8 +340,8 @@ const startOver = () =>
 
 @media (prefers-color-scheme: dark) {
   .keep {
-    background: #3a2c0b;
-    color: #f5c451;
+    background: var(--warn-soft);
+    color: var(--warn-text);
   }
 }
 </style>

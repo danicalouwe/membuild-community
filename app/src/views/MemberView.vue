@@ -451,7 +451,7 @@ const dailyCap = (n) => t.sprintf(/* translators: %d: how many times a day this 
 .cover {
   position: relative;
   height: 330px;
-  border-radius: 0 0 14px 14px;
+  border-radius: 0 0 var(--radius) var(--radius);
   background: var(--cover-default);
   background-size: cover;
   background-position: center;
@@ -485,29 +485,29 @@ h1 {
   align-items: center;
   gap: 10px;
   margin: 0;
-  font-size: 32px;
+  font-size: var(--fs-9xl);
   line-height: 1.2;
 }
 
 .role {
   padding: 2px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--text);
   color: var(--surface);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 700;
 }
 
 .lvl {
   margin: 4px 0 0;
   color: var(--accent-text);
-  font-size: 17px;
+  font-size: var(--fs-xl);
   font-weight: 700;
 }
 
 .bio {
   margin: 8px 0 0;
-  font-size: 17px;
+  font-size: var(--fs-xl);
   line-height: 1.5;
 }
 
@@ -519,10 +519,10 @@ h1 {
   display: inline-block;
   margin: 8px 0 0;
   padding: 3px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--warn-soft);
   color: var(--warn-text);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 700;
 }
 
@@ -536,8 +536,8 @@ h1 {
 .actions .btn {
   gap: 8px;
   padding: 0 22px;
-  border-radius: 999px;
-  font-size: 17px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xl);
   font-weight: 700;
 }
 
@@ -566,7 +566,7 @@ h1 {
   min-height: 44px;
   padding: 0 12px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   background: none;
   color: var(--text);
   font: inherit;
@@ -584,8 +584,8 @@ h1 {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: rgb(0 0 0 / 50%);
-  color: #fff;
+  background: color-mix(in srgb, var(--scrim) 50%, transparent);
+  color: var(--on-color);
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.15s;
@@ -613,10 +613,10 @@ h1 {
   left: 16px;
   bottom: 16px;
   padding: 4px 12px;
-  border-radius: 999px;
-  background: rgb(0 0 0 / 55%);
-  color: #fff;
-  font-size: 14px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--scrim) 55%, transparent);
+  color: var(--on-color);
+  font-size: var(--fs-md);
   font-weight: 650;
 }
 
@@ -663,7 +663,7 @@ h1 {
 .box h2,
 .posts-head h2 {
   margin: 0 0 14px;
-  font-size: 20px;
+  font-size: var(--fs-3xl);
 }
 
 .posts-head {
@@ -677,7 +677,7 @@ h1 {
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .about li {
@@ -707,7 +707,7 @@ h1 {
 
 .track {
   height: 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   overflow: hidden;
 }
@@ -722,7 +722,7 @@ h1 {
 .small {
   margin: 10px 0 0;
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .tiles {
@@ -738,19 +738,19 @@ h1 {
   align-items: center;
   gap: 2px;
   padding: 14px 8px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface-2);
   color: var(--text);
   text-decoration: none;
 }
 
 .tile strong {
-  font-size: 19px;
+  font-size: var(--fs-3xl);
 }
 
 .tile span {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .rules {
@@ -765,7 +765,7 @@ h1 {
   gap: 12px;
   padding: 8px 0;
   border-top: 1px solid var(--border);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .rules strong {
@@ -790,7 +790,7 @@ h1 {
 
 .check-head span {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .steps {
@@ -833,9 +833,9 @@ h1 {
 }
 
 .step.done .tick {
-  border-color: #2fb36b;
-  background: #2fb36b;
-  color: #fff;
+  border-color: var(--ok);
+  background: var(--ok);
+  color: var(--on-color);
 }
 
 .step-text {
@@ -846,7 +846,7 @@ h1 {
 }
 
 .step-text strong {
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .step.done strong {
@@ -856,7 +856,7 @@ h1 {
 
 .step-text small {
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 /* No posts yet */
@@ -880,14 +880,14 @@ h1 {
 }
 
 .none strong {
-  font-size: 20px;
+  font-size: var(--fs-3xl);
 }
 
 .none p {
   max-width: 420px;
   margin: 0 0 6px;
   color: var(--text-2);
-  font-size: 16px;
+  font-size: var(--fs-lg);
   line-height: 1.5;
 }
 
@@ -904,13 +904,13 @@ h1 {
 
 .blocked-note h2 {
   margin: 0 0 10px;
-  font-size: 20px;
+  font-size: var(--fs-3xl);
 }
 
 .blocked-note p {
   margin: 0 0 18px;
   color: var(--text-2);
-  font-size: 16px;
+  font-size: var(--fs-lg);
   line-height: 1.5;
 }
 
@@ -924,7 +924,7 @@ h1 {
 .dlg-title {
   margin: 0;
   padding: 30px 30px 0;
-  font-size: 24px;
+  font-size: var(--fs-5xl);
 }
 
 .dlg {
@@ -936,7 +936,7 @@ h1 {
 
 .dlg > .small {
   margin: 0 0 6px;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   line-height: 1.5;
 }
 
@@ -946,7 +946,7 @@ h1 {
   gap: 12px;
   padding: 14px 16px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 
@@ -969,12 +969,12 @@ h1 {
 }
 
 .choice strong {
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .choice small {
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .dlg-actions {
@@ -985,8 +985,8 @@ h1 {
 }
 
 .red {
-  background: #c0281f;
-  color: #fff;
+  background: var(--danger-strong);
+  color: var(--on-color);
 }
 
 /* ---------- Phones: one column in the same order ---------- */
@@ -1012,7 +1012,7 @@ h1 {
   }
 
   h1 {
-    font-size: 26px;
+    font-size: var(--fs-6xl);
   }
 
   .actions .msg {
@@ -1052,6 +1052,6 @@ h1 {
 .who-sk-btns .skeleton {
   width: 140px;
   height: 52px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 </style>

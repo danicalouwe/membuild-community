@@ -118,11 +118,11 @@ const startGroup = (n) => t.sprintf(/* translators: %d: number of people in the 
   align-items: center;
   gap: 4px;
   padding: 4px 8px 4px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent-soft);
   color: var(--accent-text);
   font-weight: 650;
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }
 
 .chip button {
@@ -152,7 +152,7 @@ const startGroup = (n) => t.sprintf(/* translators: %d: number of people in the 
   height: 38px;
   padding: 0 12px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--surface-2);
 }
 
@@ -168,7 +168,7 @@ const startGroup = (n) => t.sprintf(/* translators: %d: number of people in the 
   gap: 12px;
   width: 100%;
   padding: 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   text-align: left;
   font-weight: 600;
 }
@@ -189,7 +189,7 @@ const startGroup = (n) => t.sprintf(/* translators: %d: number of people in the 
   border-radius: 50%;
   border: 2px solid var(--border);
   color: transparent;
-  font-size: 12px;
+  font-size: var(--fs-xs);
 }
 
 .on .check {
@@ -206,7 +206,7 @@ const startGroup = (n) => t.sprintf(/* translators: %d: number of people in the 
 
 .error-text {
   margin: 0 14px;
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }
 
 .start {

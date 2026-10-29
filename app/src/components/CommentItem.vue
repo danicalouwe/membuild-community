@@ -144,7 +144,7 @@ function react(type) {
 /* A shared link lands here: a short glow that fades. */
 .comment.highlight {
   animation: flash 2.5s ease-out;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
 }
 
 @keyframes flash {
@@ -161,10 +161,10 @@ function react(type) {
 
 .staff {
   padding: 0 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent-soft);
   color: var(--accent-text);
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 700;
 }
 
@@ -173,10 +173,10 @@ function react(type) {
   align-items: center;
   gap: 3px;
   padding: 1px 8px 1px 6px;
-  border-radius: 999px;
-  background: #2fb36b;
-  color: #fff;
-  font-size: 12px;
+  border-radius: var(--radius-pill);
+  background: var(--ok);
+  color: var(--on-color);
+  font-size: var(--fs-xs);
   font-weight: 700;
 }
 
@@ -200,7 +200,7 @@ function react(type) {
   align-items: center;
   flex-wrap: wrap;
   gap: 5px;
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.3;
   color: var(--text-3);
 }
@@ -216,7 +216,7 @@ function react(type) {
 }
 
 .reply .head {
-  font-size: 13.5px;
+  font-size: var(--fs-md);
 }
 
 .by-author {
@@ -226,12 +226,12 @@ function react(type) {
 }
 
 .mini {
-  font-size: 12px;
+  font-size: var(--fs-xs);
 }
 
 .text {
   margin-top: 2px;
-  font-size: 15.5px;
+  font-size: var(--fs-lg);
   line-height: 1.4;
   color: var(--text);
 }
@@ -248,7 +248,7 @@ function react(type) {
 
 .failed {
   margin: 2px 0 0;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   color: var(--danger);
 }
 
@@ -264,10 +264,10 @@ function react(type) {
   align-items: center;
   min-height: 34px;
   padding: 0 8px;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   color: var(--text-2);
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .act:hover {
@@ -294,7 +294,7 @@ function react(type) {
 /* A GIF sits at the same size as a comment photo, like a sticker in Facebook comments. */
 .pic.gif {
   max-width: 100%;
-  border-radius: 14px;
+  border-radius: var(--radius);
   overflow: hidden;
 }
 
@@ -304,7 +304,7 @@ function react(type) {
   max-height: 240px;
   width: auto;
   height: auto;
-  border-radius: 14px;
+  border-radius: var(--radius);
   object-fit: cover;
 }
 .more-wrap {
@@ -336,10 +336,10 @@ function react(type) {
   flex-direction: column;
   min-width: 190px;
   padding: 6px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   border: 1px solid var(--border);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 20%);
+  box-shadow: var(--shadow-pop);
 }
 
 .menu.up {
@@ -353,7 +353,7 @@ function react(type) {
   gap: 8px;
   white-space: nowrap;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   font-weight: 600;
   text-align: left;
   color: var(--text);

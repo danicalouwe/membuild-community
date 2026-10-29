@@ -347,10 +347,10 @@ const accountLabel = () => {
   min-width: 19px;
   height: 19px;
   padding: 0 5px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--danger);
-  color: #fff;
-  font-size: 11px;
+  color: var(--on-color);
+  font-size: var(--fs-2xs);
   font-weight: 800;
   box-shadow: 0 0 0 2px var(--surface);
 }
@@ -382,7 +382,7 @@ const accountLabel = () => {
   display: flex;
   flex-direction: column;
   max-height: min(78vh, 680px);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18), 0 2px 4px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--shadow-color) 18%, transparent), 0 2px 4px color-mix(in srgb, var(--shadow-color) 8%, transparent);
   overflow: hidden;
 }
 
@@ -399,7 +399,7 @@ const accountLabel = () => {
 
 .group {
   margin: 10px 8px 2px;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -423,10 +423,10 @@ const accountLabel = () => {
 
 .looks button {
   height: 44px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   color: var(--text);
-  font-size: 15.5px;
+  font-size: var(--fs-lg);
   font-weight: 700;
 }
 
@@ -443,7 +443,7 @@ const accountLabel = () => {
 
 .shortcuts h2 {
   margin: 4px 8px 6px;
-  font-size: 20px;
+  font-size: var(--fs-3xl);
 }
 
 .letter {
@@ -479,7 +479,7 @@ const accountLabel = () => {
 .empty {
   margin: 0 8px 6px;
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .edit {
@@ -491,7 +491,7 @@ const accountLabel = () => {
   align-items: center;
   gap: 10px;
   padding: 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   color: var(--text);
 }
 
@@ -509,7 +509,7 @@ hr {
   align-items: center;
   gap: 12px;
   padding: 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   font-weight: 600;
   color: var(--text);
 }
@@ -555,10 +555,10 @@ hr {
   padding: 0 7px;
   display: grid;
   place-items: center;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--danger);
-  color: #fff;
-  font-size: 12px;
+  color: var(--on-color);
+  font-size: var(--fs-xs);
   font-weight: 800;
 }
 

@@ -181,7 +181,7 @@ onBeforeUnmount(() => observer?.disconnect())
 @keyframes spotlight {
   0%,
   60% {
-    box-shadow: 0 0 0 3px var(--accent), 0 12px 30px rgb(0 0 0 / 16%);
+    box-shadow: 0 0 0 3px var(--accent), 0 12px 30px color-mix(in srgb, var(--shadow-color) 16%, transparent);
   }
   100% {
     box-shadow: var(--shadow);
@@ -203,7 +203,7 @@ onBeforeUnmount(() => observer?.disconnect())
 
 .talk-head h3 {
   margin: 0 auto 0 0;
-  font-size: 21px;
+  font-size: var(--fs-4xl);
 }
 
 .ask-note {
@@ -212,7 +212,7 @@ onBeforeUnmount(() => observer?.disconnect())
   gap: 12px;
   margin: 0;
   padding: 14px 16px;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   color: var(--text-2);
 }
 
@@ -226,10 +226,10 @@ onBeforeUnmount(() => observer?.disconnect())
   gap: 12px;
   margin: 0;
   padding: 12px 16px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--tip-soft);
   color: var(--tip-text);
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .tip span:nth-child(2) {
@@ -273,10 +273,10 @@ onBeforeUnmount(() => observer?.disconnect())
 .pill {
   flex: 1;
   padding: 10px 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   color: var(--text-3);
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .bar:hover .pill {
@@ -308,7 +308,7 @@ onBeforeUnmount(() => observer?.disconnect())
   gap: 10px;
   padding: 40px 24px;
   border: 2px dashed var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   text-align: center;
 }
 
@@ -323,7 +323,7 @@ onBeforeUnmount(() => observer?.disconnect())
 }
 
 .none strong {
-  font-size: 19px;
+  font-size: var(--fs-3xl);
 }
 
 .none p {

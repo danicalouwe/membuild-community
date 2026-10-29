@@ -135,7 +135,7 @@ onMounted(() => load(true))
 .name {
   color: var(--text);
   font-weight: 600;
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .empty {

@@ -427,7 +427,7 @@ const removeLabel = (name) => t.sprintf(/* translators: %s: a name */ t.__('Remo
 .dlg-title {
   margin: 0;
   padding: 28px 22px 4px;
-  font-size: 24px;
+  font-size: var(--fs-5xl);
 }
 
 .ms-head {
@@ -440,7 +440,7 @@ const removeLabel = (name) => t.sprintf(/* translators: %s: a name */ t.__('Remo
 
 h2 {
   margin: 0 0 6px;
-  font-size: 22px;
+  font-size: var(--fs-4xl);
 }
 
 .intro,
@@ -459,7 +459,7 @@ h2 {
   gap: 10px;
   padding: 44px 24px;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   text-align: center;
 }
 
@@ -474,7 +474,7 @@ h2 {
 }
 
 .none strong {
-  font-size: 19px;
+  font-size: var(--fs-3xl);
 }
 
 .none p {
@@ -487,7 +487,7 @@ h2 {
   margin-bottom: 16px;
   padding: 18px 20px 20px;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
 }
 
 .one-head {
@@ -526,13 +526,13 @@ h2 {
 
 .one-head h3 {
   margin: 0;
-  font-size: 19px;
+  font-size: var(--fs-3xl);
 }
 
 .one-head h3 span {
   margin-left: 8px;
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 400;
 }
 
@@ -549,7 +549,7 @@ h2 {
   place-items: center;
   width: 34px;
   height: 34px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--surface-2);
 }
 
@@ -563,7 +563,7 @@ h2 {
 }
 
 .part-body > strong {
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .chips {
@@ -579,7 +579,7 @@ h2 {
   min-height: 38px;
   padding: 0 8px 0 14px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   color: var(--text);
   font: inherit;
@@ -626,7 +626,7 @@ h2 {
   min-height: 44px;
   padding: 0 12px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   background: none;
   color: var(--text);
   font: inherit;
@@ -643,11 +643,11 @@ h2 {
   min-height: 48px;
   padding: 0 14px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
   font: inherit;
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .shop {
@@ -655,7 +655,7 @@ h2 {
   max-width: 560px;
   padding: 16px 18px;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--surface-2);
 }
 
@@ -673,20 +673,20 @@ h2 {
   place-items: center;
   width: 30px;
   height: 30px;
-  border-radius: 8px;
-  background: #e9f0ff;
-  color: #2453d6;
-  font-size: 13px;
+  border-radius: var(--radius-xs);
+  background: var(--info-soft);
+  color: var(--info-text);
+  font-size: var(--fs-sm);
   font-weight: 800;
 }
 
 .shop-on {
   margin-left: auto;
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--ok-soft, #e5f4ea);
-  color: #1f7a49;
-  font-size: 13px;
+  color: var(--ok-text);
+  font-size: var(--fs-sm);
   font-weight: 700;
 }
 
@@ -695,10 +695,10 @@ h2 {
   gap: 10px;
   margin-top: 12px;
   padding: 12px 14px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--warn-soft, #fff6e0);
   color: var(--text);
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.45;
 }
 
@@ -728,7 +728,7 @@ h2 {
 .shop-or {
   margin: 8px 0 0;
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .offer {
@@ -752,14 +752,14 @@ h2 {
   gap: 2px;
   padding: 3px;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 .periods button {
   min-height: 36px;
   padding: 0 14px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: none;
   color: var(--text-2);
   font: inherit;
@@ -786,7 +786,7 @@ h2 {
   gap: 8px;
   min-height: 44px;
   padding: 0 18px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--text);
   color: var(--surface);
   font-weight: 700;
@@ -800,7 +800,7 @@ h2 {
   margin-top: 32px; /* well apart from the Get access button above */
   padding: 16px 18px;
   border: 1px solid var(--danger-line);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--danger-soft);
 }
 
@@ -854,7 +854,7 @@ h2 {
   align-items: center;
   gap: 12px;
   min-height: 52px;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   cursor: pointer;
 }
 
@@ -883,7 +883,7 @@ h2 {
   min-height: 52px;
   padding: 0 14px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
 }
 
 .search input {
@@ -892,7 +892,7 @@ h2 {
   background: none;
   color: var(--text);
   font: inherit;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   outline: none;
 }
 

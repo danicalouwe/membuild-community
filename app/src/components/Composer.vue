@@ -110,10 +110,10 @@ onBeforeUnmount(() => window.removeEventListener('mbcom:reopen-composer', reopen
   height: 42px;
   padding: 0 18px;
   text-align: left;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   color: var(--text-3);
-  font-size: 16px;
+  font-size: var(--fs-lg);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

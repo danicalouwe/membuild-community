@@ -152,7 +152,7 @@ const joined = (u) => (u.joined_at ? new Intl.DateTimeFormat(undefined, { month:
 }
 
 .who strong {
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .add {
@@ -162,7 +162,7 @@ const joined = (u) => (u.joined_at ? new Intl.DateTimeFormat(undefined, { month:
 .dlg-title {
   margin: 0;
   padding: 26px 26px 0;
-  font-size: 22px;
+  font-size: var(--fs-4xl);
 }
 
 .dlg {
@@ -175,7 +175,7 @@ const joined = (u) => (u.joined_at ? new Intl.DateTimeFormat(undefined, { month:
 .dlg-text {
   margin: 0;
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
   line-height: 1.5;
 }
 
@@ -186,7 +186,7 @@ const joined = (u) => (u.joined_at ? new Intl.DateTimeFormat(undefined, { month:
   min-height: 52px;
   padding: 0 14px;
   border: 2px solid var(--accent);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
 }
 
 .dlg-search input {
@@ -195,7 +195,7 @@ const joined = (u) => (u.joined_at ? new Intl.DateTimeFormat(undefined, { month:
   background: none;
   color: var(--text);
   font: inherit;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   outline: none;
 }
 
@@ -211,7 +211,7 @@ const joined = (u) => (u.joined_at ? new Intl.DateTimeFormat(undefined, { month:
   gap: 12px;
   padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 
@@ -248,10 +248,10 @@ const joined = (u) => (u.joined_at ? new Intl.DateTimeFormat(undefined, { month:
 .dlg-act .btn {
   min-height: 52px;
   padding: 0 22px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   color: var(--text);
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 700;
 }
 

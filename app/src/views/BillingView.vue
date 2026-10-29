@@ -118,25 +118,25 @@ const paidWith = (s) => (s.card ? t.sprintf(/* translators: %s: a card or paymen
 
 .sub h2 {
   margin: 0;
-  font-size: 19px;
+  font-size: var(--fs-3xl);
 }
 
 .price {
   margin: 2px 0 0;
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .line {
   margin: 14px 0 0;
-  font-size: 15px;
+  font-size: var(--fs-base);
   line-height: 1.5;
 }
 
 .how {
   margin: 4px 0 0;
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .actions {
@@ -149,7 +149,7 @@ const paidWith = (s) => (s.card ? t.sprintf(/* translators: %s: a card or paymen
 .actions .btn {
   min-height: 52px;
   padding: 0 22px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   white-space: nowrap;
 }
 
@@ -166,7 +166,7 @@ const paidWith = (s) => (s.card ? t.sprintf(/* translators: %s: a card or paymen
   display: block;
   height: 14px;
   margin: 10px 0;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   background: var(--surface-2);
 }
 
@@ -183,7 +183,7 @@ const paidWith = (s) => (s.card ? t.sprintf(/* translators: %s: a card or paymen
   .actions .btn {
     flex: 1;
     padding: 0 14px;
-    font-size: 15px;
+    font-size: var(--fs-base);
   }
 }
 </style>

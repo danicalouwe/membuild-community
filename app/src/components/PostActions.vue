@@ -100,7 +100,7 @@ const shareCount = (n) => t.sprintf(/* translators: %s: number of shares, e.g. "
   gap: 10px;
   padding: 8px 14px 6px;
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .who {
@@ -147,10 +147,10 @@ const shareCount = (n) => t.sprintf(/* translators: %s: number of shares, e.g. "
   width: 100%;
   min-height: 40px;
   padding: 0 8px;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   color: var(--text-2);
   font-weight: 650;
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .act:hover:not(:disabled),

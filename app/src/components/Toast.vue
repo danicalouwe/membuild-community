@@ -45,12 +45,12 @@ function act() {
   gap: 10px;
   max-width: calc(100vw - 32px);
   padding: 12px 18px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--text);
   color: var(--surface);
   font-weight: 650;
-  font-size: 15px;
-  box-shadow: 0 12px 32px rgb(0 0 0 / 30%);
+  font-size: var(--fs-base);
+  box-shadow: var(--shadow-pop);
   transform: translateX(-50%);
   cursor: pointer;
 }
@@ -84,9 +84,9 @@ function act() {
   align-items: center;
   height: 44px;
   padding: 0 18px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent);
-  color: #16181d;
+  color: var(--ink);
   font: inherit;
   font-weight: 700;
 }
@@ -103,7 +103,7 @@ function act() {
 
 .x:hover {
   opacity: 1;
-  background: rgb(255 255 255 / 12%);
+  background: color-mix(in srgb, var(--on-color) 12%, transparent);
 }
 
 @media (max-width: 600px) {
@@ -124,7 +124,7 @@ function act() {
 }
 
 .emoji {
-  font-size: 20px;
+  font-size: var(--fs-3xl);
   animation: pop 0.5s cubic-bezier(0.3, 1.6, 0.5, 1);
 }
 

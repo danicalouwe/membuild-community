@@ -846,9 +846,9 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
   gap: 8px;
   width: min(720px, calc(100% - 32px));
   padding: 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   transform: translateX(-50%);
-  box-shadow: 0 8px 28px rgb(0 0 0 / 14%);
+  box-shadow: var(--shadow-pop);
 }
 
 .search {
@@ -861,7 +861,7 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
   height: 52px;
   padding: 0 16px;
   border: 2px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   color: var(--text-2);
 }
@@ -878,7 +878,7 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
   background: none;
   color: var(--text);
   font: inherit;
-  font-size: 17px;
+  font-size: var(--fs-xl);
   outline: none;
 }
 
@@ -897,10 +897,10 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
   min-width: 22px;
   height: 22px;
   padding: 0 6px;
-  border-radius: 999px;
-  background: #e5484d;
-  color: #fff;
-  font-size: 12px;
+  border-radius: var(--radius-pill);
+  background: var(--live);
+  color: var(--on-color);
+  font-size: var(--fs-xs);
   font-weight: 800;
 }
 
@@ -914,8 +914,8 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
   display: flex;
   flex-direction: column;
   padding: 8px;
-  border-radius: 18px;
-  box-shadow: 0 12px 32px rgb(0 0 0 / 16%);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-pop);
 }
 
 .drop .city,
@@ -924,7 +924,7 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
   align-items: center;
   gap: 14px;
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: var(--text);
   text-align: left;
 }
@@ -946,9 +946,9 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
   place-items: center;
   width: 48px;
   height: 48px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--accent);
-  color: #16181d;
+  color: var(--ink);
 }
 
 .drop .txt {
@@ -959,12 +959,12 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
 }
 
 .drop .txt strong {
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .drop .txt small {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .drop .show {
@@ -977,7 +977,7 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
 .drop .group {
   margin: 10px 12px 4px;
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -988,7 +988,7 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
   width: 44px;
   height: 44px;
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
 }
 
 .drop .thumb > img {
@@ -1007,8 +1007,8 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
   max-height: 48%;
   padding: 6px 20px 18px;
   overflow-y: auto;
-  border-radius: 22px;
-  box-shadow: 0 -4px 28px rgb(0 0 0 / 12%);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-pop);
   scrollbar-width: none; /* no bar cutting into the round corners; it still scrolls */
 }
 
@@ -1028,7 +1028,7 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
   width: 44px;
   height: 5px;
   margin: 0 auto;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--border-strong);
 }
 
@@ -1042,14 +1042,14 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
 
 .ph h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--fs-2xl);
 }
 
 .ph .link {
   /* the panel's actions: grey pill buttons, like the other secondary buttons */
   height: 44px;
   padding: 0 18px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   white-space: nowrap;
 }
@@ -1068,7 +1068,7 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
 
 .ph .note {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .link {
@@ -1076,7 +1076,7 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
   align-items: center;
   gap: 4px;
   color: var(--text);
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 700;
 }
 
@@ -1097,7 +1097,7 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
   min-width: 0;
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
   text-align: left;
@@ -1132,9 +1132,9 @@ button.pc:hover {
   gap: 4px;
   white-space: nowrap;
   padding: 3px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface);
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -1152,7 +1152,7 @@ button.pc:hover {
 }
 
 .pc-body strong {
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .pc-body .city {
@@ -1168,7 +1168,7 @@ button.pc:hover {
 .tag.plain {
   text-transform: none;
   letter-spacing: 0;
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: 700;
   padding: 4px 12px;
 }
@@ -1185,33 +1185,33 @@ button.pc:hover {
 
 .pc-body small {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .quote {
   color: var(--text);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .perk {
   align-self: flex-start;
   margin-top: 2px;
   padding: 3px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent-soft);
   color: var(--accent-text);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 700;
 }
 
 .perk.big {
   padding: 6px 12px;
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .wait {
   color: var(--warn-text);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 700;
 }
 
@@ -1220,7 +1220,7 @@ button.pc:hover {
   align-items: center;
   gap: 8px;
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }
 
 .stack {
@@ -1271,7 +1271,7 @@ button.pc:hover {
   gap: 2px;
   width: 96px;
   padding: 4px 0;
-  border-radius: 14px;
+  border-radius: var(--radius);
   color: var(--text);
 }
 
@@ -1282,12 +1282,12 @@ button.pc:hover {
 
 .mface strong {
   margin-top: 6px;
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .mface small {
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }
 
 .ph.second {
@@ -1297,10 +1297,10 @@ button.pc:hover {
 .newtag {
   align-self: flex-start;
   padding: 3px 10px;
-  border-radius: 999px;
-  background: #fff1e6;
-  color: #9a3d06;
-  font-size: 13px;
+  border-radius: var(--radius-pill);
+  background: var(--tip-soft);
+  color: var(--tip-text);
+  font-size: var(--fs-sm);
   font-weight: 700;
 }
 
@@ -1312,8 +1312,8 @@ button.pc:hover {
   z-index: 3;
   width: 340px;
   padding: 18px;
-  border-radius: 18px;
-  box-shadow: 0 12px 32px rgb(0 0 0 / 18%);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-pop);
 }
 
 .pcard.placed {
@@ -1368,13 +1368,13 @@ button.pc:hover {
   gap: 4px;
   width: 320px;
   padding: 16px 18px 18px;
-  border-radius: 18px;
-  box-shadow: 0 12px 32px rgb(0 0 0 / 18%);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-pop);
 }
 
 .plcard strong {
   padding-right: 28px;
-  font-size: 18px;
+  font-size: var(--fs-2xl);
 }
 
 .plcard .city {
@@ -1422,7 +1422,7 @@ button.pc:hover {
 }
 
 .pcard-top strong {
-  font-size: 18px;
+  font-size: var(--fs-2xl);
 }
 
 .pcard-top small {
@@ -1453,34 +1453,34 @@ button.pc:hover {
   gap: 4px;
   width: 100%;
   padding: 14px 16px;
-  border-radius: 14px;
-  background: #fff1e6;
-  color: #6b2a03;
+  border-radius: var(--radius);
+  background: var(--tip-soft);
+  color: var(--tip-text);
 }
 
 .news-h {
-  color: #9a3d06;
-  font-size: 13px;
+  color: var(--tip-text);
+  font-size: var(--fs-sm);
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
 .news strong {
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .news small {
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .share-new {
   width: 100%;
   min-height: 52px;
-  border: 2px dashed #e8a26b;
-  border-radius: 999px;
-  background: #fff8f2;
-  color: #9a3d06;
+  border: 2px dashed color-mix(in srgb, var(--tip-strong) 55%, transparent);
+  border-radius: var(--radius-pill);
+  background: var(--tip-soft);
+  color: var(--tip-text);
   font-weight: 700;
 }
 
@@ -1488,12 +1488,12 @@ button.pc:hover {
   .news,
   .newtag,
   .share-new {
-    background: #3a2414;
-    color: #ffd8b8;
+    background: var(--tip-soft);
+    color: var(--tip-text);
   }
 
   .news-h {
-    color: #ffb27a;
+    color: var(--tip-text);
   }
 }
 
@@ -1504,7 +1504,7 @@ button.pc:hover {
   margin-bottom: 8px;
   padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius);
   color: var(--text);
   text-decoration: none;
 }
@@ -1517,7 +1517,7 @@ button.pc:hover {
   width: 56px;
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   line-height: 1.1;
 }
@@ -1526,9 +1526,9 @@ button.pc:hover {
 .up-date small {
   width: 100%;
   padding: 3px 0;
-  background: #dc2626;
-  color: #fff;
-  font-size: 11px;
+  background: var(--live);
+  color: var(--on-color);
+  font-size: var(--fs-2xs);
   font-weight: 800;
   text-align: center;
   text-transform: uppercase;
@@ -1536,7 +1536,7 @@ button.pc:hover {
 
 .up-date strong {
   padding: 3px 0 5px;
-  font-size: 21px;
+  font-size: var(--fs-4xl);
 }
 
 .up-txt {
@@ -1581,7 +1581,7 @@ button.pc:hover {
   min-height: 48px;
   padding: 10px 14px;
   border: 1px solid var(--border-strong);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--text);
   font: inherit;
@@ -1605,7 +1605,7 @@ button.pc:hover {
   gap: 8px;
   width: 100%;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   color: var(--text);
   text-align: left;
 }
@@ -1655,7 +1655,7 @@ button.pc:hover {
   width: 100%;
   height: 210px;
   overflow: hidden;
-  border-radius: 14px;
+  border-radius: var(--radius);
 }
 
 .hero > img {
@@ -1666,7 +1666,7 @@ button.pc:hover {
 
 .detail h1 {
   margin: 8px 0 0;
-  font-size: 26px;
+  font-size: var(--fs-6xl);
 }
 
 .kind {
@@ -1685,10 +1685,10 @@ button.pc:hover {
 
 .wait-tag {
   padding: 4px 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--warn-soft);
   color: var(--warn-text);
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: 700;
 }
 
@@ -1742,7 +1742,7 @@ button.pc:hover {
 
 .who h2 {
   margin: 12px 0 8px;
-  font-size: 18px;
+  font-size: var(--fs-2xl);
 }
 
 .faces {
@@ -1789,7 +1789,7 @@ button.pc:hover {
     flex-wrap: wrap;
     gap: 6px;
     padding: 6px;
-    border-radius: 24px;
+    border-radius: var(--radius-2xl);
   }
 
   .search {
@@ -1827,7 +1827,7 @@ button.pc:hover {
   .ph .link {
     height: 36px;
     padding: 0 14px;
-    font-size: 14px;
+    font-size: var(--fs-md);
   }
 
   .ph .link .lg {
@@ -1839,7 +1839,7 @@ button.pc:hover {
   }
 
   .ph h2 {
-    font-size: 17px;
+    font-size: var(--fs-xl);
   }
 
   .grid {
@@ -1904,10 +1904,10 @@ button.pc:hover {
   align-self: flex-start;
   margin-top: 6px;
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   color: var(--text);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 700;
 }
 
@@ -1925,7 +1925,7 @@ button.pc:hover {
 
 .hours strong {
   color: var(--ok-text);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .hours-week {
@@ -1940,7 +1940,7 @@ button.pc:hover {
 }
 
 .hours small {
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }
 
 /* Loading: faces, place cards and a place's column in grey. */
@@ -1958,7 +1958,7 @@ button.pc:hover {
   width: 54px;
   height: 12px;
   margin-top: 6px;
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
 }
 
 .mface-sk i + i.skeleton {
@@ -1993,7 +1993,7 @@ button.pc:hover {
 
 .sk-btns .skeleton {
   height: 52px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 </style>

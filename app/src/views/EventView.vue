@@ -393,7 +393,7 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
   gap: 10px;
   margin-bottom: 16px;
   padding: 10px 12px 10px 18px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
 }
 
 .host-bar p {
@@ -417,8 +417,8 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
   position: relative;
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  border-radius: 16px;
-  background: #000 center / cover no-repeat;
+  border-radius: var(--radius-lg);
+  background: var(--player-bg) center / cover no-repeat;
 }
 
 .player iframe {
@@ -436,10 +436,10 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
   width: 84px;
   height: 84px;
   border-radius: 50%;
-  background: rgb(255 255 255 / 94%);
-  color: #16181d;
+  background: color-mix(in srgb, var(--on-color) 94%, transparent);
+  color: var(--ink);
   transform: translate(-50%, -50%);
-  box-shadow: 0 4px 18px rgb(0 0 0 / 25%);
+  box-shadow: var(--shadow-pop);
 }
 
 .play :deep(path),
@@ -449,7 +449,7 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
 
 h1 {
   margin: 14px 0 18px;
-  font-size: 34px;
+  font-size: var(--fs-9xl);
   line-height: 1.2;
 }
 
@@ -467,22 +467,22 @@ h1 {
 
 .hosted small {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .hosted strong {
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .box {
   margin-bottom: 24px;
   padding: 22px 20px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
 }
 
 .box h2 {
   margin: 0 0 12px;
-  font-size: 20px;
+  font-size: var(--fs-3xl);
 }
 
 /* On this page the comment box sits after the questions, not stuck to the bottom. */
@@ -490,11 +490,11 @@ h1 {
   position: static;
   margin: 4px -20px -22px;
   padding: 14px 20px 18px;
-  border-radius: 0 0 16px 16px;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
 .desc {
-  font-size: 16px;
+  font-size: var(--fs-lg);
   line-height: 1.6;
 }
 
@@ -506,7 +506,7 @@ h1 {
   flex-direction: column;
   gap: 16px;
   padding: 22px;
-  border-radius: 18px;
+  border-radius: var(--radius-xl);
 }
 
 .when {
@@ -525,20 +525,20 @@ h1 {
   justify-content: center;
   width: 72px;
   height: 78px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--surface-2);
   line-height: 1.05;
 }
 
 .tile small {
-  color: #e5484d;
-  font-size: 13px;
+  color: var(--live);
+  font-size: var(--fs-sm);
   font-weight: 800;
   text-transform: uppercase;
 }
 
 .tile strong {
-  font-size: 30px;
+  font-size: var(--fs-8xl);
 }
 
 .when > span:last-child,
@@ -549,7 +549,7 @@ h1 {
 }
 
 .when strong {
-  font-size: 18px;
+  font-size: var(--fs-2xl);
 }
 
 .row {
@@ -564,22 +564,22 @@ h1 {
   place-items: center;
   width: 40px;
   height: 40px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--surface-2);
 }
 
 .row strong {
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .row small {
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .yours {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .place-link {
@@ -587,7 +587,7 @@ h1 {
   align-items: center;
   gap: 2px;
   color: var(--text);
-  font-size: 17px;
+  font-size: var(--fs-xl);
   font-weight: 700;
   text-decoration: none;
 }
@@ -619,7 +619,7 @@ h1 {
 .note {
   margin: -6px 0 0;
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.5;
   text-align: center;
 }
@@ -635,7 +635,7 @@ h1 {
   gap: 8px;
   min-height: 40px;
   color: var(--text);
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 700;
 }
 
@@ -649,16 +649,16 @@ h1 {
   min-width: 220px;
   padding: 6px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 16%);
+  box-shadow: var(--shadow-pop);
   transform: translateX(-50%);
 }
 
 .cal-menu a,
 .cal-menu button {
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   color: var(--text);
   font: inherit;
   font-weight: 600;
@@ -689,7 +689,7 @@ h1 {
 .link.danger {
   align-self: center;
   color: var(--danger);
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .replay {
@@ -706,7 +706,7 @@ h1 {
   min-height: 48px;
   padding: 10px 14px;
   border: 1px solid var(--border-strong);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--text);
   font: inherit;
@@ -770,7 +770,7 @@ h1 {
 
 @media (max-width: 600px) {
   h1 {
-    font-size: 26px;
+    font-size: var(--fs-6xl);
   }
 
   .host-bar {
@@ -792,7 +792,7 @@ h1 {
     left: 16px;
     z-index: 15;
     width: auto;
-    box-shadow: 0 6px 18px rgb(0 0 0 / 20%);
+    box-shadow: var(--shadow-pop);
   }
 
   .event {

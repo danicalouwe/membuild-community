@@ -222,11 +222,11 @@ async function remove() {
 .staff {
   margin-right: 4px;
   padding: 1px 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent-soft);
   color: var(--accent-text);
   font-style: normal;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 700;
 }
 
@@ -238,10 +238,10 @@ async function remove() {
   max-width: calc(100% - 28px);
   margin: 2px 14px 12px;
   padding: 4px 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   color: var(--text);
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: 650;
   text-decoration: none;
   overflow: hidden;
@@ -259,7 +259,7 @@ async function remove() {
   flex: none;
   width: 40px;
   height: 40px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   overflow: visible;
 }
 
@@ -269,9 +269,9 @@ async function remove() {
   place-items: center;
   width: 40px;
   height: 40px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   object-fit: cover;
-  color: #fff;
+  color: var(--on-color);
 }
 
 .course-pic .mini {
@@ -279,12 +279,12 @@ async function remove() {
   right: -6px;
   bottom: -5px;
   box-shadow: 0 0 0 2px var(--surface);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 .byline {
   display: block;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--text-3);
   line-height: 1.35;
 }
@@ -311,11 +311,11 @@ async function remove() {
   height: 16px;
   margin: 0 2px 0 4px;
   padding: 0 4px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent);
   color: var(--accent-ink);
   font-style: normal;
-  font-size: 10.5px;
+  font-size: var(--fs-2xs);
   font-weight: 800;
   vertical-align: 1px;
 }
@@ -329,7 +329,7 @@ async function remove() {
   align-items: center;
   gap: 4px;
   margin-left: auto;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 650;
   color: var(--text-3);
   white-space: nowrap;
@@ -373,7 +373,7 @@ async function remove() {
 }
 
 .who span {
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--text-3);
 }
 
@@ -405,7 +405,7 @@ async function remove() {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 14%);
+  box-shadow: var(--shadow-pop);
 }
 
 .menu button {
@@ -414,7 +414,7 @@ async function remove() {
   gap: 8px;
   width: 100%;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   color: var(--danger);
   font-weight: 600;
 }
@@ -455,17 +455,17 @@ async function remove() {
 
 .bg-post p {
   margin: 0;
-  color: #fff;
-  font-size: 28px;
+  color: var(--on-color);
+  font-size: var(--fs-7xl);
   font-weight: 700;
   line-height: 1.3;
-  text-shadow: 0 1px 2px rgb(0 0 0 / 15%);
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--scrim) 15%, transparent);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
 .text.big {
-  font-size: 20px;
+  font-size: var(--fs-3xl);
   line-height: 1.35;
 }
 
@@ -483,7 +483,7 @@ async function remove() {
 .more {
   align-self: flex-start;
   font-weight: 650;
-  font-size: 15px;
+  font-size: var(--fs-base);
   color: var(--text-2);
 }
 

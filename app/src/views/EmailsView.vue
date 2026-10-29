@@ -101,12 +101,12 @@ const ABOUT = [
   gap: 10px;
   margin-bottom: 20px;
   padding: 28px 30px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
 }
 
 h2 {
   margin: 0 0 8px;
-  font-size: 20px;
+  font-size: var(--fs-3xl);
 }
 
 .choice {
@@ -115,7 +115,7 @@ h2 {
   gap: 12px;
   padding: 16px 18px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 
@@ -140,13 +140,13 @@ h2 {
 
 .choice strong,
 .toggle strong {
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .choice small,
 .toggle small {
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .toggle {
@@ -175,7 +175,7 @@ h2 {
   width: 52px;
   height: 30px;
   margin: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--border-strong);
   cursor: pointer;
   transition: background 0.15s;
@@ -189,8 +189,8 @@ h2 {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 25%);
+  background: var(--on-color);
+  box-shadow: var(--shadow-sm);
   transition: transform 0.15s;
 }
 
@@ -212,7 +212,7 @@ h2 {
   gap: 10px;
   margin: 0;
   padding: 14px 18px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface-2);
   color: var(--text-2);
   line-height: 1.5;

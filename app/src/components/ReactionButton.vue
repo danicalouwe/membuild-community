@@ -239,7 +239,7 @@ onBeforeUnmount(() => {
   gap: 7px;
   min-height: 34px;
   padding: 0 8px;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   color: var(--text-2);
   font-weight: 600;
   user-select: none;
@@ -270,8 +270,8 @@ onBeforeUnmount(() => {
   padding: 6px 8px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 999px;
-  box-shadow: 0 2px 6px rgb(0 0 0 / 10%), 0 10px 28px rgb(0 0 0 / 22%);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--shadow-color) 10%, transparent), 0 10px 28px color-mix(in srgb, var(--shadow-color) 22%, transparent);
 }
 
 .choice {
@@ -322,10 +322,10 @@ onBeforeUnmount(() => {
   bottom: calc(100% + 18px);
   left: 50%;
   padding: 3px 9px;
-  border-radius: 999px;
-  background: rgb(0 0 0 / 78%);
-  color: #fff;
-  font-size: 12px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--scrim) 78%, transparent);
+  color: var(--on-color);
+  font-size: var(--fs-xs);
   font-weight: 700;
   white-space: nowrap;
   opacity: 0;
@@ -440,7 +440,7 @@ onBeforeUnmount(() => {
   }
 
   .face :deep(.emoji) {
-    font-size: 34px !important; /* the faces match the round like and love badges */
+    font-size: 34px !important; /* exempt: the faces match the round like and love badges */
   }
 }
 

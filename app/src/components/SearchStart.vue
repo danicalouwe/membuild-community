@@ -57,7 +57,7 @@ const TILES = [
 h2 {
   margin: 10px 16px 8px;
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -82,9 +82,9 @@ h2 {
   min-width: 0;
   min-height: 56px;
   padding: 0 16px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: var(--text);
-  font-size: 17px;
+  font-size: var(--fs-xl);
   text-align: left;
 }
 
@@ -133,7 +133,7 @@ h2 {
   min-height: 72px;
   padding: 12px 14px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: var(--text);
 }
 
@@ -148,27 +148,27 @@ h2 {
   place-items: center;
   width: 44px;
   height: 44px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
 }
 
 .t-icon.blue {
-  color: #3b5bdb;
-  background: color-mix(in srgb, #3b5bdb 13%, transparent);
+  color: var(--info-text);
+  background: color-mix(in srgb, var(--info-text) 13%, transparent);
 }
 
 .t-icon.green {
-  color: #1f8a4c;
-  background: color-mix(in srgb, #1f8a4c 13%, transparent);
+  color: var(--ok-text);
+  background: color-mix(in srgb, var(--ok-strong) 13%, transparent);
 }
 
 .t-icon.orange {
-  color: #d9480f;
-  background: color-mix(in srgb, #d9480f 13%, transparent);
+  color: var(--tip-strong);
+  background: color-mix(in srgb, var(--tip-strong) 13%, transparent);
 }
 
 .t-icon.red {
-  color: #c92a2a;
-  background: color-mix(in srgb, #c92a2a 13%, transparent);
+  color: var(--danger-text);
+  background: color-mix(in srgb, var(--danger-text) 13%, transparent);
 }
 
 .t-text {
@@ -178,12 +178,12 @@ h2 {
 }
 
 .t-text strong {
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .t-text small {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .private {
@@ -192,7 +192,7 @@ h2 {
   gap: 8px;
   margin: 16px 16px 6px;
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 @media (max-width: 767px) {

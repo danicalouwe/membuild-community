@@ -55,8 +55,8 @@ const meta = computed(() => [kindName(props.file.ext), fileSize(props.file.size)
   z-index: 200;
   display: flex;
   flex-direction: column;
-  background: rgb(12 13 16 / 94%);
-  color: #fff;
+  background: color-mix(in srgb, var(--player-bg) 94%, transparent);
+  color: var(--on-color);
 }
 
 .fp:focus {
@@ -68,7 +68,7 @@ const meta = computed(() => [kindName(props.file.ext), fileSize(props.file.size)
   align-items: center;
   gap: 14px;
   padding: 12px 20px;
-  border-bottom: 1px solid rgb(255 255 255 / 12%);
+  border-bottom: 1px solid color-mix(in srgb, var(--on-color) 12%, transparent);
 }
 
 .what {
@@ -85,18 +85,18 @@ const meta = computed(() => [kindName(props.file.ext), fileSize(props.file.size)
 }
 
 .what strong {
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .what small {
-  font-size: 14px;
+  font-size: var(--fs-md);
   opacity: 0.72;
 }
 
 .dl {
   flex: none;
   background: var(--accent);
-  color: #16181d;
+  color: var(--ink);
   text-decoration: none;
 }
 
@@ -107,12 +107,12 @@ const meta = computed(() => [kindName(props.file.ext), fileSize(props.file.size)
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: rgb(255 255 255 / 12%);
-  color: #fff;
+  background: color-mix(in srgb, var(--on-color) 12%, transparent);
+  color: var(--on-color);
 }
 
 .x:hover {
-  background: rgb(255 255 255 / 20%);
+  background: color-mix(in srgb, var(--on-color) 20%, transparent);
 }
 
 .stage {
@@ -128,16 +128,16 @@ const meta = computed(() => [kindName(props.file.ext), fileSize(props.file.size)
   width: min(980px, 100%);
   height: 100%;
   border: 0;
-  border-radius: 6px;
-  background: #fff;
-  box-shadow: 0 10px 40px rgb(0 0 0 / 50%);
+  border-radius: var(--radius-xs);
+  background: var(--paper);
+  box-shadow: var(--shadow-lift);
 }
 
 .stage img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
 }
 
 @media (max-width: 600px) {

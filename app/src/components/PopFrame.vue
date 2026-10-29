@@ -45,9 +45,9 @@ onBeforeUnmount(() => {
   flex-direction: column;
   max-height: min(380px, 70vh);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--surface);
-  box-shadow: 0 12px 32px rgb(0 0 0 / 22%);
+  box-shadow: var(--shadow-pop);
   overflow: hidden;
 }
 

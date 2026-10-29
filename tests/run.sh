@@ -3,6 +3,8 @@
 # WP_PATH=/var/www/html/wp64 npm test  runs it against the WordPress 6.4 copy there instead.
 set -uo pipefail
 cd "$(dirname "$0")/.."
+# The theme contract: text sizes and corners must come from the tokens (no Docker needed).
+node tests/check-styles.mjs || exit 1
 # The file is copied into the container (it's too long to pass on the command line).
 # This project's tests container, not another wp-env's: the one whose compose file names this folder.
 container=""

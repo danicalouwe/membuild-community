@@ -283,7 +283,7 @@ const isActive = (tab) =>
   gap: 10px;
   min-width: 0;
   font-weight: 750;
-  font-size: 18px;
+  font-size: var(--fs-2xl);
   letter-spacing: -0.01em;
   color: var(--text);
   white-space: nowrap;
@@ -295,7 +295,7 @@ const isActive = (tab) =>
   flex: none;
   width: 40px;
   height: 40px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   object-fit: cover;
 }
 
@@ -304,7 +304,7 @@ const isActive = (tab) =>
   place-items: center;
   background: var(--accent);
   color: var(--accent-ink);
-  font-size: 17px;
+  font-size: var(--fs-xl);
   font-weight: 800;
   letter-spacing: -0.02em;
 }
@@ -320,7 +320,7 @@ const isActive = (tab) =>
   gap: 8px;
   min-height: 44px;
   padding: 8px 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--text-2);
   font-weight: 600;
 }
@@ -344,8 +344,8 @@ const isActive = (tab) =>
     max-width: 78px;
     min-height: 50px;
     padding: 5px 4px;
-    border-radius: 12px;
-    font-size: 10.5px;
+    border-radius: var(--radius-md);
+    font-size: var(--fs-2xs);
     line-height: 1.1;
     white-space: nowrap;
   }
@@ -448,9 +448,9 @@ const isActive = (tab) =>
   align-items: center;
   gap: 12px;
   padding: 8px 10px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   color: var(--text);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .side-me:hover,
@@ -476,9 +476,9 @@ const isActive = (tab) =>
   gap: 12px;
   min-height: 48px;
   padding: 6px 10px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   color: var(--text);
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 600;
 }
 
@@ -506,10 +506,10 @@ const isActive = (tab) =>
   margin-left: auto;
   min-width: 20px;
   padding: 0 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--danger);
-  color: #fff;
-  font-size: 12px;
+  color: var(--on-color);
+  font-size: var(--fs-xs);
   font-weight: 800;
   text-align: center;
   line-height: 20px;
@@ -522,10 +522,10 @@ const isActive = (tab) =>
   height: 18px;
   margin-left: 4px;
   padding: 0 5px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--danger);
-  color: #fff;
-  font-size: 11px;
+  color: var(--on-color);
+  font-size: var(--fs-2xs);
   font-weight: 800;
   vertical-align: 1px;
 }
@@ -536,17 +536,17 @@ const isActive = (tab) =>
   justify-content: center;
   gap: 8px;
   padding: 10px 16px;
-  background: #fff3d6;
-  color: #8a5a00;
-  font-size: 14px;
+  background: var(--warn-soft);
+  color: var(--warn-text);
+  font-size: var(--fs-md);
   font-weight: 600;
   text-align: center;
 }
 
 @media (prefers-color-scheme: dark) {
   .restricted {
-    background: #3a2c0b;
-    color: #f5c451;
+    background: var(--warn-soft);
+    color: var(--warn-text);
   }
 }
 
@@ -568,7 +568,7 @@ const isActive = (tab) =>
 
 .tab-label {
   margin-top: 3px;
-  font-size: 11px;
+  font-size: var(--fs-2xs);
   font-weight: 650;
   line-height: 1;
 }
@@ -688,16 +688,16 @@ const isActive = (tab) =>
   }
 
   .immersive .tabbar {
-    background: #000;
-    border-top-color: #1d1d1f;
+    background: var(--player-bg);
+    border-top-color: var(--player-line);
   }
 
   .immersive .tab {
-    color: #8e8e93;
+    color: var(--player-muted);
   }
 
   .immersive .tab.active {
-    color: #fff;
+    color: var(--on-color);
   }
 }
 </style>

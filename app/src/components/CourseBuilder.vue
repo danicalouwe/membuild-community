@@ -588,7 +588,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   gap: 8px;
   padding: 8px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
 }
 
@@ -598,7 +598,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   gap: 6px;
   min-height: 36px;
   padding: 0 6px 0 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   font-weight: 650;
 }
@@ -645,7 +645,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   min-height: 44px;
   padding: 0 12px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   background: none;
   color: var(--text);
   font: inherit;
@@ -685,7 +685,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   gap: 8px;
   min-height: 40px;
   padding: 0 16px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--text);
   color: var(--surface);
   font-weight: 700;
@@ -694,7 +694,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
 .ms-also {
   margin: 0;
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .cb {
@@ -712,7 +712,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   gap: 6px;
   min-height: 44px;
   align-self: flex-start;
-  font-size: 17px;
+  font-size: var(--fs-xl);
   font-weight: 650;
   color: var(--text-2);
 }
@@ -727,7 +727,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
 .cb-status {
   flex: 1 1 100%;
   align-self: flex-start;
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 700;
   color: var(--warn-text);
 }
@@ -739,7 +739,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
 .cb-head h1 {
   flex: 1;
   margin: 0;
-  font-size: 30px;
+  font-size: var(--fs-8xl);
   line-height: 1.2;
 }
 
@@ -748,7 +748,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   gap: 4px;
   padding: 4px;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--surface);
 }
 
@@ -759,8 +759,8 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   justify-content: center;
   gap: 8px;
   height: 48px;
-  border-radius: 10px;
-  font-size: 17px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-xl);
   font-weight: 650;
   color: var(--text-2);
 }
@@ -773,9 +773,9 @@ const counter = computed(() => `${form.value.description.length} / 160`)
 .cb-tabs .n {
   min-width: 24px;
   padding: 0 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .cb-error {
@@ -784,10 +784,10 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   gap: 8px;
   margin: 0;
   padding: 12px 16px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--danger-soft);
   color: var(--danger-ink);
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .cb-empty {
@@ -801,13 +801,13 @@ const counter = computed(() => `${form.value.description.length} / 160`)
 
 .cb-empty h2 {
   margin: 0;
-  font-size: 22px;
+  font-size: var(--fs-4xl);
 }
 
 .cb-empty p {
   max-width: 460px;
   margin: 0 0 6px;
-  font-size: 17px;
+  font-size: var(--fs-xl);
   line-height: 1.55;
   color: var(--text-2);
 }
@@ -822,13 +822,13 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .cb-ordering {
   padding: 12px 12px 12px 18px;
   border: 2px solid var(--accent);
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--accent-soft);
 }
 
@@ -844,12 +844,12 @@ const counter = computed(() => `${form.value.description.length} / 160`)
 
 .cb-ordering strong {
   display: block;
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .cb-ordering small {
   display: block;
-  font-size: 15px;
+  font-size: var(--fs-base);
   color: var(--text-2);
 }
 
@@ -871,12 +871,12 @@ const counter = computed(() => `${form.value.description.length} / 160`)
 
 .cb-section h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--fs-2xl);
 }
 
 .meta {
   flex: 1;
-  font-size: 15px;
+  font-size: var(--fs-base);
   color: var(--text-2);
 }
 
@@ -891,7 +891,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   place-items: center;
   width: 44px;
   height: 44px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   border: 1px solid var(--border);
   color: var(--text-2);
@@ -927,8 +927,8 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   gap: 10px;
   min-height: 48px;
   padding: 0 12px;
-  border-radius: 10px;
-  font-size: 16px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-lg);
   font-weight: 650;
   text-align: left;
   color: var(--text);
@@ -966,7 +966,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   height: 30px;
   border-radius: 50%;
   background: var(--accent-soft);
-  font-size: 14.5px;
+  font-size: var(--fs-base);
   font-weight: 700;
 }
 
@@ -978,7 +978,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
 .ltitle {
   flex: 1;
   min-width: 0;
-  font-size: 17px;
+  font-size: var(--fs-xl);
   font-weight: 650;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -991,9 +991,9 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   align-items: center;
   gap: 5px;
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: 650;
   color: var(--text-2);
 }
@@ -1007,7 +1007,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   margin: 0;
   padding: 14px 18px;
   color: var(--text-3);
-  font-size: 15.5px;
+  font-size: var(--fs-lg);
 }
 
 .cb-add {
@@ -1034,10 +1034,10 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   align-items: center;
   gap: 6px;
   padding: 5px 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--ok-soft);
   color: var(--ok-text);
-  font-size: 14.5px;
+  font-size: var(--fs-base);
   font-weight: 700;
 }
 
@@ -1076,7 +1076,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
 
 .field > span,
 .field legend {
-  font-size: 17px;
+  font-size: var(--fs-xl);
   font-weight: 700;
   margin-bottom: 4px;
 }
@@ -1097,7 +1097,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
 }
 
 .field small {
-  font-size: 15px;
+  font-size: var(--fs-base);
   color: var(--text-2);
 }
 
@@ -1107,10 +1107,10 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   min-height: 52px;
   padding: 12px 14px;
   border: 1px solid var(--border-strong, #c9ced6);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--text);
-  font-size: 17px;
+  font-size: var(--fs-xl);
   font-family: inherit;
 }
 
@@ -1125,7 +1125,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   gap: 14px;
   padding: 14px 16px;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius);
   cursor: pointer;
 }
 
@@ -1149,7 +1149,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
 }
 
 .choice strong {
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .choice select {
@@ -1163,9 +1163,9 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   gap: 10px;
   margin-left: 18px;
   padding: 16px 18px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--surface-2);
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .sub-box p {
@@ -1177,7 +1177,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   align-items: center;
   gap: 12px;
   min-height: 44px;
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .check input {
@@ -1205,9 +1205,9 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   place-items: center;
   width: 160px;
   aspect-ratio: 16 / 9;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: center / cover no-repeat linear-gradient(135deg, var(--accent-soft), var(--surface-2));
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: 700;
   text-align: center;
 }
@@ -1219,7 +1219,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   gap: 14px;
   padding: 16px 18px;
   border: 1px solid var(--danger-line);
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--danger-soft);
 }
 
@@ -1231,14 +1231,14 @@ const counter = computed(() => `${form.value.description.length} / 160`)
 .danger strong {
   display: block;
   color: var(--danger-text);
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .danger small {
   display: block;
   margin-top: 2px;
   color: var(--danger-ink);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .danger-btn {
@@ -1255,7 +1255,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
 }
 
 .name-form label {
-  font-size: 17px;
+  font-size: var(--fs-xl);
   font-weight: 700;
 }
 
@@ -1263,15 +1263,15 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   height: 52px;
   padding: 0 16px;
   border: 1px solid var(--border-strong, #c9ced6);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--text);
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .name-form .hint {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-base);
   color: var(--text-2);
 }
 
@@ -1289,7 +1289,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
 
   .cb-head h1 {
     flex: 1 1 100%;
-    font-size: 25px;
+    font-size: var(--fs-6xl);
   }
 
   .cb-head .btn {

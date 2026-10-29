@@ -43,7 +43,7 @@ const meta = () => t.sprintf(/* translators: %d: number of lessons */ t._n('%d l
   display: flex;
   margin: 4px 14px 12px;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--surface);
   color: var(--text);
   text-decoration: none;
@@ -66,7 +66,7 @@ const meta = () => t.sprintf(/* translators: %d: number of lessons */ t._n('%d l
   width: 40%;
   aspect-ratio: 16 / 9;
   margin: 12px 0 12px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
@@ -89,7 +89,7 @@ const meta = () => t.sprintf(/* translators: %d: number of lessons */ t._n('%d l
 
 .name {
   padding-right: 120px;
-  font-size: 19px;
+  font-size: var(--fs-3xl);
   line-height: 1.3;
 }
 
@@ -100,13 +100,13 @@ const meta = () => t.sprintf(/* translators: %d: number of lessons */ t._n('%d l
   -webkit-line-clamp: 2;
   line-clamp: 2;
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
   line-height: 1.45;
 }
 
 .meta {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: 600;
 }
 

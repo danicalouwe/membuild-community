@@ -171,21 +171,21 @@ const quote = computed(() => (['course', 'lesson'].includes(props.item.kind) ? p
   justify-content: center;
   width: 48px;
   height: 48px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   color: var(--accent-text);
   background: var(--accent-soft);
   line-height: 1;
 }
 
 .cal small {
-  font-size: 11px;
+  font-size: var(--fs-2xs);
   font-weight: 700;
   text-transform: uppercase;
 }
 
 .cal b {
   margin-top: 2px;
-  font-size: 19px;
+  font-size: var(--fs-3xl);
 }
 
 .cal.past {
@@ -201,10 +201,10 @@ const quote = computed(() => (['course', 'lesson'].includes(props.item.kind) ? p
   min-height: 52px;
   margin-right: 16px;
   padding: 0 22px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--text);
   background: var(--surface-2);
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 700;
 }
 
@@ -222,7 +222,7 @@ const quote = computed(() => (['course', 'lesson'].includes(props.item.kind) ? p
   flex: none;
   width: 48px;
   height: 48px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -249,14 +249,14 @@ const quote = computed(() => (['course', 'lesson'].includes(props.item.kind) ? p
 .thumb.tall {
   width: 38px;
   height: 52px;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
 }
 
 .thumb:has(.who),
 .thumb.video {
   position: relative;
   overflow: visible;
-  background: #000;
+  background: var(--player-bg);
 }
 
 .thumb:has(.who) img,
@@ -278,12 +278,12 @@ const quote = computed(() => (['course', 'lesson'].includes(props.item.kind) ? p
   inset: 0;
   display: grid;
   place-items: center;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.28);
+  color: var(--on-color);
+  background: color-mix(in srgb, var(--scrim) 28%, transparent);
 }
 
 .play svg {
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+  filter: drop-shadow(0 1px 2px color-mix(in srgb, var(--scrim) 50%, transparent));
 }
 
 .text {
@@ -294,7 +294,7 @@ const quote = computed(() => (['course', 'lesson'].includes(props.item.kind) ? p
 }
 
 .title {
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 600;
   line-height: 1.4;
   display: -webkit-box;
@@ -305,13 +305,13 @@ const quote = computed(() => (['course', 'lesson'].includes(props.item.kind) ? p
 }
 
 .title.name {
-  font-size: 17px;
+  font-size: var(--fs-xl);
   font-weight: 700;
 }
 
 .bio {
   color: var(--text);
-  font-size: 15px;
+  font-size: var(--fs-base);
   line-height: 1.45;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -321,7 +321,7 @@ const quote = computed(() => (['course', 'lesson'].includes(props.item.kind) ? p
 
 .quote {
   color: var(--text);
-  font-size: 15px;
+  font-size: var(--fs-base);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -330,7 +330,7 @@ const quote = computed(() => (['course', 'lesson'].includes(props.item.kind) ? p
 
 .detail {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -343,7 +343,7 @@ const quote = computed(() => (['course', 'lesson'].includes(props.item.kind) ? p
 }
 
 mark {
-  background: color-mix(in srgb, #ffd43b 45%, transparent);
+  background: color-mix(in srgb, var(--highlight) 45%, transparent);
   color: inherit;
   border-radius: 3px;
   padding: 0 1px;

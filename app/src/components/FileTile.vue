@@ -50,12 +50,12 @@ const label = computed(() => ((props.ext || '').toUpperCase() === 'JPEG' ? 'JPG'
   align-items: center;
   justify-content: center;
   gap: 1px;
-  border-radius: 10px;
-  color: #fff;
+  border-radius: var(--radius-sm);
+  color: var(--on-color);
 }
 
 .lbl {
-  font-size: 10px;
+  font-size: var(--fs-3xs);
   font-weight: 800;
   line-height: 1;
   letter-spacing: 0.04em;

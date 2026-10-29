@@ -217,7 +217,7 @@ const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles
 .sentence .course {
   display: block;
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .panel {
@@ -235,13 +235,13 @@ const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles
 
 .head h2 {
   margin: 0;
-  font-size: 22px;
+  font-size: var(--fs-4xl);
 }
 
 .link {
   color: var(--accent-text);
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .filters {
@@ -263,7 +263,7 @@ const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles
   gap: 12px;
   width: 100%;
   padding: 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   text-align: left;
 }
 
@@ -285,7 +285,7 @@ const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles
 
 .group-label {
   padding: 14px 8px 6px;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 750;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -305,7 +305,7 @@ const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles
 }
 
 .tbadge.cal {
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }
 
 .level {
@@ -315,8 +315,8 @@ const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles
   height: 56px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--accent), #8c6bff);
-  color: #fff;
-  font-size: 24px;
+  color: var(--on-color);
+  font-size: var(--fs-5xl);
   font-weight: 800;
 }
 
@@ -338,12 +338,12 @@ const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  color: #fff;
-  font-size: 14px;
+  color: var(--on-color);
+  font-size: var(--fs-md);
 }
 
 .comment {
-  background: #2fb36b;
+  background: var(--ok);
 }
 
 .star {
@@ -359,7 +359,7 @@ const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles
 }
 
 .sentence {
-  font-size: 15px;
+  font-size: var(--fs-base);
   line-height: 1.3;
   color: var(--text-2);
   display: -webkit-box;
@@ -377,7 +377,7 @@ const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles
 }
 
 .when {
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--text-3);
 }
 
@@ -410,7 +410,7 @@ const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles
 .more {
   margin: 4px 12px 12px;
   height: 38px;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   background: var(--surface-2);
   font-weight: 650;
 }

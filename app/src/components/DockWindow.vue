@@ -38,7 +38,7 @@ const emit = defineEmits(['close'])
 
 .dw-head h2 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .dw-x {

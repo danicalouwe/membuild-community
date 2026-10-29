@@ -208,12 +208,12 @@ onMounted(() => {
 }
 
 .me strong {
-  font-size: 26px;
+  font-size: var(--fs-6xl);
   line-height: 1.2;
 }
 
 .me small {
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .editor {
@@ -227,7 +227,7 @@ onMounted(() => {
 }
 
 .label {
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 700;
 }
 
@@ -243,11 +243,11 @@ onMounted(() => {
   min-height: 52px;
   padding: 13px 16px;
   border: 1px solid var(--border-strong);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: var(--text);
   background: var(--surface);
   font: inherit;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   resize: none;
 }
 
@@ -266,7 +266,7 @@ onMounted(() => {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 10%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--shadow-color) 10%, transparent);
 }
 
 .swatch.on {
@@ -275,13 +275,13 @@ onMounted(() => {
 
 .note {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .upload span {
   display: flex;
   justify-content: space-between;
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .upload > i {
@@ -289,14 +289,14 @@ onMounted(() => {
   height: 10px;
   margin-top: 8px;
   overflow: hidden;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
 }
 
 .upload > i > i {
   display: block;
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent);
   transform-origin: left;
   transition: transform 0.2s ease;
@@ -310,8 +310,8 @@ onMounted(() => {
   gap: 8px;
   min-height: 52px;
   padding: 0 20px;
-  border-radius: 999px;
-  font-size: 16px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-lg);
   font-weight: 700;
 }
 
@@ -339,7 +339,7 @@ onMounted(() => {
   gap: 8px;
   margin: 14px 0 0;
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
   line-height: 1.45;
 }
 
@@ -383,15 +383,15 @@ onMounted(() => {
   width: 260px;
   height: 346px;
   padding: 24px;
-  border-radius: 16px;
-  color: #fff;
+  border-radius: var(--radius-lg);
+  color: var(--on-color);
   text-align: center;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .pick:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 30px rgb(0 0 0 / 18%);
+  box-shadow: var(--shadow-pop);
 }
 
 .pick.photo {
@@ -409,12 +409,12 @@ onMounted(() => {
   height: 64px;
   margin-bottom: 6px;
   border-radius: 50%;
-  color: #16181d;
-  background: rgb(255 255 255 / 95%);
+  color: var(--ink);
+  background: color-mix(in srgb, var(--on-color) 95%, transparent);
 }
 
 .p-icon.t {
-  font-size: 30px;
+  font-size: var(--fs-8xl);
   font-weight: 500;
 }
 
@@ -425,11 +425,11 @@ onMounted(() => {
 }
 
 .pick strong {
-  font-size: 20px;
+  font-size: var(--fs-3xl);
 }
 
 .pick small {
-  font-size: 15px;
+  font-size: var(--fs-base);
   opacity: 0.92;
 }
 
@@ -441,13 +441,13 @@ onMounted(() => {
   min-height: 0;
   padding: 16px 18px 18px;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: var(--surface);
 }
 
 .preview-card h2 {
   margin: 0 0 14px;
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .stage {
@@ -456,8 +456,8 @@ onMounted(() => {
   place-items: center;
   min-height: 0;
   padding: 20px;
-  border-radius: 12px;
-  background: #18191d;
+  border-radius: var(--radius-md);
+  background: var(--player-surface);
 }
 
 .story {
@@ -468,9 +468,9 @@ onMounted(() => {
   max-height: 100%;
   aspect-ratio: 9 / 16;
   overflow: hidden;
-  border-radius: 12px;
-  color: #fff;
-  background: #000;
+  border-radius: var(--radius-md);
+  color: var(--on-color);
+  background: var(--player-bg);
 }
 
 .story img,
@@ -489,9 +489,9 @@ onMounted(() => {
   bottom: 24px;
   margin: 0;
   padding: 8px 12px;
-  border-radius: 10px;
-  background: rgb(0 0 0 / 45%);
-  font-size: 17px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--scrim) 45%, transparent);
+  font-size: var(--fs-xl);
   font-weight: 650;
   text-align: center;
 }
@@ -499,7 +499,7 @@ onMounted(() => {
 .words-preview {
   margin: 0;
   padding: 0 28px;
-  font-size: 28px;
+  font-size: var(--fs-7xl);
   font-weight: 750;
   line-height: 1.3;
   text-align: center;
@@ -537,7 +537,7 @@ onMounted(() => {
   }
 
   .me strong {
-    font-size: 22px;
+    font-size: var(--fs-4xl);
   }
 
   .right {

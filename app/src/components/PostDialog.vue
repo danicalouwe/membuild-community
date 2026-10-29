@@ -81,7 +81,7 @@ watch(() => route.path, () => emit('close'))
 }
 
 .who span {
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--text-3);
 }
 
@@ -94,7 +94,7 @@ watch(() => route.path, () => emit('close'))
   align-items: center;
   gap: 4px;
   margin-top: 3px;
-  font-size: 12.5px;
+  font-size: var(--fs-sm);
   font-weight: 650;
   color: var(--accent-text);
 }

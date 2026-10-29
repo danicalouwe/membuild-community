@@ -42,14 +42,14 @@ const vertical = computed(() => props.media.embed?.vertical || (props.media.heig
   display: grid;
   place-items: center;
   aspect-ratio: 16 / 9;
-  background: #111 center / cover;
+  background: var(--player-bg) center / cover;
 }
 
 .lesson-processing span {
   padding: 10px 16px;
-  border-radius: 999px;
-  background: rgb(0 0 0 / 65%);
-  color: #fff;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--scrim) 65%, transparent);
+  color: var(--on-color);
   font-weight: 600;
 }
 
@@ -57,9 +57,9 @@ const vertical = computed(() => props.media.embed?.vertical || (props.media.heig
   position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   overflow: hidden;
-  background: #000;
+  background: var(--player-bg);
 }
 
 .player.vertical {
@@ -80,7 +80,7 @@ const vertical = computed(() => props.media.embed?.vertical || (props.media.heig
 
 .credit {
   margin: 8px 0 0;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--text-3);
 }
 

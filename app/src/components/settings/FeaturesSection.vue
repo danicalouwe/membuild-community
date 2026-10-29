@@ -75,7 +75,7 @@ const { form } = useSettings()
 <style scoped>
 .sub-head {
   margin: 28px 0 4px;
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .sub-intro {
@@ -89,7 +89,7 @@ const { form } = useSettings()
   margin: 0 0 8px 24px;
   padding: 14px 20px !important; /* the shared row style would otherwise take the sides away */
   border: 0;
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--surface-2);
 }
 

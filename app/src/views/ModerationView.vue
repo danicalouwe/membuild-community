@@ -393,13 +393,13 @@ function personLine(p) {
 
 .head h1 {
   margin: 0;
-  font-size: 30px;
+  font-size: var(--fs-8xl);
 }
 
 .head p {
   margin: 0;
   color: var(--text-2);
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .tabs {
@@ -414,14 +414,14 @@ function personLine(p) {
   min-width: 24px;
   height: 24px;
   padding: 0 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--text-2);
   background: var(--surface);
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }
 
 .count.red {
-  color: #fff;
+  color: var(--on-color);
   background: var(--danger);
 }
 
@@ -429,7 +429,7 @@ function personLine(p) {
   margin: 0;
   padding: 28px;
   color: var(--text-2);
-  font-size: 16px;
+  font-size: var(--fs-lg);
   text-align: center;
 }
 
@@ -460,12 +460,12 @@ function personLine(p) {
 }
 
 .who strong {
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .who small {
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .name-row {
@@ -485,28 +485,28 @@ function personLine(p) {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--warn-text);
   background: var(--warn-soft);
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: 700;
 }
 
 .why {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   line-height: 1.5;
 }
 
 .quote {
   padding: 16px 18px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface-2);
 }
 
 .quote p {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   line-height: 1.55;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -517,7 +517,7 @@ function personLine(p) {
   max-width: 220px;
   max-height: 160px;
   margin-top: 10px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   object-fit: cover;
 }
 
@@ -527,7 +527,7 @@ function personLine(p) {
   gap: 4px;
   align-self: flex-start;
   color: var(--text);
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 700;
   text-decoration: underline;
 }
@@ -540,19 +540,19 @@ function personLine(p) {
 
 .said-list .label {
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 600;
 }
 
 .said-list p {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   overflow-wrap: anywhere;
 }
 
 .said-list small {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .actions {
@@ -577,18 +577,18 @@ function personLine(p) {
   gap: 6px;
   min-height: 52px;
   padding: 0 24px;
-  border-radius: 999px;
-  font-size: 17px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xl);
   font-weight: 700;
 }
 
 .btn-red {
-  color: #fff;
-  background: #b42318;
+  color: var(--on-color);
+  background: var(--danger-strong);
 }
 
 .btn-red:hover {
-  background: #93190f;
+  background: color-mix(in srgb, var(--danger-strong) 80%, var(--scrim));
 }
 
 .btn-grey {
@@ -638,7 +638,7 @@ function personLine(p) {
 
 .said {
   margin: 4px 0;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -652,10 +652,10 @@ function personLine(p) {
   gap: 10px;
   margin: 0;
   padding: 16px 18px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: var(--text-2);
   background: var(--surface-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .note :deep(svg) {
@@ -678,19 +678,19 @@ function personLine(p) {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  color: #157347;
-  background: color-mix(in srgb, #1f9d55 16%, transparent);
+  color: var(--ok-text);
+  background: color-mix(in srgb, var(--ok) 16%, transparent);
 }
 
 .clear strong {
-  font-size: 22px;
+  font-size: var(--fs-4xl);
 }
 
 .clear p {
   max-width: 520px;
   margin: 0;
   color: var(--text-2);
-  font-size: 16px;
+  font-size: var(--fs-lg);
   line-height: 1.6;
 }
 
@@ -734,7 +734,7 @@ function personLine(p) {
 .dlg-title {
   margin: 0;
   padding: 28px 30px 0;
-  font-size: 24px;
+  font-size: var(--fs-5xl);
 }
 
 .dlg {
@@ -747,12 +747,12 @@ function personLine(p) {
 .dlg-text {
   margin: 0;
   color: var(--text-2);
-  font-size: 16px;
+  font-size: var(--fs-lg);
   line-height: 1.5;
 }
 
 .dlg-q {
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .cards {
@@ -767,7 +767,7 @@ function personLine(p) {
   gap: 14px;
   padding: 14px 18px;
   border: 1px solid var(--border-strong);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 
@@ -807,12 +807,12 @@ function personLine(p) {
 }
 
 .pick strong {
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .pick small {
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
   line-height: 1.45;
 }
 
@@ -831,7 +831,7 @@ function personLine(p) {
   }
 
   .head h1 {
-    font-size: 26px;
+    font-size: var(--fs-6xl);
   }
 
   .tabs {
@@ -895,7 +895,7 @@ function personLine(p) {
 
   .dlg-title {
     padding: 22px 20px 0;
-    font-size: 21px;
+    font-size: var(--fs-4xl);
   }
 
   .dlg {

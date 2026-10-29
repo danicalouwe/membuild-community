@@ -148,7 +148,7 @@ function compose() {
 
 .head h2 {
   margin: 0;
-  font-size: 22px;
+  font-size: var(--fs-4xl);
 }
 
 .tools {
@@ -187,7 +187,7 @@ function compose() {
   gap: 12px;
   width: 100%;
   padding: 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   text-align: left;
 }
 
@@ -239,7 +239,7 @@ function compose() {
 .preview {
   display: flex;
   gap: 4px;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--text-3);
 }
 

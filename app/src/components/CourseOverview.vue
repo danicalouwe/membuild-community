@@ -198,11 +198,11 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
 
 .ov-cover-title {
   padding: 20px;
-  color: #fff;
-  font-size: 30px;
+  color: var(--on-color);
+  font-size: var(--fs-8xl);
   font-weight: 800;
   text-align: center;
-  text-shadow: 0 1px 3px rgb(0 0 0 / 25%);
+  text-shadow: 0 1px 3px color-mix(in srgb, var(--scrim) 25%, transparent);
 }
 
 .ov-locked {
@@ -213,10 +213,10 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
   align-items: center;
   gap: 6px;
   padding: 6px 14px 6px 12px;
-  border-radius: 999px;
-  background: rgb(0 0 0 / 72%);
-  color: #fff;
-  font-size: 15px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--scrim) 72%, transparent);
+  color: var(--on-color);
+  font-size: var(--fs-base);
   font-weight: 700;
 }
 
@@ -229,7 +229,7 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
 
 .ov-info h1 {
   margin: 0;
-  font-size: 28px;
+  font-size: var(--fs-7xl);
   line-height: 1.2;
 }
 
@@ -238,7 +238,7 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
   align-items: center;
   gap: 8px;
   margin: 0;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   color: var(--text-2);
 }
 
@@ -248,7 +248,7 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
 
 .ov-desc {
   margin: 0;
-  font-size: 17px;
+  font-size: var(--fs-xl);
   line-height: 1.55;
   color: var(--text-2);
 }
@@ -264,7 +264,7 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
   align-self: flex-start;
   min-height: 36px;
   margin-top: -8px;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 700;
   color: var(--text);
   text-decoration: underline;
@@ -278,7 +278,7 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
   padding: 0 0 14px;
   list-style: none;
   border-bottom: 1px solid var(--border);
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 650;
 }
 
@@ -292,14 +292,14 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
   display: flex;
   justify-content: space-between;
   margin-bottom: 8px;
-  font-size: 15.5px;
+  font-size: var(--fs-lg);
   font-weight: 650;
   color: var(--text-2);
 }
 
 .ov-track {
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   overflow: hidden;
 }
@@ -316,7 +316,7 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
   align-items: center;
   gap: 14px;
   padding: 14px 16px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--surface-2);
 }
 
@@ -332,29 +332,29 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
 
 .ov-lockbox strong {
   display: block;
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .ov-lockbox p {
-  font-size: 15px !important;
+  font-size: var(--fs-base) !important;
 }
 
 .ov-lockbox p,
 .ov-soon {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   color: var(--text-2);
 }
 
 .ov-section h2 {
   margin: 0 0 14px;
-  font-size: 23px;
+  font-size: var(--fs-5xl);
 }
 
 .ov-about {
   position: relative;
   padding: 20px 24px;
-  font-size: 17px;
+  font-size: var(--fs-xl);
   line-height: 1.6;
 }
 
@@ -394,11 +394,11 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
 
 .ov-module h3 {
   margin: 0;
-  font-size: 19px;
+  font-size: var(--fs-3xl);
 }
 
 .ov-module header span {
-  font-size: 15px;
+  font-size: var(--fs-base);
   color: var(--text-2);
   white-space: nowrap;
 }
@@ -434,7 +434,7 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
   height: 32px;
   border-radius: 50%;
   border: 2px solid var(--border-strong, #c9ced6);
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 700;
 }
 
@@ -443,9 +443,9 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
 }
 
 .ov-mark.done {
-  border-color: #2fb36b;
-  background: #2fb36b;
-  color: #fff;
+  border-color: var(--ok);
+  background: var(--ok);
+  color: var(--on-color);
 }
 
 .ov-mark.locked {
@@ -461,7 +461,7 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
 
 .ov-ltext strong {
   display: block;
-  font-size: 17.5px;
+  font-size: var(--fs-2xl);
 }
 
 .ov-ltext small {
@@ -469,7 +469,7 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
   flex-wrap: wrap;
   gap: 4px 16px;
   margin-top: 3px;
-  font-size: 15px;
+  font-size: var(--fs-base);
   color: var(--text-2);
 }
 
@@ -482,7 +482,7 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
 .ov-go {
   flex: none;
   height: 44px;
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .ov-opens {
@@ -492,10 +492,10 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
   gap: 6px;
   height: 40px;
   padding: 0 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--text);
   color: var(--surface);
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 700;
 }
 
@@ -516,7 +516,7 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
   align-items: center;
   gap: 4px;
   min-height: 44px;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 700;
   color: var(--text);
 }
@@ -538,13 +538,13 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
 }
 
 .ov-post:hover {
-  box-shadow: 0 10px 28px rgb(0 0 0 / 12%);
+  box-shadow: var(--shadow-pop);
 }
 
 .ov-tag {
   padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 14px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-md);
   font-weight: 700;
   background: var(--ok-soft);
   color: var(--ok-text);
@@ -563,18 +563,18 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
 
 .ov-who strong {
   display: block;
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .ov-who small {
   display: block;
-  font-size: 14px;
+  font-size: var(--fs-md);
   color: var(--text-2);
 }
 
 .ov-text {
   flex: 1;
-  font-size: 16.5px;
+  font-size: var(--fs-xl);
   line-height: 1.5;
 }
 
@@ -585,7 +585,7 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
   width: 100%;
   padding-top: 12px;
   border-top: 1px solid var(--border);
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 650;
 }
 

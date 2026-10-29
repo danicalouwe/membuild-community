@@ -101,7 +101,7 @@ async function send() {
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   font-weight: 600;
   cursor: pointer;
 }
@@ -114,7 +114,7 @@ async function send() {
 textarea {
   padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--text);
   font: inherit;
@@ -129,7 +129,7 @@ textarea {
 
 .btn {
   padding: 9px 16px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   font-weight: 650;
 }
 
@@ -157,9 +157,9 @@ textarea {
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: #1fa463;
-  color: #fff;
-  font-size: 26px;
+  background: var(--ok);
+  color: var(--on-color);
+  font-size: var(--fs-6xl);
   font-weight: 800;
 }
 </style>

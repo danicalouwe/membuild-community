@@ -131,7 +131,7 @@ function pick(gif) {
   margin: 0 0 8px;
   padding: 0;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--surface-2);
   break-inside: avoid;
@@ -169,7 +169,7 @@ function pick(gif) {
   width: 100%;
   margin: 0;
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }
 
 .powered strong {

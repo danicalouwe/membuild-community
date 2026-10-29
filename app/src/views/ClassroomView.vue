@@ -265,7 +265,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
     gap: 10px;
     margin: 8px 0 14px;
     padding: 6px 6px 6px 14px;
-    font-size: 15px;
+    font-size: var(--fs-base);
   }
 
   .preview-bar.preview-bar .pv-short {
@@ -282,7 +282,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
   .preview-bar.preview-bar .btn {
     flex: none;
     padding: 0 16px;
-    font-size: 15px;
+    font-size: var(--fs-base);
   }
 
   .preview-bar .pv-long {
@@ -337,7 +337,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
 
 .head h1 {
   margin: 0;
-  font-size: 28px;
+  font-size: var(--fs-7xl);
 }
 
 .owner-actions {
@@ -349,7 +349,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
 
 .section {
   margin: 4px 0 12px;
-  font-size: 20px;
+  font-size: var(--fs-3xl);
 }
 
 .preview-bar {
@@ -358,10 +358,10 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
   gap: 12px;
   margin-bottom: 18px;
   padding: 10px 10px 10px 18px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: var(--accent-soft);
   color: var(--text);
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 600;
 }
 
@@ -382,9 +382,9 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
 .filters .n {
   min-width: 24px;
   padding: 0 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface);
-  font-size: 14px;
+  font-size: var(--fs-md);
   text-align: center;
 }
 
@@ -400,7 +400,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
 }
 
 .resume:hover {
-  box-shadow: 0 10px 28px rgb(0 0 0 / 18%);
+  box-shadow: var(--shadow-pop);
 }
 
 .resume-cover {
@@ -408,7 +408,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
   flex: none;
   width: 180px;
   aspect-ratio: 16 / 9;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
@@ -427,8 +427,8 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
   width: 46px;
   height: 46px;
   border-radius: 50%;
-  background: rgb(0 0 0 / 55%);
-  color: #fff;
+  background: color-mix(in srgb, var(--scrim) 55%, transparent);
+  color: var(--on-color);
 }
 
 .resume-body {
@@ -440,12 +440,12 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
 }
 
 .resume-body strong {
-  font-size: 19px;
+  font-size: var(--fs-3xl);
 }
 
 .next {
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -506,9 +506,9 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #2fb36b;
-  color: #fff;
-  box-shadow: 0 2px 6px rgb(0 0 0 / 20%);
+  background: var(--ok);
+  color: var(--on-color);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Signs of life: how many are taking it, and how lively its discussion is. */
@@ -518,7 +518,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
   flex-wrap: wrap;
   gap: 8px 18px;
   margin: -4px 0 14px;
-  font-size: 15px;
+  font-size: var(--fs-base);
   color: var(--text-2);
 }
 
@@ -556,7 +556,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
 }
 
 .foot-left {
-  font-size: 15px;
+  font-size: var(--fs-base);
   color: var(--text-2);
 }
 
@@ -565,7 +565,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
   align-items: center;
   gap: 6px;
   font-weight: 700;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   color: var(--text-2);
 }
 
@@ -577,7 +577,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 650;
 }
 
@@ -585,7 +585,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: #2fb36b;
+  background: var(--ok);
 }
 
 .draft-dot {
@@ -595,7 +595,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
 .foot .edit {
   height: 48px;
   padding: 0 20px;
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .state.go {
@@ -603,7 +603,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
 }
 
 .done-state {
-  color: #2fb36b;
+  color: var(--ok-text);
 }
 
 .grid {
@@ -622,7 +622,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
 
 .course:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 28px rgb(0 0 0 / 18%);
+  box-shadow: var(--shadow-pop);
 }
 
 .cover,
@@ -642,11 +642,11 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
 
 .cover-title {
   padding: 16px;
-  color: #fff;
-  font-size: 22px;
+  color: var(--on-color);
+  font-size: var(--fs-4xl);
   font-weight: 800;
   text-align: center;
-  text-shadow: 0 1px 3px rgb(0 0 0 / 25%);
+  text-shadow: 0 1px 3px color-mix(in srgb, var(--scrim) 25%, transparent);
 }
 
 .draft {
@@ -654,10 +654,10 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
   top: 10px;
   left: 10px;
   padding: 3px 10px;
-  border-radius: 999px;
-  background: rgb(0 0 0 / 65%);
-  color: #fff;
-  font-size: 12px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--scrim) 65%, transparent);
+  color: var(--on-color);
+  font-size: var(--fs-xs);
   font-weight: 700;
 }
 
@@ -676,10 +676,10 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
   gap: 5px;
   max-width: calc(100% - 20px);
   padding: 5px 11px 5px 9px;
-  border-radius: 999px;
-  background: rgb(0 0 0 / 70%);
-  color: #fff;
-  font-size: 14px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--scrim) 70%, transparent);
+  color: var(--on-color);
+  font-size: var(--fs-md);
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
@@ -696,7 +696,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
 
 .body h2 {
   margin: 0;
-  font-size: 19px;
+  font-size: var(--fs-3xl);
 }
 
 .desc {
@@ -704,7 +704,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
   max-height: calc(2 * 1.45em);
   margin: 6px 0 14px;
   color: var(--text-2);
-  font-size: 15.5px;
+  font-size: var(--fs-lg);
   line-height: 1.45;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -717,7 +717,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
   align-items: center;
   gap: 10px;
   margin-bottom: 14px;
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: 650;
   color: var(--text-2);
 }
@@ -725,7 +725,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
 .track {
   flex: 1;
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   overflow: hidden;
 }
@@ -734,7 +734,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: #2fb36b;
+  background: var(--ok);
   transition: width 0.4s ease;
 }
 
@@ -778,7 +778,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
 
 .new strong {
   color: var(--text);
-  font-size: 19px;
+  font-size: var(--fs-3xl);
 }
 
 .more {
@@ -795,7 +795,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
 }
 
 .name-form label {
-  font-size: 17px;
+  font-size: var(--fs-xl);
   font-weight: 700;
 }
 
@@ -803,22 +803,22 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
   height: 52px;
   padding: 0 16px;
   border: 1px solid var(--border-strong, #c9ced6);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--text);
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .name-form .hint {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-base);
   color: var(--text-2);
 }
 
 .name-form .error {
   margin: 0;
   color: var(--danger-text);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .name-actions {
@@ -838,7 +838,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
   .filters .n {
     min-width: 20px;
     padding: 0 6px;
-    font-size: 12px;
+    font-size: var(--fs-xs);
   }
 }
 </style>

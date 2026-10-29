@@ -99,7 +99,7 @@ async function save() {
 }
 
 .brand-bar strong {
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .brand-bar .round {
@@ -118,10 +118,10 @@ async function save() {
   width: 36px;
   height: 36px;
   overflow: hidden;
-  border-radius: 9px;
+  border-radius: var(--radius-sm);
   background: var(--accent);
   color: var(--accent-ink);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 800;
 }
 
@@ -143,12 +143,12 @@ async function save() {
 
 .head h2 {
   margin: 0;
-  font-size: 24px;
+  font-size: var(--fs-5xl);
 }
 
 .when {
   margin: 4px 0 18px;
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .muted {
@@ -156,11 +156,11 @@ async function save() {
 }
 
 .small {
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .lbl {
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -169,7 +169,7 @@ async function save() {
 
 .to {
   margin: 4px 0 18px;
-  font-size: 15px;
+  font-size: var(--fs-base);
   overflow-wrap: anywhere;
 }
 
@@ -179,11 +179,11 @@ async function save() {
   gap: 12px;
   padding: 12px 0;
   border-top: 1px solid var(--border);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .total strong:last-child {
-  font-size: 18px;
+  font-size: var(--fs-2xl);
 }
 
 .foot-btns {
@@ -195,7 +195,7 @@ async function save() {
 
 .foot-btns .btn {
   min-height: 52px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 .foot-btns .save {
@@ -218,7 +218,7 @@ async function save() {
   display: block;
   height: 14px;
   margin: 12px 0;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   background: var(--surface-2);
 }
 </style>

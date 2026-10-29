@@ -672,7 +672,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 <style scoped>
 /* "Active now" in green under the name (Settings › Features › Show who's online). */
 .who .now {
-  color: #1f7a49;
+  color: var(--ok-text);
   font-weight: 650;
 }
 
@@ -680,14 +680,14 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
   margin: 0;
   text-align: center;
   color: var(--text-3);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 /* Docked window: a compact header and tighter spacing. */
 .docked .head {
   gap: 2px;
   padding: 6px 6px 6px 8px;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 10%);
+  box-shadow: var(--shadow-sm);
 }
 
 .name-wrap {
@@ -701,7 +701,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
   gap: 8px;
   max-width: 100%;
   padding: 4px 6px 4px 4px;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   color: var(--text);
 }
 
@@ -713,7 +713,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .icon.small {
@@ -796,10 +796,10 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
   height: 52px;
   padding: 0 16px;
   border: 2px solid var(--accent-text);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   font: inherit;
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .rename input:focus {
@@ -809,12 +809,12 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 
 .rename .btn {
   flex: none;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 0 24px;
 }
 
 .rename small {
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--text-2);
 }
 
@@ -861,7 +861,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 }
 
 .who span {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   color: var(--text-3);
 }
 
@@ -876,17 +876,17 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
   z-index: 5;
   min-width: 170px;
   padding: 6px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
   border: 1px solid var(--border);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 20%);
+  box-shadow: var(--shadow-pop);
 }
 
 /* Like the chat menu on the canvas: an icon on every row, the red action under a line. */
 .menu {
   min-width: 220px;
   padding: 8px;
-  border-radius: 14px;
+  border-radius: var(--radius);
 }
 
 .menu [role='menuitem'] {
@@ -896,10 +896,10 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
   width: 100%;
   min-height: 48px;
   padding: 0 14px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   color: var(--text);
   font: inherit;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 600;
   text-align: left;
   text-decoration: none;
@@ -974,12 +974,12 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 
 .intro strong {
   margin-top: 8px;
-  font-size: 18px;
+  font-size: var(--fs-2xl);
 }
 
 .intro span {
   color: var(--text-3);
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }
 
 .faces.big :deep(.avatar-wrap + .avatar-wrap) {
@@ -989,7 +989,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 .time {
   margin: 14px 0 8px;
   text-align: center;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--text-3);
 }
@@ -1036,7 +1036,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 
 .sender {
   margin: 0 0 2px 12px;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   color: var(--text-3);
 }
 
@@ -1065,9 +1065,9 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 
 .bubble {
   padding: 8px 12px;
-  border-radius: 18px;
+  border-radius: var(--radius-xl);
   background: var(--surface-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
   line-height: 1.35;
   overflow-wrap: anywhere;
 }
@@ -1117,7 +1117,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 .photos {
   display: grid;
   gap: 2px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   max-width: 320px;
 }
@@ -1155,14 +1155,14 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
   display: inline-flex;
   gap: 2px;
   padding: 1px 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface);
   border: 1px solid var(--border);
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }
 
 .reacts b {
-  font-size: 11px;
+  font-size: var(--fs-2xs);
   margin-left: 1px;
   color: var(--text-2);
 }
@@ -1257,7 +1257,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
   width: 100%;
   height: auto;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   color: var(--text);
   font-weight: 600;
   white-space: nowrap;
@@ -1271,10 +1271,10 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 .quoted {
   margin-bottom: -10px;
   padding: 6px 12px 14px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--surface-2);
   opacity: 0.7;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1284,7 +1284,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 .quoted span {
   display: block;
   font-weight: 650;
-  font-size: 11px;
+  font-size: var(--fs-2xs);
 }
 
 .story-card {
@@ -1300,9 +1300,9 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
   place-items: center;
   width: 96px;
   aspect-ratio: 9 / 16;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   overflow: hidden;
-  background: #222;
+  background: var(--player-surface);
 }
 
 .story-thumb img {
@@ -1313,14 +1313,14 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 
 .story-thumb small {
   padding: 6px;
-  color: #fff;
-  font-size: 10px;
+  color: var(--on-color);
+  font-size: var(--fs-3xs);
   font-weight: 700;
   text-align: center;
 }
 
 .story-label {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   color: var(--text-3);
 }
 
@@ -1328,7 +1328,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 .failed,
 .seen {
   margin-top: 3px;
-  font-size: 11px;
+  font-size: var(--fs-2xs);
   color: var(--text-3);
 }
 
@@ -1388,7 +1388,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
   align-items: center;
   gap: 8px;
   padding: 6px 8px 8px;
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }
 
 .replying div {
@@ -1421,7 +1421,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
   flex: none;
   width: 64px;
   height: 64px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
@@ -1448,8 +1448,8 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: rgb(0 0 0 / 60%);
-  color: #fff;
+  background: color-mix(in srgb, var(--scrim) 60%, transparent);
+  color: var(--on-color);
 }
 
 .bar {
@@ -1462,7 +1462,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
   flex: 1;
   display: flex;
   align-items: flex-end;
-  border-radius: 20px;
+  border-radius: var(--radius-xl);
   background: var(--surface-2);
   padding-left: 14px;
 }
@@ -1492,7 +1492,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 }
 
 .emoji-wrap .icon {
-  font-size: 20px;
+  font-size: var(--fs-3xl);
 }
 
 .emoji-pop {
@@ -1503,7 +1503,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 }
 
 .send.like {
-  font-size: 22px;
+  font-size: var(--fs-4xl);
 }
 
 @media (max-width: 767px) {

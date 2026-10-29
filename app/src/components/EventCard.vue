@@ -75,12 +75,12 @@ const goingLabel = (n) => t.sprintf(/* translators: %d: number of members going 
 
 .event-card:not(.compact):hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 28px rgb(0 0 0 / 18%);
+  box-shadow: var(--shadow-pop);
 }
 
 .event-card.compact {
   margin: 0 14px 10px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface-2);
   border: 0;
 }
@@ -104,21 +104,21 @@ const goingLabel = (n) => t.sprintf(/* translators: %d: number of members going 
   align-items: center;
   min-width: 48px;
   padding: 5px 8px;
-  border-radius: 10px;
-  background: #fff;
-  color: #111;
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  color: var(--ink);
   line-height: 1.1;
 }
 
 .date small {
-  font-size: 11px;
+  font-size: var(--fs-2xs);
   font-weight: 700;
   text-transform: uppercase;
-  color: #e5484d;
+  color: var(--live);
 }
 
 .date strong {
-  font-size: 20px;
+  font-size: var(--fs-3xl);
 }
 
 .date.inline {
@@ -134,15 +134,15 @@ const goingLabel = (n) => t.sprintf(/* translators: %d: number of members going 
   top: 12px;
   right: 12px;
   padding: 4px 10px;
-  border-radius: 999px;
-  background: #e5484d;
-  color: #fff;
-  font-size: 12px;
+  border-radius: var(--radius-pill);
+  background: var(--live);
+  color: var(--on-color);
+  font-size: var(--fs-xs);
   font-weight: 750;
 }
 
 .live.off {
-  background: rgb(0 0 0 / 65%);
+  background: color-mix(in srgb, var(--scrim) 65%, transparent);
 }
 
 .body {
@@ -165,12 +165,12 @@ const goingLabel = (n) => t.sprintf(/* translators: %d: number of members going 
   flex-wrap: wrap;
   gap: 2px 6px;
   color: var(--accent-text);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 700;
 }
 
 .now {
-  color: #e5484d;
+  color: var(--live);
   font-style: normal;
   white-space: nowrap;
 }
@@ -188,7 +188,7 @@ const goingLabel = (n) => t.sprintf(/* translators: %d: number of members going 
 
 h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   line-height: 1.25;
   overflow: hidden;
   display: -webkit-box;
@@ -207,7 +207,7 @@ h3 {
   gap: 8px;
   margin-top: 4px;
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }
 
 .faces {
@@ -235,7 +235,7 @@ h3 {
   gap: 4px;
   flex: none;
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 650;
 }
 

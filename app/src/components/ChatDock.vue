@@ -101,10 +101,10 @@ const closeLabel = (c) => t.sprintf(/* translators: %s: the chat's name or the p
   width: 338px;
   height: min(455px, calc(100vh - var(--header-h) - 24px)); /* fallback for browsers without dvh */
   height: min(455px, calc(100dvh - var(--header-h) - 24px));
-  border-radius: 10px 10px 0 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   border-bottom: 0;
   overflow: hidden;
-  box-shadow: 0 12px 28px rgb(0 0 0 / 20%), 0 2px 4px rgb(0 0 0 / 10%);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--shadow-color) 20%, transparent), 0 2px 4px color-mix(in srgb, var(--shadow-color) 10%, transparent);
   pointer-events: auto;
 }
 
@@ -139,7 +139,7 @@ const closeLabel = (c) => t.sprintf(/* translators: %s: the chat's name or the p
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--shadow-color) 20%, transparent);
 }
 
 .faces.group {
@@ -175,7 +175,7 @@ const closeLabel = (c) => t.sprintf(/* translators: %s: the chat's name or the p
   border-radius: 50%;
   background: var(--surface);
   color: var(--text-2);
-  box-shadow: 0 1px 4px rgb(0 0 0 / 25%);
+  box-shadow: var(--shadow-sm);
 }
 
 .head-wrap:hover .x,
@@ -192,7 +192,7 @@ const closeLabel = (c) => t.sprintf(/* translators: %s: the chat's name or the p
   background: var(--surface);
   border: 1px solid var(--border);
   color: var(--text);
-  box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--shadow-color) 20%, transparent);
 }
 
 .compose:hover {

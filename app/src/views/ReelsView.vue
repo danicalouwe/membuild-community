@@ -500,11 +500,11 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
 <style scoped>
 /* The empty state on the black reel area: light words. */
 .empty .empty-state-title {
-  color: #fff;
+  color: var(--on-color);
 }
 
 .empty .empty-state-text {
-  color: rgb(255 255 255 / 60%);
+  color: color-mix(in srgb, var(--on-color) 60%, transparent);
 }
 
 .processing {
@@ -516,7 +516,7 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   justify-content: center;
   gap: 12px;
   padding: 0 40px;
-  background: #1c1d21;
+  background: var(--player-surface);
   text-align: center;
   pointer-events: none;
 }
@@ -525,21 +525,21 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   width: 56px;
   height: 56px;
   margin-bottom: 6px;
-  border: 4px solid rgb(255 255 255 / 22%);
+  border: 4px solid color-mix(in srgb, var(--on-color) 22%, transparent);
   border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.9s linear infinite;
 }
 
 .processing strong {
-  font-size: 19px;
+  font-size: var(--fs-3xl);
 }
 
 .processing span:last-child {
   max-width: 380px;
-  font-size: 15px;
+  font-size: var(--fs-base);
   line-height: 1.55;
-  color: rgb(255 255 255 / 78%);
+  color: color-mix(in srgb, var(--on-color) 78%, transparent);
 }
 
 .stage {
@@ -547,8 +547,8 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   container-type: size; /* lets the progress bar and + button measure the stage (cqw) */
   position: relative;
   height: var(--reel-h);
-  background: #000;
-  color: #fff;
+  background: var(--player-bg);
+  color: var(--on-color);
 }
 
 .reels {
@@ -570,7 +570,7 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   scroll-snap-align: start;
   scroll-snap-stop: always;
   overflow: hidden;
-  background: #000;
+  background: var(--player-bg);
 }
 
 .reel:not(.embed):not(.empty) {
@@ -595,7 +595,7 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
 .frame {
   position: absolute;
   inset: 0;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   cursor: pointer;
   user-select: none;
@@ -615,7 +615,7 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
 .frame .poster.landscape {
   /* A wide video keeps its shape with black bars above and below, like Facebook. */
   object-fit: contain;
-  background: #000;
+  background: var(--player-bg);
 }
 
 .center-icon {
@@ -623,9 +623,9 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   inset: 0;
   display: grid;
   place-items: center;
-  color: rgb(255 255 255 / 85%);
+  color: color-mix(in srgb, var(--on-color) 85%, transparent);
   pointer-events: none;
-  filter: drop-shadow(0 2px 10px rgb(0 0 0 / 40%));
+  filter: drop-shadow(0 2px 10px color-mix(in srgb, var(--scrim) 40%, transparent));
 }
 
 .spinner {
@@ -635,8 +635,8 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   width: 40px;
   height: 40px;
   margin: -20px 0 0 -20px;
-  border: 3px solid rgb(255 255 255 / 25%);
-  border-top-color: #fff;
+  border: 3px solid color-mix(in srgb, var(--on-color) 25%, transparent);
+  border-top-color: var(--on-color);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   pointer-events: none;
@@ -650,7 +650,7 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
 
 .burst {
   position: absolute;
-  font-size: 90px;
+  font-size: 90px; /* exempt: the big emoji burst */
   transform: translate(-50%, -50%);
   pointer-events: none;
   animation: burst 0.8s cubic-bezier(0.2, 1.4, 0.4, 1) forwards;
@@ -682,7 +682,7 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   align-items: flex-end;
   gap: 12px;
   padding: 80px 12px 22px 16px;
-  background: linear-gradient(transparent, rgb(0 0 0 / 55%));
+  background: linear-gradient(transparent, color-mix(in srgb, var(--scrim) 55%, transparent));
   pointer-events: none;
 }
 
@@ -690,16 +690,16 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   flex: 1;
   min-width: 0;
   pointer-events: auto;
-  text-shadow: 0 1px 2px rgb(0 0 0 / 50%);
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--scrim) 50%, transparent);
 }
 
 .caption :deep(a) {
-  color: #fff;
+  color: var(--on-color);
   text-decoration: underline;
 }
 
 .caption :deep(.more) {
-  color: rgb(255 255 255 / 80%);
+  color: color-mix(in srgb, var(--on-color) 80%, transparent);
 }
 
 .author {
@@ -717,7 +717,7 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
 }
 
 .box .overlay {
-  border-radius: 0 0 12px 12px;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
 }
 
 /* On desktop the buttons sit just outside the frame, on the right (Facebook style). */
@@ -732,10 +732,10 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   flex-direction: column;
   align-items: center;
   gap: 3px;
-  color: #fff;
-  font-size: 12px;
+  color: var(--on-color);
+  font-size: var(--fs-xs);
   font-weight: 650;
-  filter: drop-shadow(0 1px 3px rgb(0 0 0 / 45%));
+  filter: drop-shadow(0 1px 3px color-mix(in srgb, var(--scrim) 45%, transparent));
 }
 
 .rail-btn .ic {
@@ -765,14 +765,14 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   width: var(--pw);
   height: 2px;
   transform: translateX(-50%);
-  background: rgb(255 255 255 / 20%);
+  background: color-mix(in srgb, var(--on-color) 20%, transparent);
   pointer-events: none;
 }
 
 .progress i {
   display: block;
   height: 100%;
-  background: #fff;
+  background: var(--on-color);
   transform-origin: left;
   transform: scaleX(0);
 }
@@ -787,7 +787,7 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
 
 .empty {
   justify-content: center;
-  color: rgb(255 255 255 / 85%);
+  color: color-mix(in srgb, var(--on-color) 85%, transparent);
 }
 
 .sheet-backdrop {
@@ -797,16 +797,16 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background: rgb(0 0 0 / 45%);
+  background: color-mix(in srgb, var(--scrim) 45%, transparent);
 }
 
 .sheet {
   width: min(100%, 560px);
   max-height: 75dvh;
   overflow-y: auto;
-  background: #1c1c1f;
-  color: #f2f2f4;
-  border-radius: 18px 18px 0 0;
+  background: var(--player-surface);
+  color: var(--player-text);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   padding-bottom: env(safe-area-inset-bottom);
 }
 
@@ -817,18 +817,18 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  background: #1c1c1f;
-  border-bottom: 1px solid #2c2c30;
+  background: var(--player-surface);
+  border-bottom: 1px solid var(--player-line);
 }
 
 .sheet header button {
-  color: #f2f2f4;
+  color: var(--player-text);
 }
 
 .sheet :deep(.empty),
 .sheet :deep(.meta),
 .sheet :deep(.earlier) {
-  color: #9a9aa2;
+  color: var(--player-muted);
 }
 
 /* YouTube reels: player on top, info bar below (nothing drawn over the player). */
@@ -841,7 +841,7 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   position: relative;
   flex: 1;
   min-height: 0;
-  background: #000;
+  background: var(--player-bg);
 }
 
 .yt-area .poster {
@@ -853,14 +853,14 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   align-items: flex-end;
   gap: 10px;
   padding: 10px 12px 14px 14px;
-  background: #0d0d0f;
-  border-top: 1px solid #1d1d20;
+  background: var(--player-bg);
+  border-top: 1px solid var(--player-line);
 }
 
 .yt-text {
   flex: 1;
   min-width: 0;
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .yt-text .author {
@@ -872,13 +872,13 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   align-items: center;
   gap: 6px;
   margin-top: 6px;
-  color: #c9c9cf;
-  font-size: 12.5px;
+  color: var(--player-text);
+  font-size: var(--fs-sm);
   font-weight: 600;
 }
 
 .credit:hover {
-  color: #fff;
+  color: var(--on-color);
   text-decoration: underline;
 }
 
@@ -927,12 +927,12 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: rgb(0 0 0 / 45%);
-  color: #fff;
+  background: color-mix(in srgb, var(--scrim) 45%, transparent);
+  color: var(--on-color);
 }
 
 .on-video:hover {
-  background: rgb(0 0 0 / 62%);
+  background: color-mix(in srgb, var(--scrim) 62%, transparent);
 }
 
 .on-video.sound {
@@ -956,10 +956,10 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   flex-direction: column;
   min-width: 230px;
   padding: 8px;
-  border-radius: 14px;
-  background: #fff;
-  color: var(--text, #16181d);
-  box-shadow: 0 12px 36px rgb(0 0 0 / 35%);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: var(--shadow-lift);
 }
 
 .more-menu button {
@@ -968,18 +968,18 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   gap: 12px;
   min-height: 52px;
   padding: 0 14px;
-  border-radius: 10px;
-  font-size: 16px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-lg);
   font-weight: 650;
   text-align: left;
 }
 
 .more-menu button:hover {
-  background: #f1f2f4;
+  background: color-mix(in srgb, var(--ink) 6%, var(--paper));
 }
 
 .more-menu .danger {
-  color: #b42318;
+  color: var(--danger-strong);
 }
 
 .sheet-enter-active,
@@ -1054,8 +1054,8 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
     height: 42px;
     padding: 0;
     border-radius: 50%;
-    background: rgb(255 255 255 / 16%);
-    color: #fff;
+    background: color-mix(in srgb, var(--on-color) 16%, transparent);
+    color: var(--on-color);
     backdrop-filter: blur(10px);
   }
 
@@ -1127,14 +1127,14 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
     place-items: center;
     width: 60px;
     height: 60px;
-    border: 3px solid #fff;
+    border: 3px solid var(--on-color);
     border-radius: 50%;
-    background: rgb(0 0 0 / 35%);
-    color: #fff;
+    background: color-mix(in srgb, var(--scrim) 35%, transparent);
+    color: var(--on-color);
   }
 
   .nav button:hover:not(:disabled) {
-    background: rgb(255 255 255 / 14%);
+    background: color-mix(in srgb, var(--on-color) 14%, transparent);
   }
 
   .nav button:disabled {
@@ -1173,7 +1173,7 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
     width: 100%;
     height: 100%;
     max-height: none;
-    border-left: 1px solid #2c2c30;
+    border-left: 1px solid var(--player-line);
     border-radius: 0;
   }
 
@@ -1207,13 +1207,13 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   background: linear-gradient(90deg, #1d2026 25%, #2b2f37 50%, #1d2026 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite linear;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
 }
 
 .frame-sk {
   position: absolute;
   inset: 0;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
 }
 
 .sk-cap {

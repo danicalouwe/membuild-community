@@ -252,7 +252,7 @@ const searched = computed(() => {
 
 .head h1 {
   margin: 0;
-  font-size: 30px;
+  font-size: var(--fs-8xl);
   line-height: 1.2;
   overflow-wrap: anywhere;
 }
@@ -260,7 +260,7 @@ const searched = computed(() => {
 .head p {
   margin: 8px 0 0;
   color: var(--text-2);
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .filters {
@@ -282,10 +282,10 @@ const searched = computed(() => {
   min-width: 26px;
   height: 26px;
   padding: 0 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--text-2);
   background: var(--surface);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .group {
@@ -301,7 +301,7 @@ const searched = computed(() => {
 .group h2 {
   margin: 10px 18px 6px;
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -330,10 +330,10 @@ const searched = computed(() => {
   gap: 8px;
   min-height: 52px;
   padding: 0 24px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--text);
   background: var(--surface-2);
-  font-size: 17px;
+  font-size: var(--fs-xl);
   font-weight: 700;
 }
 
@@ -362,14 +362,14 @@ const searched = computed(() => {
 }
 
 .none strong {
-  font-size: 22px;
+  font-size: var(--fs-4xl);
 }
 
 .none p {
   max-width: 440px;
   margin: 0 0 6px;
   color: var(--text-2);
-  font-size: 17px;
+  font-size: var(--fs-xl);
   line-height: 1.5;
 }
 
@@ -451,7 +451,7 @@ const searched = computed(() => {
     gap: 10px;
     height: 52px;
     padding: 0 8px 0 16px;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     color: var(--text);
     background: var(--surface-2);
   }
@@ -468,7 +468,7 @@ const searched = computed(() => {
     border: 0;
     background: transparent;
     color: var(--text);
-    font-size: 17px; /* 16px+ stops iPhones zooming in on focus */
+    font-size: var(--fs-xl); /* 16px+ stops iPhones zooming in on focus */
     outline: none;
     box-shadow: none;
   }

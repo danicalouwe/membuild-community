@@ -183,7 +183,7 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
   align-items: center;
   gap: 12px 16px;
   padding: 16px 20px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   color: var(--warn-text);
   background: var(--warn-soft);
 }
@@ -193,27 +193,27 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
   flex: 1;
   flex-direction: column;
   min-width: min(200px, 100%);
-  font-size: 15px;
+  font-size: var(--fs-base);
   overflow-wrap: anywhere; /* a very long email address breaks instead of running off */
 }
 
 .c-words strong {
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .c-send {
   min-height: 44px;
   padding: 0 20px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--warn-soft);
   background: var(--warn-text);
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 700;
 }
 
 .c-wrong {
   color: var(--warn-text);
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 700;
   text-decoration: underline;
 }
@@ -238,14 +238,14 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
 }
 
 .first-post strong {
-  font-size: 22px;
+  font-size: var(--fs-4xl);
 }
 
 .first-post p {
   max-width: 440px;
   margin: 0;
   color: var(--text-2);
-  font-size: 16px;
+  font-size: var(--fs-lg);
   line-height: 1.6;
 }
 
@@ -253,10 +253,10 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
   min-height: 52px;
   margin-top: 6px;
   padding: 0 26px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--accent-ink);
   background: var(--accent);
-  font-size: 17px;
+  font-size: var(--fs-xl);
   font-weight: 700;
 }
 
@@ -300,11 +300,11 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent);
   color: var(--accent-ink);
   font-weight: 650;
-  box-shadow: 0 6px 18px rgb(59 91 253 / 35%);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 .pill-enter-active,

@@ -102,27 +102,27 @@ header {
 
 h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--fs-2xl);
 }
 
 .hide {
   min-height: 32px;
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 700;
 }
 
 .sub {
   margin: 4px 0 12px;
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .bar {
   height: 8px;
   margin-bottom: 8px;
   overflow: hidden;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
 }
 
@@ -130,7 +130,7 @@ h2 {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: #1f7a49;
+  background: var(--ok-strong);
   transition: width 0.4s ease;
 }
 
@@ -167,7 +167,7 @@ ul {
   height: 24px;
   border: 2px solid var(--border-strong);
   border-radius: 50%;
-  color: #fff;
+  color: var(--on-color);
 }
 
 .row.next .dot {
@@ -175,8 +175,8 @@ ul {
 }
 
 .row.done .dot {
-  border-color: #1f7a49;
-  background: #1f7a49;
+  border-color: var(--ok-strong);
+  background: var(--ok-strong);
 }
 
 .words {
@@ -187,7 +187,7 @@ ul {
 }
 
 .words strong {
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 500;
 }
 
@@ -202,7 +202,7 @@ ul {
 
 .words small {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .chev {
@@ -214,16 +214,16 @@ ul {
   width: 100%;
   min-height: 52px;
   margin-top: 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--accent-ink);
   background: var(--accent);
-  font-size: 17px;
+  font-size: var(--fs-xl);
   font-weight: 700;
 }
 
 /* Member rows carry a second line, so they're a little taller. */
 .row:has(small) strong {
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 700;
 }
 </style>

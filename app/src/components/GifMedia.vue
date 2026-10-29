@@ -100,11 +100,11 @@ function toggle(e) {
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  border: 2px solid #fff;
-  background: rgb(0 0 0 / 55%);
-  color: #fff;
+  border: 2px solid var(--on-color);
+  background: color-mix(in srgb, var(--scrim) 55%, transparent);
+  color: var(--on-color);
   font-weight: 900;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   letter-spacing: 0.04em;
 }
 </style>

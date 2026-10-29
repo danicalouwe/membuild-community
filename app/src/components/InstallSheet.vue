@@ -65,7 +65,7 @@ const heading = t.sprintf(/* translators: %s: the site's name */ t.__('Get the %
   z-index: 90;
   display: grid;
   place-items: end center;
-  background: rgb(10 11 13 / 60%);
+  background: color-mix(in srgb, var(--backdrop) 60%, transparent);
 }
 
 @media (min-width: 768px) {
@@ -77,14 +77,14 @@ const heading = t.sprintf(/* translators: %s: the site's name */ t.__('Get the %
 .sheet {
   width: min(440px, 100%);
   padding: 18px 20px calc(20px + env(safe-area-inset-bottom));
-  border-radius: 16px 16px 0 0;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   background: var(--surface);
-  box-shadow: 0 -8px 28px rgb(0 0 0 / 25%);
+  box-shadow: var(--shadow-pop);
 }
 
 @media (min-width: 768px) {
   .sheet {
-    border-radius: 16px;
+    border-radius: var(--radius-lg);
   }
 }
 
@@ -97,7 +97,7 @@ header {
 
 h2 {
   margin: 0;
-  font-size: 19px;
+  font-size: var(--fs-3xl);
 }
 
 
@@ -122,7 +122,7 @@ h2 {
   width: 100%;
   margin-top: 18px;
   padding: 11px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   font-weight: 700;
 }
 </style>

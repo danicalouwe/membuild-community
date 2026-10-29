@@ -108,7 +108,7 @@ async function goToPost() {
 .video-dock {
   position: absolute;
   z-index: 10; /* over its post, under the sticky top bar */
-  background: #000;
+  background: var(--player-bg);
 }
 
 .video-dock iframe {
@@ -129,8 +129,8 @@ async function goToPost() {
   height: auto;
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  border-radius: 12px;
-  box-shadow: 0 12px 32px rgb(0 0 0 / 35%);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-pop);
   animation: pop 0.18s ease-out;
 }
 
@@ -146,8 +146,8 @@ async function goToPost() {
   align-items: center;
   gap: 4px;
   padding: 6px 6px 18px 12px;
-  background: linear-gradient(rgb(0 0 0 / 65%), transparent);
-  color: #fff;
+  background: linear-gradient(color-mix(in srgb, var(--scrim) 65%, transparent), transparent);
+  color: var(--on-color);
   opacity: 0;
   transition: opacity 0.15s;
 }
@@ -170,7 +170,7 @@ async function goToPost() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 650;
 }
 
@@ -180,13 +180,13 @@ async function goToPost() {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: rgb(0 0 0 / 45%);
-  color: #fff;
+  background: color-mix(in srgb, var(--scrim) 45%, transparent);
+  color: var(--on-color);
 }
 
 .bar button:hover,
 .bar button:focus-visible {
-  background: rgb(255 255 255 / 25%);
+  background: color-mix(in srgb, var(--on-color) 25%, transparent);
 }
 
 @keyframes pop {

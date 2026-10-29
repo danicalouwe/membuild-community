@@ -384,7 +384,7 @@ const viewReplies = (n) => t.sprintf(/* translators: %d: number of replies */ t.
   gap: 4px;
   font-weight: 650;
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .sort-menu {
@@ -397,7 +397,7 @@ const viewReplies = (n) => t.sprintf(/* translators: %d: number of replies */ t.
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 22%);
+  box-shadow: var(--shadow-pop);
 }
 
 .sort-menu button {
@@ -405,7 +405,7 @@ const viewReplies = (n) => t.sprintf(/* translators: %d: number of replies */ t.
   width: 100%;
   text-align: left;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   font-weight: 600;
 }
 
@@ -442,7 +442,7 @@ const viewReplies = (n) => t.sprintf(/* translators: %d: number of replies */ t.
   gap: 6px;
   align-self: flex-start;
   font-weight: 650;
-  font-size: 15px;
+  font-size: var(--fs-base);
   color: var(--text-2);
 }
 
@@ -464,7 +464,7 @@ const viewReplies = (n) => t.sprintf(/* translators: %d: number of replies */ t.
 .muted-note {
   margin-bottom: -16px;
   color: var(--text-3);
-  font-size: 14px;
+  font-size: var(--fs-md);
   text-align: center;
 }
 
@@ -473,7 +473,7 @@ const viewReplies = (n) => t.sprintf(/* translators: %d: number of replies */ t.
   align-items: center;
   gap: 6px;
   margin: 0 0 8px 42px;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--text-2);
 }
 
@@ -496,7 +496,7 @@ const viewReplies = (n) => t.sprintf(/* translators: %d: number of replies */ t.
   display: flex;
   flex-direction: column;
   background: var(--surface-2);
-  border-radius: 18px;
+  border-radius: var(--radius-xl);
   padding: 2px 6px 4px 14px;
 }
 
@@ -553,7 +553,7 @@ const viewReplies = (n) => t.sprintf(/* translators: %d: number of replies */ t.
   position: relative;
   align-self: flex-start;
   margin: 6px 0 4px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
@@ -583,15 +583,15 @@ const viewReplies = (n) => t.sprintf(/* translators: %d: number of replies */ t.
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: rgb(0 0 0 / 60%);
-  color: #fff;
+  background: color-mix(in srgb, var(--scrim) 60%, transparent);
+  color: var(--on-color);
 }
 
 .photo-err {
   display: block;
   padding: 4px 6px;
   color: var(--danger);
-  font-size: 12px;
+  font-size: var(--fs-xs);
 }
 
 .field textarea:focus {
@@ -618,10 +618,10 @@ const viewReplies = (n) => t.sprintf(/* translators: %d: number of replies */ t.
 
 /* Reels comment sheet */
 .dark {
-  --surface: #1c1c1f;
+  --surface: var(--player-surface);
   --surface-2: #2a2b2f;
-  --border: #2c2c30;
-  --text: #f2f2f4;
+  --border: var(--player-line);
+  --text: var(--player-text);
   --text-2: #b9b9c0;
   --text-3: #8e8e96;
 }

@@ -94,7 +94,7 @@ const position = (n, total) => t.sprintf(/* translators: 1: number of the photo 
 .single.gif {
   max-width: calc(100% - 28px);
   margin: 4px 14px 8px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
 }
 
 .single img,
@@ -141,10 +141,10 @@ const position = (n, total) => t.sprintf(/* translators: 1: number of the photo 
   inset: 0;
   display: grid;
   place-items: center;
-  font-size: 28px;
+  font-size: var(--fs-7xl);
   font-weight: 700;
-  color: #fff;
-  background: rgb(0 0 0 / 45%);
+  color: var(--on-color);
+  background: color-mix(in srgb, var(--scrim) 45%, transparent);
 }
 
 .viewer {
@@ -153,7 +153,7 @@ const position = (n, total) => t.sprintf(/* translators: 1: number of the photo 
   z-index: 100;
   display: grid;
   place-items: center;
-  background: rgb(0 0 0 / 92%);
+  background: color-mix(in srgb, var(--scrim) 92%, transparent);
 }
 
 .viewer video,
@@ -167,7 +167,7 @@ const position = (n, total) => t.sprintf(/* translators: 1: number of the photo 
   position: absolute;
   top: 14px;
   right: 14px;
-  color: #fff;
+  color: var(--on-color);
   padding: 8px;
 }
 
@@ -177,12 +177,12 @@ const position = (n, total) => t.sprintf(/* translators: 1: number of the photo 
   display: flex;
   align-items: center;
   gap: 16px;
-  color: #fff;
+  color: var(--on-color);
 }
 
 .nav button {
-  font-size: 32px;
-  color: #fff;
+  font-size: 32px; /* exempt: the "+3" over a photo, sized to the tile */
+  color: var(--on-color);
   padding: 0 12px;
 }
 
@@ -197,9 +197,9 @@ const position = (n, total) => t.sprintf(/* translators: 1: number of the photo 
   bottom: 8px;
   padding: 2px 6px;
   border-radius: 4px;
-  background: rgb(0 0 0 / 55%);
-  color: #fff;
-  font-size: 10px;
+  background: color-mix(in srgb, var(--scrim) 55%, transparent);
+  color: var(--on-color);
+  font-size: var(--fs-3xs);
   font-weight: 900;
   letter-spacing: 0.05em;
   pointer-events: none;

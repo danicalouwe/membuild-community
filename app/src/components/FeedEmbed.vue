@@ -51,7 +51,7 @@ const playLabel = (title) => t.sprintf(/* translators: %s: video title */ t.__('
 .frame {
   position: relative;
   aspect-ratio: 16 / 9;
-  background: #000;
+  background: var(--player-bg);
 }
 
 /* Shorts are tall; keep them a sensible size in the feed. */
@@ -86,17 +86,17 @@ const playLabel = (title) => t.sprintf(/* translators: %s: video title */ t.__('
 
 .play {
   position: relative;
-  filter: drop-shadow(0 2px 8px rgb(0 0 0 / 35%));
+  filter: drop-shadow(0 2px 8px color-mix(in srgb, var(--scrim) 35%, transparent));
   transition: transform 0.15s;
 }
 
 .elsewhere {
   position: relative;
   padding: 8px 14px;
-  border-radius: 999px;
-  background: rgb(0 0 0 / 70%);
-  color: #fff;
-  font-size: 14px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--scrim) 70%, transparent);
+  color: var(--on-color);
+  font-size: var(--fs-md);
   font-weight: 650;
 }
 
@@ -113,13 +113,13 @@ const playLabel = (title) => t.sprintf(/* translators: %s: video title */ t.__('
 }
 
 .meta small {
-  font-size: 12px;
+  font-size: var(--fs-xs);
   color: var(--text-3);
   letter-spacing: 0.02em;
 }
 
 .meta strong {
-  font-size: 16px;
+  font-size: var(--fs-lg);
   line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -128,7 +128,7 @@ const playLabel = (title) => t.sprintf(/* translators: %s: video title */ t.__('
 }
 
 .meta span {
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--text-3);
 }
 

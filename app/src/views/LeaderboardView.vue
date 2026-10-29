@@ -251,7 +251,7 @@ const writePost = () => router.push({ name: 'feed', query: { write: 1 } })
   /* The confetti reaches a little past the podium; never past the board's edges. */
   overflow-x: clip;
   padding: 0 0 20px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
 }
 
 .rank-head {
@@ -268,7 +268,7 @@ const writePost = () => router.push({ name: 'feed', query: { write: 1 } })
 
 h1 {
   margin: 0;
-  font-size: 28px;
+  font-size: var(--fs-7xl);
 }
 
 .periods {
@@ -279,7 +279,7 @@ h1 {
 /* Your level (phones) */
 .spot {
   margin: 20px 24px 12px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--accent-soft);
 }
 
@@ -308,7 +308,7 @@ h1 {
   gap: 16px;
   min-height: 68px;
   padding: 10px 12px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
 }
 
 .row.me {
@@ -333,7 +333,7 @@ h1 {
   position: absolute;
   inset: 0;
   z-index: 0;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background:
     linear-gradient(100deg, transparent 35%, color-mix(in srgb, var(--accent) 30%, transparent) 50%, transparent 65%) no-repeat,
     var(--accent-soft);
@@ -345,7 +345,7 @@ h1 {
 }
 
 .list .row.me.stuck::after {
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent), 0 10px 28px rgb(0 0 0 / 0.28);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent), 0 10px 28px color-mix(in srgb, var(--shadow-color) 28%, transparent);
 }
 
 /* While it rides at the top or bottom: a frosted band around it. */
@@ -355,7 +355,7 @@ h1 {
   /* (No fading mask: Chrome drops the blur from an element that has one.) */
   inset: -18px -8px;
   z-index: -1;
-  border-radius: 22px;
+  border-radius: var(--radius-2xl);
   background: color-mix(in srgb, var(--surface) 70%, transparent);
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
@@ -399,7 +399,7 @@ h1 {
   border-radius: 50%;
   background: var(--surface-2);
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: 800;
 }
 
@@ -437,7 +437,7 @@ h1 {
   gap: 8px;
   min-width: 0;
   padding: 22px 12px 18px;
-  border-radius: 18px;
+  border-radius: var(--radius-xl);
   background: var(--surface-2);
   text-align: center;
 }
@@ -486,8 +486,8 @@ h1 {
   border: 3px solid var(--surface-2);
   border-radius: 50%;
   background: var(--silver);
-  color: #16181d;
-  font-size: 13px;
+  color: var(--ink);
+  font-size: var(--fs-sm);
   font-weight: 800;
   transform: translateX(-50%);
 }
@@ -509,7 +509,7 @@ h1 {
   -webkit-line-clamp: 2;
   line-clamp: 2;
   color: var(--text);
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 700;
   line-height: 1.25;
   overflow-wrap: anywhere;
@@ -517,7 +517,7 @@ h1 {
 }
 
 .p1 .pname {
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .pname:hover {
@@ -535,7 +535,7 @@ h1 {
 
 .who small {
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 600;
 }
 
@@ -544,7 +544,7 @@ h1 {
   min-width: 0;
   overflow: hidden;
   color: var(--text);
-  font-size: 17px;
+  font-size: var(--fs-xl);
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -556,10 +556,10 @@ h1 {
   flex: none;
   min-width: 60px;
   padding: 6px 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent-soft);
   color: var(--accent-text);
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 800;
   text-align: center;
 }
@@ -569,7 +569,7 @@ h1 {
   display: none;
   height: 40px;
   padding: 0 14px;
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 @media (hover: hover) {
@@ -593,7 +593,7 @@ h1 {
 .gap {
   padding: 4px 0;
   color: var(--text-2);
-  font-size: 18px;
+  font-size: var(--fs-2xl);
   font-weight: 800;
   text-align: center;
   letter-spacing: 4px;
@@ -636,7 +636,7 @@ h1 {
 
   .spot-level strong {
     flex: none;
-    font-size: 16px;
+    font-size: var(--fs-lg);
   }
 
   .mini-bar {
@@ -644,7 +644,7 @@ h1 {
     height: 8px;
     max-width: 120px;
     overflow: hidden;
-    border-radius: 999px;
+    border-radius: var(--radius-pill);
     background: var(--surface);
   }
 
@@ -660,7 +660,7 @@ h1 {
     gap: 4px;
     margin-left: auto;
     color: var(--accent-text);
-    font-size: 16px;
+    font-size: var(--fs-lg);
     font-weight: 700;
   }
 }
@@ -686,7 +686,7 @@ h1 {
   }
 
   h1 {
-    font-size: 26px;
+    font-size: var(--fs-6xl);
   }
 
   .periods .filter-pill {
@@ -723,13 +723,13 @@ h1 {
 
   .pname,
   .p1 .pname {
-    font-size: 15px;
+    font-size: var(--fs-base);
   }
 
   .place .pts {
     min-width: 0;
     padding: 5px 10px;
-    font-size: 14px;
+    font-size: var(--fs-md);
   }
 }
 

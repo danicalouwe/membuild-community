@@ -47,18 +47,18 @@ const rows = computed(() =>
 /* Same rhythm as the levels ladder above it: 24px in, round icons on one left edge, no lines. */
 .earn {
   padding: 24px 24px 16px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
 }
 
 h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--fs-2xl);
 }
 
 .intro {
   margin: 6px 0 14px;
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.45;
 }
 
@@ -77,7 +77,7 @@ li {
   gap: 14px;
   min-height: 56px;
   padding: 10px 12px;
-  border-radius: 14px;
+  border-radius: var(--radius);
 }
 
 .ic {
@@ -102,14 +102,14 @@ li {
   flex-direction: column;
   gap: 2px;
   min-width: 0;
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 600;
   line-height: 1.35;
 }
 
 .txt small {
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 400;
 }
 
@@ -118,10 +118,10 @@ li {
   flex: none;
   min-width: 54px;
   padding: 5px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent-soft);
   color: var(--accent-text);
-  font-size: 14px;
+  font-size: var(--fs-md);
   font-weight: 800;
   text-align: center;
 }

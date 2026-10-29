@@ -462,7 +462,7 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
   position: relative;
   margin-top: 10px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
@@ -470,7 +470,7 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
   padding: 22px;
   text-align: center;
   color: var(--text-3);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .link-x {
@@ -483,13 +483,13 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: rgb(0 0 0 / 65%);
-  color: #fff;
+  background: color-mix(in srgb, var(--scrim) 65%, transparent);
+  color: var(--on-color);
 }
 
 .kept {
   margin: 8px 0 0;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--text-3);
 }
 
@@ -500,7 +500,7 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
   display: grid;
   place-items: center;
   padding: 24px;
-  background: rgb(10 11 13 / 72%);
+  background: color-mix(in srgb, var(--backdrop) 72%, transparent);
   animation: fade 0.15s ease;
 }
 
@@ -518,8 +518,8 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
   max-height: calc(100dvh - 48px);
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgb(0 0 0 / 40%);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lift);
 }
 
 .top {
@@ -533,7 +533,7 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
 
 .top h2 {
   margin: 0;
-  font-size: 20px;
+  font-size: var(--fs-3xl);
   font-weight: 700;
 }
 
@@ -560,7 +560,7 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
 }
 
 .who {
-  font-size: 15px;
+  font-size: var(--fs-base);
   line-height: 1.3;
 }
 
@@ -588,16 +588,16 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
   gap: 5px;
   margin-top: 4px;
   padding: 3px 9px;
-  border-radius: 6px;
+  border-radius: var(--radius-xs);
   background: var(--surface-2);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 600;
   color: var(--text-2);
 }
 
 .write {
   margin: 14px 0 0;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   transition: background 0.2s ease;
 }
 
@@ -607,14 +607,14 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
   border: 0;
   resize: none;
   background: transparent;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   min-height: 110px;
   padding: 4px 0;
   field-sizing: content;
 }
 
 .write textarea.big {
-  font-size: 24px;
+  font-size: var(--fs-5xl);
   line-height: 1.3;
 }
 
@@ -631,15 +631,15 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
 
 .write.bg textarea {
   min-height: 0;
-  color: #fff;
+  color: var(--on-color);
   font-weight: 700;
-  font-size: 28px;
+  font-size: var(--fs-7xl);
   text-align: center;
-  text-shadow: 0 1px 2px rgb(0 0 0 / 15%);
+  text-shadow: 0 1px 2px color-mix(in srgb, var(--scrim) 15%, transparent);
 }
 
 .write.bg textarea::placeholder {
-  color: rgb(255 255 255 / 80%);
+  color: color-mix(in srgb, var(--on-color) 80%, transparent);
 }
 
 .tools {
@@ -656,12 +656,12 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
   flex: none;
   width: 38px;
   height: 38px;
-  border-radius: 9px;
+  border-radius: var(--radius-sm);
   font-weight: 800;
-  font-size: 16px;
-  color: #fff;
+  font-size: var(--fs-lg);
+  color: var(--on-color);
   background: conic-gradient(from 200deg, #ff5f6d, #ffc371, #47e891, #3b9cff, #a35cff, #ff5f6d);
-  box-shadow: inset 0 0 0 2px rgb(255 255 255 / 85%);
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--on-color) 85%, transparent);
 }
 
 .aa.open {
@@ -681,7 +681,7 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
   flex: none;
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
 }
 
 .swatch.none {
@@ -736,14 +736,14 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
   border-radius: var(--radius-sm);
   border: 1.5px dashed var(--border);
   color: var(--text-2);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 600;
 }
 
 .error {
   margin: 10px 0 0;
   color: var(--danger);
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }
 
 .add-box {
@@ -754,7 +754,7 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
   margin-top: 16px;
   padding: 10px 12px 10px 16px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   font-weight: 650;
 }
 
@@ -784,11 +784,11 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
 .post-btn {
   width: 100%;
   height: 44px;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   background: var(--accent);
   color: var(--accent-ink);
   font-weight: 700;
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .post-btn:disabled {
@@ -809,7 +809,7 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
   align-items: center;
   gap: 10px;
   padding: 10px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   text-align: left;
   font-weight: 600;
   text-transform: capitalize;
@@ -827,7 +827,7 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
   height: 36px;
   border-radius: 50%;
   background: var(--surface-2);
-  font-size: 20px;
+  font-size: var(--fs-3xl);
 }
 
 .drop {
@@ -835,7 +835,7 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
   inset: 0;
   display: grid;
   place-items: center;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   border: 2px dashed var(--accent);
   background: color-mix(in srgb, var(--surface) 85%, transparent);
   font-weight: 700;

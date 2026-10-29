@@ -170,12 +170,12 @@ const blockedNote = computed(() =>
   flex-direction: column;
   gap: 18px;
   padding: 28px 30px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
 }
 
 h2 {
   margin: 0;
-  font-size: 20px;
+  font-size: var(--fs-3xl);
 }
 
 .field {
@@ -185,7 +185,7 @@ h2 {
 }
 
 .lbl {
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 700;
 }
 
@@ -201,11 +201,11 @@ h2 {
   min-height: 52px;
   padding: 12px 16px;
   border: 1px solid var(--border-strong);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--text);
   font: inherit;
-  font-size: 17px;
+  font-size: var(--fs-xl);
   line-height: 1.5;
 }
 
@@ -215,7 +215,7 @@ h2 {
 
 .field small {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .hint-row {
@@ -234,7 +234,7 @@ h2 {
   flex-direction: column;
   margin-top: 20px;
   padding: 10px 30px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
 }
 
 .row {
@@ -259,19 +259,19 @@ h2 {
 }
 
 .row strong {
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .row span {
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 /* Dialogs */
 .dlg-title {
   margin: 0;
   padding: 30px 30px 0;
-  font-size: 24px;
+  font-size: var(--fs-5xl);
 }
 
 .dlg {
@@ -284,7 +284,7 @@ h2 {
 .small {
   margin: 0 0 6px;
   color: var(--text-2);
-  font-size: 16px;
+  font-size: var(--fs-lg);
   line-height: 1.5;
 }
 

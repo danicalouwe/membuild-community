@@ -165,7 +165,7 @@ const roleLabel = (role) => (role === 'admin' ? t.__('Admin', 'membuild-communit
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #1f9d55;
+  background: var(--ok);
 }
 
 .online-tab .count {
@@ -175,14 +175,14 @@ const roleLabel = (role) => (role === 'admin' ? t.__('Admin', 'membuild-communit
   height: 22px;
   margin-left: 4px;
   padding: 0 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface);
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }
 
 .active {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .active.now {
@@ -190,7 +190,7 @@ const roleLabel = (role) => (role === 'admin' ? t.__('Admin', 'membuild-communit
   align-items: center;
   gap: 6px;
   padding: 3px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--ok-soft);
   color: var(--ok-text);
   font-weight: 700;
@@ -216,7 +216,7 @@ const roleLabel = (role) => (role === 'admin' ? t.__('Admin', 'membuild-communit
 }
 
 .nobody strong {
-  font-size: 19px;
+  font-size: var(--fs-3xl);
 }
 
 .nobody p {
@@ -241,13 +241,13 @@ const roleLabel = (role) => (role === 'admin' ? t.__('Admin', 'membuild-communit
 
 .head h1 {
   margin: 0 auto 0 0;
-  font-size: 24px;
+  font-size: var(--fs-5xl);
 }
 
 .head h1 span {
   color: var(--text-3);
   font-weight: 600;
-  font-size: 18px;
+  font-size: var(--fs-2xl);
 }
 
 .sorts {
@@ -280,7 +280,7 @@ const roleLabel = (role) => (role === 'admin' ? t.__('Admin', 'membuild-communit
   height: 100%;
   padding: 24px 18px 18px;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   text-align: center;
   color: var(--text);
   overflow: hidden;
@@ -290,7 +290,7 @@ const roleLabel = (role) => (role === 'admin' ? t.__('Admin', 'membuild-communit
 
 .person:hover {
   border-color: var(--accent);
-  box-shadow: 0 6px 20px rgb(0 0 0 / 8%);
+  box-shadow: var(--shadow-pop);
 }
 
 .cover {
@@ -329,10 +329,10 @@ const roleLabel = (role) => (role === 'admin' ? t.__('Admin', 'membuild-communit
   bottom: -6px;
   transform: translateX(-50%);
   padding: 1px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--text);
   color: var(--surface);
-  font-size: 11px;
+  font-size: var(--fs-2xs);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -347,20 +347,20 @@ const roleLabel = (role) => (role === 'admin' ? t.__('Admin', 'membuild-communit
 
 .name {
   color: var(--text);
-  font-size: 18px;
+  font-size: var(--fs-2xl);
   font-weight: 700;
   text-decoration: none;
 }
 
 .lvl {
-  font-size: 15px;
+  font-size: var(--fs-base);
   color: var(--accent-text);
   font-weight: 700;
 }
 
 .bio {
   margin: 12px 0 0;
-  font-size: 15px;
+  font-size: var(--fs-base);
   line-height: 1.5;
   color: var(--text-2);
   display: -webkit-box;
@@ -378,7 +378,7 @@ const roleLabel = (role) => (role === 'admin' ? t.__('Admin', 'membuild-communit
   margin: auto 0 0;
   padding-top: 12px;
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .facts span {
@@ -403,9 +403,9 @@ const roleLabel = (role) => (role === 'admin' ? t.__('Admin', 'membuild-communit
   margin-left: auto;
   gap: 8px;
   padding: 0 22px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--text);
-  font-size: 17px;
+  font-size: var(--fs-xl);
   font-weight: 700;
   text-decoration: none;
 }
@@ -422,7 +422,7 @@ const roleLabel = (role) => (role === 'admin' ? t.__('Admin', 'membuild-communit
 
 .btn {
   padding: 9px 16px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--surface-2);
   font-weight: 650;
 }
@@ -440,7 +440,7 @@ const roleLabel = (role) => (role === 'admin' ? t.__('Admin', 'membuild-communit
   .grid {
     display: block;
     border: 1px solid var(--border);
-    border-radius: 16px;
+    border-radius: var(--radius-lg);
     background: var(--surface);
     overflow: hidden;
   }
@@ -500,7 +500,7 @@ const roleLabel = (role) => (role === 'admin' ? t.__('Admin', 'membuild-communit
   }
 
   .name {
-    font-size: 17px;
+    font-size: var(--fs-xl);
   }
 
   .person .phone-only {
@@ -518,8 +518,8 @@ const roleLabel = (role) => (role === 'admin' ? t.__('Admin', 'membuild-communit
   .active.phone-only.now {
     padding: 0;
     background: none;
-    color: #1f7a49;
-    font-size: 15px;
+    color: var(--ok-text);
+    font-size: var(--fs-base);
   }
 
   .chev {
@@ -537,7 +537,7 @@ const roleLabel = (role) => (role === 'admin' ? t.__('Admin', 'membuild-communit
   height: 100%;
   min-height: 250px;
   padding: 24px 18px 18px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   position: relative;
 }
@@ -571,7 +571,7 @@ const roleLabel = (role) => (role === 'admin' ? t.__('Admin', 'membuild-communit
   width: 120px;
   height: 44px;
   margin-top: auto;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 @media (max-width: 767px) {

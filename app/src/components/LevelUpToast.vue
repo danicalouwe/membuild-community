@@ -42,10 +42,10 @@ const unlocked = (items) => t.sprintf(/* translators: %s: course titles, comma-s
   gap: 14px;
   width: min(420px, calc(100vw - 24px));
   padding: 14px 18px;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background: var(--surface);
   border: 1px solid var(--border);
-  box-shadow: 0 16px 40px rgb(0 0 0 / 35%);
+  box-shadow: var(--shadow-lift);
   transform: translateX(-50%);
   cursor: pointer;
   overflow: hidden;
@@ -66,7 +66,7 @@ const unlocked = (items) => t.sprintf(/* translators: %s: course titles, comma-s
   border-radius: 50%;
   background: var(--accent);
   color: var(--accent-ink);
-  font-size: 22px;
+  font-size: var(--fs-4xl);
   font-weight: 800;
   animation: pop 0.6s cubic-bezier(0.3, 1.6, 0.5, 1);
 }
@@ -79,12 +79,12 @@ const unlocked = (items) => t.sprintf(/* translators: %s: course titles, comma-s
 
 strong {
   display: block;
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 p {
   margin: 2px 0 0;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--text-2);
 }
 

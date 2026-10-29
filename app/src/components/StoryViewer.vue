@@ -382,8 +382,8 @@ function unmute() {
   z-index: 100;
   display: grid;
   place-items: center;
-  background: #0b0b0d;
-  color: #fff;
+  background: var(--player-bg);
+  color: var(--on-color);
   user-select: none;
   -webkit-user-select: none;
 }
@@ -393,9 +393,9 @@ function unmute() {
   height: min(100dvh - 32px, 920px);
   aspect-ratio: 9 / 16;
   max-width: 100vw;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   overflow: hidden;
-  background: #111;
+  background: var(--player-bg);
 }
 
 .media {
@@ -425,10 +425,10 @@ function unmute() {
   margin: 0;
   padding: 0 28px;
   text-align: center;
-  font-size: 30px;
+  font-size: var(--fs-8xl);
   font-weight: 750;
   line-height: 1.3;
-  text-shadow: 0 1px 3px rgb(0 0 0 / 20%);
+  text-shadow: 0 1px 3px color-mix(in srgb, var(--scrim) 20%, transparent);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
@@ -442,10 +442,10 @@ function unmute() {
   margin: 0;
   padding: 8px 12px;
   text-align: center;
-  font-size: 17px;
+  font-size: var(--fs-xl);
   font-weight: 650;
-  background: rgb(0 0 0 / 45%);
-  border-radius: 10px;
+  background: color-mix(in srgb, var(--scrim) 45%, transparent);
+  border-radius: var(--radius-sm);
 }
 
 .caption.mine {
@@ -462,7 +462,7 @@ function unmute() {
   position: absolute;
   inset: 0 0 auto;
   padding: 10px 10px 30px;
-  background: linear-gradient(rgb(0 0 0 / 55%), transparent);
+  background: linear-gradient(color-mix(in srgb, var(--scrim) 55%, transparent), transparent);
   pointer-events: none;
 }
 
@@ -475,14 +475,14 @@ function unmute() {
   flex: 1;
   height: 3px;
   border-radius: 2px;
-  background: rgb(255 255 255 / 35%);
+  background: color-mix(in srgb, var(--on-color) 35%, transparent);
   overflow: hidden;
 }
 
 .bar i {
   display: block;
   height: 100%;
-  background: #fff;
+  background: var(--on-color);
   transform-origin: left;
 }
 
@@ -495,12 +495,12 @@ function unmute() {
 }
 
 .head strong {
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .time {
-  color: rgb(255 255 255 / 75%);
-  font-size: 14px;
+  color: color-mix(in srgb, var(--on-color) 75%, transparent);
+  font-size: var(--fs-md);
 }
 
 .controls {
@@ -516,12 +516,12 @@ function unmute() {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  color: #fff;
-  background: rgb(0 0 0 / 24%);
+  color: var(--on-color);
+  background: color-mix(in srgb, var(--scrim) 24%, transparent);
 }
 
 .controls button:hover {
-  background: rgb(0 0 0 / 38%);
+  background: color-mix(in srgb, var(--scrim) 38%, transparent);
 }
 
 .controls .phone-close {
@@ -538,17 +538,17 @@ function unmute() {
   gap: 8px;
   height: 44px;
   padding: 0 18px;
-  border-radius: 999px;
-  color: #fff;
-  background: rgb(30 30 32 / 72%);
-  font-size: 16px;
+  border-radius: var(--radius-pill);
+  color: var(--on-color);
+  background: color-mix(in srgb, var(--player-surface) 72%, transparent);
+  font-size: var(--fs-lg);
   font-weight: 700;
   transform: translateX(-50%);
   pointer-events: auto;
 }
 
 .controls :deep(path) {
-  filter: drop-shadow(0 1px 2px rgb(0 0 0 / 40%));
+  filter: drop-shadow(0 1px 2px color-mix(in srgb, var(--scrim) 40%, transparent));
 }
 
 .menu-wrap {
@@ -562,9 +562,9 @@ function unmute() {
   z-index: 3;
   min-width: 170px;
   padding: 6px;
-  border-radius: 10px;
-  background: #242528;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 40%);
+  border-radius: var(--radius-sm);
+  background: var(--player-surface);
+  box-shadow: var(--shadow-pop);
 }
 
 .menu button {
@@ -574,7 +574,7 @@ function unmute() {
   width: 100%;
   height: auto;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   color: #ff7676;
   font-weight: 600;
 }
@@ -586,8 +586,8 @@ function unmute() {
   width: 40px;
   height: 40px;
   margin: -20px 0 0 -20px;
-  border: 3px solid rgb(255 255 255 / 25%);
-  border-top-color: #fff;
+  border: 3px solid color-mix(in srgb, var(--on-color) 25%, transparent);
+  border-top-color: var(--on-color);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   pointer-events: none;
@@ -628,7 +628,7 @@ function unmute() {
   display: flex;
   justify-content: center;
   padding: 40px 12px 16px;
-  background: linear-gradient(transparent, rgb(0 0 0 / 50%));
+  background: linear-gradient(transparent, color-mix(in srgb, var(--scrim) 50%, transparent));
 }
 
 .others {
@@ -643,15 +643,15 @@ function unmute() {
   display: flex;
   align-items: center;
   width: 100%;
-  border: 1.5px solid rgb(255 255 255 / 70%);
-  border-radius: 999px;
-  background: rgb(0 0 0 / 25%);
+  border: 1.5px solid color-mix(in srgb, var(--on-color) 70%, transparent);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--scrim) 25%, transparent);
   backdrop-filter: blur(6px);
 }
 
 /* The field inside has no outline of its own, so the pill shows focus. */
 .reply:focus-within {
-  border-color: #fff;
+  border-color: var(--on-color);
 }
 
 .reply input {
@@ -659,14 +659,14 @@ function unmute() {
   min-width: 0;
   height: 49px;
   padding: 0 18px;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   border: 0;
   background: transparent;
-  color: #fff;
+  color: var(--on-color);
 }
 
 .reply input::placeholder {
-  color: rgb(255 255 255 / 80%);
+  color: color-mix(in srgb, var(--on-color) 80%, transparent);
 }
 
 .reply input:focus {
@@ -678,17 +678,17 @@ function unmute() {
   place-items: center;
   width: 48px;
   height: 48px;
-  color: #fff;
+  color: var(--on-color);
 }
 
 .only {
   margin-top: -2px;
-  color: rgb(255 255 255 / 85%);
-  font-size: 13px;
+  color: color-mix(in srgb, var(--on-color) 85%, transparent);
+  font-size: var(--fs-sm);
 }
 
 .only.sent {
-  color: #fff;
+  color: var(--on-color);
   font-weight: 700;
 }
 
@@ -696,8 +696,8 @@ function unmute() {
   display: flex;
   gap: 6px;
   padding: 6px 10px;
-  border-radius: 999px;
-  background: rgb(0 0 0 / 35%);
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--scrim) 35%, transparent);
   backdrop-filter: blur(8px);
 }
 
@@ -721,15 +721,15 @@ function unmute() {
   width: 100%;
   height: 56px;
   padding: 0 18px;
-  border-radius: 999px;
-  color: #fff;
-  font-size: 16px;
-  background: rgb(0 0 0 / 30%);
+  border-radius: var(--radius-pill);
+  color: var(--on-color);
+  font-size: var(--fs-lg);
+  background: color-mix(in srgb, var(--scrim) 30%, transparent);
   backdrop-filter: blur(8px);
 }
 
 .seen-bar:hover {
-  background: rgb(0 0 0 / 42%);
+  background: color-mix(in srgb, var(--scrim) 42%, transparent);
 }
 
 .faces {
@@ -738,7 +738,7 @@ function unmute() {
 
 .faces > * {
   border-radius: 50%;
-  box-shadow: 0 0 0 2px rgb(0 0 0 / 45%);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--shadow-color) 45%, transparent);
 }
 
 .faces > * + * {
@@ -757,8 +757,8 @@ function unmute() {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  color: #fff;
-  background: rgb(255 255 255 / 12%);
+  color: var(--on-color);
+  background: color-mix(in srgb, var(--on-color) 12%, transparent);
 }
 
 .close-x {
@@ -785,7 +785,7 @@ function unmute() {
 
 .close-x:hover,
 .side:hover {
-  background: rgb(255 255 255 / 22%);
+  background: color-mix(in srgb, var(--on-color) 22%, transparent);
 }
 
 .sheet-backdrop {
@@ -802,10 +802,10 @@ function unmute() {
   width: 360px;
   max-height: min(520px, calc(100dvh - 240px));
   overflow-y: auto;
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   color: var(--text);
   background: var(--surface);
-  box-shadow: 0 18px 50px rgb(0 0 0 / 40%);
+  box-shadow: var(--shadow-lift);
   user-select: text;
   -webkit-user-select: text;
 }
@@ -821,7 +821,7 @@ function unmute() {
 }
 
 .sheet header strong {
-  font-size: 20px;
+  font-size: var(--fs-3xl);
 }
 
 .sheet header button {
@@ -839,7 +839,7 @@ function unmute() {
   margin: 0;
   padding: 0 20px 14px;
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .sheet-empty {
@@ -869,12 +869,12 @@ function unmute() {
 }
 
 .v-who strong {
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .v-who small {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .sheet-enter-active,
@@ -919,7 +919,7 @@ function unmute() {
   }
 
   .sheet-backdrop {
-    background: rgb(0 0 0 / 40%);
+    background: color-mix(in srgb, var(--scrim) 40%, transparent);
   }
 
   .sheet {
@@ -928,7 +928,7 @@ function unmute() {
     left: 0;
     width: 100%;
     max-height: 70%;
-    border-radius: 16px 16px 0 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     padding-bottom: env(safe-area-inset-bottom);
   }
 

@@ -245,14 +245,14 @@ onBeforeUnmount(() => spy?.disconnect())
 
 .nav h1 {
   margin: 0 0 14px 12px;
-  font-size: 26px;
+  font-size: var(--fs-6xl);
 }
 
 .nav button {
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   text-align: left;
-  font-size: 15px;
+  font-size: var(--fs-base);
   font-weight: 600;
   color: var(--text-2);
 }
@@ -283,24 +283,24 @@ onBeforeUnmount(() => spy?.disconnect())
 
 .styled :deep(.group) {
   padding: 28px 30px;
-  border-radius: 18px;
+  border-radius: var(--radius-xl);
   scroll-margin-top: calc(var(--header-h) + 16px);
 }
 
 .styled :deep(.group h2) {
   margin: 0 0 6px;
-  font-size: 22px;
+  font-size: var(--fs-4xl);
 }
 
 .styled :deep(.group h3) {
   margin: 26px 0 12px;
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .styled :deep(.intro) {
   margin: 0 0 22px;
   color: var(--text-2);
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 /* A thin line between parts of a section. */
@@ -315,7 +315,7 @@ onBeforeUnmount(() => spy?.disconnect())
 .styled :deep(.sub) {
   margin: 14px 0 0;
   padding: 20px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--surface-2);
 }
 
@@ -355,7 +355,7 @@ onBeforeUnmount(() => spy?.disconnect())
   gap: 4px 12px;
   padding: 16px 18px;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--surface);
   cursor: pointer;
 }
@@ -376,13 +376,13 @@ onBeforeUnmount(() => spy?.disconnect())
 }
 
 .styled :deep(.choice strong) {
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .styled :deep(.choice small) {
   grid-column: 2;
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.45;
 }
 
@@ -406,10 +406,10 @@ onBeforeUnmount(() => spy?.disconnect())
   display: inline-block;
   margin-left: 8px;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent-soft);
   color: var(--accent-text);
-  font-size: 12px;
+  font-size: var(--fs-xs);
   font-weight: 700;
   vertical-align: 2px;
 }
@@ -432,7 +432,7 @@ onBeforeUnmount(() => spy?.disconnect())
   width: 36px;
   height: 36px;
   margin-bottom: 12px;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--surface-2);
 }
 
@@ -476,7 +476,7 @@ onBeforeUnmount(() => spy?.disconnect())
 }
 
 .styled :deep(.label) {
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 700;
   padding: 0;
 }
@@ -489,7 +489,7 @@ onBeforeUnmount(() => spy?.disconnect())
 
 .styled :deep(small) {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
   line-height: 1.45;
 }
 
@@ -501,11 +501,11 @@ onBeforeUnmount(() => spy?.disconnect())
   min-height: 48px;
   padding: 11px 14px;
   border: 1px solid var(--border-strong);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--text);
   font: inherit;
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .styled :deep(textarea) {
@@ -529,7 +529,7 @@ onBeforeUnmount(() => spy?.disconnect())
   place-items: center;
   width: 56px;
   height: 56px;
-  border-radius: 14px;
+  border-radius: var(--radius);
   background: var(--accent);
   color: var(--accent-ink);
   overflow: hidden;
@@ -543,15 +543,15 @@ onBeforeUnmount(() => spy?.disconnect())
 }
 
 .styled :deep(.initial) {
-  font-size: 24px;
+  font-size: var(--fs-5xl);
   font-weight: 800;
 }
 
 .styled :deep(.spin) {
   width: 22px;
   height: 22px;
-  border: 3px solid rgb(255 255 255 / 40%);
-  border-top-color: #fff;
+  border: 3px solid color-mix(in srgb, var(--on-color) 40%, transparent);
+  border-top-color: var(--on-color);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -570,10 +570,10 @@ onBeforeUnmount(() => spy?.disconnect())
   gap: 8px;
   min-height: 48px;
   padding: 0 20px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--surface-2);
   color: var(--text);
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 700;
 }
 
@@ -606,7 +606,7 @@ onBeforeUnmount(() => spy?.disconnect())
 }
 
 .styled :deep(.warn) {
-  color: #c77700;
+  color: var(--warn-text);
 }
 
 .styled :deep(.swatches) {
@@ -622,13 +622,13 @@ onBeforeUnmount(() => spy?.disconnect())
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 12%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--shadow-color) 12%, transparent);
   cursor: pointer;
 }
 
 /* The dark preset would vanish on the dark background without a hairline. */
 .styled :deep(.swatch:not(.custom)) {
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 14%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--on-color) 14%, transparent);
 }
 
 .styled :deep(.swatch.on) {
@@ -644,8 +644,8 @@ onBeforeUnmount(() => spy?.disconnect())
 
 .styled :deep(.swatch.custom.on) {
   border: 0;
-  color: #fff;
-  filter: drop-shadow(0 0 1px rgb(0 0 0 / 55%));
+  color: var(--on-color);
+  filter: drop-shadow(0 0 1px color-mix(in srgb, var(--scrim) 55%, transparent));
 }
 
 .styled :deep(.swatch.custom input) {
@@ -659,7 +659,7 @@ onBeforeUnmount(() => spy?.disconnect())
   display: flex;
   align-items: center;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
@@ -694,7 +694,7 @@ onBeforeUnmount(() => spy?.disconnect())
 }
 
 .styled :deep(.toggle-row strong) {
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .styled :deep(.toggle-row span) {
@@ -709,7 +709,7 @@ onBeforeUnmount(() => spy?.disconnect())
   position: relative;
   width: 52px;
   height: 30px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--border);
   cursor: pointer;
   transition: background 0.15s;
@@ -723,8 +723,8 @@ onBeforeUnmount(() => spy?.disconnect())
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 25%);
+  background: var(--on-color);
+  box-shadow: var(--shadow-sm);
   transition: transform 0.15s;
 }
 
@@ -779,7 +779,7 @@ onBeforeUnmount(() => spy?.disconnect())
 
 .styled :deep(.people em) {
   font-style: normal;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--text-3);
 }
 
@@ -796,7 +796,7 @@ onBeforeUnmount(() => spy?.disconnect())
   list-style: none;
   margin: 0;
   padding: 6px;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 15%);
+  box-shadow: var(--shadow-pop);
 }
 
 .styled :deep(.found button) {
@@ -805,7 +805,7 @@ onBeforeUnmount(() => spy?.disconnect())
   gap: 10px;
   width: 100%;
   padding: 6px 8px;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   font-weight: 600;
 }
 
@@ -820,7 +820,7 @@ onBeforeUnmount(() => spy?.disconnect())
 
 .styled :deep(.rules th) {
   text-align: left;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 650;
   color: var(--text-3);
   padding: 0 8px 6px 0;
@@ -840,7 +840,7 @@ onBeforeUnmount(() => spy?.disconnect())
 .styled :deep(.rules td) {
   padding-top: 8px;
   padding-bottom: 8px;
-  font-size: 15px;
+  font-size: var(--fs-base);
 }
 
 .styled :deep(.note) {
@@ -889,14 +889,14 @@ onBeforeUnmount(() => spy?.disconnect())
   gap: 10px;
   width: min(680px, calc(100% - 32px));
   padding: 10px 12px 10px 20px;
-  border-radius: 18px;
-  box-shadow: 0 12px 28px rgb(0 0 0 / 18%);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-pop);
   animation: rise-in 0.22s ease-out;
 }
 
 .savebar > span {
   flex: 1;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   font-weight: 700;
 }
 
@@ -908,12 +908,12 @@ onBeforeUnmount(() => spy?.disconnect())
   height: 9px;
   margin-right: 10px;
   border-radius: 50%;
-  background: #f59e0b;
+  background: var(--warn);
   vertical-align: 1px;
 }
 
 .savebar.ok > span {
-  color: #1fa463;
+  color: var(--ok-text);
 }
 
 .styled :deep(.toggle-row.first) {
@@ -933,7 +933,7 @@ onBeforeUnmount(() => spy?.disconnect())
   gap: 4px;
   padding: 12px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 
@@ -952,14 +952,14 @@ onBeforeUnmount(() => spy?.disconnect())
 .styled :deep(.callout) {
   margin-top: 4px;
   padding: 12px 14px;
-  border-radius: 10px;
-  font-size: 14px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-md);
   line-height: 1.45;
 }
 
 .styled :deep(.callout.warn) {
-  background: #fff3d6;
-  color: #6b4700;
+  background: var(--warn-soft);
+  color: var(--warn-text);
 }
 
 .styled :deep(.callout svg) {
@@ -985,9 +985,9 @@ onBeforeUnmount(() => spy?.disconnect())
   flex: 1;
   min-width: 0;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   background: var(--surface-2);
-  font-size: 12px;
+  font-size: var(--fs-xs);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1007,11 +1007,11 @@ onBeforeUnmount(() => spy?.disconnect())
   min-height: 48px;
   padding: 11px 14px;
   border: 1px solid var(--border-strong);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--text);
   font: inherit;
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .styled :deep(.test-row) {
@@ -1022,13 +1022,13 @@ onBeforeUnmount(() => spy?.disconnect())
 }
 
 .styled :deep(.ok) {
-  color: #1fa463;
+  color: var(--ok-text);
 }
 
 @media (prefers-color-scheme: dark) {
   .styled :deep(.callout.warn) {
-    background: #3a2c0b;
-    color: #f5c451;
+    background: var(--warn-soft);
+    color: var(--warn-text);
   }
 }
 
@@ -1039,13 +1039,13 @@ onBeforeUnmount(() => spy?.disconnect())
 
 .phone-list h1 {
   margin: 0 16px 4px;
-  font-size: 28px;
+  font-size: var(--fs-7xl);
 }
 
 .phone-intro {
   margin: 0 16px 14px;
   color: var(--text-2);
-  font-size: 16px;
+  font-size: var(--fs-lg);
 }
 
 .phone-rows {
@@ -1072,7 +1072,7 @@ onBeforeUnmount(() => spy?.disconnect())
   place-items: center;
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface-2);
 }
 
@@ -1084,12 +1084,12 @@ onBeforeUnmount(() => spy?.disconnect())
 }
 
 .phone-row strong {
-  font-size: 17px;
+  font-size: var(--fs-xl);
 }
 
 .phone-row small {
   color: var(--text-2);
-  font-size: 14px;
+  font-size: var(--fs-md);
 }
 
 .phone-head {
@@ -1112,13 +1112,13 @@ onBeforeUnmount(() => spy?.disconnect())
     gap: 6px;
     min-height: 52px;
     color: var(--text);
-    font-size: 17px;
+    font-size: var(--fs-xl);
     font-weight: 700;
   }
 
   .phone-head h1 {
     margin: 0;
-    font-size: 28px;
+    font-size: var(--fs-7xl);
   }
 
   /* The page's own title stands in for the section's. */
@@ -1195,7 +1195,7 @@ onBeforeUnmount(() => spy?.disconnect())
 .credit {
   margin: 8px 0 0;
   color: var(--text-3);
-  font-size: 13px;
+  font-size: var(--fs-sm);
   text-align: center;
 }
 

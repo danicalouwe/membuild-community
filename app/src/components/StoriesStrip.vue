@@ -119,9 +119,9 @@ onBeforeUnmount(() => window.removeEventListener('resize', update))
   flex: none;
   width: 112px;
   aspect-ratio: 112 / 162;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   overflow: hidden;
-  background: #1d1e21;
+  background: var(--player-surface);
   scroll-snap-align: start;
   text-align: left;
   transition: transform 0.15s ease;
@@ -144,8 +144,8 @@ onBeforeUnmount(() => window.removeEventListener('resize', update))
   display: grid;
   place-items: center;
   padding: 12px;
-  color: #fff;
-  font-size: 11px;
+  color: var(--on-color);
+  font-size: var(--fs-2xs);
   font-weight: 750;
   text-align: center;
   overflow: hidden;
@@ -169,7 +169,7 @@ onBeforeUnmount(() => window.removeEventListener('resize', update))
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(rgb(0 0 0 / 30%), transparent 30%, transparent 60%, rgb(0 0 0 / 60%));
+  background: linear-gradient(color-mix(in srgb, var(--scrim) 30%, transparent), transparent 30%, transparent 60%, color-mix(in srgb, var(--scrim) 60%, transparent));
   pointer-events: none;
 }
 
@@ -188,8 +188,8 @@ onBeforeUnmount(() => window.removeEventListener('resize', update))
   position: absolute;
   inset: auto 10px 10px;
   z-index: 1;
-  color: #fff;
-  font-size: 13px;
+  color: var(--on-color);
+  font-size: var(--fs-sm);
   font-weight: 650;
   line-height: 1.25;
   display: -webkit-box;
@@ -237,7 +237,7 @@ onBeforeUnmount(() => window.removeEventListener('resize', update))
   margin-top: auto;
   padding: 0 6px 10px;
   text-align: center;
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 650;
 }
 
@@ -250,9 +250,9 @@ onBeforeUnmount(() => window.removeEventListener('resize', update))
   height: 44px;
   margin-top: -22px;
   border-radius: 50%;
-  color: #fff;
-  background: rgb(40 41 46 / 92%);
-  box-shadow: 0 2px 10px rgb(0 0 0 / 35%);
+  color: var(--on-color);
+  background: color-mix(in srgb, var(--player-surface) 92%, transparent);
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--shadow-color) 35%, transparent);
 }
 
 .arrow.left {
