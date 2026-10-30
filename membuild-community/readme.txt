@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.14.1
+Stable tag: 1.14.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,9 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.14.2 =
+* Fixed: in Chrome and other browsers that hide where a form comes from, logging in on the community's login page always said "The page timed out" (since 1.13.7). Those logins work again, and forms sent from other websites are still refused.
 
 = 1.14.1 =
 * Fixed: logging in could keep saying "The page timed out" when the browser still held an old login that had already ended. The login, join and password pages now clear that old login first, so the form works the first time.

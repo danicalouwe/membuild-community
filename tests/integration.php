@@ -2197,6 +2197,25 @@ foreach ( array( $tp_vip, $tp_news ) as $tp_id ) {
 }
 mbcom_call( $tp_admin, 'DELETE', "/groups/{$tp_grp['id']}" );
 
+mbcom_section( 'Login forms and where they come from' );
+$lf = new ReflectionMethod( \MemBuild\Community\Login::class, 'cross_site' );
+$lf->setAccessible( true );
+$lf_try = function ( $origin, $fetch = null ) use ( $lf ) {
+	unset( $_SERVER['HTTP_ORIGIN'], $_SERVER['HTTP_SEC_FETCH_SITE'] );
+	if ( null !== $origin ) {
+		$_SERVER['HTTP_ORIGIN'] = $origin;
+	}
+	if ( null !== $fetch ) {
+		$_SERVER['HTTP_SEC_FETCH_SITE'] = $fetch;
+	}
+	$r = $lf->invoke( null );
+	unset( $_SERVER['HTTP_ORIGIN'], $_SERVER['HTTP_SEC_FETCH_SITE'] );
+	return $r;
+};
+mbcom_check( 'a login form whose origin the browser hides ("null", as Chrome sends) is accepted', false === $lf_try( 'null', 'same-origin' ) );
+mbcom_check( '…and one from this site', false === $lf_try( home_url(), 'same-origin' ) );
+mbcom_check( '…but one posted from another site is refused', true === $lf_try( 'https://evil.example', null ) && true === $lf_try( home_url(), 'cross-site' ) );
+
 mbcom_section( 'Lesson order' );
 $lo_admin = mbcom_user( 'mbct_admin', 'administrator' );
 $lo_mod   = mbcom_user( 'mbct_tp_mod', 'editor' );

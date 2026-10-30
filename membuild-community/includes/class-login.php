@@ -171,7 +171,7 @@ class Login {
 		}
 		Helpers::no_page_cache();
 		header( 'X-Frame-Options: SAMEORIGIN' );
-		header( 'Referrer-Policy: no-referrer' ); // the reset link carries a key
+		header( 'Referrer-Policy: same-origin' ); // the reset link carries a key: never sent to other sites, and the forms keep their real origin
 
 		// A login cookie that no longer works (an ended session, a removed account) would still be
 		// mixed into these forms' security codes. The browser can drop it before the form is sent,
@@ -522,8 +522,13 @@ class Login {
 		if ( 'cross-site' === $fetch ) {
 			return true;
 		}
-		$origin = isset( $_SERVER['HTTP_ORIGIN'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_ORIGIN'] ) ) : '';
-		return '' !== $origin && 'null' !== $origin && wp_parse_url( $origin, PHP_URL_HOST ) !== wp_parse_url( home_url(), PHP_URL_HOST );
+		// Read as sent: cleaning it first would turn a browser's "null" (it hides the origin) into
+		// "http://null", which then looked like another site, so every Chrome login was refused.
+		$origin = isset( $_SERVER['HTTP_ORIGIN'] ) ? trim( (string) wp_unslash( $_SERVER['HTTP_ORIGIN'] ) ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- only its host is compared
+		if ( '' === $origin || 'null' === strtolower( $origin ) ) {
+			return false; // no origin given: Sec-Fetch-Site (above) and the form's nonce decide
+		}
+		return strtolower( (string) wp_parse_url( $origin, PHP_URL_HOST ) ) !== strtolower( (string) wp_parse_url( home_url(), PHP_URL_HOST ) );
 	}
 
 	private static function too_many( $kind, $max ) {
