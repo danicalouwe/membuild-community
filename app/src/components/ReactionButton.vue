@@ -213,7 +213,7 @@ onBeforeUnmount(() => {
       <!-- A plain outline thumb until you react; then your reaction's face (a filled blue thumb for Like),
            and on posts the word "Like" or your reaction's name in its color, like Facebook. -->
       <span class="icon"><ReactionBadge v-if="active" :type="current" :size="size" /><Icon v-else name="thumb" :size="size" /></span>
-      <span v-if="labelled" class="word" :style="active ? { color: active.color } : null">{{ active ? active.label : t._x('Like', 'reaction', 'membuild-community') }}</span>
+      <span v-if="labelled" class="word" :style="active ? { color: `color-mix(in srgb, ${active.color} 75%, var(--text))` } : null">{{ active ? active.label : t._x('Like', 'reaction', 'membuild-community') }}</span>
       <span v-else-if="count" class="count">{{ count }}</span>
     </button>
   </div>

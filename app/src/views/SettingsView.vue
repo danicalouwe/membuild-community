@@ -386,6 +386,15 @@ onBeforeUnmount(() => spy?.disconnect())
   line-height: 1.45;
 }
 
+/* A link in a hint is underlined: told apart from the words around it by more than colour. */
+.styled :deep(small a) {
+  text-decoration: underline;
+}
+
+.styled :deep(.choice.on small) {
+  color: var(--text); /* on the tinted, chosen tile the grey is too faint */
+}
+
 .styled :deep(.choice.on) {
   border: 2px solid var(--accent);
   padding: 15px 17px;
@@ -597,7 +606,7 @@ onBeforeUnmount(() => spy?.disconnect())
 }
 
 .styled :deep(.danger) {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .err,

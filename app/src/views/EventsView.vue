@@ -139,7 +139,7 @@ onBeforeUnmount(() => observer?.disconnect())
 }
 
 .month h2.live-h {
-  color: var(--live);
+  color: var(--live-text);
   letter-spacing: 0;
   text-transform: none;
   font-size: var(--fs-base);

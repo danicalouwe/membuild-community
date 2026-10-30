@@ -651,7 +651,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
       </div>
       <div class="bar">
         <button type="button" class="icon tool" :aria-label="t.__('Add photo', 'membuild-community')" @click="photoInput.click()"><Icon name="image" :size="22" /></button>
-        <input ref="photoInput" class="sr-only" type="file" accept="image/*" multiple @change="pickPhotos" />
+        <input ref="photoInput" class="sr-only" type="file" tabindex="-1" aria-hidden="true" accept="image/*" multiple @change="pickPhotos" />
         <button v-if="giphyOn()" type="button" class="icon tool" :aria-label="t.__('Add a GIF', 'membuild-community')" data-pop-trigger @click="showGifs = !showGifs"><span class="gif-badge" aria-hidden="true"><b>GIF</b></span></button>
         <!-- Computers: a small box above the message bar (like Facebook); phones: the sheet. -->
         <GifPicker v-if="showGifs" :pop="popGifs" @pick="addGif" @close="showGifs = false" />

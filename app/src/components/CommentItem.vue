@@ -174,7 +174,7 @@ function react(type) {
   gap: 3px;
   padding: 1px 8px 1px 6px;
   border-radius: var(--radius-pill);
-  background: var(--ok);
+  background: var(--ok-strong); /* white words on it: 5:1 */
   color: var(--on-color);
   font-size: var(--fs-xs);
   font-weight: 700;
@@ -206,6 +206,9 @@ function react(type) {
 }
 
 .name {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px; /* tall enough to tap */
   color: var(--text);
   font-weight: 650;
 }

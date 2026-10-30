@@ -82,8 +82,8 @@ onBeforeUnmount(() => window.removeEventListener('mbcom:reopen-composer', reopen
       </svg>
     </button>
 
-    <input ref="photoInput" class="sr-only" type="file" accept="image/*,video/*" multiple @change="pickedPhotos" />
-    <input ref="reelInput" class="sr-only" type="file" accept="video/*" @change="pickedReel" />
+    <input ref="photoInput" class="sr-only" type="file" tabindex="-1" aria-hidden="true" accept="image/*,video/*" multiple @change="pickedPhotos" />
+    <input ref="reelInput" class="sr-only" type="file" tabindex="-1" aria-hidden="true" accept="video/*" @change="pickedReel" />
 
     <CreatePostDialog
       v-if="dialog"

@@ -9,6 +9,9 @@ const WHITE = '#ffffff'
 const BLACK = '#000000'
 const INK_DARK = '#111214'
 const DARK_SURFACE = '#18191c'
+// The grey fills (filters, tags): the hardest place the main colour's words sit, so text is checked on those.
+const LIGHT_FILL = '#f0f2f5'
+const DARK_FILL = '#232529'
 const AA = 4.5
 
 const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
@@ -61,8 +64,8 @@ export function darkAccent(hex) {
 export function accentTokens(hex) {
   const dark = darkAccent(hex)
   return {
-    light: { accent: hex, ink: inkOn(hex), text: readableOn(hex, WHITE, BLACK) },
-    dark: { accent: dark, ink: inkOn(dark), text: readableOn(dark, DARK_SURFACE, WHITE) },
+    light: { accent: hex, ink: inkOn(hex), text: readableOn(hex, LIGHT_FILL, BLACK) },
+    dark: { accent: dark, ink: inkOn(dark), text: readableOn(dark, DARK_FILL, WHITE) },
   }
 }
 

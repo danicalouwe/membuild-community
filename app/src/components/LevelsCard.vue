@@ -38,7 +38,7 @@ const toNext = computed(() =>
     </header>
 
     <div class="progress">
-      <div class="bar" role="progressbar" :aria-valuenow="progress?.percent || 0" aria-valuemin="0" aria-valuemax="100"><i :style="{ width: `${Math.max(progress?.percent || 0, 3)}%` }" /></div>
+      <div class="bar" role="progressbar" :aria-label="t.__('Progress to the next level', 'membuild-community')" :aria-valuenow="progress?.percent || 0" aria-valuemin="0" aria-valuemax="100"><i :style="{ width: `${Math.max(progress?.percent || 0, 3)}%` }" /></div>
       <p class="to-next">{{ toNext }}</p>
     </div>
 

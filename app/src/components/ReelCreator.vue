@@ -195,7 +195,7 @@ onMounted(() => props.file && pick(props.file))
         </footer>
       </aside>
 
-      <main class="right">
+      <section class="right">
         <section class="preview-card">
           <h2>{{ t.__('Preview', 'membuild-community') }}</h2>
           <div class="stage">
@@ -211,9 +211,9 @@ onMounted(() => props.file && pick(props.file))
             </div>
           </div>
         </section>
-      </main>
+      </section>
 
-      <input ref="fileInput" class="sr-only" type="file" accept="video/*" @change="picked" />
+      <input ref="fileInput" class="sr-only" type="file" tabindex="-1" aria-hidden="true" accept="video/*" @change="picked" />
     </div>
   </Teleport>
 </template>

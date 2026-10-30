@@ -426,7 +426,7 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
                 </button>
               </div>
             </div>
-            <input ref="fileInput" class="sr-only" type="file" accept="image/*,video/*" multiple @change="pickFiles" />
+            <input ref="fileInput" class="sr-only" type="file" tabindex="-1" aria-hidden="true" accept="image/*,video/*" multiple @change="pickFiles" />
             <GifPicker v-if="showGifs" @pick="addGif" @close="showGifs = false" />
           </div>
 

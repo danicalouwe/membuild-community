@@ -142,7 +142,7 @@ function pickPicture(e) {
             <span class="mark" /><strong>{{ t.__('Your own photo', 'membuild-community') }}</strong><small>{{ form.login_picture ? t.__('Shown beside the form. Click the photo to change it.', 'membuild-community') : t.__('Shown beside the form.', 'membuild-community') }}</small>
           </label>
         </div>
-        <input ref="pictureInput" class="sr-only" type="file" accept="image/*" @change="pickPicture" />
+        <input ref="pictureInput" class="sr-only" type="file" tabindex="-1" aria-hidden="true" accept="image/*" @change="pickPicture" />
         <small v-if="pictureUpload?.status === 'error'" class="err">{{ pictureUpload.error }}</small>
         <small><strong>{{ t.__('Photo tips:', 'membuild-community') }}</strong> {{ t.__('a landscape photo at least 1600 × 1200 pixels (4:3), JPG or PNG, under 2 MB. Keep faces and anything important in the middle, because the edges are cropped on smaller screens. On phones the picture is left out: members see your logo and headline above the form.', 'membuild-community') }}</small>
         <a :href="meta.login_url" target="_blank" rel="noopener" class="open-link">{{ t.__('Open the login page', 'membuild-community') }} <Icon name="external" :size="14" /></a>

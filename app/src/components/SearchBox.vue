@@ -156,6 +156,8 @@ const noneLabel = computed(() => t.sprintf(/* translators: %s: the search text *
           maxlength="100"
           :placeholder="t.__('Search the community', 'membuild-community')"
           :aria-label="t.__('Search the community', 'membuild-community')"
+          role="combobox"
+          aria-autocomplete="list"
           :aria-expanded="open && !!groups"
           aria-controls="mbcom-search-panel"
           @focus="show"

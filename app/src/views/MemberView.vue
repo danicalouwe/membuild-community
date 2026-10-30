@@ -304,7 +304,7 @@ const dailyCap = (n) => t.sprintf(/* translators: %d: how many times a day this 
 
       <!-- Loading: About and posts in grey. -->
       <div v-else-if="!member && !error" class="cols" aria-hidden="true">
-        <aside class="left">
+        <aside class="left" :aria-label="t.__('About', 'membuild-community')">
           <section class="card box">
             <div class="skeleton" style="width: 40%; height: 18px" />
             <div v-for="n in 3" :key="n" class="skeleton" style="height: 14px; margin-top: 16px" :style="{ width: `${85 - n * 12}%` }" />
@@ -314,7 +314,7 @@ const dailyCap = (n) => t.sprintf(/* translators: %d: how many times a day this 
       </div>
 
       <div v-else-if="member" class="cols">
-        <aside class="left">
+        <aside class="left" :aria-label="t.__('About', 'membuild-community')">
           <ThemeSlot name="profile.about" :off="isMe" :data="{ member }">
           <section class="card box">
             <h2>{{ t.__('About', 'membuild-community') }}</h2>

@@ -334,6 +334,7 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
 
 <template>
   <div class="stage" :class="{ 'comments-open': commentsFor && wide, 'on-youtube': activeIsEmbed }" :style="{ '--active-ar': activeRatio }">
+    <h1 class="sr-only">{{ t.__('Reels', 'membuild-community') }}</h1>
     <div ref="scroller" class="reels" @scroll.passive="onScroll">
       <section v-for="(post, i) in list.items" :key="post.localKey || post.id" class="reel" :class="{ embed: isEmbed(post) }" :data-index="i">
         <!-- YouTube: their player on top, our caption and buttons below it (never over it). -->

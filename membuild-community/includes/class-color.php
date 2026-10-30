@@ -20,6 +20,8 @@ class Color {
 	const WHITE   = '#ffffff';
 	const INK     = '#111214'; // dark text on light accents
 	const DARK_BG = '#18191c'; // the app's dark surface
+	const LIGHT_FILL = '#f0f2f5'; // the light grey fill (filters, tags): the hardest place the main colour's words sit
+	const DARK_FILL  = '#232529'; // the same in dark mode
 	const MIN     = 4.5;       // WCAG AA for normal text
 
 	/**
@@ -34,10 +36,10 @@ class Color {
 		return array(
 			'accent'    => $hex,
 			'ink'       => self::ink( $hex ),
-			'text'      => self::readable( $hex, self::WHITE, '#000000' ),
+			'text'      => self::readable( $hex, self::LIGHT_FILL, '#000000' ), // so it passes on white and on the grey fills
 			'dark'      => $dark,
 			'dark_ink'  => self::ink( $dark ),
-			'dark_text' => self::readable( $dark, self::DARK_BG, self::WHITE ),
+			'dark_text' => self::readable( $dark, self::DARK_FILL, self::WHITE ),
 		);
 	}
 

@@ -114,6 +114,7 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
 
 <template>
   <div class="feed">
+    <h1 class="sr-only">{{ t.__('Home', 'membuild-community') }}</h1>
     <Transition name="pill">
       <button v-if="newCount > 0" class="new-pill" @click="showNew">
         <Icon name="arrowUp" :size="16" /> {{ newPosts(newCount) }}
@@ -127,7 +128,7 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
       <a class="c-wrong" :href="confirm.profileUrl">{{ t.__('Wrong email?', 'membuild-community') }}</a>
     </div>
 
-    <aside class="day-one-slot">
+    <aside class="day-one-slot" :aria-label="t.__('For you', 'membuild-community')">
       <DayOne />
       <ThemeSlot name="home.for-you" :data="{ data: forYou }"><ForYou :data="forYou" /></ThemeSlot>
     </aside>

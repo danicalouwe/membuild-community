@@ -5,7 +5,7 @@
   --border: #e3e5e8;
   --text: #16181d;
   --text-2: #5d6370;
-  --text-3: #6b7079; /* 4.5:1 or better on white */
+  --text-3: #646973; /* 4.5:1 or better on white and on the grey fills */
   --accent: #3b5bfd;
   --accent-ink: #ffffff;
   --accent-text: var(--accent); /* the accent used as text or icons on the page */
@@ -39,10 +39,12 @@
   --paper: #ffffff; /* things that are always white: a calendar date, a map label, a document */
   --ink: #16181d; /* dark text on those always-white things */
   --ok: #2fb36b; /* done ticks, online dots */
-  --ok-strong: #1f8a4c; /* a solid green with white text */
+  --ok-strong: #1b7d44; /* a solid green with white text (5:1) */
   --danger-strong: #b42318; /* a solid red button with white text */
   --warn: #f59e0b; /* a yellow dot: not saved yet */
-  --live: #e5484d; /* happening now: Live, today's month */
+  --live: #e5484d; /* happening now: the Live fill, a count bubble */
+  --live-text: #c92a2a; /* the same red as words on the page (4.5:1 on white and grey) */
+  --live-ink: #c92a2a; /* red words on always-white things (a calendar date), in both modes */
   --highlight: #ffd43b; /* the words that matched a search */
   --scrim: #000000; /* shading over photos and videos, mixed see-through */
   --backdrop: #0a0b0d; /* behind a dialog, mixed see-through */
@@ -117,6 +119,7 @@
     --danger-soft: #3a1714;
     --danger-line: #6b2a24;
     --danger-text: #ff8a7e;
+    --live-text: #ff6b70;
     --danger-ink: #f3b4ad;
     --border-strong: #3d4048;
     --shadow: none;
@@ -212,9 +215,29 @@ video {
   max-width: 100%;
 }
 
+/* The keyboard's ring: the main colour's text shade (a light main colour like lime would vanish
+   on white), thick enough to see at a glance. */
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 3px solid var(--accent-text);
   outline-offset: 2px;
+}
+
+/* "Skip to content": the first thing a keyboard reaches, shown only when it's focused. */
+.skip-link {
+  position: fixed;
+  left: 12px;
+  top: 12px;
+  z-index: 200;
+  padding: 12px 18px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 700;
+  box-shadow: var(--shadow-pop);
+  transform: translateY(-160%);
+}
+.skip-link:focus {
+  transform: none;
 }
 
 .sr-only {

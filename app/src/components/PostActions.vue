@@ -164,7 +164,7 @@ const shareCount = (n) => t.sprintf(/* translators: %s: number of shares, e.g. "
 }
 
 .helpful.on {
-  color: #ff6a1a;
+  color: var(--tip-strong);
 }
 
 .helpful.on :deep(svg) {
@@ -175,7 +175,7 @@ const shareCount = (n) => t.sprintf(/* translators: %s: number of shares, e.g. "
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  color: #ff6a1a;
+  color: var(--tip-strong);
   font-weight: 650;
 }
 </style>

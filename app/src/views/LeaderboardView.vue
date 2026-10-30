@@ -156,7 +156,7 @@ const writePost = () => router.push({ name: 'feed', query: { write: 1 } })
 <template>
   <div class="board page-in">
     <!-- Computers: your level and every level, then how points are earned. -->
-    <aside class="side">
+    <aside class="side" :aria-label="t.__('Levels and points', 'membuild-community')">
       <ThemeSlot name="leaderboard.levels" :data="{ levels: data?.levels || [], progress: data?.progress }"><LevelsCard :levels="data?.levels || []" :progress="data?.progress" /></ThemeSlot>
       <ThemeSlot name="leaderboard.earn-points" :data="{ rules: data?.rules || [] }"><EarnPoints :rules="data?.rules || []" /></ThemeSlot>
     </aside>

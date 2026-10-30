@@ -110,6 +110,11 @@ function closeLinked() {
 // Loads my level and records today's visit (daily point and streak).
 // The top tabs' words: if any word spills out of its tab (or the row out of the bar), show icons
 // only. Checked again whenever the bar changes size.
+// "Skip to content": focus the page's content, so the next Tab starts there.
+function skipToMain() {
+  document.getElementById('mbcom-main')?.focus()
+}
+
 const topTabs = ref(null)
 const tight = ref(false)
 function fitTabs() {
@@ -159,6 +164,7 @@ const isActive = (tab) =>
 
 <template>
   <div class="shell" :class="{ immersive, 'in-course': inCourse, 'in-lesson': inLesson, building, 'on-profile': onProfile, 'no-tabbar': route.name === 'levels' || (route.name === 'settings' && !!route.query.s) || (route.name === 'messages' && !!route.params.threadId), 'phone-bare': route.name === 'search' }">
+    <a class="skip-link" href="#mbcom-main" @click.prevent="skipToMain">{{ t.__('Skip to content', 'membuild-community') }}</a>
     <header class="topbar">
       <ThemeSlot name="app.top-bar" :data="{ tabs: desktopTabs, isActive, user: cfg.user, logo: cfg.community.logo, siteName: cfg.siteName, home: '/' }">
       <div class="topbar-inner">
@@ -169,7 +175,7 @@ const isActive = (tab) =>
           </RouterLink>
           <SearchBox v-if="feature('search')" />
         </div>
-        <nav ref="topTabs" class="top-tabs" :class="{ tight }" :aria-label="t.__('Sections', 'membuild-community')">
+        <nav ref="topTabs" class="top-tabs" :class="{ tight }" :aria-label="t.__('Main sections', 'membuild-community')">
           <RouterLink v-for="tab in desktopTabs" :key="tab.name" :to="tab.path" class="top-tab" :class="{ active: isActive(tab) }" :title="tab.label" :aria-label="tab.label">
             <Icon :name="tab.icon" :size="24" />
             <span class="top-label">{{ tab.label }}</span>
@@ -187,19 +193,19 @@ const isActive = (tab) =>
       </span>
     </div>
 
-    <aside class="side" :aria-label="t.__('Sections', 'membuild-community')">
+    <aside class="side" :aria-label="t.__('Menu', 'membuild-community')">
       <ThemeSlot name="app.left-menu" :data="{ tabs: desktopTabs, tools: sideLinks, isActive, user: cfg.user }">
       <RouterLink to="/me" class="side-me">
-        <Avatar :user="cfg.user" :size="36" />
+        <Avatar :user="cfg.user" :size="36" decorative />
         <strong>{{ cfg.user.name }}</strong>
       </RouterLink>
-      <nav class="side-nav">
+      <nav class="side-nav" :aria-label="t.__('Sections', 'membuild-community')">
         <RouterLink v-for="tab in desktopTabs" :key="tab.name" :to="tab.path" class="side-link" :class="{ active: isActive(tab) }">
           <span class="side-ic"><Icon :name="tab.icon" :size="22" /></span>
           <span>{{ tab.label }}</span>
         </RouterLink>
       </nav>
-      <nav v-if="sideLinks.length" class="side-nav tools">
+      <nav v-if="sideLinks.length" class="side-nav tools" :aria-label="t.__('Running the community', 'membuild-community')">
         <RouterLink v-for="l in sideLinks" :key="l.to" :to="l.to" class="side-link" :class="{ active: route.path.startsWith(l.to) }">
           <span class="side-ic"><Icon :name="l.icon" :size="22" /></span>
           <span>{{ l.label }}</span>
@@ -209,7 +215,7 @@ const isActive = (tab) =>
       </ThemeSlot>
     </aside>
 
-    <main class="main" :class="{ flush: route.name === 'places', centred }">
+    <main id="mbcom-main" class="main" tabindex="-1" :class="{ flush: route.name === 'places', centred }">
       <RouterView v-slot="{ Component }">
         <KeepAlive :include="['FeedView', 'PlacesView']">
           <component :is="Component" />
@@ -598,6 +604,11 @@ const isActive = (tab) =>
 
 .main {
   padding-bottom: 24px;
+}
+
+/* The content takes focus from "Skip to content"; the ring belongs on what's inside. */
+.main:focus {
+  outline: none;
 }
 
 .immersive .main,

@@ -139,7 +139,7 @@ onMounted(() => {
       </aside>
 
       <!-- Right: the two choices, then a live Preview -->
-      <main class="right">
+      <section class="right">
         <div v-if="mode === 'choose'" class="choices">
           <button type="button" class="pick photo" @click="fileInput.click()">
             <span class="p-icon"><Icon name="image" :size="26" /></span>
@@ -164,9 +164,9 @@ onMounted(() => {
             </div>
           </div>
         </section>
-      </main>
+      </section>
 
-      <input ref="fileInput" class="sr-only" type="file" accept="image/*,video/*" @change="picked" />
+      <input ref="fileInput" class="sr-only" type="file" tabindex="-1" aria-hidden="true" accept="image/*,video/*" @change="picked" />
     </div>
   </Teleport>
 </template>

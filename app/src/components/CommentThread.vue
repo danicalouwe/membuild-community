@@ -355,7 +355,7 @@ const viewReplies = (n) => t.sprintf(/* translators: %d: number of replies */ t.
               <ReactionPicker v-if="showEmoji && emojiBtn" mode="emoji" side="center" :anchor="emojiBtn.getBoundingClientRect()" :ignore="emojiBtn" @pick="insertEmoji" @close="showEmoji = false" />
             </div>
             <button type="button" class="tool" :aria-label="t.__('Attach a photo', 'membuild-community')" :title="t.__('Photo', 'membuild-community')" @click="photoInput.click()"><Icon name="camera" :size="20" /></button>
-            <input ref="photoInput" class="sr-only" type="file" accept="image/*" @change="pickPhoto" />
+            <input ref="photoInput" class="sr-only" type="file" tabindex="-1" aria-hidden="true" accept="image/*" @change="pickPhoto" />
             <button v-if="giphyOn()" type="button" class="tool" :aria-label="t.__('Add a GIF', 'membuild-community')" :title="t.__('GIF', 'membuild-community')" @click="showGifs = true"><span class="gif-badge" aria-hidden="true"><b>GIF</b></span></button>
             <GifPicker v-if="showGifs" @pick="addGif" @close="showGifs = false" />
             <button type="submit" class="send" :disabled="!canSend" :aria-label="t.__('Send', 'membuild-community')"><Icon name="send" :size="18" /></button>

@@ -279,7 +279,7 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
         </form>
         <p v-if="linkError" class="error-text">{{ linkError }}</p>
       </div>
-      <input ref="videoInput" class="sr-only" type="file" accept="video/*" @change="pickVideo" />
+      <input ref="videoInput" class="sr-only" type="file" tabindex="-1" aria-hidden="true" accept="video/*" @change="pickVideo" />
     </section>
 
     <section class="box">
@@ -305,7 +305,7 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
         </li>
       </ul>
       <button class="btn btn-lg btn-ghost" type="button" @click="fileInput.click()"><Icon name="plus" :size="18" /> {{ t.__('Add a file', 'membuild-community') }}</button>
-      <input ref="fileInput" class="sr-only" type="file" multiple @change="pickFiles" />
+      <input ref="fileInput" class="sr-only" type="file" tabindex="-1" aria-hidden="true" multiple @change="pickFiles" />
     </section>
 
     <section class="box">

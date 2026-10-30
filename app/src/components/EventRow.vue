@@ -115,7 +115,7 @@ const people = (n) =>
 }
 
 .date small {
-  color: var(--live);
+  color: var(--live-ink);
   font-size: var(--fs-2xs);
   font-weight: 800;
   text-transform: uppercase;

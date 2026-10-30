@@ -524,7 +524,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
           <div class="cover-row">
             <span class="cover" :style="course.cover ? { backgroundImage: `url(${course.cover})` } : null">{{ course.cover ? '' : course.title }}</span>
             <button class="btn btn-lg btn-ghost" :disabled="coverUploading" @click="coverInput.click()">{{ coverUploading ? t.__('Uploading…', 'membuild-community') : course.cover ? t.__('Change picture', 'membuild-community') : t.__('Add a picture', 'membuild-community') }}</button>
-            <input ref="coverInput" class="sr-only" type="file" accept="image/*" @change="pickCover" />
+            <input ref="coverInput" class="sr-only" type="file" tabindex="-1" aria-hidden="true" accept="image/*" @change="pickCover" />
           </div>
           <small>{{ t.__('A wide picture works best.', 'membuild-community') }}</small>
         </div>

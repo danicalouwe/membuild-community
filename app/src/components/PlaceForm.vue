@@ -235,10 +235,10 @@ const title = p ? t.__('Edit place', 'membuild-community') : props.canEdit ? t._
           <span class="label">{{ t.__('Photo', 'membuild-community') }} <em>{{ t.__('(optional)', 'membuild-community') }}</em></span>
           <div v-if="cover" class="cover">
             <img :src="cover" alt="" />
-            <label class="btn btn-ghost"><Icon name="image" :size="16" /> {{ t.__('Change photo', 'membuild-community') }}<input class="sr-only" type="file" accept="image/*" @change="pickCover" /></label>
+            <label class="btn btn-ghost"><Icon name="image" :size="16" /> {{ t.__('Change photo', 'membuild-community') }}<input class="sr-only" type="file" tabindex="-1" aria-hidden="true" accept="image/*" @change="pickCover" /></label>
             <button type="button" class="btn btn-ghost" @click="removeCover">{{ t.__('Remove', 'membuild-community') }}</button>
           </div>
-          <label v-else class="drop-photo"><Icon name="image" :size="22" /> {{ t.__('Add a photo', 'membuild-community') }}<input class="sr-only" type="file" accept="image/*" @change="pickCover" /></label>
+          <label v-else class="drop-photo"><Icon name="image" :size="22" /> {{ t.__('Add a photo', 'membuild-community') }}<input class="sr-only" type="file" tabindex="-1" aria-hidden="true" accept="image/*" @change="pickCover" /></label>
         </div>
         <template v-if="canEdit || p">
         <div class="field">

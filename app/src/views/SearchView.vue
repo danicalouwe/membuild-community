@@ -493,9 +493,14 @@ const searched = computed(() => {
     background: var(--surface);
   }
 
-  /* The box already says what was searched. */
+  /* The box already says what was searched, so the heading is only read out (screen readers still need it). */
   .head {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   /* Filters scroll sideways, with a fade at the edge so you can see there are more. */

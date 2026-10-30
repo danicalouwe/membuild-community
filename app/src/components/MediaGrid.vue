@@ -52,11 +52,12 @@ const position = (n, total) => t.sprintf(/* translators: 1: number of the photo 
   <FeedVideo v-if="video" :media="video" :to="reelLink" />
   <FeedEmbed v-else-if="embed" :media="embed" />
 
-  <button v-else-if="images.length === 1" class="single" :class="{ gif: isGif(images[0]) }" :style="singleStyle" :aria-label="t.__('Open photo', 'membuild-community')" @click="viewer = 0">
+  <!-- A GIF has its own Play button (for people who asked for less motion), so it isn't inside a button itself. -->
+  <component :is="isGif(images[0]) ? 'div' : 'button'" v-else-if="images.length === 1" class="single" :class="{ gif: isGif(images[0]) }" :style="singleStyle" :aria-label="isGif(images[0]) ? undefined : t.__('Open photo', 'membuild-community')" @click="viewer = 0">
     <GifMedia v-if="images[0].mp4" :src="images[0].url" :mp4="images[0].mp4" :still="images[0].poster || ''" :width="images[0].width" :height="images[0].height" />
     <img v-else :src="images[0].url" :width="images[0].width" :height="images[0].height" alt="" loading="lazy" decoding="async" />
     <span v-if="images[0].via === 'giphy'" class="via">GIPHY</span>
-  </button>
+  </component>
 
   <div v-else-if="images.length > 1" class="grid" :class="`n${shown.length}`">
     <button v-for="(m, i) in shown" :key="m.id || m.key" class="cell" @click="viewer = i">

@@ -13,6 +13,7 @@ const props = defineProps({
   size: { type: Number, default: 40 },
   badge: { type: Boolean, default: false },
   link: { type: Boolean, default: false },
+  decorative: { type: Boolean, default: false }, // the name is written right beside it: the photo says nothing more
 })
 
 // The design system's dot: 14px, 12px on small photos, a little bigger on a profile's big photo.
@@ -46,12 +47,12 @@ const levelLabel = (level) => t.sprintf(/* translators: %d: level number */ t.__
     :aria-label="link && user?.id ? profileLabel(user.name) : undefined"
     :style="{ width: `${size}px`, height: `${size}px` }"
   >
-    <span v-if="!user?.avatar || failed" class="avatar initials" role="img" :aria-label="user?.name || ''" :style="{ fontSize: `${Math.round(size * 0.36)}px` }">{{ initials(user?.name) }}</span>
+    <span v-if="!user?.avatar || failed" class="avatar initials" :role="decorative ? undefined : 'img'" :aria-hidden="decorative ? 'true' : undefined" :aria-label="decorative ? undefined : user?.name || ''" :style="{ fontSize: `${Math.round(size * 0.36)}px` }">{{ initials(user?.name) }}</span>
     <img
       v-else
       class="avatar"
       :src="user?.avatar"
-      :alt="user?.name || ''"
+      :alt="decorative ? '' : user?.name || ''"
       :width="size"
       :height="size"
       loading="lazy"

@@ -245,7 +245,7 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
       </div>
 
       <!-- The card: when, where, and what to do. -->
-      <aside class="side card">
+      <aside class="side card" :aria-label="t.__('When and where', 'membuild-community')">
         <ThemeSlot name="events.side-card" :off="host" :data="{ event: e, state, badge, post, rsvp }">
         <div class="when">
           <span class="tile"><small>{{ badge.month }}</small><strong>{{ badge.day }}</strong></span>
@@ -534,7 +534,7 @@ h1 {
 }
 
 .tile small {
-  color: var(--live);
+  color: var(--live-text);
   font-size: var(--fs-sm);
   font-weight: 800;
   text-transform: uppercase;

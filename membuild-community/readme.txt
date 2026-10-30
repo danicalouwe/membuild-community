@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.13.7
+Stable tag: 1.13.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,12 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.13.8 =
+* Easier to use with a keyboard: a clear focus ring on whatever you're on, a "Skip to content" link as the first stop on every page, and dialogs keep the keyboard inside until you close them.
+* Easier to read: a few colours are a little darker so every word passes the 4.5:1 contrast guideline, in light and dark mode (red dates and Live, faint grey text, Helpful, Best answer, the Like and Love words, and your main colour when it's used for words).
+* Better with screen readers: every page has a main heading, menus and sections have names, the search box is announced as a list, and photos next to a name aren't read out twice.
+* Names in posts and comments are easier to tap.
 
 = 1.13.7 =
 * Security: logging in is harder to abuse. Wrong passwords from many places slow an account down instead of locking its owner out, people sharing one internet address (an office, a proxy) no longer lock each other out, the Join and Forgot password pages no longer reveal which emails have accounts, and a login form sent from another site is refused.

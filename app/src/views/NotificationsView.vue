@@ -6,6 +6,7 @@ import NotificationsPanel from '../components/NotificationsPanel.vue'
 
 <template>
   <div class="page card">
+    <h1 class="sr-only">{{ t.__('Alerts', 'membuild-community') }}</h1>
     <NotificationsPanel page />
   </div>
 </template>

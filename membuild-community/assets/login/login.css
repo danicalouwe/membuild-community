@@ -22,6 +22,7 @@
 		--text: #eceef1;
 		--text-2: #a2a7b0;
 		--line: #2c2e33;
+		--or: #8b909b; /* the "or" between buttons, 5:1 on the dark page */
 		--soft: #222327;
 		--danger: #ff6b5f;
 		--field: #3a3d44;
@@ -104,7 +105,7 @@ form { display: flex; flex-direction: column; gap: 16px; }
 .btn.outline { border: 1px solid var(--field); background: transparent; color: var(--text); }
 .btn.outline:hover { background: var(--soft); filter: none; }
 .btn.grey { background: var(--grey); color: var(--text); }
-.or { display: flex; align-items: center; gap: 12px; margin: 22px 0 16px; color: #8b909b; font-size: 14px; }
+.or { display: flex; align-items: center; gap: 12px; margin: 22px 0 16px; color: var(--or, #646973); font-size: 14px; }
 .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 .link { display: block; margin: 18px 0 0; text-align: center; font-size: 16px; font-weight: 700; text-decoration: none; }
 .link:hover { text-decoration: underline; }

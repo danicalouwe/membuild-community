@@ -9,7 +9,8 @@ const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([t
 
 export function focusables(root) {
   if (!root) return []
-  return [...root.querySelectorAll(FOCUSABLE)].filter((el) => el.offsetParent !== null || el === document.activeElement)
+  // What Tab skips (tabindex -1, like the hidden file pickers buttons open) can't be the first or last stop either.
+  return [...root.querySelectorAll(FOCUSABLE)].filter((el) => el.getAttribute('tabindex') !== '-1' && (el.offsetParent !== null || el === document.activeElement))
 }
 
 // Listens on window in the bubble phase, so a field inside a dialog can still

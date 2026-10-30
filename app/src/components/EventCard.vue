@@ -31,7 +31,7 @@ const goingLabel = (n) => t.sprintf(/* translators: %d: number of members going 
 </script>
 
 <template>
-  <article class="event-card" :class="{ compact, cancelled: state === 'cancelled', past: state === 'past' }" role="link" tabindex="0" @click="open" @keydown.enter="open">
+  <div class="event-card" :class="{ compact, cancelled: state === 'cancelled', past: state === 'past' }" role="link" tabindex="0" @click="open" @keydown.enter="open">
     <div v-if="!compact" class="cover" :style="cover ? { backgroundImage: `url(${cover})` } : { background: fallback }">
       <span class="date"><small>{{ badge.month }}</small><strong>{{ badge.day }}</strong></span>
       <span v-if="state === 'live'" class="live">● {{ t.__('Live now', 'membuild-community') }}</span>
@@ -46,7 +46,7 @@ const goingLabel = (n) => t.sprintf(/* translators: %d: number of members going 
           <em v-else-if="state === 'cancelled'" class="now off">{{ t.__('Cancelled', 'membuild-community') }}</em>
           <em v-else-if="state === 'soon' || state === 'upcoming'" class="until">· {{ untilLabel(e) }}</em>
         </span>
-        <h3>{{ e.title }}</h3>
+        <component :is="compact ? 'h2' : 'h3'" class="title">{{ e.title }}</component>
         <span v-if="e.going_count || e.interested_count" class="people">
           <span v-if="e.faces.length" class="faces"><Avatar v-for="u in e.faces" :key="u.id" :user="u" :size="22" /></span>
           <span>{{ goingLabel(e.going_count) }}<template v-if="e.interested_count"> · {{ t.sprintf(/* translators: %d: number interested */ t.__('%d interested', 'membuild-community'), e.interested_count) }}</template></span>
@@ -58,7 +58,7 @@ const goingLabel = (n) => t.sprintf(/* translators: %d: number of members going 
       </button>
       <span v-else-if="state === 'past' && e.recording" class="replay"><Icon name="play" :size="14" /> {{ t.__('Recording', 'membuild-community') }}</span>
     </div>
-  </article>
+  </div>
 </template>
 
 <style scoped>
@@ -114,7 +114,7 @@ const goingLabel = (n) => t.sprintf(/* translators: %d: number of members going 
   font-size: var(--fs-2xs);
   font-weight: 700;
   text-transform: uppercase;
-  color: var(--live);
+  color: var(--live-ink);
 }
 
 .date strong {
@@ -127,6 +127,11 @@ const goingLabel = (n) => t.sprintf(/* translators: %d: number of members going 
   background: var(--surface);
   color: var(--text);
   border: 1px solid var(--border);
+}
+
+/* Inside a post the date sits on the card, not on paper: the page's red. */
+.date.inline small {
+  color: var(--live-text);
 }
 
 .live {
@@ -170,7 +175,7 @@ const goingLabel = (n) => t.sprintf(/* translators: %d: number of members going 
 }
 
 .now {
-  color: var(--live);
+  color: var(--live-text);
   font-style: normal;
   white-space: nowrap;
 }
@@ -186,7 +191,7 @@ const goingLabel = (n) => t.sprintf(/* translators: %d: number of members going 
   white-space: nowrap;
 }
 
-h3 {
+.title {
   margin: 0;
   font-size: var(--fs-lg);
   line-height: 1.25;
@@ -196,7 +201,7 @@ h3 {
   -webkit-box-orient: vertical;
 }
 
-.cancelled h3 {
+.cancelled .title {
   text-decoration: line-through;
   color: var(--text-3);
 }

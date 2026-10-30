@@ -362,15 +362,16 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
     </div>
     <p v-if="course.status === 'draft'" class="lv-draft">{{ t.__('Draft: only you can see this course.', 'membuild-community') }}</p>
 
+    <h1 class="sr-only">{{ course.title }}</h1>
     <div class="lv-grid">
       <!-- The outline, beside a lesson -->
-      <aside v-if="withOutline" ref="outlineEl" class="lv-outline card" :class="{ open: outlineOpen }">
+      <aside v-if="withOutline" ref="outlineEl" class="lv-outline card" :class="{ open: outlineOpen }" :aria-label="t.__('Course outline', 'membuild-community')">
         <ThemeSlot name="course.outline" :data="{ course, lessonId, open }">
         <div class="lv-cover" :style="course.cover ? null : { background: fallback(course.id) }">
           <img v-if="course.cover" :src="course.cover" alt="" />
         </div>
         <div class="lv-ohead">
-          <h1>{{ course.title }}</h1>
+          <h2 class="lv-otitle">{{ course.title }}</h2>
           <div class="lv-prog">
             <span>{{ completedOf(course.completed_count, course.lessons_count) }}</span><span>{{ course.progress }}%</span>
           </div>
@@ -906,7 +907,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
   padding: 16px 4px 14px;
 }
 
-.lv-ohead h1 {
+.lv-ohead .lv-otitle {
   margin: 0 0 12px;
   font-size: var(--fs-4xl);
   line-height: 1.25;

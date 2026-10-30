@@ -349,6 +349,13 @@ mark {
   padding: 0 1px;
 }
 
+/* Dark mode: a lighter tint, so the light words on it stay readable. */
+@media (prefers-color-scheme: dark) {
+  mark {
+    background: color-mix(in srgb, var(--highlight) 30%, transparent);
+  }
+}
+
 /* Phones: Message is a round 52px button, so the bio keeps its room. */
 @media (max-width: 767px) {
   .result {

@@ -207,7 +207,7 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
       </ul>
     </aside>
 
-    <main class="pane card">
+    <section class="pane card" :aria-label="t.__('Conversation', 'membuild-community')">
       <ChatView v-if="threadId" :key="threadId" :thread-id="threadId" @back="router.push({ name: 'messages' })" @left="router.push({ name: 'messages' }); loadInbox()" @read="onRead" @renamed="(c) => { const th = threads.find((x) => x.id === threadId); if (th) th.title = c.title }" @muted="(on) => { const th = threads.find((x) => x.id === threadId); if (th) th.muted = on }" />
       <div v-else class="pick">
         <span class="badge"><Icon name="chat" :size="30" /></span>
@@ -215,7 +215,7 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
         <p>{{ t.__('Chat one-on-one or start a small group.', 'membuild-community') }}</p>
         <button class="btn btn-primary" @click="composing = true"><Icon name="plus" :size="16" /> {{ t.__('New message', 'membuild-community') }}</button>
       </div>
-    </main>
+    </section>
 
     <NewChatDialog v-if="composing" @close="composing = false" @started="started" />
   </div>

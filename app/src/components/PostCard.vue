@@ -340,6 +340,9 @@ async function remove() {
 }
 
 .name {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
   font-weight: 700;
   color: var(--text);
 }
