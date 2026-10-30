@@ -103,7 +103,7 @@ const goingLabel = (n) => t.sprintf(/* translators: %d: number of members going 
   flex-direction: column;
   align-items: center;
   min-width: 48px;
-  padding: 5px 8px;
+  overflow: hidden;
   border-radius: var(--radius-sm);
   background: var(--paper);
   color: var(--ink);
@@ -114,10 +114,15 @@ const goingLabel = (n) => t.sprintf(/* translators: %d: number of members going 
   font-size: var(--fs-2xs);
   font-weight: 700;
   text-transform: uppercase;
-  color: var(--live-ink);
+  align-self: stretch;
+  padding: 3px 8px;
+  background: var(--date-month);
+  color: var(--date-month-text);
+  text-align: center;
 }
 
 .date strong {
+  padding: 2px 8px 4px;
   font-size: var(--fs-3xl);
 }
 
@@ -129,10 +134,6 @@ const goingLabel = (n) => t.sprintf(/* translators: %d: number of members going 
   border: 1px solid var(--border);
 }
 
-/* Inside a post the date sits on the card, not on paper: the page's red. */
-.date.inline small {
-  color: var(--live-text);
-}
 
 .live {
   position: absolute;

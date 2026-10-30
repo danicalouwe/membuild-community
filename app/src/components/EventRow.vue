@@ -106,7 +106,7 @@ const people = (n) =>
   flex-direction: column;
   align-items: center;
   min-width: 46px;
-  padding: 5px 8px;
+  overflow: hidden;
   border-radius: var(--radius-sm);
   background: var(--paper);
   color: var(--ink);
@@ -115,13 +115,18 @@ const people = (n) =>
 }
 
 .date small {
-  color: var(--live-ink);
   font-size: var(--fs-2xs);
   font-weight: 800;
   text-transform: uppercase;
+  align-self: stretch;
+  padding: 3px 8px;
+  background: var(--date-month);
+  color: var(--date-month-text);
+  text-align: center;
 }
 
 .date strong {
+  padding: 2px 8px 4px;
   font-size: var(--fs-4xl);
 }
 

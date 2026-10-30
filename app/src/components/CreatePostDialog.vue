@@ -6,6 +6,7 @@ import { cfg } from '../config.js'
 import CourseLinkCard from './CourseLinkCard.vue'
 import { showToast } from '../lib/toast.js'
 import { insertPost, removePost, replacePost, updatePost } from '../stores/feed.js'
+import { postableTopics, topicById, topics } from '../lib/topics.js'
 import { startAttachment, startGif } from '../lib/attachments.js'
 import { giphyOn } from '../lib/giphy.js'
 import { pointsMayHaveChanged } from '../stores/me.js'
@@ -30,6 +31,7 @@ const props = defineProps({
   edit: { type: Object, default: null }, // an existing post: change its words, feeling and background
   // Posting inside a course: { course: { id, title }, lesson: { id, title } | null }. Only members of the course see it.
   place: { type: Object, default: null },
+  topic: { type: Number, default: 0 }, // the topic Home is filtered to: the post starts in it
 })
 const emit = defineEmits(['close', 'posted'])
 
@@ -121,13 +123,23 @@ const canPost = computed(
 // Backgrounds only fit short, text-only posts.
 const bgAllowed = computed(() => !share && !attachments.value.length && !keptMedia && !link.value && text.value.length <= BACKGROUND_MAX)
 const activeBg = computed(() => (bgAllowed.value && background.value ? BACKGROUNDS[background.value] : null))
-const bigText = computed(() => !attachments.value.length && !keptMedia && text.value.length < 85)
 const feelingList = computed(() =>
   Object.entries(FEELINGS).filter(([, f]) => f.label.includes(feelingQuery.value.trim().toLowerCase())),
 )
+// The topic: never required. It starts as the one Home is filtered to (or the post's own when editing).
+const topicId = ref(props.edit ? props.edit.topic?.id || 0 : props.draft?.topic || props.topic || 0)
+const topicPicker = ref(false)
+const topicChoices = computed(() => postableTopics.value)
+const chosenTopic = computed(() => topicById(topicId.value))
+// Topics are for Home posts: not in a course, and not when nobody can pick one.
+const topicsHere = computed(() => !props.place && !share && (topicChoices.value.length > 0 || !!chosenTopic.value) && !(props.edit?.event))
+const pickTopic = (id) => {
+  topicId.value = id
+  topicPicker.value = false
+}
 const dirty = computed(() =>
   props.edit
-    ? text.value !== source.text || feeling.value !== source.feeling || background.value !== source.background
+    ? text.value !== source.text || feeling.value !== source.feeling || background.value !== source.background || topicId.value !== (props.edit.topic?.id || 0)
     : !!(text.value.trim() || attachments.value.length || feeling.value),
 )
 
@@ -220,6 +232,7 @@ async function submit() {
     pending: true,
     type: 'post',
     ...(place ? { course: place.course, lesson: place.lesson, helpful_count: 0, my_helpful: false, best_comment_id: null, pin: null } : {}),
+    topic: !place && chosenTopic.value ? { id: chosenTopic.value.id, name: chosenTopic.value.name, color: chosenTopic.value.color } : null,
     content,
     background: chosenBg || null,
     feeling: chosenFeeling || null,
@@ -248,8 +261,11 @@ async function submit() {
       feeling: chosenFeeling || undefined,
       course_id: place?.course.id,
       lesson_id: place?.lesson?.id,
+      topic_id: !place && topicId.value ? topicId.value : undefined,
     })
     replacePost(key, saved)
+    const inTopic = saved.topic && topics.items.find((x) => x.id === saved.topic.id)
+    if (inTopic) inTopic.posts = (inTopic.posts || 0) + 1 // the topic's card counts it straight away
     items.forEach((a) => a.release()) // the saved media shows now, not the local previews
     pointsMayHaveChanged()
     // They stay where they are; the message offers the post instead of jumping to Home.
@@ -259,7 +275,7 @@ async function submit() {
     // Reopen with everything restored, so nothing the member wrote is lost.
     window.dispatchEvent(
       new CustomEvent('mbcom:reopen-composer', {
-        detail: { text: share ? words : content, share, attachments: items, background: chosenBg, feeling: chosenFeeling, error: err.message, place },
+        detail: { text: share ? words : content, share, attachments: items, background: chosenBg, feeling: chosenFeeling, error: err.message, place, topic: topicId.value },
       }),
     )
   }
@@ -274,7 +290,17 @@ async function saveEdit() {
       content: text.value.trim(),
       feeling: feeling.value || undefined,
       background: activeBg.value ? background.value : undefined,
+      topic_id: topicsHere.value ? topicId.value : undefined,
     })
+    const was = props.edit.topic?.id || 0
+    const now = saved.topic?.id || 0
+    if (was !== now) {
+      const from = topics.items.find((x) => x.id === was)
+      const to = topics.items.find((x) => x.id === now)
+      if (from) from.posts = Math.max(0, (from.posts || 0) - 1)
+      if (to) to.posts = (to.posts || 0) + 1
+      forgetTopicLists(props.edit.id, now)
+    }
     updatePost(props.edit.id, saved)
     Object.assign(props.edit, saved) // the copy open in a dialog, if any
     emit('close')
@@ -342,8 +368,23 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
                     >
                   </template>
                 </div>
-                <span v-if="placeLabel" class="chip place"><Icon name="cap" :size="15" /> {{ placeLabel }}</span>
-                <span v-else class="chip"><Icon name="user" :size="15" /> {{ t.__('Community members', 'membuild-community') }}</span>
+                <span class="chips">
+                  <span v-if="placeLabel" class="chip place"><Icon name="cap" :size="15" /> {{ placeLabel }}</span>
+                  <span v-else class="chip"><Icon name="user" :size="15" /> {{ t.__('Community members', 'membuild-community') }}</span>
+                  <span v-if="topicsHere" class="topic-pick">
+                    <span v-if="chosenTopic" class="chip topic on">
+                      <button type="button" class="topic-open" :aria-expanded="topicPicker" aria-haspopup="listbox" @click="topicPicker = !topicPicker"><span class="topic-dot" :style="{ background: chosenTopic.color }" />{{ chosenTopic.name }}</button>
+                      <button type="button" class="topic-clear" :aria-label="t.__('Remove the topic', 'membuild-community')" @click="pickTopic(0)"><Icon name="close" :size="13" /></button>
+                    </span>
+                    <button v-else type="button" class="chip topic" :aria-expanded="topicPicker" aria-haspopup="listbox" @click="topicPicker = !topicPicker"><Icon name="hash" :size="15" /> {{ t.__('Add a topic', 'membuild-community') }}</button>
+                    <span v-if="topicPicker" class="topic-menu card" role="listbox" :aria-label="t.__('Topic (optional)', 'membuild-community')">
+                      <span class="topic-menu-title">{{ t.__('Topic (optional)', 'membuild-community') }}</span>
+                      <button v-for="x in topicChoices" :key="x.id" type="button" role="option" :aria-selected="topicId === x.id" :class="{ on: topicId === x.id }" @click="pickTopic(x.id)">
+                        <span class="topic-dot" :style="{ background: x.color }" />{{ x.name }}<small v-if="x.members_only">{{ t.__('members only', 'membuild-community') }}</small>
+                      </button>
+                    </span>
+                  </span>
+                </span>
               </div>
             </div>
 
@@ -352,7 +393,7 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
                 v-auto-grow
                 ref="textarea"
                 v-model="text"
-                :class="{ big: bigText || activeBg }"
+                :class="{ big: activeBg }"
                 :rows="activeBg ? 3 : share ? 2 : 4"
                 :placeholder="placeholder"
                 :aria-label="t.__('What\'s on your mind', 'membuild-community')"
@@ -575,6 +616,103 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
 
 .link:hover {
   text-decoration: underline;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.topic-pick {
+  position: relative;
+  display: inline-flex;
+}
+
+.chip.topic {
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+.chip.topic.on {
+  gap: 4px;
+  padding-right: 4px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+.topic-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: inherit;
+  font: inherit;
+}
+
+.topic-clear {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-pill);
+  color: inherit;
+}
+
+.topic-clear:hover {
+  background: color-mix(in srgb, var(--accent-text) 12%, transparent);
+}
+
+.topic-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-pill);
+}
+
+.topic-menu {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 5;
+  width: 280px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-pop);
+}
+
+.topic-menu-title {
+  padding: 8px 10px;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.topic-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-lg);
+  text-align: left;
+}
+
+.topic-menu button:hover,
+.topic-menu button.on {
+  background: var(--surface-2);
+}
+
+.topic-menu small {
+  margin-left: auto;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
 }
 
 .chip.place {

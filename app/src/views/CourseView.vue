@@ -10,6 +10,7 @@ import LessonPlayer from '../components/LessonPlayer.vue'
 import LessonDiscussion from '../components/LessonDiscussion.vue'
 import CourseComplete from '../components/CourseComplete.vue'
 import LessonDone from '../components/LessonDone.vue'
+import { popups } from '../lib/popups.js'
 import CourseOverview from '../components/CourseOverview.vue'
 import CourseBuilder from '../components/CourseBuilder.vue'
 import { fileSize, kindName, previewUrl } from '../lib/files.js'
@@ -86,6 +87,14 @@ const waiting = computed(() => {
   if (!l?.unlock_at) return null
   return { ...l, prev: allLessons.value[i - 1] || null, next: allLessons.value[i + 1] || null }
 })
+// A course in order: this lesson waits for the one before it.
+const orderWait = computed(() => {
+  if (!lessonError.value || course.value?.lock) return null
+  const l = allLessons.value.find((x) => x.id === Number(props.lessonId))
+  return l?.after ? l : null
+})
+/** "This course goes in order. Finish [lesson] first, and this lesson opens.", split around the title so it can be bold. */
+const orderText = () => t.__('This course goes in order. Finish %s first, and this lesson opens.', 'membuild-community').split('%s')
 const opensDay = (iso) => new Date(iso).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
 const opensShort = (iso) => t.sprintf(/* translators: %s: a short date, e.g. "Thu, Oct 29" */ t.__('Opens %s', 'membuild-community'), new Date(iso).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }))
 /** "This lesson opens on [date], 7 days after you started the course. …", split around the date so it can be bold. */
@@ -132,6 +141,9 @@ function goNext(id) {
   doneCard.value = null
   open(id)
 }
+// While "Lesson done" is up, a level-up or a small note waits its turn.
+watch(doneCard, (v) => (popups.lesson = !!v))
+onBeforeUnmount(() => (popups.lesson = false))
 watch(() => props.lessonId, () => (doneCard.value = null))
 // Course cards in posts show where this member stands; keep them in step.
 watch(() => course.value && [course.value.id, course.value.completed_count, course.value.progress], () => syncCourseCard(course.value))
@@ -254,6 +266,14 @@ async function toggleComplete(advance = true) {
   try {
     const res = done ? await api.completeLesson(l.id) : await api.uncompleteLesson(l.id)
     applyProgress(res)
+    if (course.value.in_order) {
+      // In order: finishing this opens the next one; undoing it closes it again (unless that one's done too).
+      const nx = allLessons.value.find((x) => x.id === l.next_id)
+      if (nx && !nx.unlock_at && !nx.completed) {
+        nx.after = done ? null : { id: l.id, title: l.title }
+        nx.locked = !done
+      }
+    }
     pointsMayHaveChanged()
     if (!done) return
     if (res.progress === 100 && before < 100) {
@@ -376,6 +396,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
             <span>{{ completedOf(course.completed_count, course.lessons_count) }}</span><span>{{ course.progress }}%</span>
           </div>
           <div class="lv-track"><i :style="{ width: `${course.progress}%` }" /></div>
+          <p v-if="course.in_order" class="lv-inorder"><Icon name="lock" :size="13" /> {{ t.__('In order: each lesson opens after the one before', 'membuild-community') }}</p>
         </div>
         <nav class="lv-modules" :aria-label="t.__('Course contents', 'membuild-community')">
           <section v-for="m in course.modules" :key="m.id" class="lv-module">
@@ -458,6 +479,13 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
           <span class="lv-opens"><Icon name="lock" :size="14" /> {{ opensShort(waiting.unlock_at) }}</span>
           <button v-if="waiting.prev" class="btn btn-lg btn-dark cta" @click="open(waiting.prev.id)"><Icon name="chevronLeft" :size="18" /> {{ t.sprintf(/* translators: %s: lesson title */ t.__('Back to %s', 'membuild-community'), waiting.prev.title) }}</button>
           <button v-else class="btn btn-lg btn-dark cta" @click="setTab('overview')"><Icon name="chevronLeft" :size="18" /> {{ t.__('Back to the course', 'membuild-community') }}</button>
+        </div>
+
+        <div v-else-if="orderWait" class="card locked lv-wait">
+          <span class="lock-badge"><Icon name="lock" :size="28" /></span>
+          <h2>{{ orderWait.title }}</h2>
+          <p>{{ orderText(orderWait)[0] }}<b>{{ orderWait.after.title }}</b>{{ orderText(orderWait)[1] }}</p>
+          <button class="btn btn-lg btn-primary cta" @click="open(orderWait.after.id)">{{ t.sprintf(/* translators: %s: lesson title */ t.__('Go to %s', 'membuild-community'), orderWait.after.title) }} <Icon name="arrowRight" :size="18" /></button>
         </div>
 
         <div v-else-if="lessonError" class="card locked">
@@ -747,6 +775,16 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
 
 .lv-wait h2 {
   font-size: var(--fs-6xl);
+}
+
+.lv-inorder {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0 0;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 650;
 }
 
 .card.locked.lv-wait p {

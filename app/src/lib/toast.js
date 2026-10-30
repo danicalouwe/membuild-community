@@ -1,4 +1,5 @@
-import { reactive } from 'vue'
+import { reactive, watch } from 'vue'
+import { celebrating } from './popups.js'
 
 /**
  * One short message at the bottom of the screen ("Nice work! Lesson done."),
@@ -9,11 +10,24 @@ import { reactive } from 'vue'
 export const toast = reactive({ message: '', emoji: '', icon: '', action: null, id: 0 })
 
 let timer = null
+let waiting = null // a note that came while a celebration was up: it shows after, for its full time
 export function showToast(message, emoji = '', { icon = '', action = null } = {}) {
+  if (celebrating.value) {
+    waiting = [message, emoji, { icon, action }]
+    return
+  }
   clearTimeout(timer)
   Object.assign(toast, { message, emoji, icon, action, id: toast.id + 1 })
   timer = setTimeout(hideToast, action ? 6000 : 3200)
 }
+watch(celebrating, (busy) => {
+  if (busy && toast.message) hideToast() // a celebration takes the spot
+  if (!busy && waiting) {
+    const next = waiting
+    waiting = null
+    showToast(...next)
+  }
+})
 
 export function hideToast() {
   clearTimeout(timer)

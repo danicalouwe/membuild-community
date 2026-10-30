@@ -72,6 +72,7 @@ class Settings {
 			'courses'     => array_fill_keys( self::COURSE_PARTS, true ),
 			'member_covers' => true, // Settings › Features › Members directory: cover photos on member cards
 			'posting'     => 'everyone', // everyone | staff
+			'topics_on_home' => true, // Settings › Topics › On Home: All plus a pill per topic above the posts (when there are topics)
 			'messaging'   => 'everyone', // everyone | staff (members may only start chats with staff)
 			'moderators'  => array(),
 			'points'      => array_map( fn( $r ) => array( 'points' => $r[0], 'cap' => $r[1] ), Points::RULES ),
@@ -192,6 +193,8 @@ class Settings {
 			'display'     => $s['display'], // the look members start with until they pick their own
 			'courses'     => array_combine( self::COURSE_PARTS, array_map( array( __CLASS__, 'course_part' ), self::COURSE_PARTS ) ),
 			'canPost'     => self::can_post(),
+			'topics'      => Topics::for_member(), // the topics this member can see (Home's filters, Create post)
+			'topicsOnHome' => (bool) $s['topics_on_home'],
 			'messaging'   => $s['messaging'],
 			'isStaff'     => self::is_staff( get_current_user_id() ),
 			'reportReasons' => Moderation::reasons(),
@@ -424,6 +427,9 @@ class Settings {
 		}
 		if ( array_key_exists( 'min_age', $in ) ) {
 			$s['min_age'] = in_array( (int) $in['min_age'], array( 0, 13, 16, 18 ), true ) ? (int) $in['min_age'] : 13;
+		}
+		if ( array_key_exists( 'topics_on_home', $in ) ) {
+			$s['topics_on_home'] = (bool) $in['topics_on_home'];
 		}
 		if ( array_key_exists( 'login_page', $in ) ) {
 			$s['login_page'] = (bool) $in['login_page'];

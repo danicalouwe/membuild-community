@@ -347,6 +347,18 @@ class Access {
 		return $res;
 	}
 
+	/** A membership made by Import (a private group's people). */
+	public static function create( $name ) {
+		global $wpdb;
+		$wpdb->insert( Install::table( 'groups' ), array( 'name' => mb_substr( sanitize_text_field( $name ), 0, 80 ), 'roles' => wp_json_encode( array() ), 'created_at' => Helpers::now() ) );
+		self::forget();
+		return (int) $wpdb->insert_id;
+	}
+
+	public static function forget_all() {
+		self::forget();
+	}
+
 	public static function rest_update( \WP_REST_Request $req ) {
 		global $wpdb;
 		$id = (int) $req['id'];

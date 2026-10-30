@@ -143,8 +143,13 @@ class Rest_Feed {
 		// member group show only to that group.
 		list( $seen, $seen_vals ) = Events::visible_sql();
 		list( $home, $home_vals ) = empty( $req['author'] ) ? Discussions::home_sql() : array( 'course_id = 0', array() );
-		$where = "status = 'published' AND {$home} AND {$seen}";
-		$args  = array_merge( array( $posts ), $home_vals, $seen_vals );
+		list( $tops, $tops_vals ) = Topics::visible_sql(); // members-only topics stay with their membership
+		$where = "status = 'published' AND {$home} AND {$seen} AND {$tops}";
+		$args  = array_merge( array( $posts ), $home_vals, $seen_vals, $tops_vals );
+		if ( (int) $req['topic'] ) {
+			$where .= ' AND topic_id = %d'; // Home filtered to one topic
+			$args[] = (int) $req['topic'];
+		}
 		if ( in_array( $req['type'], array( 'post', 'reel' ), true ) ) {
 			$where .= ' AND type = %s';
 			$args[] = $req['type'];
@@ -238,15 +243,18 @@ class Rest_Feed {
 
 	public static function new_count( \WP_REST_Request $req ) {
 		global $wpdb;
+		list( $tops, $tops_vals ) = Topics::visible_sql();
+		$where = "status = 'published' AND course_id = 0 AND id > %d AND {$tops}";
+		$args  = array_merge( array( Install::table( 'posts' ), (int) $req['since'] ), $tops_vals );
 		if ( in_array( $req['type'], array( 'post', 'reel' ), true ) ) {
-			$count = (int) $wpdb->get_var(
-				$wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status = 'published' AND course_id = 0 AND id > %d AND type = %s", Install::table( 'posts' ), (int) $req['since'], $req['type'] )
-			);
-		} else {
-			$count = (int) $wpdb->get_var(
-				$wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status = 'published' AND course_id = 0 AND id > %d", Install::table( 'posts' ), (int) $req['since'] )
-			);
+			$where .= ' AND type = %s';
+			$args[] = $req['type'];
 		}
+		if ( (int) $req['topic'] ) {
+			$where .= ' AND topic_id = %d';
+			$args[] = (int) $req['topic'];
+		}
+		$count = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE {$where}", $args ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- fixed SQL with placeholders; values bound.
 		return array( 'count' => $count );
 	}
 
@@ -304,6 +312,11 @@ class Rest_Feed {
 		if ( '' === $content && ! $media_ids && ! $feeling ) {
 			return new \WP_Error( 'mbcom_empty', __( 'Write something or add a photo or video.', 'membuild-community' ), array( 'status' => 400 ) );
 		}
+		// The topic, if they picked one (never for course posts).
+		$topic_id = $place[0] ? 0 : Topics::for_post( $req['topic_id'] ?? 0, $user_id );
+		if ( is_wp_error( $topic_id ) ) {
+			return $topic_id;
+		}
 		if ( 'reel' === $type && 1 !== count( $media_ids ) ) {
 			return new \WP_Error( 'mbcom_reel_media', __( 'A reel needs exactly one video.', 'membuild-community' ), array( 'status' => 400 ) );
 		}
@@ -319,6 +332,7 @@ class Rest_Feed {
 				'feeling'    => $feeling,
 				'course_id'  => $place[0],
 				'lesson_id'  => $place[1],
+				'topic_id'   => $topic_id,
 				'created_at' => $now,
 				'updated_at' => $now,
 			)
@@ -375,6 +389,16 @@ class Rest_Feed {
 		}
 		$background = ( 'post' === $row['type'] && ! $has_media && mb_strlen( $content ) <= 130 && in_array( $req['background'] ?? '', Helpers::BACKGROUNDS, true ) ) ? $req['background'] : null;
 
+		$topic_id = (int) $row['topic_id'];
+		if ( isset( $req['topic_id'] ) && ! (int) $row['course_id'] && ! $row['event_at'] ) {
+			$topic_id = Topics::for_post( $req['topic_id'], get_current_user_id() );
+			if ( is_wp_error( $topic_id ) ) {
+				return $topic_id;
+			}
+			if ( $topic_id !== (int) $row['topic_id'] ) {
+				$wpdb->update( Install::table( 'posts' ), array( 'topic_id' => $topic_id ), array( 'id' => $row['id'] ) );
+			}
+		}
 		$changed = $content !== (string) $row['content'] || $feeling !== $row['feeling'] || $background !== $row['background'];
 		if ( $changed ) {
 			$wpdb->update(
@@ -606,6 +630,10 @@ class Rest_Feed {
 		if ( (int) $row['course_id'] && ! Discussions::can_read( $row ) ) {
 			return null;
 		}
+		$topic = (int) $row['topic_id'] ? Topics::get( (int) $row['topic_id'] ) : null;
+		if ( $topic && ! Topics::can_see( $topic ) ) {
+			return null;
+		}
 		return $row['event_at'] && ! Events::can_see( $row ) ? null : $row;
 	}
 
@@ -649,6 +677,7 @@ class Rest_Feed {
 					'content'         => $row['content'],
 					'background'      => $row['background'] ?? null,
 					'feeling'         => $row['feeling'] ?? null,
+					'topic'           => Topics::brief( (int) ( $row['topic_id'] ?? 0 ) ), // { id, name, color } or null
 					'created_at'      => Helpers::iso( $row['created_at'] ),
 					'author'          => $users[ (int) $row['user_id'] ] ?? null,
 					'media'           => $media[ $id ] ?? array(),

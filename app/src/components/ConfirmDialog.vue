@@ -91,6 +91,14 @@ h2 {
   color: var(--danger-ink);
 }
 
+/* Something to know before saying yes, not a danger in itself. */
+.text :deep(.note.warn) {
+  margin: 0;
+  background: var(--warn-soft);
+  color: var(--warn-text);
+  font-size: var(--fs-lg);
+}
+
 .tick {
   display: flex;
   align-items: center;

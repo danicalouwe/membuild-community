@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.13.8
+Stable tag: 1.14.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,19 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.14.0 =
+* Topics: label posts with a subject (Introductions, Wins, Questions…) and let members filter Home by it. Make them in Settings › Topics. A topic can be for one membership only, or only the team can post in it. Adding a topic to a post is never required.
+* Moderators can move a post to another topic, and its author is told.
+* Import: bring your community over from BuddyBoss, BuddyPress, PeepSo or FluentCommunity, even with the old plugin switched off. Members' profiles, posts, comments, reactions, chats, groups (as topics), FluentCommunity courses and points come along. Check first (nothing changes), then it runs in the background with Pause. Import again any time: only what's new comes over.
+* Import members from a spreadsheet (CSV or Excel), with steps for Kajabi, Mighty Networks, Circle and Skool. Columns are matched for you, and new members can get a welcome email.
+* Past imports: every import is listed, and each one can be undone on its own.
+* Lesson order: a course can let members open lessons in any order, or one at a time (a lesson opens when the one before it is done).
+* Course settings are simpler: four short groups, each a plain question.
+* Pop-ups take turns: "Lesson done" and a new level no longer cover each other. They're the same size, and sit at the bottom right on computers.
+* Every post now uses the same text size, and comments match posts.
+* The month on date tiles is a red strip, like a calendar page.
+* Fixes: the post menu was cut off on short posts, and an event's day number was too small.
 
 = 1.13.8 =
 * Easier to use with a keyboard: a clear focus ring on whatever you're on, a "Skip to content" link as the first stop on every page, and dialogs keep the keyboard inside until you close them.

@@ -234,7 +234,7 @@ function react(type) {
 
 .text {
   margin-top: 2px;
-  font-size: var(--fs-lg);
+  font-size: var(--fs-base);
   line-height: 1.4;
   color: var(--text);
 }

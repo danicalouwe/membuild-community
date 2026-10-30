@@ -16,6 +16,7 @@ import ConfirmHost from './components/ConfirmHost.vue'
 import MemberViewToggle from './components/MemberViewToggle.vue'
 import { canSeeAsMember } from './lib/preview.js'
 import { me, refreshStats } from './stores/me.js'
+import { levelShown } from './lib/popups.js'
 import { openChat } from './stores/chatDock.js'
 import { messages, startPulse } from './stores/messages.js'
 import { t, locale } from './lib/i18n.js'
@@ -247,7 +248,7 @@ const isActive = (tab) =>
     <ChatDock v-if="showDock" />
     <MemberViewToggle v-else-if="canSeeAsMember" />
     <VideoDock v-if="video.media" />
-    <ThemeSlot name="app.level-up" :data="{ levelUp: me.levelUp, dismiss: () => (me.levelUp = null) }"><LevelUpToast /></ThemeSlot>
+    <ThemeSlot name="app.level-up" :data="{ levelUp: levelShown ? me.levelUp : null, dismiss: () => (me.levelUp = null) }"><LevelUpToast /></ThemeSlot>
     <Toast />
     <ConfirmHost />
   </div>

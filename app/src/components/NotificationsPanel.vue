@@ -67,11 +67,14 @@ const ACTIONS = {
   event_new: () => /* translators: %s: who scheduled it */ t.__('%s scheduled an event', 'membuild-community'),
   event_changed: () => /* translators: %s: who changed it */ t.__('%s changed the time of an event', 'membuild-community'),
   event_cancelled: () => /* translators: %s: who cancelled it */ t.__('%s cancelled an event', 'membuild-community'),
+  post_moved: (n) => n.data.topic
+    ? /* translators: %s: who moved it. Keep {topic} as it is; the topic's name goes there. */ t.__('%s moved your post to {topic}', 'membuild-community').replace('{topic}', () => n.data.topic)
+    : /* translators: %s: who moved it */ t.__('%s moved your post out of its topic', 'membuild-community'),
 }
 const isEvent = (n) => n.type.startsWith('event_')
 const eventLine = (n) => (n.type === 'event_reminder' ? (n.data.soon ? t.__('Starts in about an hour', 'membuild-community') : t.__('Tomorrow', 'membuild-community')) : '')
 /** The sentence split around the names, so the names can be bold: [before, after]. */
-const sentence = (n) => around(ACTIONS[n.type]?.() || '%s')
+const sentence = (n) => around(ACTIONS[n.type]?.(n) || '%s')
 
 /* Today / This week / Earlier, with every level-up in a group folded into one row:
    "You reached Level 4 · 3 new levels this week". */
@@ -170,6 +173,7 @@ const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles
               <span v-else-if="n.type === 'level_up'" class="tbadge star">🏆</span>
               <span v-else-if="isEvent(n)" class="tbadge cal">📅</span>
               <span v-else-if="n.type === 'lesson_open'" class="tbadge cal">🔓</span>
+              <span v-else-if="n.type === 'post_moved'" class="tbadge comment"><Icon name="hash" :size="14" /></span>
               <span v-else class="tbadge comment"><Icon name="comment" :size="14" /></span>
             </span>
           </span>

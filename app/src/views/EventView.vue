@@ -525,22 +525,29 @@ h1 {
   flex: none;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   width: 72px;
   height: 78px;
+  overflow: hidden;
   border-radius: var(--radius);
   background: var(--surface-2);
   line-height: 1.05;
 }
 
-.tile small {
-  color: var(--live-text);
+.when .tile small {
   font-size: var(--fs-sm);
   font-weight: 800;
   text-transform: uppercase;
+  align-self: stretch;
+  padding: 5px 8px;
+  background: var(--date-month);
+  color: var(--date-month-text);
+  text-align: center;
 }
 
-.tile strong {
+.when .tile strong {
+  flex: 1;
+  display: grid;
+  place-items: center;
   font-size: var(--fs-8xl);
 }
 

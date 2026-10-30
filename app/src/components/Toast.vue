@@ -55,9 +55,19 @@ function act() {
   cursor: pointer;
 }
 
+/* Computers: bottom-right, where the other pop-ups show (they take turns: lib/popups.js). */
 @media (min-width: 768px) {
   .toast {
-    bottom: 28px;
+    right: 24px;
+    bottom: 24px;
+    left: auto;
+    max-width: 420px;
+    transform: none;
+  }
+
+  .toast-enter-from,
+  .toast-leave-to {
+    transform: translateY(16px);
   }
 }
 

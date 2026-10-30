@@ -65,6 +65,33 @@ export function discussionList(place, params) {
   return lists[key]
 }
 
+/** Home filtered to one topic, sorted Latest or Popular. A few stay cached, like the other lists. */
+const TOPIC_LISTS = 12
+const topicKeys = []
+export function topicList(topicId, sort) {
+  const key = `topic-${topicId}-${sort}`
+  lists[key] ??= createList({ sort, type: 'all', topic: topicId })
+  const at = topicKeys.indexOf(key)
+  if (at !== -1) topicKeys.splice(at, 1)
+  topicKeys.push(key)
+  while (topicKeys.length > TOPIC_LISTS) delete lists[topicKeys.shift()]
+  return lists[key]
+}
+
+/** A post moved to another topic: it leaves the old topic's lists now, and the new topic's lists load again when next shown. */
+export function forgetTopicLists(postId, toTopic) {
+  for (const key of Object.keys(lists)) {
+    if (!key.startsWith('topic-')) continue
+    if (postId && !key.startsWith(`topic-${toTopic}-`)) {
+      lists[key].items = lists[key].items.filter((p) => p.id !== postId)
+      continue
+    }
+    delete lists[key]
+    const at = topicKeys.indexOf(key)
+    if (at !== -1) topicKeys.splice(at, 1)
+  }
+}
+
 /** The Events tab: 'upcoming' or 'past', soonest or newest first. Events are posts, so edits and RSVPs reach them here too. */
 export function eventList(when) {
   const key = `events-${when}`
@@ -165,6 +192,7 @@ export function insertPost(post) {
     return
   }
   ;(post.type === 'reel' ? lists.reels : lists.latest).items.unshift(post)
+  if (post.topic) lists[`topic-${post.topic.id}-latest`]?.items.unshift(post) // and its topic, when that's been opened
   lists[`member-${post.author?.id}`]?.items.unshift(post) // and the top of the writer's own profile
 }
 

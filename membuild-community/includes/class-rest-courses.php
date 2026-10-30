@@ -143,6 +143,11 @@ class Rest_Courses {
 		if ( ! $unlock ) {
 			self::mark_started( (int) $lesson['course_id'] );
 		}
+		$before = $unlock ? null : self::order_block( $lesson, $course );
+		if ( $before ) {
+			/* translators: %s: the lesson before it */
+			return new \WP_Error( 'mbcom_order_locked', sprintf( __( 'This course goes in order. Finish %s first, and this lesson opens.', 'membuild-community' ), $before['title'] ), array( 'status' => 403, 'after' => $before ) );
+		}
 		if ( $unlock ) {
 			return new \WP_Error(
 				'mbcom_locked',
@@ -160,7 +165,7 @@ class Rest_Courses {
 		global $wpdb;
 		$lesson = self::lesson_row( (int) $req['id'] );
 		$course = $lesson ? self::course_row( (int) $lesson['course_id'] ) : null;
-		if ( ! $lesson || ! $course || Access::lock( $course ) || self::unlock_at( (int) $lesson['drip_days'], (int) $lesson['course_id'], $lesson['open_on'] ) ) {
+		if ( ! $lesson || ! $course || Access::lock( $course ) || self::unlock_at( (int) $lesson['drip_days'], (int) $lesson['course_id'], $lesson['open_on'] ) || self::order_block( $lesson, $course ) ) {
 			return new \WP_Error( 'mbcom_not_available', __( 'This lesson is not available.', 'membuild-community' ), array( 'status' => 403 ) );
 		}
 		self::mark_started( (int) $lesson['course_id'] );
@@ -267,6 +272,9 @@ class Rest_Courses {
 		}
 		if ( isset( $req['questions'] ) ) {
 			$data['questions_off'] = 'off' === $req['questions'] ? 1 : 0;
+		}
+		if ( isset( $req['in_order'] ) ) {
+			$data['in_order'] = rest_sanitize_boolean( $req['in_order'] ) ? 1 : 0; // Lesson order: one after another
 		}
 		$data = array_merge( $data, Access::course_update( $req->get_params(), $course ) );
 		if ( isset( $req['status'] ) && in_array( $req['status'], array( 'draft', 'published' ), true ) ) {
@@ -451,7 +459,34 @@ class Rest_Courses {
 	public static function can_open_lesson( $lesson_id ) {
 		$lesson = self::lesson_row( (int) $lesson_id );
 		$course = $lesson ? self::course_row( (int) $lesson['course_id'] ) : null;
-		return $lesson && $course && ! Access::hidden( $course ) && ! Access::lock( $course ) && ! self::unlock_at( (int) $lesson['drip_days'], (int) $lesson['course_id'], $lesson['open_on'] );
+		return $lesson && $course && ! Access::hidden( $course ) && ! Access::lock( $course ) && ! self::unlock_at( (int) $lesson['drip_days'], (int) $lesson['course_id'], $lesson['open_on'] ) && ! self::order_block( $lesson, $course );
+	}
+
+	/**
+	 * A course set to "One after another": the lesson before this one, when it isn't
+	 * done yet, so this one waits ({id, title}); null when it's open. A lesson the member
+	 * already finished stays open whatever changes, and admins and moderators open all.
+	 */
+	public static function order_block( $lesson, $course ) {
+		global $wpdb;
+		if ( empty( $course['in_order'] ) || Helpers::can_moderate() ) {
+			return null;
+		}
+		$me    = get_current_user_id();
+		$order = $wpdb->get_results(
+			$wpdb->prepare( 'SELECT l.id, l.title FROM %i l JOIN %i m ON m.id = l.module_id WHERE l.course_id = %d ORDER BY m.sort_order ASC, m.id ASC, l.sort_order ASC, l.id ASC', Install::table( 'lessons' ), Install::table( 'modules' ), $course['id'] ),
+			ARRAY_A
+		);
+		$pos = array_search( (string) $lesson['id'], array_column( $order, 'id' ), true );
+		if ( ! $pos ) {
+			return null; // the first lesson, or not in an outline
+		}
+		$done = array_flip( array_map( 'intval', $wpdb->get_col( $wpdb->prepare( 'SELECT lesson_id FROM %i WHERE user_id = %d AND course_id = %d', Install::table( 'lesson_progress' ), $me, $course['id'] ) ) ) );
+		$prev = $order[ $pos - 1 ];
+		if ( isset( $done[ (int) $lesson['id'] ] ) || isset( $done[ (int) $prev['id'] ] ) ) {
+			return null;
+		}
+		return array( 'id' => (int) $prev['id'], 'title' => $prev['title'] );
 	}
 
 
@@ -661,6 +696,7 @@ class Rest_Courses {
 			'lock'         => $lock,
 			'locked_level' => $lock && 'level' === $lock['reason'] ? $lock['level'] : 0,
 			'questions'    => empty( $row['questions_off'] ) && Settings::course_part( 'questions' ) ? 'on' : 'off',
+			'in_order'     => ! empty( $row['in_order'] ),
 		);
 		if ( Helpers::can_manage() ) {
 			$groups               = Access::groups();
@@ -695,6 +731,24 @@ class Rest_Courses {
 		);
 		$by_module    = array();
 		$level_locked = (bool) Access::lock( $course );
+		// One after another: walk the outline in order; a lesson waits for the one before it.
+		$after = array();
+		if ( ! empty( $course['in_order'] ) && ! Helpers::can_moderate() ) {
+			$walk = array(); // modules in their order, each one's lessons in theirs (already sorted)
+			foreach ( $modules as $m ) {
+				foreach ( $lessons as $l ) {
+					if ( (int) $l['module_id'] === (int) $m['id'] ) {
+						$walk[] = $l;
+					}
+				}
+			}
+			foreach ( $walk as $i => $l ) {
+				$prev = $walk[ $i - 1 ] ?? null;
+				if ( $prev && ! isset( $done[ (int) $l['id'] ] ) && ! isset( $done[ (int) $prev['id'] ] ) ) {
+					$after[ (int) $l['id'] ] = array( 'id' => (int) $prev['id'], 'title' => $prev['title'] );
+				}
+			}
+		}
 		$files_total  = 0;
 		foreach ( $lessons as $l ) {
 			$unlock                               = self::unlock_at( (int) $l['drip_days'], (int) $course['id'], $l['open_on'] );
@@ -704,8 +758,9 @@ class Rest_Courses {
 				'id'        => (int) $l['id'],
 				'title'     => $l['title'],
 				'completed' => isset( $done[ (int) $l['id'] ] ),
-				'locked'    => $level_locked || (bool) $unlock,
+				'locked'    => $level_locked || (bool) $unlock || isset( $after[ (int) $l['id'] ] ),
 				'unlock_at' => $unlock ? gmdate( 'c', $unlock ) : null,
+				'after'     => $after[ (int) $l['id'] ] ?? null, // in order: the lesson to finish first
 				'has_video' => (bool) $l['media_id'],
 				'drip_days' => (int) $l['drip_days'],
 				'open_on'   => $l['open_on'] ?: null,
@@ -944,13 +999,14 @@ class Rest_Courses {
 				continue;
 			}
 			$unlock  = $locked ? null : self::unlock_at( (int) $l['drip_days'], (int) $course['id'], $l['open_on'] );
+			$waits   = ! $locked && ! $unlock && self::order_block( array( 'id' => (int) $l['id'] ), $course ); // in order: not yet
 			$items[] = array(
 				'lesson_id'    => (int) $l['id'],
 				'lesson_title' => $l['title'],
 				'module_title' => $l['module_title'],
-				'locked'       => $locked || (bool) $unlock,
+				'locked'       => $locked || (bool) $unlock || $waits,
 				'unlock_at'    => $unlock ? gmdate( 'c', $unlock ) : null,
-				'files'        => self::files( $files, ! $locked && ! $unlock, $bytes ),
+				'files'        => self::files( $files, ! $locked && ! $unlock && ! $waits, $bytes ),
 			);
 		}
 		return array( 'items' => $items );

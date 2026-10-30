@@ -2,7 +2,10 @@
 import { computed, defineAsyncComponent, ref } from 'vue'
 import { askConfirm } from '../lib/confirm.js'
 import { api } from '../api.js'
-import { removePost, setCoursePin, setPinned, takePost } from '../stores/feed.js'
+import { forgetTopicLists, removePost, setCoursePin, setPinned, takePost, updatePost } from '../stores/feed.js'
+import { topics, topicsShown } from '../lib/topics.js'
+import { showToast } from '../lib/toast.js'
+import BaseDialog from './BaseDialog.vue'
 import { cfg } from '../config.js'
 import { timeAgo } from '../lib/time.js'
 import Avatar from './Avatar.vue'
@@ -39,6 +42,29 @@ const editing = ref(false)
 const reporting = ref(false)
 const isMine = computed(() => props.post.author?.id === cfg.user.id)
 const canPin = computed(() => cfg.community.isStaff && props.post.type === 'post' && !props.post.pending)
+// Moderators put a Home post in the right topic (its author is told). Not course posts or events.
+const canMoveTopic = computed(() => cfg.community.isStaff && !props.post.pending && !props.post.course && !props.post.event && topics.items.length > 0)
+const movingTopic = ref(null) // the topic id being chosen, while the box is open
+const movingBusy = ref(false)
+async function moveTopic() {
+  movingBusy.value = true
+  try {
+    const from = topics.items.find((x) => x.id === props.post.topic?.id)
+    const saved = await api.moveToTopic(props.post.id, movingTopic.value)
+    const to = topics.items.find((x) => x.id === saved.topic?.id)
+    if (from !== to) {
+      if (from) from.posts = Math.max(0, (from.posts || 0) - 1)
+      if (to) to.posts = (to.posts || 0) + 1
+    }
+    updatePost(props.post.id, { topic: saved.topic })
+    forgetTopicLists(props.post.id, saved.topic?.id || 0)
+    movingTopic.value = null
+  } catch (e) {
+    showToast(e.message)
+  } finally {
+    movingBusy.value = false
+  }
+}
 const inCourse = computed(() => !!props.post.course)
 const pinLabel = computed(() =>
   props.post.pin === 'lesson' ? t.__('Pinned to lesson', 'membuild-community') : props.post.pin === 'course' ? t.__('Pinned to course', 'membuild-community') : t.__('Pinned', 'membuild-community'),
@@ -112,7 +138,7 @@ async function remove() {
 </script>
 
 <template>
-  <article class="post card" :class="{ pending: post.pending }" :data-post-id="post.id">
+  <article class="post card" :class="{ pending: post.pending, 'menu-open': menu }" :data-post-id="post.id">
     <!-- In Home, a course question leads with the course (its cover as the picture, the author
          tucked on its corner), the way a group post reads in a Facebook home feed. -->
     <header class="head">
@@ -164,7 +190,8 @@ async function remove() {
         </div>
         <span>
           <em v-if="staffLabel" class="staff">{{ staffLabel }}</em>
-          {{ post.pending ? t.__('Posting…', 'membuild-community') : timeAgo(post.created_at) }}<template v-if="post.edited"> · {{ t.__('Edited', 'membuild-community') }}</template>
+          {{ post.pending ? t.__('Posting…', 'membuild-community') : timeAgo(post.created_at) }}<template v-if="post.edited"> · {{ t.__('Edited', 'membuild-community') }}</template
+          ><template v-if="post.topic && topicsShown"> · <RouterLink class="topic-link" :to="{ name: 'feed', query: { topic: post.topic.id } }"><span class="topic-dot" :style="{ background: post.topic.color }" />{{ post.topic.name }}</RouterLink></template>
         </span>
       </div>
       </template>
@@ -178,6 +205,7 @@ async function remove() {
             <button v-if="post.pin" role="menuitem" class="plain" @click="pinInCourse(null)"><Icon name="pin" :size="18" /> {{ t.__('Unpin post', 'membuild-community') }}</button>
           </template>
           <button v-else-if="canPin" role="menuitem" class="plain" @click="togglePin"><Icon name="pin" :size="18" /> {{ post.pinned ? t.__('Unpin post', 'membuild-community') : t.__('Pin to top', 'membuild-community') }}</button>
+          <button v-if="canMoveTopic" role="menuitem" class="plain" @click="closeMenu(); movingTopic = post.topic?.id || 0"><Icon name="hash" :size="18" /> {{ t.__('Change topic', 'membuild-community') }}</button>
           <button v-if="post.can_edit" role="menuitem" class="plain" @click="closeMenu(); editing = true"><Icon name="compose" :size="18" /> {{ t.__('Edit post', 'membuild-community') }}</button>
           <button v-if="post.can_delete" role="menuitem" @click="remove"><Icon name="trash" :size="18" /> {{ t.__('Delete post', 'membuild-community') }}</button>
           <button v-if="!isMine" role="menuitem" class="plain" @click="closeMenu(); reporting = true"><Icon name="flag" :size="18" /> {{ t.__('Report post', 'membuild-community') }}</button>
@@ -197,7 +225,7 @@ async function remove() {
     <div v-if="background" class="bg-post" :style="{ background }">
       <p>{{ post.content }}</p>
     </div>
-    <RichText v-else-if="shownText" class="text" :class="{ big: !post.media.length && !linkedCourse && !post.event && post.content.length < 90 }" :text="shownText" :strong="linkedCourse?.title" :clamp="320" />
+    <RichText v-else-if="shownText" class="text" :text="shownText" :strong="linkedCourse?.title" :clamp="320" />
     <CourseLinkCard v-if="linkedCourse && !background" :course="linkedCourse" />
 
     <MediaGrid v-if="post.media.length && !post.event" class="media" :media="post.media" :reel-link="post.type === 'reel' ? { name: 'reels', query: { id: post.id } } : null" />
@@ -214,6 +242,21 @@ async function remove() {
 
     <ReportDialog v-if="reporting" type="post" :id="post.id" @close="reporting = false" @reported="reported" />
     <CreatePostDialog v-if="editing" :edit="post" @close="editing = false" />
+    <BaseDialog v-if="movingTopic !== null" :title="t.__('Change topic', 'membuild-community')" :width="440" @close="movingTopic = null">
+      <div class="move">
+        <p>{{ t.__('The author is told where you moved it.', 'membuild-community') }}</p>
+        <div class="move-list" role="radiogroup" :aria-label="t.__('Topic', 'membuild-community')">
+          <label v-for="x in [...topics.items, { id: 0, name: t.__('No topic', 'membuild-community'), color: 'var(--border-strong)' }]" :key="x.id" class="move-choice" :class="{ on: movingTopic === x.id }">
+            <input v-model="movingTopic" type="radio" name="move-topic" :value="x.id" class="sr-only" />
+            <span class="topic-dot" :style="{ background: x.color }" />{{ x.name }}
+          </label>
+        </div>
+        <div class="move-act">
+          <button type="button" class="btn btn-lg btn-ghost" @click="movingTopic = null">{{ t.__('Cancel', 'membuild-community') }}</button>
+          <button type="button" class="btn btn-lg btn-primary" :disabled="movingBusy || movingTopic === (post.topic?.id || 0)" @click="moveTopic">{{ t.__('Move post', 'membuild-community') }}</button>
+        </div>
+      </div>
+    </BaseDialog>
     <PostDialog v-if="dialog" :post="post" :focus-comment="dialog.focusComment" @close="dialog = null" />
   </article>
 </template>
@@ -357,6 +400,13 @@ async function remove() {
   contain-intrinsic-size: auto 520px;
 }
 
+/* That skipping also clips whatever sticks out, so an open menu turns it off and sits above the next post. */
+.post.menu-open {
+  content-visibility: visible;
+  position: relative;
+  z-index: 6;
+}
+
 .post.pending {
   opacity: 0.75;
 }
@@ -467,11 +517,6 @@ async function remove() {
   overflow-wrap: anywhere;
 }
 
-.text.big {
-  font-size: var(--fs-3xl);
-  line-height: 1.35;
-}
-
 .media {
   overflow: hidden;
 }
@@ -499,5 +544,76 @@ async function remove() {
   flex-direction: column;
   gap: 10px;
   margin-left: 46px;
+}
+.topic-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-2);
+  font-weight: 600;
+}
+
+.topic-link:hover {
+  text-decoration: underline;
+}
+
+.topic-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+}
+
+.move {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 20px 20px;
+}
+
+.move p {
+  margin: 0;
+  color: var(--text-2);
+}
+
+.move-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.move-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-lg);
+  cursor: pointer;
+}
+
+.move-choice .topic-dot {
+  width: 10px;
+  height: 10px;
+}
+
+.move-choice.on {
+  border: 2px solid var(--accent);
+  background: var(--accent-soft);
+  font-weight: 700;
+}
+
+.move-choice:focus-within {
+  outline: 3px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
+.move-act {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
 }
 </style>

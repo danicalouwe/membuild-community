@@ -805,7 +805,7 @@ class Email {
 	 * @param string $why   The footer line ("You're a member of …"). Empty: just the community name.
 	 * @param string $after Small lines under the card, already escaped (the reset link written out).
 	 */
-	private static function layout( $heading, $body, $button_url, $button_label, $unsubscribe_url, $why = '', $after = '' ) {
+	public static function layout( $heading, $body, $button_url, $button_label, $unsubscribe_url, $why = '', $after = '' ) {
 		$name   = Settings::name();
 		$accent = self::accent();
 		$logo   = Settings::get( 'logo' )['url'] ?? null;
@@ -834,7 +834,7 @@ class Email {
 	}
 
 	/** A paragraph in the card: 17px, grey-black, the space above built in. */
-	private static function para( $text, $tone = '#4a4f59' ) {
+	public static function para( $text, $tone = '#4a4f59' ) {
 		return '<p style="margin:14px 0 0;font-size:17px;line-height:1.55;color:' . $tone . '">' . $text . '</p>';
 	}
 

@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) || exit;
 class Install {
 
 	/** Every table the plugin owns, without the "{prefix}mbcom_" part. */
-	const TABLES = array( 'posts', 'media', 'comments', 'reactions', 'stories', 'story_views', 'courses', 'groups', 'group_members', 'modules', 'lessons', 'lesson_progress', 'course_starts', 'points', 'member_stats', 'threads', 'thread_members', 'messages', 'notifications', 'reports', 'blocks', 'places', 'place_news' );
+	const TABLES = array( 'posts', 'media', 'comments', 'reactions', 'stories', 'story_views', 'courses', 'groups', 'group_members', 'modules', 'lessons', 'lesson_progress', 'course_starts', 'points', 'member_stats', 'threads', 'thread_members', 'messages', 'notifications', 'reports', 'blocks', 'places', 'place_news', 'topics', 'import_map' );
 
 	/** Data migrations: the version each one brings a site to => method. */
 	const STEPS = array(
@@ -196,6 +196,8 @@ class Install {
 		$reports  = self::table( 'reports' );
 		$blocks   = self::table( 'blocks' );
 		$places   = self::table( 'places' );
+		$topics   = self::table( 'topics' );
+		$imports  = self::table( 'import_map' );
 
 		// dbDelta needs two spaces before PRIMARY KEY and one field per line.
 		dbDelta(
@@ -231,6 +233,7 @@ class Install {
 			event_lng decimal(9,6) NULL,
 			event_tz varchar(64) NULL,
 			event_series bigint(20) unsigned NOT NULL DEFAULT 0,
+			topic_id bigint(20) unsigned NOT NULL DEFAULT 0,
 			edited_at datetime NULL,
 			created_at datetime NOT NULL,
 			updated_at datetime NOT NULL,
@@ -245,7 +248,33 @@ class Install {
 			KEY lesson_status_id (lesson_id, status, id),
 			KEY event_at (event_at, status),
 			KEY event_place (event_place_id, event_at),
-			KEY event_series (event_series)
+			KEY event_series (event_series),
+			KEY topic_status_id (topic_id, status, id)
+			) {$charset};
+
+			CREATE TABLE {$topics} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			name varchar(40) NOT NULL,
+			color varchar(7) NOT NULL DEFAULT '',
+			description varchar(120) NOT NULL DEFAULT '',
+			group_id bigint(20) unsigned NOT NULL DEFAULT 0,
+			staff_only tinyint(1) unsigned NOT NULL DEFAULT 0,
+			sort_order int(10) unsigned NOT NULL DEFAULT 0,
+			created_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			KEY sort_order (sort_order)
+			) {$charset};
+
+			CREATE TABLE {$imports} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			import_id int(10) unsigned NOT NULL,
+			source varchar(20) NOT NULL,
+			kind varchar(12) NOT NULL,
+			source_id varchar(64) NOT NULL,
+			local_id bigint(20) unsigned NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY source_kind_id (source, kind, source_id),
+			KEY import_kind (import_id, kind)
 			) {$charset};
 
 			CREATE TABLE {$news} (
@@ -366,6 +395,7 @@ class Install {
 			access_cta_url varchar(500) NULL,
 			about mediumtext NULL,
 			questions_off tinyint(1) NOT NULL DEFAULT 0,
+			in_order tinyint(1) NOT NULL DEFAULT 0,
 			sort_order int(10) NOT NULL DEFAULT 0,
 			created_by bigint(20) unsigned NOT NULL,
 			created_at datetime NOT NULL,

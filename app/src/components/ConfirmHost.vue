@@ -15,6 +15,7 @@ import { answerConfirm, confirmState } from '../lib/confirm.js'
     @confirm="answerConfirm(true)"
     @close="answerConfirm(false)"
   >
-    {{ confirmState.open.text }}
+    <p v-if="confirmState.open.note">{{ confirmState.open.text }}</p><template v-else>{{ confirmState.open.text }}</template>
+    <p v-if="confirmState.open.note" class="note warn">{{ confirmState.open.note }}</p>
   </ConfirmDialog>
 </template>

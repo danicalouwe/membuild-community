@@ -1,14 +1,16 @@
 <script setup>
-import { defineAsyncComponent, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { cfg, feature } from '../config.js'
 import { pendingReelFile } from '../lib/pending.js'
+import { topicById } from '../lib/topics.js'
 import Avatar from './Avatar.vue'
 import { t } from '../lib/i18n.js'
 const CreatePostDialog = defineAsyncComponent(() => import('./CreatePostDialog.vue'))
 
 // The feed's "What's on your mind?" bar. Every entry point opens Create post,
 // except the camera, which goes straight to making a reel.
+const props = defineProps({ topic: { type: Number, default: 0 } }) // Home filtered to a topic: posts start in it
 const emit = defineEmits(['posted'])
 const router = useRouter()
 const route = useRoute()
@@ -17,7 +19,9 @@ const dialog = shallowRef(null) // null | { start, files, draft }
 const photoInput = ref(null)
 const reelInput = ref(null)
 const firstName = cfg.user.name.split(' ')[0]
-const prompt = t.sprintf(/* translators: %s: the person's first name */ t.__("What's on your mind, %s?", 'membuild-community'), firstName)
+const asked = t.sprintf(/* translators: %s: the person's first name */ t.__("What's on your mind, %s?", 'membuild-community'), firstName)
+const here = computed(() => (props.topic ? topicById(props.topic) : null))
+const prompt = computed(() => (here.value?.can_post ? t.sprintf(/* translators: %s: a topic's name */ t.__('Post in %s…', 'membuild-community'), here.value.name) : asked))
 
 const open = (opts = {}) => (dialog.value = { start: '', files: [], draft: null, ...opts })
 // "Write a post" from elsewhere (the Leaderboard's empty week): Home with ?write=1 opens this.
@@ -90,6 +94,7 @@ onBeforeUnmount(() => window.removeEventListener('mbcom:reopen-composer', reopen
       :start="dialog.start"
       :files="dialog.files"
       :draft="dialog.draft"
+      :topic="here?.can_post ? here.id : 0"
       @posted="emit('posted')"
       @close="dialog = null"
     />

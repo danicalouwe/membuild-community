@@ -2140,6 +2140,294 @@ $sr_tok->update( $sr_long, $sr_sess );
 mbcom_check( 'a login two years old isn’t renewed again, however often it’s used', ! call_user_func( array( 'MemBuild\\Community\\Login', 'renew_session' ), $sr_a, array( 'token' => $sr_long, 'expiration' => $sr_sess['expiration'] ) ) );
 $sr_tok->destroy( $sr_long );
 
+mbcom_section( 'Topics' );
+$tp_admin  = mbcom_user( 'mbct_admin', 'administrator' );
+$tp_mod    = mbcom_user( 'mbct_tp_mod', 'editor' );
+$tp_in     = mbcom_user( 'mbct_tp_inside' );
+$tp_out    = mbcom_user( 'mbct_tp_outside' );
+list( $s ) = mbcom_call( $tp_out, 'POST', '/topics', array( 'name' => 'Sneaky' ) );
+mbcom_check( 'members can’t make topics', in_array( $s, array( 401, 403 ), true ), (string) $s );
+list( $s, $tp_list ) = mbcom_call( $tp_admin, 'POST', '/topics', array( 'name' => 'Pricing club', 'color' => '#087a66', 'description' => 'Prices, tiers, offers' ) );
+mbcom_check( 'an admin makes a topic', 201 === $s && 'Pricing club' === end( $tp_list['items'] )['name'], (string) $s );
+$tp_open = (int) end( $tp_list['items'] )['id'];
+list( $s ) = mbcom_call( $tp_admin, 'POST', '/topics', array( 'name' => 'pricing CLUB' ) );
+mbcom_check( '…names are unique, whatever the capitals', 400 === $s, (string) $s );
+list( , $tp_grp ) = mbcom_call( $tp_admin, 'POST', '/groups', array( 'name' => 'Topic VIPs' ) );
+mbcom_call( $tp_admin, 'POST', "/groups/{$tp_grp['id']}/members", array( 'user_ids' => array( $tp_in ) ) );
+list( , $tp_list ) = mbcom_call( $tp_admin, 'POST', '/topics', array( 'name' => 'VIP lounge', 'group_id' => (int) $tp_grp['id'] ) );
+$tp_vip = (int) end( $tp_list['items'] )['id'];
+list( , $tp_list ) = mbcom_call( $tp_admin, 'POST', '/topics', array( 'name' => 'Announcements', 'staff_only' => true ) );
+$tp_news = (int) end( $tp_list['items'] )['id'];
+list( , $tl ) = mbcom_call( $tp_out, 'GET', '/topics' );
+mbcom_check( 'a members-only topic isn’t listed for others', ! in_array( $tp_vip, wp_list_pluck( $tl['items'], 'id' ), true ) && in_array( $tp_open, wp_list_pluck( $tl['items'], 'id' ), true ) );
+list( , $tl ) = mbcom_call( $tp_in, 'GET', '/topics' );
+mbcom_check( '…but is for its members', in_array( $tp_vip, wp_list_pluck( $tl['items'], 'id' ), true ) );
+list( $s, $tp_p ) = mbcom_call( $tp_out, 'POST', '/posts', array( 'content' => 'My first price rise', 'topic_id' => $tp_open ) );
+mbcom_check( 'a post can go in a topic', 201 === $s && $tp_open === (int) ( $tp_p['topic']['id'] ?? 0 ), wp_json_encode( $tp_p['topic'] ?? null ) );
+list( $s ) = mbcom_call( $tp_out, 'POST', '/posts', array( 'content' => 'Sneaking into the lounge', 'topic_id' => $tp_vip ) );
+mbcom_check( '…not one you can’t see', 400 === $s, (string) $s );
+list( $s ) = mbcom_call( $tp_out, 'POST', '/posts', array( 'content' => 'Big news from me', 'topic_id' => $tp_news ) );
+mbcom_check( '…and only the team posts in a team-only topic', 403 === $s, (string) $s );
+list( $s ) = mbcom_call( $tp_mod, 'POST', '/posts', array( 'content' => 'Big news from the team', 'topic_id' => $tp_news ) );
+mbcom_check( '…which moderators can', 201 === $s, (string) $s );
+list( , $tp_v ) = mbcom_call( $tp_in, 'POST', '/posts', array( 'content' => 'Lounge secret: the ocelot code', 'topic_id' => $tp_vip ) );
+list( , $f ) = mbcom_call( $tp_out, 'GET', '/feed' );
+mbcom_check( 'a members-only topic’s posts stay out of others’ Home', ! in_array( (int) $tp_v['id'], wp_list_pluck( $f['items'], 'id' ), true ) );
+list( $s ) = mbcom_call( $tp_out, 'GET', "/posts/{$tp_v['id']}" );
+mbcom_check( '…and can’t be opened by their number', 404 === $s, (string) $s );
+list( , $f ) = mbcom_call( $tp_in, 'GET', '/feed' );
+mbcom_check( '…while its members see them', in_array( (int) $tp_v['id'], wp_list_pluck( $f['items'], 'id' ), true ) );
+list( , $f ) = mbcom_call( $tp_out, 'GET', '/feed', array( 'topic' => $tp_open ) );
+mbcom_check( 'Home filtered to a topic shows only its posts', $f['items'] && ! array_filter( $f['items'], fn( $x ) => $tp_open !== (int) ( $x['topic']['id'] ?? 0 ) ) );
+list( $s ) = mbcom_call( $tp_out, 'PUT', "/posts/{$tp_p['id']}/topic", array( 'topic_id' => $tp_news ) );
+mbcom_check( 'members can’t move other posts between topics', in_array( $s, array( 401, 403 ), true ), (string) $s );
+list( $s, $mv ) = mbcom_call( $tp_mod, 'PUT', "/posts/{$tp_p['id']}/topic", array( 'topic_id' => 0 ) );
+mbcom_check( 'a moderator moves a post (here: to no topic)', 200 === $s && null === $mv['topic'], (string) $s );
+$tp_note = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_notifications WHERE user_id = %d AND type = 'post_moved'", $tp_out ) );
+mbcom_check( '…and its author is told', (int) $tp_note >= 1 );
+list( , $tp_p2 ) = mbcom_call( $tp_out, 'PUT', "/posts/{$tp_p['id']}", array( 'content' => 'My first price rise (edited)', 'topic_id' => $tp_open ) );
+mbcom_check( 'the author can change it back when editing', $tp_open === (int) ( $tp_p2['topic']['id'] ?? 0 ) );
+list( , $tl ) = mbcom_call( $tp_admin, 'PUT', '/topics/order', array( 'ids' => array( $tp_news, $tp_open ) ) );
+mbcom_check( 'owners set the order', $tp_news === (int) $tl['items'][0]['id'] );
+list( , $tl ) = mbcom_call( $tp_admin, 'DELETE', "/topics/{$tp_open}", array( 'move_to' => 0 ) );
+$tp_still = $wpdb->get_row( $wpdb->prepare( "SELECT status, topic_id FROM {$wpdb->prefix}mbcom_posts WHERE id = %d", $tp_p['id'] ), ARRAY_A );
+mbcom_check( 'deleting a topic keeps its posts, without a topic', 'published' === $tp_still['status'] && 0 === (int) $tp_still['topic_id'] );
+foreach ( array( $tp_vip, $tp_news ) as $tp_id ) {
+	mbcom_call( $tp_admin, 'DELETE', "/topics/{$tp_id}" );
+}
+mbcom_call( $tp_admin, 'DELETE', "/groups/{$tp_grp['id']}" );
+
+mbcom_section( 'Lesson order' );
+$lo_admin = mbcom_user( 'mbct_admin', 'administrator' );
+$lo_mod   = mbcom_user( 'mbct_tp_mod', 'editor' );
+$lo_m     = mbcom_user( 'mbct_lo_member' );
+list( , $lo_c ) = mbcom_call( $lo_admin, 'POST', '/courses', array( 'title' => 'Step by step' ) );
+$lo_mid  = $lo_c['modules'][0]['id'];
+$lo_ids  = array();
+foreach ( array( 'One', 'Two', 'Three' ) as $lo_t ) {
+	list( , $lo_l ) = mbcom_call( $lo_admin, 'POST', "/modules/{$lo_mid}/lessons", array( 'title' => $lo_t ) );
+	$lo_ids[]       = (int) $lo_l['id'];
+}
+mbcom_call( $lo_admin, 'PUT', "/courses/{$lo_c['id']}", array( 'status' => 'published' ) );
+list( $s ) = mbcom_call( $lo_m, 'GET', "/lessons/{$lo_ids[2]}" );
+mbcom_check( 'a course opens in any order by default', 200 === $s, (string) $s );
+list( , $lo_v ) = mbcom_call( $lo_admin, 'PUT', "/courses/{$lo_c['id']}", array( 'in_order' => true ) );
+mbcom_check( 'an owner sets it to one after another', true === ( $lo_v['in_order'] ?? null ) );
+list( $s, $lo_e ) = mbcom_call( $lo_m, 'GET', "/lessons/{$lo_ids[1]}" );
+mbcom_check( '…then a lesson waits for the one before it, and says which', 403 === $s && 'mbcom_order_locked' === ( $lo_e['code'] ?? '' ) && false !== strpos( $lo_e['message'], 'One' ), wp_json_encode( $lo_e ) );
+list( $s ) = mbcom_call( $lo_m, 'POST', "/lessons/{$lo_ids[1]}/complete" );
+mbcom_check( '…and can’t be marked done early', 403 === $s, (string) $s );
+list( , $lo_o ) = mbcom_call( $lo_m, 'GET', "/courses/{$lo_c['id']}" );
+$lo_ls = $lo_o['modules'][0]['lessons'];
+mbcom_check( 'the outline shows the first open, the rest locked with what comes before', ! $lo_ls[0]['locked'] && $lo_ls[1]['locked'] && 'One' === ( $lo_ls[1]['after']['title'] ?? '' ) && $lo_ls[2]['locked'], wp_json_encode( array_column( $lo_ls, 'locked' ) ) );
+mbcom_call( $lo_m, 'POST', "/lessons/{$lo_ids[0]}/complete" );
+list( $s ) = mbcom_call( $lo_m, 'GET', "/lessons/{$lo_ids[1]}" );
+list( $s3 ) = mbcom_call( $lo_m, 'GET', "/lessons/{$lo_ids[2]}" );
+mbcom_check( 'finishing a lesson opens the next one, not the one after', 200 === $s && 403 === $s3, "{$s} {$s3}" );
+list( $s ) = mbcom_call( $lo_mod, 'GET', "/lessons/{$lo_ids[2]}" );
+mbcom_check( 'moderators open every lesson', 200 === $s, (string) $s );
+// A lesson someone finished stays theirs, even when one is added before it.
+mbcom_call( $lo_m, 'POST', "/lessons/{$lo_ids[1]}/complete" );
+$wpdb->update( \MemBuild\Community\Install::table( 'lessons' ), array( 'sort_order' => 5 ), array( 'id' => $lo_ids[0] ) ); // "One" moves to the end, after "Three"
+list( $s ) = mbcom_call( $lo_m, 'GET', "/lessons/{$lo_ids[1]}" );
+mbcom_check( 'a finished lesson never locks again, whatever changes', 200 === $s, (string) $s );
+mbcom_call( $lo_admin, 'DELETE', "/courses/{$lo_c['id']}" );
+
+mbcom_section( 'Import' );
+$im_admin = mbcom_user( 'mbct_admin', 'administrator' );
+$im_a     = mbcom_user( 'mbct_im_ana' );
+$im_b     = mbcom_user( 'mbct_im_ben' );
+$im_out   = mbcom_user( 'mbct_im_outside' );
+$im_p     = $wpdb->base_prefix;
+delete_option( 'mbcom_import_job' );
+delete_option( 'mbcom_imports' );
+$im_run = function () {
+	for ( $i = 0; $i < 60; $i++ ) {
+		delete_transient( 'mbcom_import_lock' );
+		\MemBuild\Community\Import::tick( 3 );
+		$j = \MemBuild\Community\Import::job();
+		if ( 'running' !== $j['status'] ) {
+			return $j;
+		}
+	}
+	return \MemBuild\Community\Import::job();
+};
+list( $s ) = mbcom_call( $im_out, 'GET', '/import' );
+mbcom_check( 'members can’t open Import', in_array( $s, array( 401, 403 ), true ), (string) $s );
+
+// A small BuddyPress community, in BuddyPress's own tables (the plugin isn't here, as when it's switched off).
+$wpdb->query( "CREATE TABLE {$im_p}bp_activity (id bigint unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY, user_id bigint, component varchar(75), type varchar(75), action text, content longtext, primary_link text, item_id bigint, secondary_item_id bigint, date_recorded datetime, hide_sitewide tinyint DEFAULT 0, mptt_left int DEFAULT 0, mptt_right int DEFAULT 0, is_spam tinyint DEFAULT 0)" );
+$wpdb->query( "CREATE TABLE {$im_p}bp_activity_meta (id bigint unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY, activity_id bigint, meta_key varchar(255), meta_value longtext)" );
+$wpdb->query( "CREATE TABLE {$im_p}bp_groups (id bigint unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY, creator_id bigint, name varchar(100), slug varchar(200), description longtext, status varchar(10), parent_id bigint DEFAULT 0, enable_forum tinyint DEFAULT 0, date_created datetime)" );
+$wpdb->query( "CREATE TABLE {$im_p}bp_groups_members (id bigint unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY, group_id bigint, user_id bigint, inviter_id bigint DEFAULT 0, is_admin tinyint DEFAULT 0, is_mod tinyint DEFAULT 0, user_title varchar(100) DEFAULT '', date_modified datetime, comments longtext, is_confirmed tinyint DEFAULT 0, is_banned tinyint DEFAULT 0, invite_sent tinyint DEFAULT 0)" );
+$wpdb->query( "CREATE TABLE {$im_p}bp_messages_messages (id bigint unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY, thread_id bigint, sender_id bigint, subject varchar(200), message longtext, date_sent datetime)" );
+$wpdb->query( "CREATE TABLE {$im_p}bp_messages_recipients (id bigint unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY, user_id bigint, thread_id bigint, unread_count int DEFAULT 0, sender_only tinyint DEFAULT 0, is_deleted tinyint DEFAULT 0)" );
+$wpdb->query( "CREATE TABLE {$im_p}bp_xprofile_fields (id bigint unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY, group_id bigint, parent_id bigint DEFAULT 0, type varchar(150), name varchar(150))" );
+$wpdb->query( "CREATE TABLE {$im_p}bp_xprofile_data (id bigint unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY, field_id bigint, user_id bigint, value longtext, last_updated datetime)" );
+$wpdb->insert( "{$im_p}bp_xprofile_fields", array( 'group_id' => 1, 'type' => 'textbox', 'name' => 'Location' ) );
+$wpdb->insert( "{$im_p}bp_xprofile_data", array( 'field_id' => $wpdb->insert_id, 'user_id' => $im_a, 'value' => 'Cebu City', 'last_updated' => '2025-01-01 00:00:00' ) );
+$wpdb->insert( "{$im_p}bp_groups", array( 'creator_id' => $im_a, 'name' => 'Imported Insiders', 'slug' => 'insiders', 'description' => 'Members <b>only</b>', 'status' => 'private', 'date_created' => '2025-01-01 00:00:00' ) );
+$im_g = (int) $wpdb->insert_id;
+$wpdb->insert( "{$im_p}bp_groups_members", array( 'group_id' => $im_g, 'user_id' => $im_a, 'is_admin' => 1, 'is_confirmed' => 1, 'date_modified' => '2025-01-01 00:00:00', 'comments' => '' ) );
+$wpdb->insert( "{$im_p}bp_groups_members", array( 'group_id' => $im_g, 'user_id' => $im_out, 'is_confirmed' => 0, 'invite_sent' => 1, 'date_modified' => '2025-01-01 00:00:00', 'comments' => '' ) );
+$im_act = function ( $row ) use ( $wpdb, $im_p ) {
+	$wpdb->insert( "{$im_p}bp_activity", $row + array( 'action' => '', 'primary_link' => '', 'item_id' => 0, 'secondary_item_id' => 0 ) );
+	return (int) $wpdb->insert_id;
+};
+$im_p1 = $im_act( array( 'user_id' => $im_a, 'component' => 'activity', 'type' => 'activity_update', 'content' => "Hello from the old site, <a class='bp-suggestions-mention' href='http://x/members/ben/'>@Ben</a>!", 'date_recorded' => '2024-05-01 10:00:00' ) );
+$im_p2 = $im_act( array( 'user_id' => $im_a, 'component' => 'groups', 'type' => 'activity_update', 'item_id' => $im_g, 'content' => 'Insiders only: the ocelot plan', 'date_recorded' => '2024-05-02 10:00:00' ) );
+$im_act( array( 'user_id' => $im_b, 'component' => 'activity', 'type' => 'activity_update', 'content' => 'Buy cheap pills', 'date_recorded' => '2024-05-03 10:00:00', 'is_spam' => 1 ) );
+$im_c1 = $im_act( array( 'user_id' => $im_b, 'component' => 'activity', 'type' => 'activity_comment', 'item_id' => $im_p1, 'secondary_item_id' => $im_p1, 'content' => 'Welcome!', 'date_recorded' => '2024-05-01 11:00:00' ) );
+$im_act( array( 'user_id' => $im_a, 'component' => 'activity', 'type' => 'activity_comment', 'item_id' => $im_p1, 'secondary_item_id' => $im_c1, 'content' => 'Thanks Ben', 'date_recorded' => '2024-05-01 12:00:00' ) );
+$im_act( array( 'user_id' => $im_b, 'component' => 'activity', 'type' => 'activity_comment', 'item_id' => $im_p1, 'secondary_item_id' => $im_c1 + 1, 'content' => 'Anytime', 'date_recorded' => '2024-05-01 13:00:00' ) );
+update_user_meta( $im_b, 'bp_favorite_activities', array( $im_p1 ) );
+$wpdb->insert( "{$im_p}bp_messages_messages", array( 'thread_id' => 7, 'sender_id' => $im_a, 'subject' => 'Hi', 'message' => 'A private hello', 'date_sent' => '2024-05-04 09:00:00' ) );
+$wpdb->insert( "{$im_p}bp_messages_messages", array( 'thread_id' => 7, 'sender_id' => $im_b, 'subject' => 'Re: Hi', 'message' => 'Hello back', 'date_sent' => '2024-05-04 09:05:00' ) );
+foreach ( array( $im_a, $im_b ) as $u ) {
+	$wpdb->insert( "{$im_p}bp_messages_recipients", array( 'user_id' => $u, 'thread_id' => 7 ) );
+}
+
+list( $s, $st ) = mbcom_call( $im_admin, 'GET', '/import' );
+$im_bp = array_values( array_filter( $st['found'] ?? array(), fn( $x ) => 'buddypress' === $x['key'] ) )[0] ?? null;
+mbcom_check( 'BuddyPress is found with its plugin switched off, with its numbers', 200 === $s && $im_bp && 2 === $im_bp['posts'] && 3 === $im_bp['comments'] && 1 === $im_bp['groups'], wp_json_encode( $im_bp ) );
+$im_all = array( 'profiles', 'posts', 'reactions', 'messages', 'points' );
+list( $s, $ck ) = mbcom_call( $im_admin, 'POST', '/import/check', array( 'source' => 'buddypress', 'bring' => $im_all ) );
+mbcom_check( 'the check says what will come over, and changes nothing', 200 === $s && false !== strpos( wp_json_encode( $ck['items'] ), '2 posts and 3 comments' ) && 0 === (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_import_map" ), wp_json_encode( $ck['items'][1] ?? null ) );
+list( $s, $j ) = mbcom_call( $im_admin, 'POST', '/import/start', array( 'source' => 'buddypress', 'bring' => $im_all ) );
+mbcom_check( 'an import starts', 200 === $s && 'running' === $j['status'], (string) $s );
+list( $s ) = mbcom_call( $im_admin, 'POST', '/import/start', array( 'source' => 'buddypress', 'bring' => $im_all ) );
+mbcom_check( '…and a second can’t start while it runs', 409 === $s, (string) $s );
+$j = $im_run();
+mbcom_check( 'it runs to the end in the background', 'done' === $j['status'] && 2 === $j['counts']['posts'] && 3 === $j['counts']['comments'], wp_json_encode( $j['counts'] ) . ' ' . ( $j['error'] ?? '' ) );
+$im_map  = fn( $kind, $src ) => (int) $wpdb->get_var( $wpdb->prepare( "SELECT local_id FROM {$wpdb->prefix}mbcom_import_map WHERE source = 'buddypress' AND kind = %s AND source_id = %s", $kind, (string) $src ) );
+$im_post = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}mbcom_posts WHERE id = %d", $im_map( 'post', $im_p1 ) ), ARRAY_A );
+mbcom_check( 'a post keeps its author and date, its mention as plain words', $im_post && (int) $im_post['user_id'] === $im_a && '2024-05-01 10:00:00' === $im_post['created_at'] && 'Hello from the old site, @Ben!' === $im_post['content'], wp_json_encode( $im_post['content'] ?? null ) );
+$im_replies = $wpdb->get_results( $wpdb->prepare( "SELECT parent_id, reply_to_user_id FROM {$wpdb->prefix}mbcom_comments WHERE post_id = %d ORDER BY id", $im_post['id'] ), ARRAY_A );
+mbcom_check( 'a reply to a reply joins the top comment and says who it answers', 3 === count( $im_replies ) && (int) $im_replies[2]['parent_id'] === (int) $im_replies[1]['parent_id'] && (int) $im_replies[2]['reply_to_user_id'] === $im_a, wp_json_encode( $im_replies ) );
+mbcom_check( 'favourites become likes, and the counts add up', 1 === (int) $im_post['reactions_count'] && 3 === (int) $im_post['comments_count'], $im_post['reactions_count'] . '/' . $im_post['comments_count'] );
+mbcom_check( 'spam doesn’t come over', 0 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_posts WHERE content = %s", 'Buy cheap pills' ) ) );
+mbcom_check( 'an empty profile field is filled in', 'Cebu City' === get_user_meta( $im_a, 'mbcom_location', true ) );
+$im_topic = \MemBuild\Community\Topics::get( $im_map( 'topic', $im_g ) );
+mbcom_check( 'a private group becomes a members-only topic with its confirmed members', $im_topic && $im_topic['group_id'] && in_array( $im_a, array_map( 'intval', $wpdb->get_col( $wpdb->prepare( "SELECT user_id FROM {$wpdb->prefix}mbcom_group_members WHERE group_id = %d", $im_topic['group_id'] ) ) ), true ) && ! in_array( $im_out, array_map( 'intval', $wpdb->get_col( $wpdb->prepare( "SELECT user_id FROM {$wpdb->prefix}mbcom_group_members WHERE group_id = %d", $im_topic['group_id'] ) ) ), true ) );
+list( $s ) = mbcom_call( $im_out, 'GET', '/posts/' . $im_map( 'post', $im_p2 ) );
+mbcom_check( '…so its posts stay private', 404 === $s, (string) $s );
+$im_thread = $im_map( 'thread', 7 );
+$im_msgs   = $wpdb->get_col( $wpdb->prepare( "SELECT content FROM {$wpdb->prefix}mbcom_messages WHERE thread_id = %d ORDER BY id", $im_thread ) );
+mbcom_check( 'chats come over encrypted, and read back', 2 === count( $im_msgs ) && \MemBuild\Community\Vault::is_sealed( $im_msgs[0] ) && 'Hello back' === \MemBuild\Community\Vault::open( $im_msgs[1], 'message:' . $im_thread ) );
+mbcom_check( 'points are worked out from what came over', (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_points WHERE object_type = 'post' AND object_id = %d", $im_post['id'] ) ) >= 1 );
+mbcom_call( $im_admin, 'POST', '/import/dismiss' );
+mbcom_call( $im_admin, 'POST', '/import/start', array( 'source' => 'buddypress', 'bring' => $im_all ) );
+$j2 = $im_run();
+mbcom_check( 'importing again only brings what’s new (nothing)', 'done' === $j2['status'] && 0 === (int) ( $j2['counts']['posts'] ?? 0 ) && 0 === (int) ( $j2['counts']['comments'] ?? 0 ), wp_json_encode( $j2['counts'] ) );
+mbcom_call( $im_admin, 'POST', '/import/dismiss' );
+$im_act( array( 'user_id' => $im_b, 'component' => 'activity', 'type' => 'activity_update', 'content' => 'Written after the first import', 'date_recorded' => '2024-06-01 10:00:00' ) );
+mbcom_call( $im_admin, 'POST', '/import/start', array( 'source' => 'buddypress', 'bring' => $im_all ) );
+$j3 = $im_run();
+mbcom_check( '…and a post written since does', 1 === (int) ( $j3['counts']['posts'] ?? 0 ), wp_json_encode( $j3['counts'] ) );
+list( $s, $u3 ) = mbcom_call( $im_admin, 'POST', '/import/undo' );
+mbcom_check( 'Undo removes exactly what the last import brought', 200 === $s && 'undone' === $u3['status'] && 1 === $u3['undone']['post'] && $im_map( 'post', $im_p1 ), wp_json_encode( $u3['undone'] ?? null ) );
+list( , $st ) = mbcom_call( $im_admin, 'GET', '/import' );
+$im_first = end( $st['past'] );
+mbcom_check( 'past imports are listed, newest first, with what they brought', count( $st['past'] ) >= 3 && 'undone' === $st['past'][0]['status'] && 'done' === $im_first['status'] && 2 === (int) $im_first['counts']['posts'], wp_json_encode( array_column( $st['past'], 'status' ) ) );
+$im_post_id = $im_map( 'post', $im_p1 );
+list( $s ) = mbcom_call( $im_out, 'POST', "/posts/{$im_post_id}/comments", array( 'content' => 'Written here after the import' ) );
+list( , $imp ) = mbcom_call( $im_admin, 'GET', '/import/impact', array( 'id' => (int) $im_first['id'] ) );
+mbcom_check( 'undoing an older import first says what members added to it since', 2 === $imp['brought']['posts'] && 1 === $imp['since']['comments'], wp_json_encode( $imp ) . " comment {$s}" );
+list( $s, $uo ) = mbcom_call( $im_admin, 'POST', '/import/undo', array( 'id' => (int) $im_first['id'] ) );
+mbcom_check( 'an older import undoes on its own', 200 === $s && 2 === $uo['undone']['post'] && 'undone' === array_values( array_filter( $uo['past'], fn( $x ) => (int) $x['id'] === (int) $im_first['id'] ) )[0]['status'], wp_json_encode( $uo['undone'] ?? $uo ) );
+mbcom_check( '…taking the comment written since with its post', 0 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_comments WHERE post_id = %d", $im_post_id ) ) );
+list( $s ) = mbcom_call( $im_admin, 'POST', '/import/undo', array( 'id' => (int) $im_first['id'] ) );
+mbcom_check( '…and only once', 400 === $s, (string) $s );
+
+// The Pro hook: an add-on can take the groups (as spaces) instead of topics.
+$im_spaces = array();
+$im_hook   = function ( $handler, $source, $groups ) use ( &$im_spaces ) {
+	return function ( $gs ) use ( &$im_spaces ) {
+		$im_spaces = $gs;
+		return array_combine( array_column( $gs, 'source_id' ), array_fill( 0, count( $gs ), 999 ) );
+	};
+};
+add_filter( 'membuild_community/import_groups', $im_hook, 10, 3 );
+list( , $st ) = mbcom_call( $im_admin, 'GET', '/import' );
+mbcom_check( 'with an add-on taking groups, Import offers spaces', true === $st['pro'] );
+remove_filter( 'membuild_community/import_groups', $im_hook, 10 );
+
+// FluentCommunity: its own tables, its times in the site's time zone, its meta serialized.
+update_option( 'timezone_string', 'Asia/Manila' );
+$fp = $wpdb->prefix . 'fcom_';
+$wpdb->query( "CREATE TABLE {$fp}posts (id bigint unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY, user_id bigint, parent_id bigint NULL, title varchar(192) NULL, slug varchar(192) NULL, message longtext NULL, message_rendered longtext NULL, type varchar(100) DEFAULT 'feed', content_type varchar(100) DEFAULT 'text', space_id bigint NULL, privacy varchar(100) DEFAULT 'public', status varchar(100) DEFAULT 'published', featured_image text NULL, meta longtext NULL, is_sticky tinyint DEFAULT 0, comments_count int DEFAULT 0, reactions_count int DEFAULT 0, priority int DEFAULT 0, created_at timestamp NULL, updated_at timestamp NULL)" );
+$wpdb->query( "CREATE TABLE {$fp}spaces (id bigint unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY, created_by bigint, parent_id bigint NULL, title varchar(192), slug varchar(192), logo text NULL, cover_photo text NULL, description longtext NULL, type varchar(100), privacy varchar(100) DEFAULT 'public', status varchar(100) DEFAULT 'published', serial int DEFAULT 1, settings longtext NULL, created_at timestamp NULL, updated_at timestamp NULL)" );
+$wpdb->query( "CREATE TABLE {$fp}space_user (id bigint unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY, space_id bigint, user_id bigint, status varchar(100) DEFAULT 'active', role varchar(100) DEFAULT 'member', meta text NULL, created_at timestamp NULL, updated_at timestamp NULL)" );
+$wpdb->query( "CREATE TABLE {$fp}post_comments (id bigint unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY, user_id bigint, post_id bigint, parent_id bigint NULL, reactions_count int DEFAULT 0, message longtext NULL, message_rendered longtext NULL, meta longtext NULL, type varchar(100) DEFAULT 'comment', content_type varchar(100) DEFAULT 'text', status varchar(100) DEFAULT 'published', is_sticky tinyint DEFAULT 0, created_at timestamp NULL, updated_at timestamp NULL)" );
+$wpdb->query( "CREATE TABLE {$fp}post_reactions (id bigint unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY, user_id bigint, object_id bigint, parent_id bigint NULL, object_type varchar(100), type varchar(100), ip_address varchar(100) NULL, created_at timestamp NULL, updated_at timestamp NULL)" );
+$wpdb->insert( "{$fp}spaces", array( 'created_by' => $im_a, 'title' => 'Fluent Launchers', 'slug' => 'fl', 'description' => '', 'type' => 'community', 'privacy' => 'public', 'created_at' => '2025-01-01 08:00:00' ) );
+$im_fs = (int) $wpdb->insert_id;
+$wpdb->insert( "{$fp}posts", array( 'user_id' => $im_b, 'message' => 'x', 'message_rendered' => '<p>From <strong>Fluent</strong></p>', 'type' => 'text', 'space_id' => $im_fs, 'meta' => serialize( array( 'media_items' => array( array( 'url' => 'https://example.com/a.jpg', 'type' => 'image', 'width' => 800, 'height' => 600 ) ) ) ), 'created_at' => '2025-02-01 18:00:00' ) );
+$im_fpost = (int) $wpdb->insert_id;
+$wpdb->insert( "{$fp}spaces", array( 'created_by' => $im_admin, 'title' => 'Fluent Course', 'slug' => 'fc', 'description' => 'Learn', 'type' => 'course', 'privacy' => 'private', 'created_at' => '2025-01-01 08:00:00' ) );
+$im_fc = (int) $wpdb->insert_id;
+$wpdb->insert( "{$fp}posts", array( 'user_id' => $im_admin, 'title' => 'Week 1', 'type' => 'course_section', 'space_id' => $im_fc, 'priority' => 1, 'created_at' => '2025-01-01 08:00:00' ) );
+$im_sec = (int) $wpdb->insert_id;
+$wpdb->insert( "{$fp}posts", array( 'user_id' => $im_admin, 'parent_id' => $im_sec, 'title' => 'Lesson one', 'message_rendered' => '<p>Read this</p>', 'type' => 'course_lesson', 'space_id' => $im_fc, 'priority' => 1, 'created_at' => '2025-01-01 08:00:00' ) );
+$im_les = (int) $wpdb->insert_id;
+$wpdb->insert( "{$fp}space_user", array( 'space_id' => $im_fc, 'user_id' => $im_b, 'role' => 'student' ) );
+$wpdb->insert( "{$fp}post_reactions", array( 'user_id' => $im_b, 'object_id' => $im_les, 'parent_id' => $im_fc, 'object_type' => 'lesson_completed', 'type' => 'completed', 'created_at' => '2025-01-05 08:00:00' ) );
+mbcom_call( $im_admin, 'POST', '/import/dismiss' );
+mbcom_call( $im_admin, 'POST', '/import/start', array( 'source' => 'fluentcommunity', 'bring' => array( 'posts', 'courses' ) ) );
+$jf = $im_run();
+$im_fl = $wpdb->get_row( $wpdb->prepare( "SELECT p.created_at, p.content, (SELECT url FROM {$wpdb->prefix}mbcom_media m WHERE m.post_id = p.id) AS photo FROM {$wpdb->prefix}mbcom_posts p WHERE p.id = (SELECT local_id FROM {$wpdb->prefix}mbcom_import_map WHERE source = 'fluentcommunity' AND kind = 'post' AND source_id = %s)", (string) $im_fpost ), ARRAY_A );
+mbcom_check( 'FluentCommunity: its local times become UTC, its photos come along', $im_fl && '2025-02-01 10:00:00' === $im_fl['created_at'] && 'From Fluent' === $im_fl['content'] && 'https://example.com/a.jpg' === $im_fl['photo'], wp_json_encode( $im_fl ) . ' ' . ( $jf['error'] ?? '' ) );
+$im_course = (int) $wpdb->get_var( $wpdb->prepare( "SELECT local_id FROM {$wpdb->prefix}mbcom_import_map WHERE source = 'fluentcommunity' AND kind = 'course' AND source_id = %s", (string) $im_fc ) );
+$im_cg     = json_decode( (string) $wpdb->get_var( $wpdb->prepare( "SELECT access_groups FROM {$wpdb->prefix}mbcom_courses WHERE id = %d", $im_course ) ), true );
+mbcom_check( '…its course goes into the Classroom with progress, private as a membership', $im_course && 1 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_lesson_progress WHERE course_id = %d AND user_id = %d", $im_course, $im_b ) ) && $im_cg && in_array( $im_b, array_map( 'intval', $wpdb->get_col( $wpdb->prepare( "SELECT user_id FROM {$wpdb->prefix}mbcom_group_members WHERE group_id = %d", $im_cg[0] ) ) ), true ) );
+mbcom_call( $im_admin, 'POST', '/import/undo' );
+mbcom_check( '…and Undo takes the course away again', 0 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_courses WHERE id = %d", $im_course ) ) && 0 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_lessons WHERE course_id = %d", $im_course ) ) );
+update_option( 'timezone_string', '' );
+
+// A spreadsheet: columns guessed, bad rows found, people added, a plan matched to a membership.
+list( , $im_vip ) = mbcom_call( $im_admin, 'POST', '/groups', array( 'name' => 'Sheet Gold' ) );
+update_user_meta( $im_b, 'last_name', 'Original' );
+$im_csv = "Email,First Name,Last Name,Member since,Plan\nmbct_sheet_new@example.test,Nia,Sheet,2024-03-02,Sheet Gold\nmbct_im_ben@example.test,Ben,Already,2020-01-01,Sheet Gold\nnot-an-email,Bad,Row,2024-01-01,Free\n";
+wp_set_current_user( $im_admin );
+$r = new WP_REST_Request( 'POST', $GLOBALS['mbcom_ns'] . '/import/file' );
+$r->set_param( 'name', 'members.csv' );
+$r->set_header( 'content-type', 'application/octet-stream' );
+$r->set_body( $im_csv );
+$x  = rest_do_request( $r );
+$up = $x->get_data();
+mbcom_check( 'a spreadsheet’s columns are guessed from their names', 200 === $x->get_status() && array( 'email', 'first_name', 'last_name', 'joined', 'membership' ) === array_column( $up['columns'], 'guess' ), wp_json_encode( $up['columns'] ?? $up ) );
+$im_body = array( 'source' => 'csv', 'file' => $up['file'], 'map' => array_column( $up['columns'], 'guess' ), 'plans' => array(), 'welcome' => false );
+list( , $ck ) = mbcom_call( $im_admin, 'POST', '/import/check', $im_body );
+mbcom_check( 'the check counts who’s new, who’s here, and rows without an email', 1 === $ck['new'] && 1 === $ck['here'] && 1 === count( $ck['invalid'] ) && 4 === $ck['invalid'][0]['row'], wp_json_encode( array( $ck['new'] ?? null, $ck['here'] ?? null, $ck['invalid'] ?? null ) ) );
+mbcom_call( $im_admin, 'POST', '/import/dismiss' );
+mbcom_call( $im_admin, 'POST', '/import/start', $im_body );
+$jc   = $im_run();
+$im_n = get_user_by( 'email', 'mbct_sheet_new@example.test' );
+mbcom_check( 'a new member gets an account with their name and joined date', $im_n && 'Nia' === $im_n->first_name && 0 === strpos( $im_n->user_registered, '2024-03-02' ), wp_json_encode( $jc['counts'] ?? null ) );
+mbcom_check( '…their plan matches a membership by name', $im_n && in_array( (int) $im_vip['id'], \MemBuild\Community\Access::manual_groups( $im_n->ID ), true ) );
+mbcom_check( 'someone already here keeps their name', 'Original' === get_userdata( $im_b )->last_name );
+mbcom_check( 'the file is deleted when it’s done', ! file_exists( \MemBuild\Community\Files::dir() . 'import-' . $up['file'] ) );
+mbcom_call( $im_admin, 'POST', '/import/undo' );
+mbcom_check( 'Undo takes the membership back but keeps the account', $im_n && get_userdata( $im_n->ID ) && ! in_array( (int) $im_vip['id'], \MemBuild\Community\Access::manual_groups( $im_n->ID ), true ) );
+
+// Tidy up: the fake plugins' tables and what's left of the imports.
+foreach ( array( 'bp_activity', 'bp_activity_meta', 'bp_groups', 'bp_groups_members', 'bp_messages_messages', 'bp_messages_recipients', 'bp_xprofile_fields', 'bp_xprofile_data' ) as $tb ) {
+	$wpdb->query( "DROP TABLE IF EXISTS {$im_p}{$tb}" );
+}
+foreach ( array( 'posts', 'spaces', 'space_user', 'post_comments', 'post_reactions' ) as $tb ) {
+	$wpdb->query( "DROP TABLE IF EXISTS {$fp}{$tb}" );
+}
+foreach ( $wpdb->get_col( "SELECT DISTINCT import_id FROM {$wpdb->prefix}mbcom_import_map" ) as $im_id ) {
+	\MemBuild\Community\Import::undo( (int) $im_id );
+}
+$wpdb->query( "DELETE FROM {$wpdb->prefix}mbcom_import_map" );
+delete_option( 'mbcom_import_job' );
+delete_option( 'mbcom_imports' );
+delete_user_meta( $im_b, 'bp_favorite_activities' );
+require_once ABSPATH . 'wp-admin/includes/user.php';
+$im_n && wp_delete_user( $im_n->ID );
+mbcom_call( $im_admin, 'DELETE', "/groups/{$im_vip['id']}" );
+
 /* ---------------------------------------------------------------- */
 echo "\n{$GLOBALS['mbcom_passed']} passed, {$GLOBALS['mbcom_failed']} failed\n";
 if ( $GLOBALS['mbcom_failed'] ) {

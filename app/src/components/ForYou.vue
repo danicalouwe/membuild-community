@@ -110,7 +110,7 @@ h2 {
   height: 44px;
 }
 
-/* A little calendar page, as drawn: the month on a grey strip, the day on white under it. */
+/* A little calendar page: the month on a red strip, the day on white under it. */
 .tile {
   display: grid;
   grid-template-rows: auto 1fr;
@@ -124,13 +124,12 @@ h2 {
 
 .tile small {
   padding: 4px 0 3px;
-  background: var(--surface-2);
-  border-bottom: 1px solid var(--border);
+  background: var(--date-month);
   font-size: var(--fs-3xs);
   font-weight: 750;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--text-2);
+  color: var(--date-month-text);
 }
 
 .tile strong {

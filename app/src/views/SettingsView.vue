@@ -12,6 +12,7 @@ import { initialsOf } from '../config.js'
 import { SETTINGS } from '../components/settings/context.js'
 import GeneralSection from '../components/settings/GeneralSection.vue'
 import FeaturesSection from '../components/settings/FeaturesSection.vue'
+import TopicsSection from '../components/settings/TopicsSection.vue'
 import PermissionsSection from '../components/settings/PermissionsSection.vue'
 import AccessSection from '../components/settings/AccessSection.vue'
 import PointsSection from '../components/settings/PointsSection.vue'
@@ -21,6 +22,7 @@ import GifsSection from '../components/settings/GifsSection.vue'
 import JoiningSection from '../components/settings/JoiningSection.vue'
 import UpdatesSection from '../components/settings/UpdatesSection.vue'
 import AdvancedSection from '../components/settings/AdvancedSection.vue'
+import ImportSection from '../components/settings/ImportSection.vue'
 import { t } from '../lib/i18n.js'
 
 /**
@@ -37,11 +39,13 @@ const SECTIONS = [
   { id: 'joining', icon: 'key', label: t.__('Joining & signing in', 'membuild-community'), component: JoiningSection },
   { id: 'email', icon: 'mail', label: t.__('Email', 'membuild-community'), component: EmailSection },
   { id: 'features', icon: 'grid', label: t.__('Features', 'membuild-community'), component: FeaturesSection },
+  { id: 'topics', icon: 'hash', label: t.__('Topics', 'membuild-community'), component: TopicsSection },
   { id: 'permissions', icon: 'shield', label: t.__('Who can do what', 'membuild-community'), component: PermissionsSection },
   { id: 'access', icon: 'lock', label: t.__('Memberships', 'membuild-community'), component: AccessSection, isolated: true },
   { id: 'points', icon: 'trophy', label: t.__('Points & levels', 'membuild-community'), component: PointsSection },
   { id: 'video', icon: 'video', label: t.__('Video', 'membuild-community'), component: VideoSection },
   { id: 'gifs', icon: 'gif', label: t.__('GIFs', 'membuild-community'), component: GifsSection },
+  { id: 'import', icon: 'download', label: t.__('Import', 'membuild-community'), component: ImportSection },
   { id: 'updates', icon: 'bell', label: t.__('Updates & usage', 'membuild-community'), component: UpdatesSection },
   { id: 'advanced', icon: 'settings', label: t.__('Advanced', 'membuild-community'), component: AdvancedSection },
 ]
@@ -63,11 +67,13 @@ const summary = (id) => {
     joining: t.__('How people join, login page', 'membuild-community'),
     email: [{ default: t.__('Your web host', 'membuild-community'), resend: 'Resend', smtp: t.__('Another service', 'membuild-community') }[f.email?.mode] || '', t.__('test email', 'membuild-community')].filter(Boolean).join(' · '),
     features: t.__('Turn parts on and off', 'membuild-community'),
+    topics: t.__('Subjects members filter Home by', 'membuild-community'),
     permissions: t.sprintf(/* translators: %d: number of moderators and admins */ t._n('%d moderator', '%d moderators', mods, 'membuild-community'), mods),
     access: t.__('Who can open locked courses', 'membuild-community'),
     points: t.__('Level names and points', 'membuild-community'),
     video: f.video?.provider === 'bunny' ? 'Bunny Stream' : t.__('This site', 'membuild-community'),
     gifs: f.gifs?.key ? t.__('Set up', 'membuild-community') : t.__('Not set up', 'membuild-community'),
+    import: t.__('From another plugin or a spreadsheet', 'membuild-community'),
     updates: t.__('New features, usage', 'membuild-community'),
     advanced: t.__('Address, safety key', 'membuild-community'),
   }[id]

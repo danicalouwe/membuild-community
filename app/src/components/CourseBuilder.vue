@@ -430,41 +430,57 @@ const counter = computed(() => `${form.value.description.length} / 160`)
           <template v-else><Icon name="check" :size="15" /> {{ t.__('All changes saved', 'membuild-community') }}</template>
         </span>
       </div>
-      <div class="card cb-settings">
+      <!-- Four groups that read top to bottom, each heading a plain question (canvas: Course settings, simpler). -->
+      <section class="card cb-settings cb-group">
+        <div class="cb-ghead"><span class="cb-gnum">1</span><span><strong>{{ t.__('The basics', 'membuild-community') }}</strong><small>{{ t.__('What members see first.', 'membuild-community') }}</small></span></div>
         <label class="field">
           <span>{{ t.__('Course name', 'membuild-community') }}</span>
           <input v-model="form.title" maxlength="120" />
         </label>
         <label class="field">
-          <span class="row">{{ t.__('Short summary', 'membuild-community') }} <small>{{ counter }}</small></span>
-          <textarea v-model="form.description" rows="3" maxlength="160" />
-          <small>{{ t.__('Shown next to the cover on the course page, and on the course card in the Classroom.', 'membuild-community') }}</small>
+          <span class="row">{{ t.__('A short line about it', 'membuild-community') }} <small>{{ counter }}</small></span>
+          <textarea v-model="form.description" rows="2" maxlength="160" />
+          <small>{{ t.__('One or two sentences. It shows on the course card.', 'membuild-community') }}</small>
         </label>
         <div class="field">
-          <span>{{ t.__('About this course', 'membuild-community') }} <em class="opt">{{ t.__('(optional)', 'membuild-community') }}</em></span>
-          <RichEditor v-model="form.about" :pictures="false" :label="t.__('About this course', 'membuild-community')" :placeholder="t.__('What they’ll learn, who it’s for…', 'membuild-community')" />
-          <small>{{ t.__('Shown below the cover on the course page. Leave it empty if the short summary says enough.', 'membuild-community') }}</small>
+          <span>{{ t.__('Cover picture', 'membuild-community') }}</span>
+          <div class="cover-row">
+            <span class="cover" :style="course.cover ? { backgroundImage: `url(${course.cover})` } : null">{{ course.cover ? '' : course.title }}</span>
+            <button class="btn btn-lg btn-ghost" :disabled="coverUploading" @click="coverInput.click()">{{ coverUploading ? t.__('Uploading…', 'membuild-community') : course.cover ? t.__('Change picture', 'membuild-community') : t.__('Add a picture', 'membuild-community') }}</button>
+            <input ref="coverInput" class="sr-only" type="file" tabindex="-1" aria-hidden="true" accept="image/*" @change="pickCover" />
+          </div>
+          <small>{{ t.__('A wide picture works best.', 'membuild-community') }}</small>
         </div>
+        <div class="field">
+          <span>{{ t.__('More about it', 'membuild-community') }} <em class="opt">{{ t.__('(optional)', 'membuild-community') }}</em></span>
+          <RichEditor v-model="form.about" :pictures="false" :label="t.__('More about it', 'membuild-community')" :placeholder="t.__('What they’ll learn, who it’s for…', 'membuild-community')" />
+          <small>{{ t.__('What they will learn and who it is for. You can leave this empty.', 'membuild-community') }}</small>
+        </div>
+      </section>
 
+      <section class="card cb-settings cb-group">
+        <div class="cb-ghead"><span class="cb-gnum">2</span><span><strong>{{ t.__('Who can open it', 'membuild-community') }}</strong><small>{{ t.__('Choose who gets in.', 'membuild-community') }}</small></span></div>
         <fieldset class="field">
-          <legend>{{ t.__('Who can take this course?', 'membuild-community') }}</legend>
-          <label class="choice" :class="{ on: course.access === 'everyone' }">
-            <input type="radio" :checked="course.access === 'everyone'" @change="setAccess('everyone')" />
-            <span><strong>{{ t.__('Everyone in the community', 'membuild-community') }}</strong><small>{{ t.__('Any member can open it.', 'membuild-community') }}</small></span>
-          </label>
-          <label class="choice" :class="{ on: course.access === 'level' }">
-            <input type="radio" :checked="course.access === 'level'" @change="setAccess('level')" />
-            <span>
-              <strong>{{ t.__('Members who reach a level', 'membuild-community') }}</strong><small>{{ t.__('Rewards active members.', 'membuild-community') }}</small>
-              <select v-if="course.access === 'level'" :value="Math.max(2, course.unlock_level)" :aria-label="t.__('Level needed', 'membuild-community')" @change="saveCourse({ unlock_level: Number($event.target.value) })">
-                <option v-for="n in (cfg.community.levelNames.length || 9) - 1" :key="n" :value="n + 1">{{ levelLabel(n + 1) }}</option>
-              </select>
-            </span>
-          </label>
-          <label class="choice" :class="{ on: course.access === 'groups' }">
-            <input type="radio" :checked="course.access === 'groups'" @change="setAccess('groups')" />
-            <span><strong>{{ t.__('Members with a membership', 'membuild-community') }}</strong><small>{{ t.__('For paid or invited members.', 'membuild-community') }}</small></span>
-          </label>
+          <legend>{{ t.__('Who can open this course?', 'membuild-community') }}</legend>
+          <div class="pick-row three">
+            <label class="choice" :class="{ on: course.access === 'everyone' }">
+              <input type="radio" :checked="course.access === 'everyone'" @change="setAccess('everyone')" />
+              <span><strong>{{ t.__('Everyone', 'membuild-community') }}</strong><small>{{ t.__('All members can open it.', 'membuild-community') }}</small></span>
+            </label>
+            <label class="choice" :class="{ on: course.access === 'level' }">
+              <input type="radio" :checked="course.access === 'level'" @change="setAccess('level')" />
+              <span>
+                <strong>{{ t.__('Active members', 'membuild-community') }}</strong><small>{{ t.__('They open it when they reach a level.', 'membuild-community') }}</small>
+                <select v-if="course.access === 'level'" :value="Math.max(2, course.unlock_level)" :aria-label="t.__('Level needed', 'membuild-community')" @change="saveCourse({ unlock_level: Number($event.target.value) })">
+                  <option v-for="n in (cfg.community.levelNames.length || 9) - 1" :key="n" :value="n + 1">{{ levelLabel(n + 1) }}</option>
+                </select>
+              </span>
+            </label>
+            <label class="choice" :class="{ on: course.access === 'groups' }">
+              <input type="radio" :checked="course.access === 'groups'" @change="setAccess('groups')" />
+              <span><strong>{{ t.__('Only some members', 'membuild-community') }}</strong><small>{{ t.__('People with a membership, like paid members.', 'membuild-community') }}</small></span>
+            </label>
+          </div>
           <div v-if="course.access === 'groups'" class="sub-box">
             <strong>{{ t.__('Which memberships open it', 'membuild-community') }}</strong>
             <p v-if="!groups">{{ t.__('Loading…', 'membuild-community') }}</p>
@@ -478,9 +494,9 @@ const counter = computed(() => `${form.value.description.length} / 160`)
                   </span>
                 </span>
               </div>
-              <small class="ms-hint">{{ t.__('A membership can follow a WordPress role, so WP Fusion, FluentCRM or your membership plugin can give access for you.', 'membuild-community') }}</small>
+              <small class="ms-hint">{{ t.__('Your shop or membership plugin can give people a membership for you.', 'membuild-community') }}</small>
               <p v-if="!groups.length">{{ t.__('There are no memberships yet.', 'membuild-community') }}</p>
-              <p v-else-if="!chosenGroups.length" class="warn-text">{{ t.__('Pick at least one. Until then only admins and moderators can open this course.', 'membuild-community') }}</p>
+              <p v-else-if="!chosenGroups.length" class="warn-text">{{ t.__('Pick at least one. Until you do, only you and your moderators can open it.', 'membuild-community') }}</p>
               <div v-if="shown" class="ms-sees">
                 <strong>{{ t.sprintf(/* translators: %s: membership name */ t.__('Everyone else sees the %s’s button', 'membuild-community'), shown.name) }}</strong>
                 <p v-if="shown.offer" class="ms-row">{{ t.__('Members see:', 'membuild-community') }} <span class="ms-btn"><Icon name="lock" :size="15" /> {{ offerButton(shown.offer) }}</span></p>
@@ -494,62 +510,77 @@ const counter = computed(() => `${form.value.description.length} / 160`)
             </template>
           </div>
         </fieldset>
-
         <fieldset v-if="course.access !== 'everyone'" class="field">
-          <legend>{{ t.__('When someone can’t open it yet', 'membuild-community') }}</legend>
-          <label class="choice" :class="{ on: !course.hide_locked }">
-            <input type="radio" :checked="!course.hide_locked" @change="saveCourse({ hide_locked: false })" />
-            <span><strong>{{ t.__('Show it with a lock (recommended)', 'membuild-community') }}</strong><small>{{ t.__('They can see what’s inside, which makes them want it.', 'membuild-community') }}</small></span>
-          </label>
-          <label class="choice" :class="{ on: course.hide_locked }">
-            <input type="radio" :checked="course.hide_locked" @change="saveCourse({ hide_locked: true })" />
-            <span><strong>{{ t.__('Hide it from the Classroom', 'membuild-community') }}</strong><small>{{ t.__('Only people who can open it will see it.', 'membuild-community') }}</small></span>
-          </label>
-        </fieldset>
-
-        <fieldset class="field">
-          <legend>{{ t.__('Questions under lessons', 'membuild-community') }}</legend>
-          <label class="choice" :class="{ on: course.questions !== 'off' }">
-            <input type="radio" :checked="course.questions !== 'off'" @change="saveCourse({ questions: 'on' })" />
-            <span><strong>{{ t.__('Same as the rest of the community (on)', 'membuild-community') }}</strong><small>{{ t.__('Members can ask and answer questions under each lesson.', 'membuild-community') }}</small></span>
-          </label>
-          <label class="choice" :class="{ on: course.questions === 'off' }">
-            <input type="radio" :checked="course.questions === 'off'" @change="saveCourse({ questions: 'off' })" />
-            <span><strong>{{ t.__('Off for this course', 'membuild-community') }}</strong><small>{{ t.__('No questions under its lessons, and no All posts tab. Good for a quiet, self-paced course.', 'membuild-community') }}</small></span>
-          </label>
-        </fieldset>
-
-        <div class="field">
-          <span>{{ t.__('Cover picture', 'membuild-community') }}</span>
-          <div class="cover-row">
-            <span class="cover" :style="course.cover ? { backgroundImage: `url(${course.cover})` } : null">{{ course.cover ? '' : course.title }}</span>
-            <button class="btn btn-lg btn-ghost" :disabled="coverUploading" @click="coverInput.click()">{{ coverUploading ? t.__('Uploading…', 'membuild-community') : course.cover ? t.__('Change picture', 'membuild-community') : t.__('Add a picture', 'membuild-community') }}</button>
-            <input ref="coverInput" class="sr-only" type="file" tabindex="-1" aria-hidden="true" accept="image/*" @change="pickCover" />
+          <legend>{{ t.__('What do the others see?', 'membuild-community') }}</legend>
+          <div class="pick-row">
+            <label class="choice" :class="{ on: !course.hide_locked }">
+              <input type="radio" :checked="!course.hide_locked" @change="saveCourse({ hide_locked: false })" />
+              <span><strong>{{ t.__('The course, with a lock', 'membuild-community') }}</strong><small>{{ t.__('They can see what is inside. (Best)', 'membuild-community') }}</small></span>
+            </label>
+            <label class="choice" :class="{ on: course.hide_locked }">
+              <input type="radio" :checked="course.hide_locked" @change="saveCourse({ hide_locked: true })" />
+              <span><strong>{{ t.__('Nothing', 'membuild-community') }}</strong><small>{{ t.__('The course is hidden from them.', 'membuild-community') }}</small></span>
+            </label>
           </div>
-          <small>{{ t.__('A wide picture works best.', 'membuild-community') }}</small>
-        </div>
-
-        <fieldset class="field">
-          <legend>{{ t.__('Is it ready for members?', 'membuild-community') }}</legend>
-          <label class="choice" :class="{ on: course.status !== 'published' }">
-            <input type="radio" :checked="course.status !== 'published'" @change="setReady(false)" />
-            <span><strong>{{ t.__('Not yet (draft)', 'membuild-community') }}</strong><small>{{ t.__('Only you can see it while you build it.', 'membuild-community') }}</small></span>
-          </label>
-          <label class="choice" :class="{ on: course.status === 'published' }">
-            <input type="radio" :checked="course.status === 'published'" @change="setReady(true)" />
-            <span><strong>{{ t.__('Yes, publish it', 'membuild-community') }}</strong><small>{{ t.__('Members see it in the Classroom and can start it.', 'membuild-community') }}</small></span>
-          </label>
         </fieldset>
-      </div>
+      </section>
+
+      <section class="card cb-settings cb-group">
+        <div class="cb-ghead"><span class="cb-gnum">3</span><span><strong>{{ t.__('How it works', 'membuild-community') }}</strong><small>{{ t.__('How members go through it.', 'membuild-community') }}</small></span></div>
+        <fieldset class="field">
+          <legend>{{ t.__('Can members skip ahead?', 'membuild-community') }}</legend>
+          <div class="pick-row">
+            <label class="choice" :class="{ on: !course.in_order }">
+              <input type="radio" :checked="!course.in_order" @change="saveCourse({ in_order: false })" />
+              <span><strong>{{ t.__('Yes, any order', 'membuild-community') }}</strong><small>{{ t.__('They can open any lesson.', 'membuild-community') }}</small></span>
+            </label>
+            <label class="choice" :class="{ on: course.in_order }">
+              <input type="radio" :checked="course.in_order" @change="saveCourse({ in_order: true })" />
+              <span><strong>{{ t.__('No, one at a time', 'membuild-community') }}</strong><small>{{ t.__('A lesson opens when they finish the one before.', 'membuild-community') }}</small></span>
+            </label>
+          </div>
+          <small>{{ t.__('You and your moderators can always open every lesson.', 'membuild-community') }}</small>
+        </fieldset>
+        <fieldset class="field">
+          <legend>{{ t.__('Can members ask questions under the lessons?', 'membuild-community') }}</legend>
+          <div class="pick-row">
+            <label class="choice" :class="{ on: course.questions !== 'off' }">
+              <input type="radio" :checked="course.questions !== 'off'" @change="saveCourse({ questions: 'on' })" />
+              <span><strong>{{ t.__('Yes', 'membuild-community') }}</strong><small>{{ t.__('They can ask and answer under each lesson.', 'membuild-community') }}</small></span>
+            </label>
+            <label class="choice" :class="{ on: course.questions === 'off' }">
+              <input type="radio" :checked="course.questions === 'off'" @change="saveCourse({ questions: 'off' })" />
+              <span><strong>{{ t.__('No', 'membuild-community') }}</strong><small>{{ t.__('No questions in this course.', 'membuild-community') }}</small></span>
+            </label>
+          </div>
+        </fieldset>
+      </section>
+
+      <section class="card cb-settings cb-group">
+        <div class="cb-ghead"><span class="cb-gnum">4</span><span><strong>{{ t.__('Ready?', 'membuild-community') }}</strong><small>{{ t.__('Members only see it once you say yes.', 'membuild-community') }}</small></span></div>
+        <fieldset class="field">
+          <legend>{{ t.__('Can members see it?', 'membuild-community') }}</legend>
+          <div class="pick-row">
+            <label class="choice" :class="{ on: course.status !== 'published' }">
+              <input type="radio" :checked="course.status !== 'published'" @change="setReady(false)" />
+              <span><strong>{{ t.__('Not yet', 'membuild-community') }}</strong><small>{{ t.__('Only you can see it while you build it.', 'membuild-community') }}</small></span>
+            </label>
+            <label class="choice" :class="{ on: course.status === 'published' }">
+              <input type="radio" :checked="course.status === 'published'" @change="setReady(true)" />
+              <span><strong>{{ t.__('Yes, show it', 'membuild-community') }}</strong><small>{{ t.__('Members find it in the Classroom.', 'membuild-community') }}</small></span>
+            </label>
+          </div>
+        </fieldset>
+      </section>
       <div class="cb-done">
         <button class="btn btn-lg btn-primary" @click="emit('exit')">{{ t.__('Done', 'membuild-community') }}</button>
       </div>
       <section class="danger">
         <span>
-          <strong>{{ t.__('Danger zone', 'membuild-community') }}</strong>
-          <small>{{ t.__('Deleting removes this course, its lessons, files and posts for everyone. It can’t be undone.', 'membuild-community') }}</small>
+          <strong>{{ t.__('Delete this course', 'membuild-community') }}</strong>
+          <small>{{ t.__('It removes the course and everything in it, for everyone. You can’t undo it.', 'membuild-community') }}</small>
         </span>
-        <button class="btn btn-lg danger-btn" @click="deletingCourse = true">{{ t.__('Delete this course…', 'membuild-community') }}</button>
+        <button class="btn btn-lg danger-btn" @click="deletingCourse = true">{{ t.__('Delete course…', 'membuild-community') }}</button>
       </section>
     </template>
 
@@ -1132,6 +1163,61 @@ const counter = computed(() => `${form.value.description.length} / 160`)
 .choice.on {
   border: 2px solid var(--accent);
   background: var(--accent-soft);
+}
+
+/* Settings in four numbered groups; choices side by side, one column on phones. */
+.cb-group + .cb-group {
+  margin-top: 16px;
+}
+
+.cb-ghead {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.cb-ghead > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cb-ghead strong {
+  font-size: var(--fs-3xl);
+}
+
+.cb-ghead small {
+  color: var(--text-2);
+  font-size: var(--fs-base);
+}
+
+.cb-gnum {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-pill);
+  background: var(--text);
+  color: var(--surface);
+  font-weight: 800;
+}
+
+.pick-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.pick-row.three {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 760px) {
+  .pick-row,
+  .pick-row.three {
+    grid-template-columns: 1fr;
+  }
 }
 
 .choice input {

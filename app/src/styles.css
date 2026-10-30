@@ -44,6 +44,8 @@
   --warn: #f59e0b; /* a yellow dot: not saved yet */
   --live: #e5484d; /* happening now: the Live fill, a count bubble */
   --live-text: #c92a2a; /* the same red as words on the page (4.5:1 on white and grey) */
+  --date-month: var(--danger-strong); /* the month strip on a little calendar tile */
+  --date-month-text: var(--on-color);
   --live-ink: #c92a2a; /* red words on always-white things (a calendar date), in both modes */
   --highlight: #ffd43b; /* the words that matched a search */
   --scrim: #000000; /* shading over photos and videos, mixed see-through */
@@ -120,6 +122,8 @@
     --danger-line: #6b2a24;
     --danger-text: #ff8a7e;
     --live-text: #ff6b70;
+    --date-month: var(--surface-2);
+    --date-month-text: var(--live-text);
     --danger-ink: #f3b4ad;
     --border-strong: #3d4048;
     --shadow: none;
@@ -291,6 +295,12 @@ video {
 }
 
 /* The one main action on a lesson (Mark Complete, Next lesson, Continue): dark, like the design. */
+/* The one red button in a "delete" box: white words on a solid red. */
+.btn-danger {
+  background: var(--danger-strong);
+  color: var(--on-color);
+}
+
 .btn-dark {
   background: var(--text);
   color: var(--surface);
@@ -641,6 +651,51 @@ h4 {
 /* An empty state: what a page shows before it has anything. An icon in a soft circle, a short
    title, one line on what to do, at most one button. .small inside a panel; .dashed when an
    owner is invited to start something (the circle in the main colour). */
+/* A pop-up card: "Lesson done", a level-up. They take turns (lib/popups.js) in one spot:
+   bottom-right on computers, full width above the tabs on phones. One size for all. */
+.pop-card {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 120;
+  box-sizing: border-box;
+  width: min(420px, calc(100vw - 32px));
+  min-height: 148px;
+  padding: 16px 18px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-lift);
+  overflow: hidden;
+}
+
+@media (max-width: 767px) {
+  .pop-card {
+    right: 16px;
+    left: 16px;
+    bottom: calc(var(--tabbar-h) + 16px + env(safe-area-inset-bottom));
+    width: auto;
+  }
+}
+
+/* On a lesson the phone's lesson bar replaces the tabs: just above it. */
+@media (max-width: 899px) {
+  body:has(.lv-dock) .pop-card {
+    bottom: calc(92px + env(safe-area-inset-bottom));
+  }
+}
+
+.pop-card-enter-active,
+.pop-card-leave-active {
+  transition: opacity 0.25s ease, transform 0.35s cubic-bezier(0.2, 1.2, 0.3, 1);
+}
+
+.pop-card-enter-from,
+.pop-card-leave-to {
+  opacity: 0;
+  transform: translateY(24px);
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;

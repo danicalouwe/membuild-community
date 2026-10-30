@@ -1,72 +1,75 @@
 <script setup>
 import { levelLabel } from '../config.js'
-import { watch } from 'vue'
+import { onBeforeUnmount, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { me } from '../stores/me.js'
+import { levelShown } from '../lib/popups.js'
+import Icon from './Icon.vue'
 import { t } from '../lib/i18n.js'
 
-// Celebrates a new level, and names any courses it just unlocked.
+/**
+ * Celebrates a new level, and names any courses it just unlocked. The same card as
+ * "Lesson done" (size, badge, words, buttons), in the same place, and only once
+ * that card is gone (lib/popups.js), so the two never cover each other.
+ */
+const router = useRouter()
 let timer = null
 watch(
-  () => me.levelUp,
+  levelShown,
   (v) => {
     clearTimeout(timer)
-    if (v) timer = setTimeout(() => (me.levelUp = null), 6000)
+    if (v) timer = setTimeout(close, 6000) // the time starts when it shows, not when it was earned
   },
+  { immediate: true },
 )
-const reached = (level) => t.sprintf(/* translators: %s: the new level, e.g. "Level 3 · Builder" */ t.__('You reached %s! 🎉', 'membuild-community'), levelLabel(level))
+onBeforeUnmount(() => clearTimeout(timer))
+function close() {
+  me.levelUp = null
+}
+function seeLevels() {
+  close()
+  router.push({ name: 'leaderboard' })
+}
+const title = (level) => t.sprintf(/* translators: %s: the new level, e.g. "Level 3 · Builder" */ t.__('%s! 🎉', 'membuild-community'), levelLabel(level))
 const unlocked = (items) => t.sprintf(/* translators: %s: course titles, comma-separated */ t.__('Unlocked: %s', 'membuild-community'), items.map((u) => u.title).join(', '))
 </script>
 
 <template>
-  <Transition name="toast">
-    <div v-if="me.levelUp" class="toast" role="status" aria-live="polite" @click="me.levelUp = null">
+  <Transition name="pop-card">
+    <div v-if="levelShown" :key="me.levelUp.level" class="pop-card lu" role="status" aria-live="polite">
       <span class="confetti" aria-hidden="true"><i v-for="n in 14" :key="n" :style="{ '--i': n }" /></span>
       <span class="badge">{{ me.levelUp.level }}</span>
-      <div>
-        <strong>{{ reached(me.levelUp.level) }}</strong>
-        <p v-if="me.levelUp.unlocked.length">{{ unlocked(me.levelUp.unlocked) }}</p>
-        <p v-else>{{ t.__('Keep posting, commenting and learning to level up.', 'membuild-community') }}</p>
+      <div class="text">
+        <strong>{{ title(me.levelUp.level) }}</strong>
+        <p class="line">{{ me.levelUp.unlocked.length ? unlocked(me.levelUp.unlocked) : t.__('You reached a new level. Keep posting and learning.', 'membuild-community') }}</p>
       </div>
+      <div class="actions">
+        <button type="button" class="btn btn-lg btn-ghost soft" @click="seeLevels">{{ t.__('See levels', 'membuild-community') }}</button>
+        <button type="button" class="btn btn-lg btn-primary" @click="close">{{ t.__('Nice!', 'membuild-community') }}</button>
+      </div>
+      <button type="button" class="close" :aria-label="t.__('Close', 'membuild-community')" @click="close"><Icon name="close" :size="20" /></button>
     </div>
   </Transition>
 </template>
 
 <style scoped>
-.toast {
-  position: fixed;
-  left: 50%;
-  bottom: calc(var(--tabbar-h) + 24px + env(safe-area-inset-bottom));
-  z-index: 120;
+.lu {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 14px;
-  width: min(420px, calc(100vw - 24px));
-  padding: 14px 18px;
-  border-radius: var(--radius-lg);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-lift);
-  transform: translateX(-50%);
-  cursor: pointer;
-  overflow: hidden;
-}
-
-@media (min-width: 768px) {
-  .toast {
-    bottom: 28px;
-  }
+  gap: 12px 16px;
 }
 
 .badge {
   display: grid;
   place-items: center;
   flex: none;
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   background: var(--accent);
   color: var(--accent-ink);
-  font-size: var(--fs-4xl);
+  font-size: var(--fs-5xl);
   font-weight: 800;
   animation: pop 0.6s cubic-bezier(0.3, 1.6, 0.5, 1);
 }
@@ -77,15 +80,61 @@ const unlocked = (items) => t.sprintf(/* translators: %s: course titles, comma-s
   }
 }
 
-strong {
-  display: block;
-  font-size: var(--fs-lg);
+.text {
+  flex: 1;
+  min-width: 0;
+  padding-right: 36px;
 }
 
-p {
-  margin: 2px 0 0;
-  font-size: var(--fs-sm);
+.text strong {
+  display: block;
+  overflow: hidden;
+  font-size: var(--fs-2xl);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.line {
+  margin: 3px 0 0;
+  overflow: hidden;
+  font-size: var(--fs-lg);
   color: var(--text-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  flex: 1 1 100%;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.soft {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  color: var(--text-2);
+}
+
+.close:hover {
+  background: var(--surface-2);
+}
+
+.confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
 .confetti i {
@@ -94,27 +143,38 @@ p {
   left: calc(var(--i) * 7%);
   width: 7px;
   height: 11px;
-  border-radius: 2px;
-  background: hsl(calc(var(--i) * 47) 85% 60%);
+  border-radius: var(--radius-xs);
+  background: hsl(calc(var(--i) * 47) 85% 60%); /* exempt: confetti colours */
   animation: fall 1.4s ease-in forwards;
   animation-delay: calc(var(--i) * 40ms);
 }
 
 @keyframes fall {
   to {
-    transform: translateY(110px) rotate(calc(var(--i) * 60deg));
+    transform: translateY(150px) rotate(calc(var(--i) * 60deg));
     opacity: 0;
   }
 }
 
-.toast-enter-active,
-.toast-leave-active {
-  transition: opacity 0.25s ease, transform 0.35s cubic-bezier(0.2, 1.2, 0.3, 1);
-}
+/* Small phones: the same smaller sizes as "Lesson done". */
+@media (max-width: 600px) {
+  .lu {
+    gap: 14px 12px;
+    padding: 14px;
+  }
 
-.toast-enter-from,
-.toast-leave-to {
-  opacity: 0;
-  transform: translate(-50%, 24px);
+  .badge {
+    width: 44px;
+    height: 44px;
+    font-size: var(--fs-3xl);
+  }
+
+  .text strong {
+    font-size: var(--fs-xl);
+  }
+
+  .actions .btn {
+    flex: 1;
+  }
 }
 </style>

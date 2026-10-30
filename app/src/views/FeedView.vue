@@ -1,7 +1,9 @@
 <script setup>
 import { computed, onActivated, onBeforeUnmount, onDeactivated, onMounted, ref, watch } from 'vue'
 import { cfg, feature } from '../config.js'
-import { lists, loadMore, refresh } from '../stores/feed.js'
+import { lists, loadMore, refresh, topicList } from '../stores/feed.js'
+import { topicById, topics, topicsShown } from '../lib/topics.js'
+import { useRoute } from 'vue-router'
 import { messages, pulseNow, watchFeed } from '../stores/messages.js'
 import Composer from '../components/Composer.vue'
 import PostSkeleton from '../components/PostSkeleton.vue'
@@ -18,7 +20,30 @@ import { useRouter } from 'vue-router'
 import { t } from '../lib/i18n.js'
 
 const sort = ref(sessionStorage.getItem('mbcom-sort') || 'latest')
-const list = computed(() => lists[sort.value])
+// Home filtered to a topic (?topic=3): from the pills, or a post's topic label.
+const route = useRoute()
+const topic = computed(() => (topicsShown.value && route.name === 'feed' && topicById(route.query.topic) ? Number(route.query.topic) : 0))
+const current = computed(() => (topic.value ? topicById(topic.value) : null))
+const list = computed(() => (topic.value ? topicList(topic.value, sort.value) : lists[sort.value]))
+const sortOpen = ref(false)
+const setTopic = (id) => {
+  router.replace({ query: { ...route.query, topic: id || undefined } })
+  window.scrollTo({ top: 0 })
+}
+const setSort = (s) => {
+  sort.value = s
+  sortOpen.value = false
+}
+watch(list, (l) => {
+  if (!l.loaded) loadMore(l)
+})
+const closeSort = (e) => {
+  if (sortOpen.value && !e.target.closest?.('.sort-wrap')) sortOpen.value = false
+}
+onMounted(() => document.addEventListener('click', closeSort))
+onBeforeUnmount(() => document.removeEventListener('click', closeSort))
+const postsIn = (n) => t.sprintf(/* translators: %d: number of posts */ t._n('%d post', '%d posts', n, 'membuild-community'), n)
+const noneIn = (name) => t.sprintf(/* translators: %s: a topic's name */ t.__('No posts in %s yet. Be the first.', 'membuild-community'), name)
 const sentinel = ref(null)
 let observer
 let stopFeed = null
@@ -106,7 +131,7 @@ async function sendAgain() {
 
 /* An empty Home for the owner: ask for the welcome post. */
 const router = useRouter()
-const ownerEmpty = computed(() => list.value.loaded && !list.value.items.length && !list.value.pinned.length && cfg.community.canManage && sort.value === 'latest')
+const ownerEmpty = computed(() => !topic.value && list.value.loaded && !list.value.items.length && !list.value.pinned.length && cfg.community.canManage && sort.value === 'latest')
 const writeWelcome = () => router.replace({ query: { write: 1 } })
 
 const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waiting to be shown */ t._n('%d new post', '%d new posts', n, 'membuild-community'), n)
@@ -133,12 +158,32 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
       <ThemeSlot name="home.for-you" :data="{ data: forYou }"><ForYou :data="forYou" /></ThemeSlot>
     </aside>
 
-    <Composer v-if="cfg.community.canPost && !cfg.community.restriction" @posted="scrollTop" />
+    <Composer v-if="cfg.community.canPost && !cfg.community.restriction" :topic="topic" @posted="scrollTop" />
     <StoriesStrip v-if="feature('stories')" />
 
     <ThemeSlot name="home.before-feed" :data="{ sort }" />
 
-    <div class="sort" role="tablist" :aria-label="t.__('Sort posts', 'membuild-community')">
+    <!-- With topics: All plus a pill per topic, and Latest / Popular in a small Sort menu. -->
+    <div v-if="topicsShown" class="topic-row">
+      <div class="topic-pills" role="radiogroup" :aria-label="t.__('Topics', 'membuild-community')">
+        <button class="filter-pill" role="radio" :aria-checked="!topic" :class="{ on: !topic }" @click="setTopic(0)">{{ t.__('All', 'membuild-community') }}</button>
+        <button v-for="x in topics.items" :key="x.id" class="filter-pill" role="radio" :aria-checked="topic === x.id" :class="{ on: topic === x.id }" @click="setTopic(x.id)"><span class="topic-dot" :style="{ background: x.color }" />{{ x.name }}</button>
+      </div>
+      <span class="sort-wrap">
+        <button class="filter-pill sort-btn" aria-haspopup="menu" :aria-expanded="sortOpen" :aria-label="t.__('Sort posts', 'membuild-community')" @click="sortOpen = !sortOpen"><Icon name="sort" :size="16" /><span class="sort-word">{{ sort === 'hot' ? t.__('Popular', 'membuild-community') : t.__('Latest', 'membuild-community') }}</span></button>
+        <span v-if="sortOpen" class="sort-menu card" role="menu">
+          <span class="sort-title">{{ t.__('Sort posts', 'membuild-community') }}</span>
+          <button role="menuitemradio" :aria-checked="sort === 'latest'" :class="{ on: sort === 'latest' }" @click="setSort('latest')">{{ t.__('Latest', 'membuild-community') }}<Icon v-if="sort === 'latest'" name="check" :size="18" /></button>
+          <button role="menuitemradio" :aria-checked="sort === 'hot'" :class="{ on: sort === 'hot' }" @click="setSort('hot')">{{ t.__('Popular', 'membuild-community') }}<Icon v-if="sort === 'hot'" name="check" :size="18" /></button>
+        </span>
+      </span>
+    </div>
+    <section v-if="current" class="card topic-card">
+      <strong><span class="topic-dot" :style="{ background: current.color }" />{{ current.name }}</strong>
+      <span>{{ [current.description, postsIn(current.posts)].filter(Boolean).join(' · ') }}</span>
+    </section>
+
+    <div v-else-if="!topicsShown" class="sort" role="tablist" :aria-label="t.__('Sort posts', 'membuild-community')">
       <button class="filter-pill" role="tab" :aria-selected="sort === 'latest'" :class="{ on: sort === 'latest' }" @click="sort = 'latest'">{{ t.__('Latest', 'membuild-community') }}</button>
       <button class="filter-pill" role="tab" :aria-selected="sort === 'hot'" :class="{ on: sort === 'hot' }" @click="sort = 'hot'"><Icon name="flame" :size="15" /> {{ t.__('Popular', 'membuild-community') }}</button>
     </div>
@@ -148,8 +193,8 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
     </template>
     <template v-for="(post, i) in list.items" :key="post.localKey || post.id">
       <ThemeSlot name="home.post-card" :data="{ post, pinned: false }"><PostCard :post="post" course-header /></ThemeSlot>
-      <!-- Reels are grouped into one tray in the feed, after the third post. -->
-      <ReelsTray v-if="feature('reels') && i === Math.min(2, list.items.length - 1)" />
+      <!-- Reels are grouped into one tray in the feed, after the third post; a topic shows only its own posts. -->
+      <ReelsTray v-if="feature('reels') && !topic && i === Math.min(2, list.items.length - 1)" />
     </template>
 
     <template v-if="!list.loaded"><PostSkeleton v-for="n in 3" :key="n" /></template>
@@ -163,7 +208,7 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
       <p>{{ t.__('New members see the newest post first. A short hello from you, and what they can expect here, makes them feel welcome.', 'membuild-community') }}</p>
       <button type="button" class="btn-main" @click="writeWelcome">{{ t.__('Write a welcome post', 'membuild-community') }}</button>
     </section>
-    <p v-else-if="list.loaded && !list.items.length" class="status">{{ t.__('No posts yet. Be the first to say hi 👋', 'membuild-community') }}</p>
+    <p v-else-if="list.loaded && !list.items.length" class="status">{{ current ? noneIn(current.name) : t.__('No posts yet. Be the first to say hi 👋', 'membuild-community') }}</p>
     <p v-else-if="list.loaded && !list.hasMore" class="status">{{ t.__("You're all caught up ✨", 'membuild-community') }}</p>
 
     <div ref="sentinel" class="sentinel" aria-hidden="true" />
@@ -284,6 +329,119 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
 .sort {
   display: flex;
   gap: 6px;
+}
+
+/* Topics: the pills scroll sideways with a fade at the end; Sort stays put. */
+.topic-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topic-pills {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent); /* exempt: mask shape, not a colour */
+  mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent); /* exempt: mask shape, not a colour */
+  padding-right: 32px;
+}
+
+.topic-pills::-webkit-scrollbar {
+  display: none;
+}
+
+.topic-pills .filter-pill {
+  flex: none;
+}
+
+.topic-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  margin-right: 6px;
+  border-radius: var(--radius-pill);
+}
+
+.sort-wrap {
+  position: relative;
+  flex: none;
+}
+
+.sort-btn {
+  gap: 6px;
+}
+
+.sort-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 20;
+  width: 250px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-pop);
+}
+
+.sort-title {
+  padding: 8px 10px;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.sort-menu button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  text-align: left;
+}
+
+.sort-menu button:hover,
+.sort-menu button.on {
+  background: var(--surface-2);
+}
+
+.topic-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 16px;
+}
+
+.topic-card strong {
+  display: flex;
+  align-items: center;
+  font-size: var(--fs-lg);
+}
+
+.topic-card span {
+  color: var(--text-2);
+  font-size: var(--fs-md);
+}
+
+@media (max-width: 600px) {
+  .sort-word {
+    display: none; /* phones: a round Sort button */
+  }
+
+  .sort-btn {
+    width: 36px;
+    padding: 0;
+    justify-content: center;
+  }
 }
 
 .status {

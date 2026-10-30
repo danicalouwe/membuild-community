@@ -252,12 +252,13 @@ class Search {
 		// Posts in courses show only to members who can open that course and lesson.
 		list( $seen, $seen_vals ) = Discussions::visible_sql();
 		list( $ev, $ev_vals )     = Events::visible_sql();
+		list( $tops, $tops_vals ) = Topics::visible_sql(); // members-only topics stay with their membership
 		if ( Settings::feature( 'events' ) ) {
 			$ev = "event_at IS NULL AND {$ev}"; // events have their own group
 		}
 		$rows            = $wpdb->get_results(
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $m comes from match(), $seen and $ev from visible_sql(): fixed SQL with placeholders; $reels is a fixed literal; values are bound.
-			$wpdb->prepare( "SELECT id, user_id, type, content, course_id, lesson_id, event_at, event_title, reactions_count, comments_count, created_at FROM %i WHERE status = 'published'{$reels} AND {$seen} AND {$ev} AND {$m} ORDER BY id DESC LIMIT %d OFFSET %d", array_merge( array( $posts ), $seen_vals, $ev_vals, $vals, array( $limit + 1, $offset ) ) ),
+			$wpdb->prepare( "SELECT id, user_id, type, content, course_id, lesson_id, event_at, event_title, reactions_count, comments_count, created_at FROM %i WHERE status = 'published'{$reels} AND {$seen} AND {$ev} AND {$tops} AND {$m} ORDER BY id DESC LIMIT %d OFFSET %d", array_merge( array( $posts ), $seen_vals, $ev_vals, $tops_vals, $vals, array( $limit + 1, $offset ) ) ),
 			ARRAY_A
 		);
 		$rows  = Blocks::filter( $rows );
@@ -302,9 +303,10 @@ class Search {
 		$reels           = Settings::feature( 'reels' ) ? '' : " AND p.type = 'post'";
 		list( $seen, $seen_vals ) = Discussions::visible_sql( 'p' );
 		list( $ev, $ev_vals )     = Events::visible_sql( 'p' ); // comments on a group-only event stay with its group (none when Events is off)
+		list( $tops, $tops_vals ) = Topics::visible_sql( 'p' );
 		$rows            = $wpdb->get_results(
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $m comes from match(), $seen and $ev from visible_sql(): fixed SQL with placeholders; $reels is a fixed literal; values are bound.
-			$wpdb->prepare( "SELECT c.id, c.post_id, c.user_id, c.content, c.created_at, p.user_id AS post_user, p.content AS post_content FROM %i c INNER JOIN %i p ON p.id = c.post_id AND p.status = 'published'{$reels} AND {$seen} AND {$ev} WHERE {$m} ORDER BY c.id DESC LIMIT %d OFFSET %d", array_merge( array( Install::table( 'comments' ), Install::table( 'posts' ) ), $seen_vals, $ev_vals, $vals, array( $limit + 1, $offset ) ) ),
+			$wpdb->prepare( "SELECT c.id, c.post_id, c.user_id, c.content, c.created_at, p.user_id AS post_user, p.content AS post_content FROM %i c INNER JOIN %i p ON p.id = c.post_id AND p.status = 'published'{$reels} AND {$seen} AND {$ev} AND {$tops} WHERE {$m} ORDER BY c.id DESC LIMIT %d OFFSET %d", array_merge( array( Install::table( 'comments' ), Install::table( 'posts' ) ), $seen_vals, $ev_vals, $tops_vals, $vals, array( $limit + 1, $offset ) ) ),
 			ARRAY_A
 		);
 		$rows  = Blocks::filter( Blocks::filter( $rows ), 'post_user' ); // neither the comment's author nor the post's

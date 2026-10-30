@@ -89,7 +89,7 @@ const opensOn = (iso) => t.sprintf(/* translators: %s: a date, e.g. "Thu, Oct 29
 
 <template>
   <Transition name="pop-card">
-    <div v-if="done" :key="done.key" class="ld" :class="{ counting }" role="status" aria-live="polite">
+    <div v-if="done" :key="done.key" class="pop-card ld" :class="{ counting }" role="status" aria-live="polite">
       <span class="confetti" aria-hidden="true"><i v-for="(p, n) in pieces" :key="n" :style="p" /></span>
       <span class="badge"><Icon name="check" :size="28" /></span>
       <div class="text" @pointerdown="stop">
@@ -116,21 +116,9 @@ const opensOn = (iso) => t.sprintf(/* translators: %s: a date, e.g. "Thu, Oct 29
 
 <style scoped>
 .ld {
-  position: fixed;
-  left: 50%;
-  bottom: 28px;
-  z-index: 120;
   display: flex;
   align-items: center;
-  gap: 16px;
-  width: min(460px, calc(100vw - 24px)); /* the buttons have their own row, so the card can be narrow */
-  padding: 16px 16px 16px 18px;
-  border-radius: var(--radius-xl);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-lift);
-  transform: translateX(-50%);
-  overflow: hidden;
+  gap: 16px; /* place, size and the pop-in are the shared .pop-card */
 }
 
 .badge {
@@ -275,17 +263,6 @@ const opensOn = (iso) => t.sprintf(/* translators: %s: a date, e.g. "Thu, Oct 29
     opacity: 0;
     transform: translate(var(--dx), 150px) rotate(var(--rot));
   }
-}
-
-.pop-card-enter-active,
-.pop-card-leave-active {
-  transition: opacity 0.25s ease, transform 0.35s cubic-bezier(0.2, 1.2, 0.3, 1);
-}
-
-.pop-card-enter-from,
-.pop-card-leave-to {
-  opacity: 0;
-  transform: translate(-50%, 24px);
 }
 
 /* Phones: above the lesson's own bottom bar, the button on its own row. */
