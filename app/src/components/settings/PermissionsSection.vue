@@ -65,7 +65,7 @@ const joined = (u) => (u.joined_at ? new Intl.DateTimeFormat(undefined, { month:
 <template>
   <section id="s-permissions" class="card group">
     <h2>{{ t.__('Who can do what', 'membuild-community') }}</h2>
-    <p class="intro">{{ t.__('Who helps you run the community, and who can post and message.', 'membuild-community') }}</p>
+    <p class="intro">{{ t.__('Who helps you, and who can post or send messages.', 'membuild-community') }}</p>
 
     <div class="field">
       <span class="label">{{ t.__('Moderators', 'membuild-community') }}</span>
@@ -87,7 +87,7 @@ const joined = (u) => (u.joined_at ? new Intl.DateTimeFormat(undefined, { month:
     <hr class="rule" />
 
     <fieldset class="field">
-      <legend class="label">{{ t.__('Who can post in the feed', 'membuild-community') }}</legend>
+      <legend class="label">{{ t.__('Who can write posts on Home?', 'membuild-community') }}</legend>
       <div class="choices cols-2">
         <label class="choice" :class="{ on: form.posting === 'everyone' }"><input v-model="form.posting" type="radio" name="posting" value="everyone" /><span class="mark" /><strong>{{ t.__('All members', 'membuild-community') }}</strong></label>
         <label class="choice" :class="{ on: form.posting === 'staff' }"><input v-model="form.posting" type="radio" name="posting" value="staff" /><span class="mark" /><strong>{{ t.__('Only admins and moderators', 'membuild-community') }}</strong></label>
@@ -98,7 +98,7 @@ const joined = (u) => (u.joined_at ? new Intl.DateTimeFormat(undefined, { month:
     <hr class="rule" />
 
     <fieldset class="field" :disabled="!form.features.messages">
-      <legend class="label">{{ t.__('Who members can message', 'membuild-community') }}</legend>
+      <legend class="label">{{ t.__('Who can members send messages to?', 'membuild-community') }}</legend>
       <div class="choices cols-2">
         <label class="choice" :class="{ on: form.messaging === 'everyone' }"><input v-model="form.messaging" type="radio" name="messaging" value="everyone" /><span class="mark" /><strong>{{ t.__('Anyone in the community', 'membuild-community') }}</strong></label>
         <label class="choice" :class="{ on: form.messaging === 'staff' }"><input v-model="form.messaging" type="radio" name="messaging" value="staff" /><span class="mark" /><strong>{{ t.__('Only admins and moderators', 'membuild-community') }}</strong></label>

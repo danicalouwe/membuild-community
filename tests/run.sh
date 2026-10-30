@@ -19,4 +19,13 @@ if [ -z "$container" ]; then
 fi
 docker cp tests/integration.php "$container:/tmp/mbcom-integration.php" >/dev/null
 ./node_modules/.bin/wp-env run tests-cli wp ${WP_PATH:+--path="$WP_PATH"} eval-file /tmp/mbcom-integration.php 2>&1 | grep -vE '^(ℹ|✔|✖) |^Command failed'
-exit "${PIPESTATUS[0]}"
+status="${PIPESTATUS[0]}"
+# The login pages in a real Chrome, on the local site (port 8891), when it's up and built.
+if [ ! -f tests/login/login-check.cjs ]; then
+  :
+elif curl -s -o /dev/null --max-time 5 http://localhost:8891/community/login; then
+  node tests/login/login-check.cjs || status=1
+else
+  echo "Login check skipped: the local site (localhost:8891) isn't running."
+fi
+exit "$status"

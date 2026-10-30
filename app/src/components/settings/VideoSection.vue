@@ -36,7 +36,7 @@ async function copyHook() {
 <template>
   <section id="s-video" class="card group">
     <h2>{{ t.__('Video', 'membuild-community') }}</h2>
-    <p class="intro">{{ t.__('Where members’ videos and your lesson videos are kept.', 'membuild-community') }}</p>
+    <p class="intro">{{ t.__('Where videos are kept.', 'membuild-community') }}</p>
     <div class="choices cols-2">
       <label class="choice" :class="{ on: form.video.provider === 'local' }">
         <input v-model="form.video.provider" type="radio" name="video" value="local" />
@@ -46,7 +46,7 @@ async function copyHook() {
       <label class="choice" :class="{ on: form.video.provider === 'bunny' }">
         <input v-model="form.video.provider" type="radio" name="video" value="bunny" />
         <span class="mark" /><strong>Bunny Stream<span class="tag">{{ t.__('Best for courses', 'membuild-community') }}</span></strong>
-        <small>{{ t.__('Smooth streaming at any size, without slowing your host. A few dollars a month.', 'membuild-community') }}</small>
+        <small>{{ t.__('Videos play smoothly and your site stays fast. A few dollars a month.', 'membuild-community') }}</small>
       </label>
     </div>
 

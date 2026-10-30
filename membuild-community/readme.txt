@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.14.2
+Stable tag: 1.14.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,12 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.14.3 =
+* Changed: Settings use plain, everyday words throughout, with short "why" notes where a choice needs one.
+* Changed: "Light or dark, to start with?" in Settings is now one bar (Auto, Light, Dark) that shows the look as you tap it. The same bar, icons only, is in the profile menu, and Settings explains that members can still pick their own there.
+* Changed: "When the plugin is removed" is now a calm choice between Keep everything (the safe default) and Delete everything, with a clear check before deleting.
+* Changed: confirm boxes can show a yellow note and a tick-to-confirm box.
 
 = 1.14.2 =
 * Fixed: in Chrome and other browsers that hide where a form comes from, logging in on the community's login page always said "The page timed out" (since 1.13.7). Those logins work again, and forms sent from other websites are still refused.

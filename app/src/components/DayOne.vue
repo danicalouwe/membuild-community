@@ -27,7 +27,7 @@ watch(
 )
 
 const OWNER = [
-  { key: 'look', label: t.__('Name, logo and colour', 'membuild-community'), to: { name: 'settings', hash: '#s-general' } },
+  { key: 'look', label: t.__('Name, logo and color', 'membuild-community'), to: { name: 'settings', hash: '#s-general' } },
   { key: 'email', label: t.__('Choose how emails are sent', 'membuild-community'), to: { name: 'settings', hash: '#s-email' } },
   { key: 'key', label: t.__('Save your safety key', 'membuild-community'), to: { name: 'settings', query: { s: 'advanced' }, hash: '#s-key' } },
   { key: 'course', label: t.__('Add your first course', 'membuild-community'), to: { name: 'classroom' }, optional: true },

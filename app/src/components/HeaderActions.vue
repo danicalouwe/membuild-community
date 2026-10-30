@@ -5,6 +5,7 @@ import { cfg, feature } from '../config.js'
 import { messages } from '../stores/messages.js'
 import { install, pwa } from '../lib/pwa.js'
 import { display, setDisplay } from '../lib/display.js'
+import LookBar from './LookBar.vue'
 import Avatar from './Avatar.vue'
 import Icon from './Icon.vue'
 import ThemeSlot from './ThemeSlot.vue'
@@ -76,11 +77,6 @@ const after = computed(() =>
     { href: cfg.logoutUrl, icon: 'logout', label: t.__('Log out', 'membuild-community') },
   ].filter(Boolean),
 )
-const LOOKS = [
-  { key: 'light', label: t.__('Light', 'membuild-community') },
-  { key: 'dark', label: t.__('Dark', 'membuild-community') },
-  { key: 'auto', label: t.__('Auto', 'membuild-community') },
-]
 const reportsNeed = (n) => t.sprintf(/* translators: %d: reports waiting */ t._n('%d report needs you', '%d reports need you', n, 'membuild-community'), n)
 
 const cap = (n, max) => (n > max ? `${max}+` : n)
@@ -210,9 +206,7 @@ const accountLabel = () => {
                   <span class="ic"><Icon name="moon" :size="18" /></span>
                   <span class="text"><span>{{ t.__('Display', 'membuild-community') }}</span></span>
                 </div>
-                <div class="looks" role="radiogroup" :aria-label="t.__('Display', 'membuild-community')">
-                  <button v-for="l in LOOKS" :key="l.key" role="radio" :aria-checked="display === l.key" :class="{ on: display === l.key }" @click="setDisplay(l.key)">{{ l.label }}</button>
-                </div>
+                <LookBar class="looks" icons :value="display" :label="t.__('Display', 'membuild-community')" @pick="setDisplay" />
               </div>
             </template>
           </template>
@@ -290,9 +284,7 @@ const accountLabel = () => {
                 <span class="ic"><Icon name="moon" :size="18" /></span>
                 <span class="text"><span>{{ t.__('Display', 'membuild-community') }}</span></span>
               </div>
-              <div class="looks" role="radiogroup" :aria-label="t.__('Display', 'membuild-community')">
-                <button v-for="l in LOOKS" :key="l.key" role="radio" :aria-checked="display === l.key" :class="{ on: display === l.key }" @click="setDisplay(l.key)">{{ l.label }}</button>
-              </div>
+              <LookBar class="looks" icons :value="display" :label="t.__('Display', 'membuild-community')" @pick="setDisplay" />
             </div>
           </template>
         </template>
@@ -417,24 +409,7 @@ const accountLabel = () => {
 }
 
 .looks {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-  padding: 2px 8px 8px 56px;
-}
-
-.looks button {
-  height: 44px;
-  border-radius: var(--radius-pill);
-  background: var(--surface-2);
-  color: var(--text);
-  font-size: var(--fs-lg);
-  font-weight: 700;
-}
-
-.looks button.on {
-  background: var(--accent-soft);
-  color: var(--accent-text);
+  margin: 2px 8px 8px 56px; /* the shared bar (LookBar), lined up under "Display" */
 }
 
 .shortcuts {

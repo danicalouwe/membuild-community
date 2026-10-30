@@ -38,4 +38,14 @@ export function setDisplay(v) {
   }
 }
 
+/** Settings: show a look on this page while the owner picks the community's default (nothing is stored). */
+export function previewDisplay(v) {
+  if (CHOICES.includes(v)) apply(v)
+}
+
+/** Back to this member's own look (after a preview). */
+export function restoreDisplay() {
+  apply(display.value)
+}
+
 apply(display.value)

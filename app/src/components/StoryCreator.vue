@@ -110,11 +110,11 @@ onMounted(() => {
                 :style="{ background: storyBg(key).background }"
                 role="radio"
                 :aria-checked="background === key"
-                :aria-label="i === 0 ? t.__('Your community’s colour', 'membuild-community') : t.sprintf(t.__('Colour %d', 'membuild-community'), i + 1)"
+                :aria-label="i === 0 ? t.__('Your community’s color', 'membuild-community') : t.sprintf(t.__('Color %d', 'membuild-community'), i + 1)"
                 @click="background = key"
               />
             </div>
-            <small class="note">{{ t.__('The first one is your community’s colour.', 'membuild-community') }}</small>
+            <small class="note">{{ t.__('The first one is your community’s color.', 'membuild-community') }}</small>
           </template>
 
           <template v-else-if="mode === 'media'">
@@ -147,7 +147,7 @@ onMounted(() => {
           </button>
           <button type="button" class="pick words" @click="startText">
             <span class="p-icon t">T</span>
-            <span class="p-text"><strong>{{ t.__('Write something', 'membuild-community') }}</strong><small>{{ t.__('Words on a coloured background', 'membuild-community') }}</small></span>
+            <span class="p-text"><strong>{{ t.__('Write something', 'membuild-community') }}</strong><small>{{ t.__('Words on a colored background', 'membuild-community') }}</small></span>
           </button>
         </div>
 

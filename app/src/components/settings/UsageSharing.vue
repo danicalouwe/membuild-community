@@ -58,7 +58,7 @@ async function forgetAsk() {
     <label class="toggle-row">
       <span>
         <strong>{{ t.__('Share usage with MemBuild', 'membuild-community') }}</strong>
-        <small>{{ t.__('Once a week: what your community is about, which features are on, and rough counts like “51–200 members”, under a random ID. Never names, emails, posts or messages. It helps us decide what to build next.', 'membuild-community') }}</small>
+        <small>{{ t.__('Once a week, rough numbers like “51–200 members”. Never names, emails or posts.', 'membuild-community') }}</small>
         <small v-if="status.subscribed">{{ t.__('Because you asked for updates, the same numbers also go with your email, exact rather than in ranges.', 'membuild-community') }}</small>
       </span>
       <input :checked="status.share" type="checkbox" class="switch" role="switch" :disabled="busy" @change="save({ share: $event.target.checked })" />

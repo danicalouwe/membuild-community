@@ -45,7 +45,7 @@ const stop = () => run(() => api.stopUpdates(), t.__('Stopped. MemBuild no longe
 
 <template>
   <section id="s-updates" class="card group">
-    <h2>{{ t.__('Updates & usage', 'membuild-community') }}</h2>
+    <h2>{{ t.__('News from MemBuild', 'membuild-community') }}</h2>
     <p class="intro">{{ t.__('Hear about new features, and help us decide what to build next.', 'membuild-community') }}</p>
 
     <div v-if="status" class="field updates">

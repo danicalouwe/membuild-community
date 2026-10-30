@@ -11,6 +11,7 @@ import { answerConfirm, confirmState } from '../lib/confirm.js'
     :cancel="confirmState.open.cancel"
     :danger="confirmState.open.danger"
     :safe="confirmState.open.safe"
+    :tick="confirmState.open.tick || undefined"
     :z="210"
     @confirm="answerConfirm(true)"
     @close="answerConfirm(false)"

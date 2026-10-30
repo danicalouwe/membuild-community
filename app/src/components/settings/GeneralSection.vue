@@ -1,5 +1,7 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import LookBar from '../LookBar.vue'
+import { previewDisplay, restoreDisplay } from '../../lib/display.js'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { startAttachment } from '../../lib/attachments.js'
 import Icon from '../Icon.vue'
 import { initialsOf } from '../../config.js'
@@ -51,16 +53,18 @@ function pickLogo(e) {
   })
 }
 
-const LOOKS = [
-  { key: 'auto', label: t.__('Match device', 'membuild-community') },
-  { key: 'light', label: t.__('Light', 'membuild-community') },
-  { key: 'dark', label: t.__('Dark', 'membuild-community') },
-]
 
 function removeLogo() {
   logoUpload.value = null
   form.value.logo = null
 }
+// Light or dark?: the community's default. Tapping one shows it on this page at once
+// (nothing is stored until Save); leaving Settings puts back the owner's own look.
+function pickLook(v) {
+  form.value.display = v
+  previewDisplay(v)
+}
+onBeforeUnmount(restoreDisplay)
 </script>
 
 <template>
@@ -144,21 +148,15 @@ function removeLogo() {
         <b class="p-tab">{{ t.__('Selected tab', 'membuild-community') }}</b>
         <b class="p-link">{{ t.__('A link', 'membuild-community') }}</b>
       </div>
-      <small v-if="!hexValid" class="err">{{ t.__('Use a hex code like #5b4bff.', 'membuild-community') }}</small>
-      <small v-else>{{ t.__('Used for buttons, links and highlights. Pick one, or type your brand color.', 'membuild-community') }}</small>
+      <small v-if="!hexValid" class="err">{{ t.__('Type a color code, like #5b4bff.', 'membuild-community') }}</small>
+      <small v-else>{{ t.__('The color of buttons and links. Pick one, or type your own.', 'membuild-community') }}</small>
     </div>
 
     <!-- The look members start with; each member can still pick their own in the menu. -->
     <fieldset class="field">
-      <legend class="label">{{ t.__('Default look', 'membuild-community') }}</legend>
-      <div class="looks" role="radiogroup">
-        <label v-for="l in LOOKS" :key="l.key" class="look" :class="[l.key, { on: (form.display || 'auto') === l.key }]">
-          <input v-model="form.display" type="radio" name="display" :value="l.key" />
-          <span class="shot"><i /><i /><i /></span>
-          <span class="nm"><span class="mark" />{{ l.label }}</span>
-        </label>
-      </div>
-      <small>{{ t.__('Members can still change it for themselves.', 'membuild-community') }}</small>
+      <legend class="label">{{ t.__('Light or dark, to start with?', 'membuild-community') }}</legend>
+      <LookBar :value="form.display || 'auto'" :label="t.__('Light or dark, to start with?', 'membuild-community')" @pick="pickLook" />
+      <small>{{ t.__('What members see until they pick their own in their menu.', 'membuild-community') }}</small>
     </fieldset>
 
   </section>
@@ -214,113 +212,6 @@ function removeLogo() {
 
 .p-link {
   color: var(--accent-text);
-}
-
-/* Default look: three small pictures of the app. */
-.looks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-}
-
-.look {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.look input {
-  position: absolute;
-  opacity: 0;
-}
-
-.shot {
-  position: relative;
-  display: block;
-  width: 132px;
-  height: 84px;
-  overflow: hidden;
-  border: 2px solid var(--border);
-  border-radius: var(--radius-md);
-  background: #f3f4f6;
-}
-
-.shot i {
-  position: absolute;
-  left: 12px;
-  height: 7px;
-  border-radius: 4px;
-  background: #d8dbe0;
-}
-
-.shot i:nth-child(1) {
-  top: 12px;
-  width: 44px;
-}
-
-.shot i:nth-child(2) {
-  top: 30px;
-  right: 12px;
-  height: 26px;
-  border-radius: var(--radius-xs);
-  background: #fff;
-}
-
-.shot i:nth-child(3) {
-  top: 64px;
-  width: 30px;
-  background: var(--accent);
-}
-
-.dark .shot {
-  background: #18191c;
-}
-
-.dark .shot i:nth-child(1) {
-  background: #3a3d44;
-}
-
-.dark .shot i:nth-child(2) {
-  background: #24262b;
-}
-
-/* Match device: half light, half dark. */
-.auto .shot::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: #18191c;
-  clip-path: polygon(100% 0, 100% 100%, 0 100%);
-  opacity: 0.92;
-}
-
-.auto .shot i {
-  z-index: 1;
-}
-
-.look.on .shot {
-  border-color: var(--text);
-  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text);
-}
-
-.nm {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-}
-
-.mark {
-  width: 18px;
-  height: 18px;
-  border: 2px solid var(--border-strong);
-  border-radius: 50%;
-}
-
-.look.on .mark {
-  border-color: var(--text);
-  background: radial-gradient(circle, var(--surface) 0 28%, var(--text) 31%);
 }
 
 /* The settings page's own input style, with the color shown inside it. */

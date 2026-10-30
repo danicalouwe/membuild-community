@@ -32,14 +32,14 @@ const capFor = (action) => t.sprintf(/* translators: %s: an action that earns po
 <template>
   <section id="s-points" class="card group">
     <h2>{{ t.__('Points & levels', 'membuild-community') }}</h2>
-    <p class="intro">{{ t.__('Members earn points for taking part and move up levels. Changes count for new activity.', 'membuild-community') }}</p>
+    <p class="intro">{{ t.__('Members get points for taking part, and move up levels. Changes count from now on.', 'membuild-community') }}</p>
 
     <fieldset class="field">
       <legend class="label">{{ t.__('How many levels', 'membuild-community') }}</legend>
       <div class="counts">
         <button v-for="n in COUNTS" :key="n" type="button" :class="{ on: n === count }" :aria-pressed="n === count" @click="setCount(n)">{{ n }}</button>
       </div>
-      <small>{{ t.__('Fewer levels feel easier to climb; more give members something to work towards for longer. Members keep their points; their level is worked out again.', 'membuild-community') }}</small>
+      <small>{{ t.__('Fewer levels are easier to climb. Nobody loses their points.', 'membuild-community') }}</small>
     </fieldset>
 
     <h3>{{ t.__('Levels and the points they need', 'membuild-community') }}</h3>
@@ -71,10 +71,10 @@ const capFor = (action) => t.sprintf(/* translators: %s: an action that earns po
       </span>
     </div>
 
-    <h3>{{ t.__('Points for each action', 'membuild-community') }}</h3>
+    <h3>{{ t.__('Points for each thing members do', 'membuild-community') }}</h3>
     <table class="rules">
       <thead>
-        <tr><th>{{ t.__('When a member…', 'membuild-community') }}</th><th>{{ t.__('Points', 'membuild-community') }}</th><th>{{ t.__('Up to, per day', 'membuild-community') }}</th></tr>
+        <tr><th>{{ t.__('When a member…', 'membuild-community') }}</th><th>{{ t.__('Points', 'membuild-community') }}</th><th>{{ t.__('Most per day', 'membuild-community') }}</th></tr>
       </thead>
       <tbody>
         <tr v-for="(label, key) in meta.rules" :key="key">
@@ -84,7 +84,7 @@ const capFor = (action) => t.sprintf(/* translators: %s: an action that earns po
         </tr>
       </tbody>
     </table>
-    <small class="note">{{ t.__('Leave “Up to, per day” empty for no limit.', 'membuild-community') }}</small>
+    <small class="note">{{ t.__('Leave “Most per day” empty for no limit.', 'membuild-community') }}</small>
   </section>
 </template>
 

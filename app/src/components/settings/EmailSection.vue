@@ -132,7 +132,7 @@ const goesThrough = (plugin) => t.sprintf(/* translators: %s: name of the SMTP p
     <label class="toggle-row">
       <span>
         <strong>{{ t.__('Email notifications', 'membuild-community') }}</strong>
-        <small>{{ t.__('Members get one short email about new messages, comments on their posts and replies to their comments. They can choose daily summaries or turn emails off in their profile.', 'membuild-community') }}</small>
+        <small>{{ t.__('Members get a short email when someone messages or replies to them. They can change this in their profile.', 'membuild-community') }}</small>
       </span>
       <input v-model="form.email.enabled" type="checkbox" class="switch" role="switch" />
     </label>

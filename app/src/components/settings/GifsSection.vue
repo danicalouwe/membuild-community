@@ -38,7 +38,7 @@ watch(
 <template>
   <section id="s-gifs" class="card group">
     <h2>{{ t.__('GIFs', 'membuild-community') }}</h2>
-    <p class="intro">{{ t.__('Adds a GIF search button to posts, comments and chats. Members can always upload GIF files like photos.', 'membuild-community') }}</p>
+    <p class="intro">{{ t.__('Adds a GIF button to posts, comments and chats.', 'membuild-community') }}</p>
 
     <label class="field">
       <span class="label">{{ t.__('GIPHY key', 'membuild-community') }}</span>

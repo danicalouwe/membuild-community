@@ -34,7 +34,7 @@ const WAYS = [
 const LANDING = [
   { key: 'members', label: t.__('Straight to the community', 'membuild-community'), hint: t.__('Signed-in members who open your home page see the feed. Visitors still see your home page.', 'membuild-community'), tag: t.__('Recommended', 'membuild-community') },
   { key: 'everyone', label: t.__('The community is the whole site', 'membuild-community'), hint: t.__('Everyone who opens your home page goes to the community. Visitors log in first.', 'membuild-community') },
-  { key: 'off', label: t.__('Leave my home page alone', 'membuild-community'), hint: t.__('The community stays at its own address only.', 'membuild-community') },
+  { key: 'off', label: t.__('Keep my home page as it is', 'membuild-community'), hint: t.__('The community stays at its own address only.', 'membuild-community') },
 ]
 
 // The login page's picture: our illustration, or the owner's own photo.
@@ -54,7 +54,7 @@ function pickPicture(e) {
 
 <template>
   <section id="s-joining" class="card group">
-    <h2>{{ t.__('Joining & signing in', 'membuild-community') }}</h2>
+    <h2>{{ t.__('Joining & logging in', 'membuild-community') }}</h2>
     <p class="intro">{{ t.__('How people join, and where they land.', 'membuild-community') }}</p>
 
     <fieldset class="field" :disabled="meta.registration_locked">
@@ -71,12 +71,12 @@ function pickPicture(e) {
         <label class="field">
           <span class="label">{{ t.__('Where the join button goes', 'membuild-community') }}</span>
           <input v-model.trim="form.signup_url" type="url" placeholder="https://" />
-          <small>{{ t.__('For example your MemberPress, WooCommerce or Stripe checkout page. After paying, members log in here with the account it made.', 'membuild-community') }}</small>
+          <small>{{ t.__('Your checkout or sign-up page. After paying, members log in here.', 'membuild-community') }}</small>
         </label>
         <label class="field">
           <span class="label">{{ t.__('Button text', 'membuild-community') }}</span>
           <input v-model="form.signup_label" type="text" maxlength="40" :placeholder="t.__('Create new account', 'membuild-community')" />
-          <small>{{ t.__('Shown on the login page and wherever someone needs an account. A few words, like “Become a member” or “Get access”.', 'membuild-community') }}</small>
+          <small>{{ t.__('A few words, like “Become a member”.', 'membuild-community') }}</small>
         </label>
       </div>
 
@@ -89,7 +89,11 @@ function pickPicture(e) {
               <span class="mark" /><strong>{{ a.label }}</strong><small>{{ a.hint }}</small>
             </label>
           </div>
-          <small>{{ t.__('New members choose their birth month and year when they sign up. Their birthday isn’t saved. In the US, communities open to children under 13 must follow COPPA, so 13 is the default.', 'membuild-community') }}</small>
+          <small>{{ t.__('New members pick their birth month and year. It isn’t saved.', 'membuild-community') }}</small>
+          <details class="why">
+            <summary>{{ t.__('Why 13?', 'membuild-community') }}</summary>
+            <small>{{ t.__('In the US, communities open to children under 13 must follow a law called COPPA, so 13 is the default.', 'membuild-community') }}</small>
+          </details>
         </fieldset>
         <label class="field">
           <span class="label">{{ t.__('Terms page', 'membuild-community') }} <em>{{ t.__('(optional)', 'membuild-community') }}</em></span>
@@ -106,8 +110,8 @@ function pickPicture(e) {
 
     <label class="toggle-row first">
       <span>
-        <strong>{{ t.__('Community login pages', 'membuild-community') }}</strong>
-        <small>{{ t.__('Sign up, log in and password reset in your community’s colors. Turn off if a security plugin needs the WordPress login screen.', 'membuild-community') }}</small>
+        <strong>{{ t.__('Our login pages', 'membuild-community') }}</strong>
+        <small>{{ t.__('Log in, join and new password, in your colors. Only turn this off if a security plugin needs WordPress’s own login.', 'membuild-community') }}</small>
       </span>
       <input v-model="form.login_page" type="checkbox" class="switch" role="switch" />
     </label>
@@ -144,7 +148,7 @@ function pickPicture(e) {
         </div>
         <input ref="pictureInput" class="sr-only" type="file" tabindex="-1" aria-hidden="true" accept="image/*" @change="pickPicture" />
         <small v-if="pictureUpload?.status === 'error'" class="err">{{ pictureUpload.error }}</small>
-        <small><strong>{{ t.__('Photo tips:', 'membuild-community') }}</strong> {{ t.__('a landscape photo at least 1600 × 1200 pixels (4:3), JPG or PNG, under 2 MB. Keep faces and anything important in the middle, because the edges are cropped on smaller screens. On phones the picture is left out: members see your logo and headline above the form.', 'membuild-community') }}</small>
+        <small><strong>{{ t.__('Photo tips:', 'membuild-community') }}</strong> {{ t.__('a wide photo, under 2 MB. Keep faces in the middle.', 'membuild-community') }}</small>
         <a :href="meta.login_url" target="_blank" rel="noopener" class="open-link">{{ t.__('Open the login page', 'membuild-community') }} <Icon name="external" :size="14" /></a>
       </div>
     </div>
@@ -251,5 +255,19 @@ function pickPicture(e) {
   color: var(--text);
   font-weight: 700;
   text-decoration: underline;
+}
+
+/* "Why 13?": the reason, one tap away. */
+.why summary {
+  width: fit-content;
+  color: var(--accent-text);
+  font-size: var(--fs-md);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.why small {
+  display: block;
+  margin-top: 4px;
 }
 </style>

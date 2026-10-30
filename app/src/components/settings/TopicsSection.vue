@@ -88,7 +88,7 @@ const postsOf = (n) => t.sprintf(/* translators: %d: number of posts */ t._n('%d
 const groupName = (id) => groups.value.find((g) => g.id === id)?.name || t.__('A membership', 'membuild-community')
 const deleteTitle = (name) => t.sprintf(/* translators: %s: a topic's name */ t.__('Delete “%s”?', 'membuild-community'), name)
 const keptText = (n) => (!n ? t.__('It has no posts yet, so nothing else changes.', 'membuild-community') : t.sprintf(/* translators: %s: "12 posts" */ t.__('Its %s stay where they are, in Home, just without a topic. Nobody is told.', 'membuild-community'), postsOf(n)))
-const colorLabel = (i) => t.sprintf(/* translators: %d: colour number */ t.__('Colour %d', 'membuild-community'), i + 1)
+const colorLabel = (i) => t.sprintf(/* translators: %d: colour number */ t.__('Color %d', 'membuild-community'), i + 1)
 </script>
 
 <template>
@@ -151,7 +151,7 @@ const colorLabel = (i) => t.sprintf(/* translators: %d: colour number */ t.__('C
           <input v-model="editing.name" type="text" maxlength="40" :placeholder="t.__('For example: Introductions', 'membuild-community')" data-autofocus />
         </label>
         <fieldset class="field">
-          <legend class="label">{{ t.__('Colour', 'membuild-community') }}</legend>
+          <legend class="label">{{ t.__('Color', 'membuild-community') }}</legend>
           <div class="tp-colors">
             <label v-for="(c, i) in colors" :key="c" class="tp-swatch" :class="{ on: editing.color === c }" :style="{ background: c }">
               <input v-model="editing.color" type="radio" name="topic-color" :value="c" :aria-label="colorLabel(i)" />

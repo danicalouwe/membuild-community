@@ -307,7 +307,7 @@ JS;
 	private static function setup_guide() {
 		$done  = First_Run::owner_steps();
 		$steps = array(
-			'look'   => array( __( 'Name, logo and colour', 'membuild-community' ), __( 'How your community looks to members.', 'membuild-community' ), __( 'Choose', 'membuild-community' ), self::app_url( 'settings#s-general' ), 'M4 20l4-1 10-10-3-3L5 16zM14 7l3 3' ),
+			'look'   => array( __( 'Name, logo and color', 'membuild-community' ), __( 'How your community looks to members.', 'membuild-community' ), __( 'Choose', 'membuild-community' ), self::app_url( 'settings#s-general' ), 'M4 20l4-1 10-10-3-3L5 16zM14 7l3 3' ),
 			'email'  => array( __( 'Choose how emails are sent', 'membuild-community' ), __( 'So sign-up and password emails arrive, not land in spam.', 'membuild-community' ), __( 'Choose', 'membuild-community' ), self::app_url( 'settings#s-email' ), 'M3 6h18v12H3zM3 7l9 7 9-7' ),
 			'key'    => array( __( 'Save your safety key', 'membuild-community' ), __( 'Keeps private messages readable if your site ever moves to a new host.', 'membuild-community' ), __( 'Save the key', 'membuild-community' ), self::app_url( 'settings?s=advanced#s-key' ), 'M15 7a4 4 0 1 1-3.9 5H7v3H4v-3H3v-3h8.1A4 4 0 0 1 15 7z' ),
 			'course' => array( __( 'Add your first course', 'membuild-community' ), __( 'Skip this if you only want a community for now.', 'membuild-community' ), __( 'Create a course', 'membuild-community' ), self::app_url( 'classroom' ), 'M2 9l10-5 10 5-10 5zM6 11v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5' ),

@@ -102,7 +102,7 @@ const startOver = () =>
     <span class="label">{{ t.__('Safety key', 'membuild-community') }}</span>
 
     <template v-if="working">
-      <p class="keep"><Icon name="key" :size="18" /> <span><strong>{{ t.__('This key keeps your members’ private messages secret.', 'membuild-community') }}</strong> {{ t.__('If your website ever moves to a new web host, you’ll need it to read the old messages. Keep a spare copy somewhere safe, like a password manager or a note you won’t lose.', 'membuild-community') }}</span></p>
+      <p class="keep"><Icon name="key" :size="18" /> <span><strong>{{ t.__('This key keeps private messages private. Keep a copy somewhere safe, like a password manager.', 'membuild-community') }}</strong></span></p>
       <p v-if="status.source === 'constant'" class="muted">{{ t.__('The key is set in wp-config.php (MEMBUILD_COMMUNITY_KEY).', 'membuild-community') }}</p>
       <!-- Two steps: keep a copy, then say so. The key itself is never shown on the page. -->
       <ol v-if="status.source !== 'constant'" class="steps">

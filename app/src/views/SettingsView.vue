@@ -36,7 +36,7 @@ import { t } from '../lib/i18n.js'
 // (so password emails arrive before you invite anyone), then the rest.
 const SECTIONS = [
   { id: 'general', icon: 'home', label: t.__('Your community', 'membuild-community'), component: GeneralSection },
-  { id: 'joining', icon: 'key', label: t.__('Joining & signing in', 'membuild-community'), component: JoiningSection },
+  { id: 'joining', icon: 'key', label: t.__('Joining & logging in', 'membuild-community'), component: JoiningSection },
   { id: 'email', icon: 'mail', label: t.__('Email', 'membuild-community'), component: EmailSection },
   { id: 'features', icon: 'grid', label: t.__('Features', 'membuild-community'), component: FeaturesSection },
   { id: 'topics', icon: 'hash', label: t.__('Topics', 'membuild-community'), component: TopicsSection },
@@ -46,8 +46,8 @@ const SECTIONS = [
   { id: 'video', icon: 'video', label: t.__('Video', 'membuild-community'), component: VideoSection },
   { id: 'gifs', icon: 'gif', label: t.__('GIFs', 'membuild-community'), component: GifsSection },
   { id: 'import', icon: 'download', label: t.__('Import', 'membuild-community'), component: ImportSection },
-  { id: 'updates', icon: 'bell', label: t.__('Updates & usage', 'membuild-community'), component: UpdatesSection },
-  { id: 'advanced', icon: 'settings', label: t.__('Advanced', 'membuild-community'), component: AdvancedSection },
+  { id: 'updates', icon: 'bell', label: t.__('News from MemBuild', 'membuild-community'), component: UpdatesSection },
+  { id: 'advanced', icon: 'settings', label: t.__('Address & safety key', 'membuild-community'), component: AdvancedSection },
 ]
 // Phones: Settings is a list of sections; each opens on its own page (?s=email).
 const phoneMq = window.matchMedia('(max-width: 767px)')
@@ -63,7 +63,7 @@ const summary = (id) => {
   if (!f) return ''
   const mods = (meta.value?.built_in_staff?.length || 0) + (f.moderators?.length || 0)
   return {
-    general: t.__('Name, logo, colour, default look', 'membuild-community'),
+    general: t.__('Name, logo, color, default look', 'membuild-community'),
     joining: t.__('How people join, login page', 'membuild-community'),
     email: [{ default: t.__('Your web host', 'membuild-community'), resend: 'Resend', smtp: t.__('Another service', 'membuild-community') }[f.email?.mode] || '', t.__('test email', 'membuild-community')].filter(Boolean).join(' · '),
     features: t.__('Turn parts on and off', 'membuild-community'),

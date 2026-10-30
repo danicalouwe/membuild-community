@@ -228,7 +228,7 @@ const heading = computed(() => (editing.value ? t.__('Edit event', 'membuild-com
             <span class="cover-act">
               <label class="btn btn-lg btn-ghost"><Icon name="image" :size="18" /> {{ cover ? t.__('Change photo', 'membuild-community') : t.__('Upload a photo', 'membuild-community') }}<input class="sr-only" type="file" tabindex="-1" aria-hidden="true" accept="image/*" @change="pickCover" /></label>
               <button v-if="cover" type="button" class="link" @click="cover = null; coverId = null">{{ t.__('Remove', 'membuild-community') }}</button>
-              <small>{{ t.__('16:9, at least 1600 × 900. No photo? Members see this cover made from your main colour.', 'membuild-community') }}</small>
+              <small>{{ t.__('16:9, at least 1600 × 900. No photo? Members see this cover made from your main color.', 'membuild-community') }}</small>
             </span>
           </div>
         </div>
