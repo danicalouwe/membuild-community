@@ -1050,6 +1050,16 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
     border-radius: 0;
   }
 
+  /* Below the iPhone's clock and battery, where a tap reaches them. */
+  .on-video {
+    top: calc(14px + env(safe-area-inset-top));
+  }
+
+  /* YouTube's own buttons (sound among them) too: their player starts below the clock. */
+  .reel.embed .yt-area {
+    margin-top: env(safe-area-inset-top);
+  }
+
   /* Phones: a small round + at the top instead of the word. */
   .create {
     right: 14px;

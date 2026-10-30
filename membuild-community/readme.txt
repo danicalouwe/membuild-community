@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.14.3
+Stable tag: 1.14.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,14 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.14.4 =
+* Changed: on phones, hold Like and slide to a reaction, then let go to pick it, as on Facebook (posts and comments).
+* Fixed: on iPhone, full-screen windows (a post and its comments, Create post) started under the clock, so Close couldn't be tapped. They start below it now.
+* Fixed: on phones, an open chat lost its header (back, face and name) when the keyboard opened. The chat is now full screen and the header stays on top, with the newest message in view.
+* Fixed: on iPhone, the Reels sound button, and YouTube's own buttons on YouTube reels, sat under the clock. They can be tapped now.
+* Fixed: sharing a finished course made Create post wider than a phone screen. It fits again, with a small course card.
+* Security: a Bunny Stream upload is checked for its real size once Bunny has it, and one over 2 GB is removed.
 
 = 1.14.3 =
 * Changed: Settings use plain, everyday words throughout, with short "why" notes where a choice needs one.

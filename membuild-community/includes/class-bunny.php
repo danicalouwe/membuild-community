@@ -22,6 +22,14 @@ defined( 'ABSPATH' ) || exit;
  *
  * A video shows its poster with "Processing…" until Bunny is done. Deleting a
  * post deletes its Bunny videos too, so nobody pays to store what nobody can see.
+ *
+ * Link protection (optional): with the pull zone's token authentication key saved,
+ * every playlist and thumbnail link is signed and stops working after about 6 hours,
+ * so a copied lesson link can't be passed around (sign()).
+ *
+ * Real size: the browser says how big an upload is, and Bunny's upload signature
+ * doesn't hold it to that. Once Bunny has the file we ask it the real size and
+ * delete anything over the limit (too_big()).
  */
 class Bunny {
 
@@ -33,6 +41,9 @@ class Bunny {
 	const FINISHED = 4;
 	const FAILED   = array( 5, 6 );
 
+	const LIMIT = 2 * GB_IN_BYTES; // the most one video can be
+	const LIFE  = 6 * HOUR_IN_SECONDS; // how long a signed link works, at least
+
 	/* ---------- Settings ---------- */
 
 	public static function defaults() {
@@ -42,6 +53,7 @@ class Bunny {
 			'api_key'       => '', // encrypted
 			'cdn_host'      => '', // e.g. vz-1234abcd-56.b-cdn.net
 			'webhook_token' => '',
+			'token_key'     => '', // encrypted; the pull zone's token authentication key, for signed links
 		);
 	}
 
@@ -57,8 +69,10 @@ class Bunny {
 
 	public static function public_settings() {
 		$v                = self::settings();
-		$v['has_api_key'] = '' !== $v['api_key'];
-		$v['api_key']     = '';
+		$v['has_api_key']   = '' !== $v['api_key'];
+		$v['api_key']       = '';
+		$v['has_token_key'] = '' !== $v['token_key'];
+		$v['token_key']     = '';
 		$v['webhook_url'] = self::webhook_url();
 		unset( $v['webhook_token'] );
 		return $v;
@@ -86,6 +100,14 @@ class Bunny {
 				return Vault::paused();
 			}
 			$v['api_key'] = Vault::secret( trim( (string) $in['api_key'] ) );
+		}
+		if ( ! empty( $in['token_key_clear'] ) ) {
+			$v['token_key'] = '';
+		} elseif ( ! empty( $in['token_key'] ) ) {
+			if ( Vault::paused() ) {
+				return Vault::paused();
+			}
+			$v['token_key'] = Vault::secret( trim( (string) $in['token_key'] ) );
 		}
 		if ( ! $v['webhook_token'] ) {
 			$v['webhook_token'] = wp_generate_password( 32, false );
@@ -142,6 +164,61 @@ class Bunny {
 		return 'https://' . self::settings()['cdn_host'] . '/' . $guid . '/thumbnail.jpg';
 	}
 
+	/**
+	 * Signs a link to the Bunny CDN when link protection is on (Bunny's token
+	 * authentication, HMAC-SHA256, as in BunnyWay/BunnyCDN.TokenAuthentication).
+	 * A playlist gets the token in its path, for its whole folder, so the player's
+	 * own requests for the video's pieces carry it too. Any other link, or any link
+	 * when protection is off, comes back as it was.
+	 */
+	public static function sign( $url, $expires = null ) {
+		$v = self::settings();
+		if ( ! $url || ! $v['token_key'] || ! $v['cdn_host'] ) {
+			return $url;
+		}
+		$parts = wp_parse_url( $url );
+		if ( strtolower( $parts['host'] ?? '' ) !== $v['cdn_host'] || ! empty( $parts['query'] ) ) {
+			return $url;
+		}
+		$key = Vault::reveal( $v['token_key'] );
+		if ( ! $key ) {
+			return $url;
+		}
+		$path = $parts['path'] ?? '/';
+		// Rounded up to the hour, so the same link comes back for an hour and the browser can cache it.
+		$expires = $expires ?? (int) ( ceil( ( time() + self::LIFE ) / HOUR_IN_SECONDS ) * HOUR_IN_SECONDS );
+		$token   = fn( $signed, $data ) => 'HS256-' . rtrim( strtr( base64_encode( hash_hmac( 'sha256', $signed . $expires . $data, $key, true ) ), '+/', '-_' ), '=' );
+		if ( str_ends_with( $path, '.m3u8' ) ) {
+			$folder = trailingslashit( dirname( $path ) );
+			return 'https://' . $v['cdn_host'] . '/bcdn_token=' . $token( $folder, 'token_path=' . $folder ) . '&token_path=' . rawurlencode( $folder ) . '&expires=' . $expires . $path;
+		}
+		return 'https://' . $v['cdn_host'] . $path . '?token=' . $token( $path, '' ) . '&expires=' . $expires;
+	}
+
+	/**
+	 * The real size of an uploaded video, from Bunny: the original file when the
+	 * library keeps it, otherwise everything Bunny stores for it (null: unknown).
+	 */
+	private static function real_size( $guid, array $video ) {
+		$storage   = self::api( 'GET', '/videos/' . rawurlencode( $guid ) . '/storage' );
+		$originals = is_wp_error( $storage ) ? 0 : (int) ( $storage['data']['originals'] ?? $storage['originals'] ?? 0 );
+		if ( $originals > 0 ) {
+			return array( $originals, true );
+		}
+		$total = (int) ( $video['storageSize'] ?? 0 );
+		return $total > 0 ? array( $total, false ) : null;
+	}
+
+	/**
+	 * Too big? Over the limit for the original file, or, when Bunny doesn't keep
+	 * originals, over twice the limit for everything stored (smaller copies of
+	 * the video are added to the total, so it's always bigger than the upload).
+	 */
+	private static function too_big( $guid, array $video ) {
+		$size = self::real_size( $guid, $video );
+		return $size && $size[0] > ( $size[1] ? self::LIMIT : 2 * self::LIMIT ) ? $size[0] : 0;
+	}
+
 	/* ---------- Routes ---------- */
 
 	public static function register_routes() {
@@ -161,7 +238,17 @@ class Bunny {
 		if ( is_wp_error( $res ) ) {
 			return $res;
 		}
-		return array( 'ok' => true, 'videos' => (int) ( $res['totalItems'] ?? 0 ) );
+		$out = array( 'ok' => true, 'videos' => (int) ( $res['totalItems'] ?? 0 ) );
+		// With link protection on, open one signed thumbnail, so a wrong key shows up here and not as videos that won't play.
+		$guid = (string) ( $res['items'][0]['guid'] ?? '' );
+		if ( self::settings()['token_key'] && $guid ) {
+			$code = wp_remote_retrieve_response_code( wp_remote_get( self::sign( self::thumbnail( $guid ) ), array( 'timeout' => 10 ) ) );
+			if ( 403 === $code ) {
+				return new \WP_Error( 'mbcom_bunny', __( 'Bunny refused the protected link. Check the token authentication key, and that token authentication is on for the library’s pull zone.', 'membuild-community' ), array( 'status' => 400 ) );
+			}
+			$out['protected'] = 200 === $code;
+		}
+		return $out;
 	}
 
 	/**
@@ -183,7 +270,7 @@ class Bunny {
 		}
 		$me   = get_current_user_id();
 		$size = (int) $req['size'];
-		if ( $size <= 0 || $size > 2 * GB_IN_BYTES ) {
+		if ( $size <= 0 || $size > self::LIMIT ) {
 			return new \WP_Error( 'mbcom_too_big', __( 'Videos can be up to 2 GB.', 'membuild-community' ), array( 'status' => 400 ) );
 		}
 		$title = mb_substr( sanitize_text_field( (string) ( $req['name'] ?? 'Video' ) ), 0, 100 ) ?: 'Video';
@@ -248,9 +335,9 @@ class Bunny {
 		return Media::format( Media::get( (int) $row['id'] ) );
 	}
 
-	private static function set_status( array $row, $status, array $extra = array() ) {
+	private static function set_status( array $row, $status, array $extra = array(), array $more = array() ) {
 		global $wpdb;
-		$meta           = json_decode( (string) $row['meta'], true ) ?: array();
+		$meta           = $more + ( json_decode( (string) $row['meta'], true ) ?: array() );
 		$meta['status'] = $status;
 		$update         = array( 'meta' => wp_json_encode( $meta ) ) + $extra;
 		$wpdb->update( Install::table( 'media' ), $update, array( 'id' => $row['id'] ) );
@@ -284,6 +371,14 @@ class Bunny {
 	private static function apply( array $row, array $video ) {
 		$status = (int) ( $video['status'] ?? 0 );
 		if ( self::FINISHED === $status || ( 3 === $status && ! empty( $video['availableResolutions'] ) ) ) {
+			$meta = json_decode( (string) $row['meta'], true ) ?: array();
+			$big  = self::too_big( $meta['guid'] ?? '', $video );
+			if ( $big ) {
+				// Over the limit: off Bunny, so nobody pays to store it, and shown as failed.
+				self::delete_video( $row );
+				self::set_status( $row, 'failed', array( 'bytes' => $big ), array( 'reason' => 'too_big' ) );
+				return;
+			}
 			self::set_status(
 				$row,
 				'ready',

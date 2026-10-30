@@ -8,6 +8,8 @@ import { pushLayer } from '../lib/layers.js'
 
 /**
  * Tap toggles a like. Long-press (touch) or hover (mouse) opens the picker.
+ * On touch, as on Facebook, keep the finger down and slide along the faces:
+ * the one under it grows and shows its name, and letting go picks it.
  * From the keyboard: Enter/Space likes, holding it (or ArrowUp) opens the
  * picker, arrows move, Enter picks, Escape closes.
  * Used for posts (with a count) and comments (icon only).
@@ -21,6 +23,7 @@ const props = defineProps({
 const emit = defineEmits(['react']) // (type | null)
 
 const open = ref(false)
+const hot = ref(null) // the reaction under the sliding finger
 const root = ref(null)
 const tray = ref(null)
 const trigger = ref(null)
@@ -82,6 +85,32 @@ function onPointerDown(e) {
 function onPointerUp() {
   clearTimeout(pressTimer)
 }
+
+/* Hold and slide (touch): the finger stays on the button, so read where it is over the tray.
+   A little above or below the faces still counts, as the finger covers what it points at. */
+function faceAt(x, y) {
+  const box = tray.value?.getBoundingClientRect()
+  if (!box || x < box.left || x > box.right || y < box.top - 60 || y > box.bottom + 70) return null
+  return choices().find((c) => { const r = c.getBoundingClientRect(); return x >= r.left - 2 && x <= r.right + 2 })?.dataset.type ?? null
+}
+function onTouchMove(e) {
+  if (!longPressed || !open.value) return
+  e.preventDefault() // the page mustn't scroll while choosing
+  const f = e.touches[0]
+  const next = faceAt(f.clientX, f.clientY)
+  if (next && next !== hot.value) navigator.vibrate?.(5)
+  hot.value = next
+}
+function onTouchEnd() {
+  if (!longPressed || !hot.value) return (hot.value = null) // let go off the faces: they stay open for a tap
+  const type = hot.value
+  hot.value = null
+  pick(type)
+}
+watch(trigger, (el, old) => {
+  old?.removeEventListener('touchmove', onTouchMove)
+  el?.addEventListener('touchmove', onTouchMove, { passive: false }) // passive listeners can't stop the scroll
+})
 function onClick() {
   if (longPressed) return
   open.value = false
@@ -161,6 +190,7 @@ function onTrayKeyup(e) {
 }
 
 onBeforeUnmount(() => {
+  trigger.value?.removeEventListener('touchmove', onTouchMove)
   clearTimeout(pressTimer)
   clearTimeout(hoverTimer)
   clearTimeout(keyTimer)
@@ -175,12 +205,13 @@ onBeforeUnmount(() => {
     <!-- Facebook-style tray: the reactions spring up one after another, each keeps
          moving in its own way, and the one under the pointer grows and shows its name. -->
     <Transition name="tray">
-      <div v-if="open" ref="tray" class="picker" role="menu" :aria-label="t.__('Reactions', 'membuild-community')" @pointerenter="keepOpen" @keydown="onTrayKeydown" @keyup="onTrayKeyup">
+      <div v-if="open" ref="tray" class="picker" :class="{ sliding: hot }" role="menu" :aria-label="t.__('Reactions', 'membuild-community')" @pointerenter="keepOpen" @keydown="onTrayKeydown" @keyup="onTrayKeyup">
         <button
           v-for="(r, i) in REACTIONS"
           :key="r.type"
           class="choice"
-          :class="{ chosen: current === r.type }"
+          :class="{ chosen: current === r.type, hot: hot === r.type }"
+          :data-type="r.type"
           :style="{ '--i': i }"
           :aria-label="r.label"
           role="menuitem"
@@ -207,6 +238,8 @@ onBeforeUnmount(() => {
       @pointerdown="onPointerDown"
       @pointerup="onPointerUp"
       @pointercancel="onPointerUp"
+      @touchend="onTouchEnd"
+      @touchcancel="hot = null"
       @contextmenu.prevent
       @click="onClick"
     >
@@ -294,11 +327,13 @@ onBeforeUnmount(() => {
 }
 
 .choice:hover .lift,
-.choice:focus-visible .lift {
+.choice:focus-visible .lift,
+.choice.hot .lift {
   transform: translateY(-10px) scale(1.42);
 }
 
-.picker:hover .choice:not(:hover) .lift {
+.picker:hover .choice:not(:hover) .lift,
+.picker.sliding .choice:not(.hot) .lift {
   transform: scale(0.94);
 }
 
@@ -335,7 +370,8 @@ onBeforeUnmount(() => {
 }
 
 .choice:hover .name,
-.choice:focus-visible .name {
+.choice:focus-visible .name,
+.choice.hot .name {
   opacity: 1;
   transform: translate(-50%, 0);
 }

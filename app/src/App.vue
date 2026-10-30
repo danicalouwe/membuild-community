@@ -164,7 +164,7 @@ const isActive = (tab) =>
 </script>
 
 <template>
-  <div class="shell" :class="{ immersive, 'in-course': inCourse, 'in-lesson': inLesson, building, 'on-profile': onProfile, 'no-tabbar': route.name === 'levels' || (route.name === 'settings' && !!route.query.s) || (route.name === 'messages' && !!route.params.threadId), 'phone-bare': route.name === 'search' }">
+  <div class="shell" :class="{ immersive, 'in-course': inCourse, 'in-lesson': inLesson, building, 'on-profile': onProfile, 'no-tabbar': route.name === 'levels' || (route.name === 'settings' && !!route.query.s) || (route.name === 'messages' && !!route.params.threadId), 'phone-bare': route.name === 'search' || (route.name === 'messages' && !!route.params.threadId) }">
     <a class="skip-link" href="#mbcom-main" @click.prevent="skipToMain">{{ t.__('Skip to content', 'membuild-community') }}</a>
     <header class="topbar">
       <ThemeSlot name="app.top-bar" :data="{ tabs: desktopTabs, isActive, user: cfg.user, logo: cfg.community.logo, siteName: cfg.siteName, home: '/' }">
@@ -246,7 +246,7 @@ const isActive = (tab) =>
 
     <PostDialog v-if="linked" :key="linked.id" :post="linked" :highlight="Number(route.query.comment) || 0" @close="closeLinked" />
     <ChatDock v-if="showDock" />
-    <MemberViewToggle v-else-if="canSeeAsMember" />
+    <MemberViewToggle v-else-if="canSeeAsMember && !(!isWide && route.name === 'messages' && route.params.threadId)" /><!-- not over an open chat on a phone -->
     <VideoDock v-if="video.media" />
     <ThemeSlot name="app.level-up" :data="{ levelUp: levelShown ? me.levelUp : null, dismiss: () => (me.levelUp = null) }"><LevelUpToast /></ThemeSlot>
     <Toast />
@@ -661,7 +661,7 @@ const isActive = (tab) =>
     padding-bottom: env(safe-area-inset-bottom);
   }
 
-  /* Search on a phone is its own full screen: ‹ back and the box, no header or bottom bar. */
+  /* Search, and an open chat, are their own full screen on a phone: ‹ back at the top, no header or bottom bar. */
   .phone-bare .topbar,
   .phone-bare .tabbar {
     display: none;

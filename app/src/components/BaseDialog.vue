@@ -137,10 +137,12 @@ const panelStyle = () => ({
     padding: 0;
   }
 
+  /* Full screen starts below the iPhone's clock and battery, and ends above the home bar. */
   .phone-full .dialog {
     width: 100% !important;
     height: 100dvh;
     max-height: none !important;
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
     border: 0;
     border-radius: 0;
   }
@@ -152,6 +154,7 @@ const panelStyle = () => ({
   .phone-sheet .dialog {
     width: 100% !important;
     max-height: 85dvh !important;
+    padding-bottom: env(safe-area-inset-bottom);
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   }
 }

@@ -315,8 +315,8 @@ class Media {
 			'stream'   => 'video/bunny' === $row['mime'] ? Bunny::stream_info( $row ) : null, // HLS from Bunny Stream
 			'id'       => (int) $row['id'],
 			'kind'     => $row['kind'],
-			'url'      => $row['url'],
-			'poster'   => $row['poster_url'],
+			'url'      => 'video/bunny' === $row['mime'] ? Bunny::sign( $row['url'] ) : $row['url'], // signed when link protection is on
+			'poster'   => Bunny::sign( $row['poster_url'] ), // a Bunny thumbnail is signed too; any other picture is left as it is
 			'mime'     => $row['mime'],
 			'width'    => (int) $row['width'],
 			'height'   => (int) $row['height'],

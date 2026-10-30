@@ -899,7 +899,7 @@ function personLine(p) {
   }
 
   .dlg {
-    padding: 10px 20px calc(20px + env(safe-area-inset-bottom));
+    padding: 10px 20px 20px; /* the sheet itself keeps clear of the home bar */
   }
 
   .dlg-act .btn-red,

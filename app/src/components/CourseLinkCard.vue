@@ -23,11 +23,12 @@ const meta = () => t.sprintf(/* translators: %d: number of lessons */ t._n('%d l
       <img v-if="course.cover" :src="course.cover" alt="" loading="lazy" decoding="async" />
     </span>
     <span class="info">
+      <span v-if="still" class="status-tag in-info" :class="{ done: 'ok', going: 'warn' }[status().key] || 'accent'">{{ status().label }}</span>
       <strong class="name">{{ course.title }}</strong>
       <span v-if="course.description" class="sum">{{ course.description }}</span>
       <span class="meta">{{ meta() }}</span>
     </span>
-    <span class="status-tag on-card" :class="{ done: 'ok', going: 'warn' }[status().key] || 'accent'">{{ status().label }}</span>
+    <span class="status-tag on-card" :class="[{ done: 'ok', going: 'warn' }[status().key] || 'accent', { 'wide-only': still }]">{{ status().label }}</span>
   </component>
 </template>
 
@@ -110,6 +111,12 @@ const meta = () => t.sprintf(/* translators: %d: number of lessons */ t._n('%d l
   font-weight: 600;
 }
 
+/* Create post on wider screens keeps the pill on the cover; on phones it moves beside the name. */
+.in-info {
+  display: none;
+  align-self: flex-start;
+}
+
 @media (max-width: 600px) {
   .cc {
     flex-direction: column;
@@ -132,6 +139,40 @@ const meta = () => t.sprintf(/* translators: %d: number of lessons */ t._n('%d l
   .on-card {
     top: 22px;
     right: 22px;
+  }
+
+  /* In Create post: a small card, picture on the left, so the post and its buttons stay in view. */
+  .still {
+    flex-direction: row;
+    align-items: center;
+    margin: 4px 0 8px;
+  }
+
+  .still .cover {
+    width: 96px;
+    margin: 10px 0 10px 10px;
+    aspect-ratio: 3 / 2;
+  }
+
+  .still .info {
+    gap: 4px;
+    padding: 10px 12px;
+  }
+
+  .still .wide-only {
+    display: none;
+  }
+
+  .still .name {
+    font-size: var(--fs-lg);
+  }
+
+  .still .sum {
+    display: none;
+  }
+
+  .still .in-info {
+    display: inline-flex;
   }
 }
 </style>

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api.js'
 import { cfg } from '../config.js'
@@ -103,6 +103,27 @@ async function refreshTop() {
 watch(() => messages.inboxVersion, (v, old) => old !== undefined && v !== old && refreshTop())
 onMounted(loadInbox)
 
+// Phones: an open chat fills the screen, like Messenger. With the keyboard up it fits the
+// part of the screen still showing, so its header (‹, face, name) stays on top: iPhone
+// otherwise slides the whole page up and the header out of sight.
+const fit = ref(null)
+const keyboard = ref(false)
+function fitToScreen() {
+  const vv = window.visualViewport
+  if (!vv) return
+  fit.value = { '--vv-top': `${vv.offsetTop}px`, '--vv-h': `${vv.height}px` }
+  keyboard.value = window.innerHeight - vv.height > 120
+}
+onMounted(() => {
+  window.visualViewport?.addEventListener('resize', fitToScreen)
+  window.visualViewport?.addEventListener('scroll', fitToScreen)
+  fitToScreen()
+})
+onBeforeUnmount(() => {
+  window.visualViewport?.removeEventListener('resize', fitToScreen)
+  window.visualViewport?.removeEventListener('scroll', fitToScreen)
+})
+
 // The Messenger dropdown's pencil links here with ?new=1.
 watch(
   () => route.query.new,
@@ -163,7 +184,7 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
 </script>
 
 <template>
-  <div class="messages" :class="{ 'has-chat': threadId }">
+  <div class="messages" :class="{ 'has-chat': threadId, keyboard }" :style="fit">
     <aside class="inbox card">
       <header class="inbox-head">
         <h1>{{ t.__('Chats', 'membuild-community') }}</h1>
@@ -455,9 +476,20 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
     display: none;
   }
 
-  /* An open chat has no bottom bar (‹ goes back), so it takes that space too. */
+  /* An open chat takes the whole screen (‹ goes back), and follows the keyboard (fitToScreen). */
   .messages.has-chat {
-    height: calc(100dvh - 50px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    position: fixed;
+    top: var(--vv-top, 0);
+    right: 0;
+    left: 0;
+    z-index: 40; /* over the top and bottom bars, under windows */
+    height: var(--vv-h, 100dvh);
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    background: var(--surface);
+  }
+
+  .messages.has-chat.keyboard {
+    padding-bottom: 0;
   }
 
   .has-chat .inbox {

@@ -982,6 +982,7 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
 
 @media (max-width: 767px) {
   .backdrop {
+    grid-template-columns: minmax(0, 1fr); /* a wide picture inside can't make it wider than the screen */
     padding: 0;
   }
 
@@ -989,6 +990,7 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
     width: 100%;
     height: 100dvh;
     max-height: none;
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
     border-radius: 0;
     border: 0;
   }

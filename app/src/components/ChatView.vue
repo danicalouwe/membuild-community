@@ -139,16 +139,34 @@ function keepPinned() {
 function unpin() {
   pinned = false
 }
+// When the chat gets shorter (the phone's keyboard opening), the newest message stays in view, as in Messenger.
+let gap = 0 // how far from the bottom the member was before the size changed
+let sizeObserver = null
+const rememberGap = () => {
+  const el = scroller.value
+  if (el) gap = el.scrollHeight - el.scrollTop - el.clientHeight
+}
+function keepNewest() {
+  const el = scroller.value
+  if (el && gap < 160) el.scrollTop = el.scrollHeight
+  rememberGap()
+}
 watch(scroller, (el, old) => {
   pinObserver?.disconnect()
+  sizeObserver?.disconnect()
   old?.removeEventListener('load', keepPinned, true)
+  old?.removeEventListener('scroll', rememberGap)
   if (!el) return
   pinObserver = new MutationObserver(keepPinned)
   pinObserver.observe(el, { childList: true, subtree: true, characterData: true })
   el.addEventListener('load', keepPinned, true) // images and videos inside the chat
+  el.addEventListener('scroll', rememberGap, { passive: true })
+  sizeObserver = new ResizeObserver(keepNewest)
+  sizeObserver.observe(el)
 })
 onBeforeUnmount(() => {
   pinObserver?.disconnect()
+  sizeObserver?.disconnect()
   clearTimeout(pinTimer)
 })
 

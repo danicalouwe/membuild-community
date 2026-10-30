@@ -249,15 +249,18 @@ mbcom_check( 'the same news is never emailed twice', ! array_filter( $mbcom_mail
 
 /* ---------------------------------------------------------------- */
 mbcom_section( 'Bunny Stream (with a stand-in for Bunny)' );
-$mbcom_bunny = array();
+$mbcom_bunny          = array();
+$mbcom_bunny_original = 0; // the real size Bunny reports for the uploaded file
 add_filter(
 	'pre_http_request',
-	function ( $pre, $args, $url ) use ( &$mbcom_bunny ) {
+	function ( $pre, $args, $url ) use ( &$mbcom_bunny, &$mbcom_bunny_original ) {
 		if ( false === strpos( $url, 'video.bunnycdn.com' ) ) {
 			return $pre;
 		}
 		$mbcom_bunny[] = $args['method'] . ' ' . wp_parse_url( $url, PHP_URL_PATH );
-		$body        = array( 'guid' => 'test-guid', 'status' => 4, 'width' => 720, 'height' => 1280, 'length' => 9, 'totalItems' => 0 );
+		$body        = str_ends_with( (string) wp_parse_url( $url, PHP_URL_PATH ), '/storage' )
+			? array( 'success' => true, 'data' => array( 'originals' => $mbcom_bunny_original ) )
+			: array( 'guid' => 'test-guid', 'status' => 4, 'width' => 720, 'height' => 1280, 'length' => 9, 'totalItems' => 0 );
 		return array( 'headers' => array(), 'body' => wp_json_encode( $body ), 'response' => array( 'code' => 200, 'message' => 'OK' ), 'cookies' => array(), 'filename' => null );
 	},
 	10,
@@ -279,6 +282,37 @@ list( , $reel ) = mbcom_call( $ana, 'POST', '/posts', array( 'type' => 'reel', '
 $mbcom_bunny = array();
 mbcom_call( $ana, 'DELETE', "/posts/{$reel['id']}" );
 mbcom_check( "deleting the post deletes the video from Bunny", in_array( 'DELETE /library/1/videos/test-guid', $mbcom_bunny, true ), implode( ', ', $mbcom_bunny ) );
+
+// Real size: the browser said 1000 bytes, Bunny says the file is bigger than 2 GB.
+$vid                  = mbcom_user( 'mbct_vid' ); // their own uploads, so other checks' daily limits stay as they were
+$mbcom_bunny_original = 3 * GB_IN_BYTES;
+list( , $big ) = mbcom_call( $vid, 'POST', '/media/bunny', array( 'name' => 'big.mp4', 'size' => 1000 ) );
+$mbcom_bunny = array();
+list( , $big ) = mbcom_call( $vid, 'POST', "/media/bunny/{$big['media']['id']}/complete" );
+mbcom_check( 'a video really over 2 GB is refused once Bunny has it', 'failed' === ( $big['stream']['status'] ?? '' ), $big['stream']['status'] ?? '' );
+mbcom_check( '…and deleted from Bunny', in_array( 'DELETE /library/1/videos/test-guid', $mbcom_bunny, true ), implode( ', ', $mbcom_bunny ) );
+$mbcom_bunny_original = 500 * MB_IN_BYTES;
+list( , $ok ) = mbcom_call( $vid, 'POST', '/media/bunny', array( 'name' => 'ok.mp4', 'size' => 1000 ) );
+list( , $ok ) = mbcom_call( $vid, 'POST', "/media/bunny/{$ok['media']['id']}/complete" );
+mbcom_check( '…while one under the limit is ready', 'ready' === ( $ok['stream']['status'] ?? '' ) );
+mbcom_check( 'without link protection, video links are left as they are', 'https://vz-x.b-cdn.net/test-guid/playlist.m3u8' === $ok['url'], $ok['url'] );
+
+// Link protection: Bunny's token authentication (HMAC-SHA256), signed here the way Bunny's own code does it.
+mbcom_call( $admin, 'PUT', '/settings', array( 'video' => array( 'token_key' => 'sec-key' ) ) );
+$exp   = 1900000000;
+$tok   = fn( $msg ) => 'HS256-' . rtrim( strtr( base64_encode( hash_hmac( 'sha256', $msg, 'sec-key', true ) ), '+/', '-_' ), '=' );
+$want  = 'https://vz-x.b-cdn.net/bcdn_token=' . $tok( '/test-guid/' . $exp . 'token_path=/test-guid/' ) . '&token_path=%2Ftest-guid%2F&expires=' . $exp . '/test-guid/playlist.m3u8';
+mbcom_check( 'with link protection, a playlist is signed for its folder, the way Bunny expects', MemBuild\Community\Bunny::sign( 'https://vz-x.b-cdn.net/test-guid/playlist.m3u8', $exp ) === $want );
+$want  = 'https://vz-x.b-cdn.net/test-guid/thumbnail.jpg?token=' . $tok( '/test-guid/thumbnail.jpg' . $exp ) . '&expires=' . $exp;
+mbcom_check( '…and a thumbnail gets its own signed link', MemBuild\Community\Bunny::sign( 'https://vz-x.b-cdn.net/test-guid/thumbnail.jpg', $exp ) === $want );
+mbcom_check( '…pictures that aren’t on Bunny are left alone', 'https://example.test/a.jpg' === MemBuild\Community\Bunny::sign( 'https://example.test/a.jpg', $exp ) );
+$ok = MemBuild\Community\Media::format( MemBuild\Community\Media::get( (int) $ok['id'] ) );
+mbcom_check( '…members get the signed link, which stops working after about 6 hours', (bool) preg_match( '~/bcdn_token=HS256-[^&]+&token_path=%2Ftest-guid%2F&expires=(\d+)/test-guid/playlist\.m3u8$~', $ok['url'], $m ) && $m[1] - time() >= 6 * HOUR_IN_SECONDS && $m[1] - time() <= 7 * HOUR_IN_SECONDS, $ok['url'] );
+$ss = MemBuild\Community\Bunny::public_settings();
+mbcom_check( 'the key is saved encrypted and never sent back', $ss['has_token_key'] && '' === $ss['token_key'] && 'sec-key' !== MemBuild\Community\Bunny::settings()['token_key'] );
+mbcom_call( $admin, 'PUT', '/settings', array( 'video' => array( 'token_key_clear' => true ) ) );
+mbcom_check( 'turning link protection off removes the key', ! MemBuild\Community\Bunny::public_settings()['has_token_key'] );
+$wpdb->delete( MemBuild\Community\Install::table( 'media' ), array( 'user_id' => $vid ) ); // the 3 GB stand-in mustn't count toward later runs
 mbcom_call( $admin, 'PUT', '/settings', array( 'video' => array( 'provider' => 'local' ) ) );
 
 /* ---------------------------------------------------------------- */
