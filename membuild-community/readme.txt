@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.14.0
+Stable tag: 1.14.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,9 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.14.1 =
+* Fixed: logging in could keep saying "The page timed out" when the browser still held an old login that had already ended. The login, join and password pages now clear that old login first, so the form works the first time.
 
 = 1.14.0 =
 * Topics: label posts with a subject (Introductions, Wins, Questions…) and let members filter Home by it. Make them in Settings › Topics. A topic can be for one membership only, or only the team can post in it. Adding a topic to a post is never required.

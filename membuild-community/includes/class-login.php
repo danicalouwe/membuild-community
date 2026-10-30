@@ -173,6 +173,15 @@ class Login {
 		header( 'X-Frame-Options: SAMEORIGIN' );
 		header( 'Referrer-Policy: no-referrer' ); // the reset link carries a key
 
+		// A login cookie that no longer works (an ended session, a removed account) would still be
+		// mixed into these forms' security codes. The browser can drop it before the form is sent,
+		// so the code stops matching and the visitor only ever sees "The page timed out". Forget it
+		// here and tell the browser to drop it, so the form is the same when it's sent.
+		if ( ! is_user_logged_in() && ! empty( $_COOKIE[ LOGGED_IN_COOKIE ] ) ) {
+			unset( $_COOKIE[ LOGGED_IN_COOKIE ] );
+			wp_clear_auth_cookie();
+		}
+
 		if ( 'login' === $path ) {
 			self::login_page();
 		} elseif ( 'join' === $path ) {
