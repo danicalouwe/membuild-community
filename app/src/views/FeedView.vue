@@ -18,6 +18,7 @@ import { api } from '../api.js'
 import { showToast } from '../lib/toast.js'
 import { useRouter } from 'vue-router'
 import { t } from '../lib/i18n.js'
+import { PULL_MARK, usePullToRefresh } from '../lib/pullRefresh.js'
 
 const sort = ref(sessionStorage.getItem('mbcom-sort') || 'latest')
 // Home filtered to a topic (?topic=3): from the pills, or a post's topic label.
@@ -107,6 +108,14 @@ async function showNew() {
   pulseNow()
 }
 
+// Phones: pull down at the top of Home to get the newest posts (lib/pullRefresh.js).
+const { pull, refreshing } = usePullToRefresh(async () => {
+  const views = list.value === lists.latest || !lists.latest.loaded ? [list.value] : [list.value, lists.latest]
+  const done = await Promise.all(views.map(refresh))
+  if (done.every(Boolean)) messages.newPosts = 0
+  pulseNow()
+})
+
 onActivated(startWatching)
 onDeactivated(stopWatching)
 onBeforeUnmount(() => {
@@ -140,6 +149,9 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
 <template>
   <div class="feed">
     <h1 class="sr-only">{{ t.__('Home', 'membuild-community') }}</h1>
+    <div v-if="pull || refreshing" class="pull" :class="{ ready: pull >= PULL_MARK, spinning: refreshing }" :style="{ '--pull': `${refreshing ? PULL_MARK : pull}px`, '--turn': `${Math.min(1, pull / PULL_MARK) * 180}deg` }" role="status" :aria-label="refreshing ? t.__('Getting the newest posts', 'membuild-community') : ''">
+      <Icon name="arrowDown" :size="20" />
+    </div>
     <Transition name="pill">
       <button v-if="newCount > 0" class="new-pill" @click="showNew">
         <Icon name="arrowUp" :size="16" /> {{ newPosts(newCount) }}
@@ -489,9 +501,46 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
 }
 
 @media (max-width: 767px) {
+  /* "What's on your mind?" sits right under the top bar, joined to it, as on Facebook. */
   .feed {
-    padding: 8px 0 0;
+    padding: 0;
     gap: 8px;
+  }
+
+  /* Pull to refresh: a round button that follows the finger down, turns when it's far enough, spins while loading. */
+  .pull {
+    position: fixed;
+    top: calc(50px + env(safe-area-inset-top) - 36px); /* starts tucked under the phone's top bar */
+    left: 50%;
+    z-index: 19;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--text-2);
+    box-shadow: var(--shadow-sm);
+    transform: translate(-50%, var(--pull)) rotate(var(--turn)); /* the arrow turns up when letting go will refresh */
+  }
+
+  .pull.ready {
+    color: var(--accent-text);
+  }
+
+  .pull.spinning :deep(svg) {
+    animation: pull-spin 0.8s linear infinite;
+  }
+
+  @keyframes pull-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* "For you" isn't shown on phones: with nothing else in it, its box mustn't add a gap above the composer. */
+  .day-one-slot:not(:has(> :not(.for-you))) {
+    display: none;
   }
 
   .feed :deep(.card) {
@@ -500,12 +549,23 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
     border-right: 0;
   }
 
+  /* The composer joins the top bar: no line between them. */
+  .feed > :deep(.bar.card) {
+    border-top: 0;
+  }
+
   .sort {
     padding: 0 12px;
   }
 
+  /* Below the top bar, or just below the clock when the bars have slid away. */
   .new-pill {
-    top: 62px;
+    top: calc(env(safe-area-inset-top) + 62px);
+    transition: top 0.25s ease;
+  }
+
+  :global(.bars-hidden) .new-pill {
+    top: calc(env(safe-area-inset-top) + 12px);
   }
 }
 </style>

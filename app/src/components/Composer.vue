@@ -61,7 +61,7 @@ onBeforeUnmount(() => window.removeEventListener('mbcom:reopen-composer', reopen
     <Avatar :user="cfg.user" :size="40" />
     <button class="pill" @click="open()">{{ prompt }}</button>
 
-    <button v-if="feature('reels')" class="icon" :aria-label="t.__('Create a reel', 'membuild-community')" :title="t.__('Reel', 'membuild-community')" @click="reelInput.click()">
+    <button v-if="feature('reels')" class="icon wide-only" :aria-label="t.__('Create a reel', 'membuild-community')" :title="t.__('Reel', 'membuild-community')" @click="reelInput.click()">
       <svg width="30" height="30" viewBox="0 0 24 24" aria-hidden="true">
         <rect x="2" y="6" width="14" height="12" rx="3" fill="#f02849" />
         <path d="M16 10.2l5-3v9.6l-5-3z" fill="#f02849" />
@@ -77,7 +77,7 @@ onBeforeUnmount(() => window.removeEventListener('mbcom:reopen-composer', reopen
         <path d="M4.5 19l4.5-4.5 3 3 2.5-2.5 3 3.5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round" />
       </svg>
     </button>
-    <button class="icon" :aria-label="t.__('Feeling or activity', 'membuild-community')" :title="t.__('Feeling/activity', 'membuild-community')" @click="open({ start: 'feeling' })">
+    <button class="icon wide-only" :aria-label="t.__('Feeling or activity', 'membuild-community')" :title="t.__('Feeling/activity', 'membuild-community')" @click="open({ start: 'feeling' })">
       <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <circle cx="12" cy="12" r="9.5" stroke="#f7932f" stroke-width="2" />
         <path d="M8 14c1 1.6 2.4 2.4 4 2.4s3-.8 4-2.4" stroke="#f7932f" stroke-width="2" stroke-linecap="round" />
@@ -141,8 +141,10 @@ onBeforeUnmount(() => window.removeEventListener('mbcom:reopen-composer', reopen
   background: var(--surface-2);
 }
 
-@media (max-width: 420px) {
-  .icon:first-of-type {
+/* Phones, like Facebook: just the photo button, so "What's on your mind?" has room to be read.
+   Reels and feelings are a tap away inside Create post. */
+@media (max-width: 767px) {
+  .wide-only {
     display: none;
   }
 }

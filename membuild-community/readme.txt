@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.14.4
+Stable tag: 1.14.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,15 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.14.5 =
+* Changed: on phones, Home works like Facebook. Search sits beside Messages, "What's on your mind?" joins the top bar with just the photo button, and scrolling down slides the top and bottom bars away (scrolling up brings them back).
+* New: pull down at the top of Home on a phone to get the newest posts.
+* Changed: tall videos and reels in Home fill the width of a phone, in a 4:5 frame.
+* Changed: holding Like and sliding to a reaction is smoother, and the face under your finger rises clear of it.
+* Changed: in chat on a phone, Send keeps the keyboard up for the next message, and the return key starts a new line.
+* Fixed: opening Settings no longer scrolls down to Import by itself.
+* Fixed: on iPhone, a blank strip could show under the bottom bar after the keyboard closed (Reels, Alerts, the menu).
 
 = 1.14.4 =
 * Changed: on phones, hold Like and slide to a reaction, then let go to pick it, as on Facebook (posts and comments).

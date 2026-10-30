@@ -282,6 +282,7 @@ onMounted(() => window.addEventListener('click', closeMore))
 onBeforeUnmount(() => window.removeEventListener('click', closeMore))
 
 onMounted(async () => {
+  window.scrollTo(0, 0) // Reels fills the screen: a page left scrolled would leave a gap at the bottom
   document.documentElement.style.overflow = 'hidden'
   window.addEventListener('keydown', onKey)
   document.addEventListener('visibilitychange', onVisibility)

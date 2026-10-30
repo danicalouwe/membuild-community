@@ -90,8 +90,16 @@ function onPointerUp() {
    A little above or below the faces still counts, as the finger covers what it points at. */
 function faceAt(x, y) {
   const box = tray.value?.getBoundingClientRect()
-  if (!box || x < box.left || x > box.right || y < box.top - 60 || y > box.bottom + 70) return null
-  return choices().find((c) => { const r = c.getBoundingClientRect(); return x >= r.left - 2 && x <= r.right + 2 })?.dataset.type ?? null
+  if (!box || x < box.left - 24 || x > box.right + 24 || y < box.top - 120 || y > box.bottom + 120) return null
+  // The face nearest the finger, so there's no gap between faces where nothing is picked.
+  let best = null
+  let gap = Infinity
+  for (const c of choices()) {
+    const r = c.getBoundingClientRect()
+    const d = Math.abs(x - (r.left + r.width / 2))
+    if (d < gap) [best, gap] = [c, d]
+  }
+  return best?.dataset.type ?? null
 }
 function onTouchMove(e) {
   if (!longPressed || !open.value) return
@@ -322,8 +330,9 @@ onBeforeUnmount(() => {
 
 .lift {
   display: grid;
-  transition: transform 0.18s cubic-bezier(0.3, 1.6, 0.5, 1);
+  transition: transform 0.16s cubic-bezier(0.25, 1.2, 0.4, 1);
   transform-origin: 50% 100%;
+  will-change: transform;
 }
 
 .choice:hover .lift,
@@ -335,6 +344,15 @@ onBeforeUnmount(() => {
 .picker:hover .choice:not(:hover) .lift,
 .picker.sliding .choice:not(.hot) .lift {
   transform: scale(0.94);
+}
+
+/* Sliding a finger: the face under it rises well clear of the fingertip, as on Facebook. */
+.picker.sliding .choice.hot .lift {
+  transform: translateY(-30px) scale(1.75);
+}
+
+.picker.sliding .choice.hot .name {
+  bottom: calc(100% + 52px);
 }
 
 .choice:focus-visible {

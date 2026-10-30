@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../../api.js'
 import { askConfirm } from '../../lib/confirm.js'
@@ -35,6 +35,7 @@ let poll = null
 const n = (v) => Number(v || 0).toLocaleString()
 const job = computed(() => state.value?.job || null)
 
+let settled = false // the first screen comes from loading, not from a click: Settings mustn't jump down to it
 async function load() {
   try {
     state.value = await api.importState()
@@ -46,6 +47,7 @@ async function load() {
   } catch (e) {
     error.value = e.message
   }
+  nextTick(() => (settled = true))
 }
 onMounted(load)
 onBeforeUnmount(() => clearInterval(poll))
@@ -65,7 +67,8 @@ function follow() {
   }, 3000)
 }
 
-const scrollUp = () => document.getElementById('s-import')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+// Moving between Import's own steps keeps its top in view (it can be long); opening Settings doesn't.
+const scrollUp = () => settled && document.getElementById('s-import')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 watch(screen, scrollUp)
 
 /* ---------- Choose ---------- */

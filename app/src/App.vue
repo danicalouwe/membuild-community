@@ -22,6 +22,7 @@ import { messages, startPulse } from './stores/messages.js'
 import { t, locale } from './lib/i18n.js'
 import { useLatest } from './lib/useLatest.js'
 import { video } from './lib/videoDock.js'
+import { watchSettle } from './lib/settle.js'
 
 const PostDialog = defineAsyncComponent(() => import('./components/PostDialog.vue'))
 // The dock pulls in the whole chat view, so it loads after the first paint.
@@ -61,6 +62,24 @@ const wide = window.matchMedia('(min-width: 768px)')
 const isWide = ref(wide.matches)
 wide.addEventListener('change', (e) => (isWide.value = e.matches))
 const showDock = computed(() => isWide.value && feature('messages') && route.name !== 'messages')
+
+// Phones, like Facebook: scrolling down slides the top and bottom bars away so the page fills
+// the screen; any scroll up, or a new page, brings them back.
+const barsHidden = ref(false)
+let lastY = 0
+function onPageScroll() {
+  const y = window.scrollY
+  const d = y - lastY
+  if (isWide.value || y < 80) barsHidden.value = false
+  else if (d > 10) barsHidden.value = true
+  else if (d < -10) barsHidden.value = false
+  if (Math.abs(d) > 10 || y < 80) lastY = y
+}
+window.addEventListener('scroll', onPageScroll, { passive: true })
+router.afterEach(() => {
+  barsHidden.value = false
+  lastY = 0
+})
 
 /*
  * Facebook's desktop layout on wide screens: icons across the top (a label on
@@ -128,6 +147,7 @@ function fitTabs() {
     tight.value = spills || nav.scrollWidth > nav.clientWidth + 1 || bar.scrollWidth > bar.clientWidth + 1
   })
 }
+onMounted(() => watchSettle(router))
 onMounted(() => {
   if (!topTabs.value || !window.ResizeObserver) return
   const ro = new ResizeObserver(fitTabs)
@@ -164,7 +184,7 @@ const isActive = (tab) =>
 </script>
 
 <template>
-  <div class="shell" :class="{ immersive, 'in-course': inCourse, 'in-lesson': inLesson, building, 'on-profile': onProfile, 'no-tabbar': route.name === 'levels' || (route.name === 'settings' && !!route.query.s) || (route.name === 'messages' && !!route.params.threadId), 'phone-bare': route.name === 'search' || (route.name === 'messages' && !!route.params.threadId) }">
+  <div class="shell" :class="{ 'bars-hidden': barsHidden, immersive, 'in-course': inCourse, 'in-lesson': inLesson, building, 'on-profile': onProfile, 'no-tabbar': route.name === 'levels' || (route.name === 'settings' && !!route.query.s) || (route.name === 'messages' && !!route.params.threadId), 'phone-bare': route.name === 'search' || (route.name === 'messages' && !!route.params.threadId) }">
     <a class="skip-link" href="#mbcom-main" @click.prevent="skipToMain">{{ t.__('Skip to content', 'membuild-community') }}</a>
     <header class="topbar">
       <ThemeSlot name="app.top-bar" :data="{ tabs: desktopTabs, isActive, user: cfg.user, logo: cfg.community.logo, siteName: cfg.siteName, home: '/' }">
@@ -174,7 +194,7 @@ const isActive = (tab) =>
             <img v-if="cfg.community.logo" :src="cfg.community.logo" alt="" class="logo" />
             <span v-else class="logo mark" aria-hidden="true">{{ initials }}</span>
           </RouterLink>
-          <SearchBox v-if="feature('search')" />
+          <SearchBox v-if="feature('search') && isWide" />
         </div>
         <nav ref="topTabs" class="top-tabs" :class="{ tight }" :aria-label="t.__('Main sections', 'membuild-community')">
           <RouterLink v-for="tab in desktopTabs" :key="tab.name" :to="tab.path" class="top-tab" :class="{ active: isActive(tab) }" :title="tab.label" :aria-label="tab.label">
@@ -182,6 +202,8 @@ const isActive = (tab) =>
             <span class="top-label">{{ tab.label }}</span>
           </RouterLink>
         </nav>
+        <!-- Phones, like Facebook: search sits at the right, beside Messages. -->
+        <SearchBox v-if="feature('search') && !isWide" class="phone-search" />
         <HeaderActions />
       </div>
       </ThemeSlot>
@@ -627,7 +649,8 @@ const isActive = (tab) =>
   }
 
   .topbar-inner {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr auto auto;
+    column-gap: 8px;
   }
 
   .topbar {
@@ -636,6 +659,26 @@ const isActive = (tab) =>
 
   .main {
     padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 12px);
+  }
+
+  .topbar,
+  .tabbar {
+    transition: transform 0.25s ease;
+  }
+
+  /* Scrolling down (onPageScroll): both bars slide away, all of the top bar included, and the
+     page runs up under the clock like Facebook's (iPhone switches the clock dark or light to suit). */
+  .bars-hidden .topbar {
+    transform: translateY(-100%);
+  }
+
+  /* No line under the top bar on phones: it and "What's on your mind?" read as one white block. */
+  .topbar {
+    border-bottom: 0;
+  }
+
+  .bars-hidden .tabbar {
+    transform: translateY(100%);
   }
 
   .tabbar {

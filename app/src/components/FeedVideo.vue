@@ -5,7 +5,7 @@ let playing = null
 
 <script setup>
 import { isProcessing } from '../lib/stream.js'
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import Icon from './Icon.vue'
 import { t } from '../lib/i18n.js'
 
@@ -59,6 +59,10 @@ function pause() {
   el.value?.pause()
 }
 
+// Tall videos (reels, phone videos) show in a 4:5 frame, edge to edge, filled like Facebook's feed;
+// the whole video is in Reels or full screen.
+const tall = computed(() => (props.media.height || 16) > (props.media.width || 9) * 1.3)
+
 function toggleSound(e) {
   e.stopPropagation()
   e.preventDefault()
@@ -67,7 +71,7 @@ function toggleSound(e) {
 </script>
 
 <template>
-  <component :is="to ? 'RouterLink' : 'div'" ref="wrap" :to="to" class="feed-video" :style="{ aspectRatio: `${media.width || 9} / ${media.height || 16}` }">
+  <component :is="to ? 'RouterLink' : 'div'" ref="wrap" :to="to" class="feed-video" :class="{ tall }" :style="tall ? null : { aspectRatio: `${media.width || 9} / ${media.height || 16}` }">
     <video
       ref="el"
       v-stream="loadSrc ? media : null"
@@ -113,6 +117,22 @@ function toggleSound(e) {
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+.feed-video.tall {
+  aspect-ratio: 4 / 5;
+}
+
+.feed-video.tall video {
+  object-fit: cover;
+}
+
+/* Phones: edge to edge, no bars or gaps at the sides. */
+@media (max-width: 767px) {
+  .feed-video.tall {
+    width: 100%;
+    max-height: none;
+  }
 }
 
 .sound,

@@ -296,6 +296,7 @@ function addGif(gif) {
 }
 
 async function send() {
+  const typing = document.activeElement === input.value
   const content = draft.value.trim()
   const pics = photos.value
   if ((!content && !pics.length) || pics.some((p) => p.status === 'error')) return
@@ -318,6 +319,7 @@ async function send() {
   }
   items.value.push(temp)
   scrollToBottom(true)
+  if (typing) nextTick(() => input.value?.focus({ preventScroll: true })) // still typing: the keyboard stays
 
   try {
     await Promise.all(pics.map((p) => p.promise))
@@ -344,8 +346,10 @@ async function send() {
   }
 }
 
+// Phones, like Messenger: the return key starts a new line, and Send sends.
+const touch = window.matchMedia('(pointer: coarse)')
 function onKey(e) {
-  if (e.key === 'Enter' && !e.shiftKey) {
+  if (e.key === 'Enter' && !e.shiftKey && !touch.matches) {
     e.preventDefault()
     send()
   } else if (e.key === 'Escape' && replyTo.value) {
@@ -680,8 +684,9 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
             <ReactionPicker v-if="showEmoji && emojiBtn" mode="emoji" side="center" :anchor="emojiBtn.getBoundingClientRect()" :ignore="emojiBtn" @pick="insertEmoji" @close="showEmoji = false" />
           </div>
         </div>
-        <button v-if="draft.trim() || photos.length" type="submit" class="icon send" :aria-label="t.__('Send', 'membuild-community')"><Icon name="send" :size="22" /></button>
-        <button v-else type="button" class="icon send like" :aria-label="t.__('Send a like', 'membuild-community')" @click="draft = '👍'; send()">👍</button>
+        <!-- Pressing Send keeps the typing where it was, so the phone's keyboard stays up for the next message. -->
+        <button v-if="draft.trim() || photos.length" type="submit" class="icon send" :aria-label="t.__('Send', 'membuild-community')" @pointerdown.prevent><Icon name="send" :size="22" /></button>
+        <button v-else type="button" class="icon send like" :aria-label="t.__('Send a like', 'membuild-community')" @pointerdown.prevent @click="draft = '👍'; send()">👍</button>
       </div>
     </form>
   </section>

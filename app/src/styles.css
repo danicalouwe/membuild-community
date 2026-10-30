@@ -141,6 +141,25 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/*
+ * Phones: iPhone can leave a strip of the page's backing below the bottom bar (on pages that
+ * don't scroll, like Reels and Alerts). That backing is the bar's own colour, so nothing shows;
+ * the page itself still fills the screen with its usual background.
+ */
+@media (max-width: 767px) {
+  html {
+    background: var(--surface);
+  }
+
+  html:has(.shell.immersive) {
+    background: var(--player-bg); /* Reels: the bar is dark there, always */
+  }
+
+  body {
+    min-height: 100dvh;
+  }
+}
+
 body {
   margin: 0;
   background: var(--bg);
