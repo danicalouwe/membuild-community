@@ -4,33 +4,33 @@ A free community for WordPress, as simple as Skool and as familiar as Facebook. 
 
 **[Try the live demo →](https://demo-community.membuild.com)**
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/feed.jpg"><img src="docs/screenshots/light/feed.jpg" alt="The community feed: stories, a pinned welcome post, reactions and comments, with the sections down the left like Facebook"></picture>
+<img src="docs/screenshots/light/feed.jpg" alt="The community feed: stories, a pinned welcome post, reactions and comments, with the sections down the left like Facebook">
 
 <table>
   <tr>
-    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/classroom.jpg"><img src="docs/screenshots/light/classroom.jpg" alt="Classroom: courses with progress, one unlocked by level and one for a member group"></picture></td>
-    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/lesson.jpg"><img src="docs/screenshots/light/lesson.jpg" alt="A lesson with the course outline and progress"></picture></td>
+    <td width="50%"><img src="docs/screenshots/light/classroom.jpg" alt="Classroom: courses with progress, one unlocked by level and one for a member group"></td>
+    <td width="50%"><img src="docs/screenshots/light/lesson.jpg" alt="A lesson with the course outline and progress"></td>
   </tr>
   <tr>
-    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/leaderboard.jpg"><img src="docs/screenshots/light/leaderboard.jpg" alt="Leaderboard: the top three on a podium, this week, this month and all time, and nine named levels"></picture></td>
-    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/messages.jpg"><img src="docs/screenshots/light/messages.jpg" alt="A group chat between members"></picture></td>
+    <td><img src="docs/screenshots/light/leaderboard.jpg" alt="Leaderboard: the top three on a podium, this week, this month and all time, and nine named levels"></td>
+    <td><img src="docs/screenshots/light/messages.jpg" alt="A group chat between members"></td>
   </tr>
 </table>
 
 <table>
   <tr>
-    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/events.jpg"><img src="docs/screenshots/light/events.jpg" alt="Events: upcoming live calls and workshops with who's going and a Going button"></picture></td>
-    <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/event.jpg"><img src="docs/screenshots/light/event.jpg" alt="An event page: Going, Interested, Add to calendar, who's going, and the discussion"></picture></td>
+    <td width="50%"><img src="docs/screenshots/light/events.jpg" alt="Events: upcoming live calls and workshops with who's going and a Going button"></td>
+    <td width="50%"><img src="docs/screenshots/light/event.jpg" alt="An event page: Going, Interested, Add to calendar, who's going, and the discussion"></td>
   </tr>
 </table>
 <sub>Events: a calendar with RSVPs, add-to-calendar, reminders, and a Join button or a live stream that plays on the page.</sub>
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/places.jpg"><img src="docs/screenshots/light/places.jpg" alt="Places: meetup spots, member perks and venues pinned on a map, with photo cards below"></picture>
+<img src="docs/screenshots/light/places.jpg" alt="Places: meetup spots, member perks and venues pinned on a map, with photo cards below">
 <sub>Places (optional): meetup spots, partners with a member perk, and venues, on a map.</sub>
 
 <table>
   <tr>
-    <td width="32%" valign="top"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/phone.jpg"><img src="docs/screenshots/light/phone.jpg" alt="The community on a phone"></picture></td>
+    <td width="32%" valign="top"><img src="docs/screenshots/light/phone.jpg" alt="The community on a phone"></td>
     <td valign="top"><img src="docs/screenshots/admin.jpg" alt="The Community overview in wp-admin: members, activity and the last 30 days"><br><sub>Left: the community on a phone, installable as an app. Right: the overview in wp-admin.</sub></td>
   </tr>
 </table>
