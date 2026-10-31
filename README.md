@@ -12,7 +12,7 @@ A free community for WordPress, as simple as Skool and as familiar as Facebook. 
     <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/lesson.jpg"><img src="docs/screenshots/light/lesson.jpg" alt="A lesson with the course outline and progress"></picture></td>
   </tr>
   <tr>
-    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/leaderboard.jpg"><img src="docs/screenshots/light/leaderboard.jpg" alt="Leaderboard with nine named levels"></picture></td>
+    <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/leaderboard.jpg"><img src="docs/screenshots/light/leaderboard.jpg" alt="Leaderboard: the top three on a podium, this week, this month and all time, and nine named levels"></picture></td>
     <td><picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/messages.jpg"><img src="docs/screenshots/light/messages.jpg" alt="A group chat between members"></picture></td>
   </tr>
 </table>
@@ -25,7 +25,7 @@ A free community for WordPress, as simple as Skool and as familiar as Facebook. 
 </table>
 <sub>Events: a calendar with RSVPs, add-to-calendar, reminders, and a Join button or a live stream that plays on the page.</sub>
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/places.jpg"><img src="docs/screenshots/light/places.jpg" alt="Places: a list of meetup spots, member perks and venues beside a map, with nearby places grouped into numbered bubbles"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/dark/places.jpg"><img src="docs/screenshots/light/places.jpg" alt="Places: meetup spots, member perks and venues pinned on a map, with photo cards below"></picture>
 <sub>Places (optional): meetup spots, partners with a member perk, and venues, on a map.</sub>
 
 <table>
@@ -40,18 +40,22 @@ A free community for WordPress, as simple as Skool and as familiar as Facebook. 
 
 ## What's inside
 
-- **Feed:** posts with photos, video and links; reactions, comments and replies; pinned posts.
+- **Feed:** posts with photos, video and links; reactions, comments and replies; pinned posts; topics to sort posts by, with filters on Home.
 - **Reels and stories:** vertical video, compressed in the browser before upload; 24-hour stories.
 - **Events:** a calendar of live calls, Q&As and workshops with Going/Interested, add-to-calendar, reminders the day before and an hour before, and a Join button or a live stream playing on the page.
 - **Classroom:** courses with modules and lessons, drip release, and courses unlocked by level or member group. Every card says where you stand, "Continue where you left off" picks up your next lesson, and each lesson has its own discussion with Helpful votes, pins and a Best answer, plus a Resources tab for every file in the course.
-- **Levels and leaderboard:** points for taking part, nine levels you can rename, weekly and monthly leaderboards.
+- **Levels and leaderboard:** points for taking part, nine levels you can rename, and a leaderboard for the week, the month and all time.
 - **Messages:** one-to-one and group chats, encrypted before they're saved. Admins see counts, never the text.
 - **Places (optional):** a map of meetup spots, partners with member perks, and venues. Off until you switch it on.
 - **Search:** members, posts, comments, lessons and places, from one box.
 - **GIFs (optional):** a GIF button with GIPHY's search in posts, comments and chats, once you add a free GIPHY key.
 - **Moderation:** reports, mutes, bans and blocking.
-- **Your login and sign-up pages,** in the community's colors.
-- **Installable as an app** on phones, with your logo as the icon.
+- **Memberships (optional):** sell access to courses and groups with FluentCart; members see their plans, receipts and cancel from Billing.
+- **Emails:** a welcome email, then new messages, comments on your posts and replies to yours, instantly or as a daily summary. Members choose, every email has a one-click unsubscribe, and you pick the delivery (your host, Resend or any SMTP).
+- **Log in and Join pages,** led by you: your photo and one line about what members get, the next live call, and "Email me a login link" so members can log in without a password.
+- **Starter website pages (optional):** Home, Pricing, About, Courses, guidelines, contact and legal pages, made from WordPress blocks you can edit, with your live courses, events and plans in them.
+- **Import:** move over from BuddyBoss, BuddyPress, PeepSo or FluentCommunity (members, posts, comments, reactions, chats and points, and courses where the old platform has them; groups become topics), or add members from a spreadsheet. Check first, then undo an import if you need to.
+- **Light or dark,** each member's choice, and **installable as an app** on phones, with your logo as the icon.
 
 Everything is stored in your own WordPress database. No accounts with us and no ads. Once a week the plugin tells us it's installed (a random ID and version numbers, nothing about your site or members), and you can choose to share anonymous usage, like which features you use, to help us decide what to build. See `readme.txt` → External services.
 
