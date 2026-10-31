@@ -1,131 +1,202 @@
 /*
- * The community's login, forgot-password and reset-password pages.
+ * The community's log in, join, forgot-password, new-password and login-link pages.
  * Colors come from tokens printed inline by Login::styles(), from the community's accent.
+ * Left: the host's card on a soft panel. Right: one column, a 52px two-line heading,
+ * labels above 52px boxes, a 56px button. Phones: the form only, with a small logo row.
  */
 :root {
 	--bg: #ffffff;
 	--surface: #ffffff;
-	--text: #1c1e21;
-	--text-2: #5f6670;
-	--line: #dadde1;
+	--text: #16181d;
+	--text-2: #5d6370;
+	--line: #e7e9ec;
 	--soft: #f0f2f5;
-	--danger: #c5221f;
+	--danger: #b42318;
+	--danger-bg: #fdf1ef;
+	--ok: #1f7a49;
+	--ok-bg: #e3f5ea;
 	--field: #d5d9df;
 	--grey: #e6e9ee;
 	--box: #b8bdc6;
-	color-scheme: light dark;
+	--panel: color-mix(in srgb, var(--accent) 16%, #fff);
+	--shadow: 0 20px 50px rgb(16 24 40 / 16%);
+	color-scheme: light;
 }
+/* Dark only when this browser's member picked it (see Login::scheme): .mb-dark, or .mb-auto on a dark device. */
+:root.mb-dark {
+	--bg: #111214;
+	--surface: #1b1c20;
+	--text: #eceef1;
+	--text-2: #a2a7b0;
+	--line: #2c2e33;
+	--or: #8b909b; /* the "or" between buttons, 5:1 on the dark page */
+	--soft: #222327;
+	--danger: #ff8a80;
+	--danger-bg: #3a1d1b;
+	--ok: #7fd8a4;
+	--ok-bg: #16301f;
+	--field: #3a3d44;
+	--grey: #2a2c31;
+	--box: #5a5e66;
+	--panel: color-mix(in srgb, var(--accent) 12%, #16171a);
+	--shadow: 0 20px 50px rgb(0 0 0 / 45%);
+	color-scheme: dark;
+}
+/* White words on a bright marker are hard to read: a dimmer one in the dark. */
+:root.mb-dark .hl { background: linear-gradient(transparent 58%, color-mix(in srgb, var(--accent) 45%, transparent) 58%); }
 @media (prefers-color-scheme: dark) {
-	:root {
+	:root.mb-auto {
 		--bg: #111214;
-		--surface: #18191c;
+		--surface: #1b1c20;
 		--text: #eceef1;
 		--text-2: #a2a7b0;
 		--line: #2c2e33;
 		--or: #8b909b; /* the "or" between buttons, 5:1 on the dark page */
 		--soft: #222327;
-		--danger: #ff6b5f;
+		--danger: #ff8a80;
+		--danger-bg: #3a1d1b;
+		--ok: #7fd8a4;
+		--ok-bg: #16301f;
 		--field: #3a3d44;
 		--grey: #2a2c31;
 		--box: #5a5e66;
+		--panel: color-mix(in srgb, var(--accent) 12%, #16171a);
+		--shadow: 0 20px 50px rgb(0 0 0 / 45%);
+		color-scheme: dark;
 	}
+	/* White words on a bright marker are hard to read: a dimmer one in the dark. */
+	:root.mb-auto .hl { background: linear-gradient(transparent 58%, color-mix(in srgb, var(--accent) 45%, transparent) 58%); }
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; }
 body {
 	background: var(--bg);
 	color: var(--text);
-	font: 15px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+	font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 	-webkit-font-smoothing: antialiased;
 }
 a { color: inherit; }
-.page { display: grid; grid-template-columns: 1fr 1fr; min-height: 100vh; }
-.brand-side { position: relative; display: flex; flex-direction: column; height: 100vh; min-height: 620px; padding: 40px; border-right: 1px solid var(--line); overflow: hidden; }
-.logo { display: grid; place-items: center; width: 60px; height: 60px; border-radius: 16px; background: var(--accent); color: var(--accent-ink); font-weight: 800; font-size: 22px; text-decoration: none; overflow: hidden; }
-.logo img { width: 100%; height: 100%; object-fit: cover; }
-.stage { position: relative; flex: 1; min-height: 0; display: flex; align-items: flex-end; }
-.headline { position: relative; z-index: 2; margin: 0; max-width: 300px; font-size: clamp(40px, 7.2vh, 56px); line-height: 1.05; font-weight: 750; letter-spacing: -0.03em; }
-.headline em { font-style: normal; color: var(--accent-text); }
-.tagline { position: relative; z-index: 2; margin: 14px 0 0; max-width: 340px; color: var(--text-2); font-size: 16px; }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.page { display: grid; grid-template-columns: 1.05fr 0.95fr; min-height: 100vh; }
 
-/* The owner's own photo (Settings › Joining): fills the side above the headline, cropped to fit. */
-.photo { position: absolute; inset: 0 0 34% 0; border-radius: 20px; overflow: hidden; }
-.photo img { width: 100%; height: 100%; object-fit: cover; }
-.photo::after { content: ""; position: absolute; inset: auto 0 0; height: 40%; background: linear-gradient(transparent, var(--bg, #fff)); }
+/* ---------- The host's side ---------- */
+.brand-side { position: sticky; top: 0; height: 100vh; min-height: 640px; padding: 24px; }
+.host-panel { position: relative; height: 100%; overflow: clip; display: grid; place-items: center; padding: 40px; border-radius: 28px; background: var(--panel); }
+.host-panel::before { content: ""; position: absolute; right: -90px; top: -90px; width: 380px; height: 380px; border-radius: 50%; background: var(--accent); filter: blur(80px); opacity: 0.55; }
+.live-top { position: absolute; right: 26px; top: 26px; z-index: 3; }
+.host { position: relative; width: min(380px, 100%); margin: 0; }
+.portrait { display: block; width: 100%; height: min(420px, 52vh); border-radius: 28px; object-fit: cover; object-position: center 25%; box-shadow: 0 30px 70px rgb(16 24 40 / 22%); }
+/* No photo yet: the logo, or the community's initials, on its color. */
+.portrait.mark { display: grid; place-items: center; height: min(300px, 40vh); overflow: hidden; background: var(--accent); color: var(--accent-ink); font-size: 96px; font-weight: 800; letter-spacing: -2px; }
+.portrait.mark img { width: 100%; height: 100%; object-fit: cover; }
+.card { position: relative; display: flex; flex-direction: column; gap: 14px; width: calc(100% + 20px); margin: -44px 0 0 -36px; padding: 22px 24px; border-radius: 22px; background: var(--surface); box-shadow: var(--shadow); }
+.qm { fill: var(--accent); }
+.quote { margin: 0; font-size: 21px; line-height: 1.35; font-weight: 650; letter-spacing: -0.3px; }
+.by { display: flex; align-items: center; gap: 10px; line-height: 1.3; }
+.qm ~ .by, .card > .faces { padding-top: 12px; border-top: 1px solid var(--line); }
+.by small { color: var(--text-2); font-size: 14px; }
+.pill { margin-left: auto; padding: 5px 10px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 28%, var(--surface)); color: var(--text); font-size: 12px; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase; }
+.faces { display: flex; align-items: center; gap: 12px; color: var(--text-2); font-size: 15px; }
+.faces b { color: var(--text); }
+.stack { display: flex; padding-left: 10px; }
+.stack img { width: 36px; height: 36px; margin-left: -10px; border: 3px solid var(--surface); border-radius: 50%; object-fit: cover; }
 
-/* The illustration: a post, a reel, a member and reactions, drawn in the community's color. */
-.art { position: absolute; top: 4%; left: 34%; width: 340px; height: 420px; transform-origin: top left; }
-@media (max-height: 760px) { .art { transform: scale(0.85); } }
-.art > * { position: absolute; border-radius: 16px; box-shadow: 0 10px 30px rgb(0 0 0 / 12%); }
-.reel { top: 0; left: 120px; width: 180px; height: 300px; background: linear-gradient(160deg, var(--accent), color-mix(in srgb, var(--accent) 35%, #6b4dff)); overflow: hidden; }
-.reel::before { content: ""; position: absolute; top: 12px; left: 12px; right: 12px; height: 3px; border-radius: 3px; background: linear-gradient(90deg, #fff 55%, rgb(255 255 255 / 40%) 55%); }
-.reel::after { content: ""; position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgb(255 255 255 / 85%) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 7v10l8-5z' fill='%23111214'/%3E%3C/svg%3E") center / 26px no-repeat; }
-.post { top: 90px; left: 0; width: 170px; padding: 12px; background: var(--surface); border: 1px solid var(--line); }
-.post i { display: block; height: 8px; margin-top: 8px; border-radius: 4px; background: var(--soft); }
-.post i:first-child { width: 60%; margin: 0; }
-.post b { display: block; height: 86px; margin-top: 10px; border-radius: 10px; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 40%, #fff), color-mix(in srgb, var(--accent) 70%, #ff8fb1)); }
-.member { top: 250px; left: 160px; width: 96px; height: 96px; border-radius: 50%; border: 4px solid var(--accent); background: radial-gradient(circle at 50% 38%, #f2d3b6 0 22%, transparent 23%), radial-gradient(circle at 50% 100%, #3a4a8c 0 42%, transparent 43%), #dfe7ff; }
-.chip { top: 220px; left: 270px; padding: 5px 10px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-weight: 750; font-size: 13px; white-space: nowrap; }
-.emoji { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; background: var(--surface); font-size: 28px; }
-.e1 { top: 30px; left: 40px; }
-.e2 { top: 270px; left: 285px; background: #f02849; font-size: 24px; }
+/* The next live call */
+.live { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 16px; background: var(--surface); box-shadow: 0 10px 26px rgb(16 24 40 / 10%); font-size: 15px; line-height: 1.35; }
+.live > span:last-child > span { color: var(--text-2); }
+.cal { flex: none; width: 44px; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); text-align: center; }
+.cal small { display: block; padding: 1px 0; background: #d92d20; color: #fff; font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.cal b { display: block; padding: 1px 0; font-size: 17px; }
 
-.form-side { display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
-.panel { width: 100%; max-width: 440px; }
-h1 { margin: 0 0 8px; font-size: 28px; font-weight: 650; line-height: 1.25; }
-.lead { margin: 0 0 22px; color: var(--text-2); font-size: 16px; line-height: 1.5; }
-.lead strong { color: var(--text); }
-h1 + form, h1 + .msg { margin-top: 22px; }
-form { display: flex; flex-direction: column; gap: 16px; }
-.msg { margin: 0 0 16px; padding: 12px 16px; border-radius: 12px; background: var(--soft); font-size: 16px; }
-.msg.error { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+/* ---------- The form ---------- */
+.form-side { display: flex; align-items: center; justify-content: center; padding: 32px 64px; }
+.panel { display: flex; flex-direction: column; gap: 18px; width: 100%; max-width: 420px; }
+.big { margin: 0; font-size: 52px; line-height: 1; font-weight: 750; letter-spacing: -2px; overflow-wrap: anywhere; }
+.hl { padding: 0 4px; background: linear-gradient(transparent 58%, color-mix(in srgb, var(--accent) 85%, transparent) 58%); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.intro { display: flex; flex-direction: column; gap: 6px; }
+.lead { margin: 0; color: var(--text-2); font-size: 18px; line-height: 1.55; }
+.small-lead { font-size: 16px; }
+.lead strong, .lead b { color: var(--text); }
+.small { margin: 0; color: var(--text-2); font-size: 15px; line-height: 1.5; }
+.small a, .foot a, .msg a, .field-error a { color: var(--text); font-weight: 700; text-decoration: underline; }
+.terms { font-size: 13px; }
+form { display: flex; flex-direction: column; gap: 18px; }
+.msg { display: flex; gap: 10px; align-items: flex-start; margin: 0; padding: 12px 14px; border-radius: 14px; font-size: 15px; line-height: 1.45; }
+.msg.error { background: var(--danger-bg); color: var(--danger); font-weight: 600; }
+.msg.error a { color: inherit; }
+.msg.ok { gap: 12px; padding: 14px 16px; border-radius: 16px; background: var(--ok-bg); color: var(--ok); }
+.msg.ok b { color: inherit; }
+.warn-mark { flex: none; margin-top: 1px; }
+.ok-mark { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--ok); color: var(--bg); }
 
-/* A field: its label above, then a 54px box. */
-.field { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; border: 0; min-width: 0; }
-.label { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 0; color: var(--text); font-size: 16px; font-weight: 700; }
-.label a { color: var(--text); }
-.label small { color: var(--text-2); font-size: 15px; font-weight: 400; }
-.field input, .field select, .box { width: 100%; height: 54px; padding: 0 16px; border: 1px solid var(--field); border-radius: 12px; background: var(--surface); color: var(--text); font: inherit; font-size: 17px; outline: none; }
+/* A field: its label above, then a 52px box. */
+.field { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.label { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 0; color: var(--text); font-size: 15px; font-weight: 700; }
+.label a { color: var(--text); font-size: 14px; }
+.label small { color: var(--text-2); font-size: 14px; font-weight: 400; }
+.field input, .field select, .box { width: 100%; height: 52px; padding: 0 16px; border: 1.5px solid var(--field); border-radius: 14px; background: var(--surface); color: var(--text); font: inherit; font-size: 16px; outline: none; }
 .field input:focus, .field select:focus, .box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
+.has-error input, .has-error input:focus { border-color: var(--danger); }
+.has-error input:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 25%, transparent); }
+.field-error { color: var(--danger); font-size: 14px; font-weight: 600; line-height: 1.4; }
+.field-error a { color: inherit; }
 .box { display: flex; align-items: center; padding-right: 6px; }
 .box input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; box-shadow: none !important; background: none; }
-.show { height: 42px; padding: 0 12px; border: 0; border-radius: 10px; background: none; color: var(--text); font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
-.show:hover { background: var(--soft); }
+.show { height: 40px; padding: 0 10px; border: 0; border-radius: 10px; background: none; color: var(--text-2); font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+.show:hover { background: var(--soft); color: var(--text); }
 
 /* Keep me logged in */
-.check { position: relative; display: flex; align-items: center; gap: 10px; font-size: 16px; cursor: pointer; }
+.check { position: relative; display: flex; align-items: center; gap: 10px; color: var(--text-2); font-size: 15px; cursor: pointer; }
 .check input { position: absolute; opacity: 0; width: 22px; height: 22px; margin: 0; }
 .tick { flex: none; width: 22px; height: 22px; border: 2px solid var(--box); border-radius: 6px; }
 .check input:checked + .tick { position: relative; border-color: var(--text); background: var(--text); }
 .check input:checked + .tick::after { content: ""; position: absolute; left: 6px; top: 2px; width: 5px; height: 10px; border: solid var(--bg); border-width: 0 2.5px 2.5px 0; transform: rotate(45deg); }
 .check input:focus-visible + .tick { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent); }
 
-.btn { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; padding: 0 24px; border: 0; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font: inherit; font-size: 17px; font-weight: 700; text-decoration: none; cursor: pointer; }
-.btn:hover { filter: brightness(0.95); }
-.btn.outline { border: 1px solid var(--field); background: transparent; color: var(--text); }
+.btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 56px; padding: 0 24px; border: 0; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font: inherit; font-size: 17px; font-weight: 800; text-decoration: none; cursor: pointer; box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 45%, transparent); }
+.btn:hover { filter: brightness(0.96); }
+.btn:focus-visible, .show:focus-visible, a:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 70%, var(--text)); outline-offset: 2px; }
+.btn.outline { min-height: 52px; border: 1.5px solid var(--field); background: transparent; color: var(--text); font-size: 16px; box-shadow: none; }
 .btn.outline:hover { background: var(--soft); filter: none; }
-.btn.grey { background: var(--grey); color: var(--text); }
-.or { display: flex; align-items: center; gap: 12px; margin: 22px 0 16px; color: var(--or, #646973); font-size: 14px; }
+.btn.grey { background: var(--grey); color: var(--text); box-shadow: none; }
+.or { display: flex; align-items: center; gap: 12px; margin: 0; color: var(--or, #646973); font-size: 14px; }
 .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
-.link { display: block; margin: 18px 0 0; text-align: center; font-size: 16px; font-weight: 700; text-decoration: none; }
-.link:hover { text-decoration: underline; }
-.link.plain { font-weight: 400; }
-.link.plain a { font-weight: 700; text-decoration: underline; }
-.small { margin: 0; color: var(--text-2); font-size: 14px; line-height: 1.5; }
-.small a { color: var(--text); font-weight: 700; }
+.foot { margin: 0; padding-top: 14px; border-top: 1px solid var(--line); color: var(--text-2); font-size: 15px; text-align: center; }
 
-/* Check your email */
-.icon { display: grid; place-items: center; width: 64px; height: 64px; margin-bottom: 18px; border-radius: 50%; background: var(--accent-soft, color-mix(in srgb, var(--accent) 22%, #fff)); color: var(--accent-text); }
-form.note { display: block; margin: 0 0 18px; padding: 14px 16px; border-radius: 12px; background: var(--soft); color: var(--text-2); font-size: 15px; line-height: 1.5; }
-.text-btn { padding: 0; border: 0; background: none; color: var(--text); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+/* Join: what you get */
+.gets { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.gets li { display: flex; gap: 12px; align-items: center; font-size: 15px; line-height: 1.35; }
+.gets li > span:last-child { color: var(--text-2); }
+.gets b { color: var(--text); }
+.gi { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--accent); color: var(--accent-ink); }
+.gets.narrow { display: none; }
 
+/* Phones only: the logo row, the host's line on Join, the live call under the form */
+.brand-row, .host-row, .live-under { display: none; }
+.brand-row { align-items: center; gap: 10px; margin: 0; font-size: 16px; }
+.logo { display: grid; place-items: center; flex: none; width: 38px; height: 38px; overflow: hidden; border-radius: 11px; background: var(--accent); color: var(--accent-ink); font-size: 14px; font-weight: 900; }
+.logo img { width: 100%; height: 100%; object-fit: cover; }
+.host-row { align-items: center; gap: 12px; margin: 0; padding: 12px 14px; border-radius: 16px; background: var(--panel); font-size: 15px; line-height: 1.4; }
+.host-row img, .host-row .logo { flex: none; width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
+
+@media (max-width: 1100px) {
+	.form-side { padding: 32px 40px; }
+	.card { width: 100%; margin-left: 0; }
+}
 @media (max-width: 900px) {
-	.page { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-	/* Only the logo shows here on phones, so the panel shrinks to it instead of filling a whole screen. */
-	.brand-side { height: auto; min-height: 0; border-right: 0; padding: 28px 24px 0; align-items: center; }
-	.stage, .tagline { display: none; }
-	.form-side { align-items: flex-start; padding-top: 24px; }
-	h1 { font-size: 24px; }
+	.page { display: block; }
+	.brand-side { display: none; }
+	.form-side { display: block; padding: 28px 22px 32px; }
+	.panel { gap: 16px; margin: 0 auto; }
+	.big { font-size: 38px; letter-spacing: -1.3px; }
+	.lead { font-size: 16px; }
+	.brand-row, .host-row { display: flex; }
+	.live-under { display: block; }
+	.live-under .live { box-shadow: none; border: 1px solid var(--line); }
+	.gets.wide { display: none; }
+	.gets.narrow { display: flex; }
+	/* A theme that brings its own side keeps it, above the form. */
+	.brand-side:has(> :not(.host-panel)) { display: block; height: auto; min-height: 0; position: static; padding: 16px 16px 0; }
 }
 
 /* Sign-up */

@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.14.5
+Stable tag: 1.15.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,17 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.15.0 =
+* New: Log in and Join are led by you, the host: your photo with one line about what members get, your name as "Host of …", the next live call when there's one this week, and members' faces on Join once there are a few. Day one works too: no photo shows your logo.
+* New: "Email me a login link" on Log in. Members get a link that works once, for 15 minutes, and press Log in to use it (email scanners can't use it up). People who run the site keep their password. Switch it off in Settings › Joining & logging in.
+* New: Settings › Joining & logging in: Photo (or your profile photo), Host, Your line, Join page headline, a live preview of the login page, and "Show what's happening".
+* New: main website starter pages. Settings › Main website › Create my starter pages makes Home, Pricing, About, Courses, Community guidelines, Contact & help, Privacy, Terms and Refunds from core blocks, with live courses, events, plans and member faces, the matching header and footer. Remove puts them in the bin and puts everything back.
+* Changed: Join asks for three things (first name, email, password) and says what members get. Errors are one plain line; an email that already has an account says so under the box, with Log in and reset links.
+* Changed: Checkout says "Join VIP." over FluentCart's form, with labels above the boxes and a "Back to the plans" link. Members see "Paying as …" instead of Name and Email; visitors get "Already a member? Log in first".
+* Changed: Thank you is just "You're in." in the middle and the way into the community. New buyers are told a password link is on its way; a payment still confirming shows "Almost there."
+* Changed: the login, join, checkout and thank-you pages are light, unless the member picked Dark (or Auto) in the community.
+* Fixed: making the starter pages no longer leaves the privacy page at /privacy-policy-2/ (WordPress's unpublished draft steps aside, and gets its address back on Remove).
 
 = 1.14.5 =
 * Changed: on phones, Home works like Facebook. Search sits beside Messages, "What's on your mind?" joins the top bar with just the photo button, and scrolling down slides the top and bottom bars away (scrolling up brings them back).

@@ -2250,6 +2250,90 @@ mbcom_check( 'a login form whose origin the browser hides ("null", as Chrome sen
 mbcom_check( '…and one from this site', false === $lf_try( home_url(), 'same-origin' ) );
 mbcom_check( '…but one posted from another site is refused', true === $lf_try( 'https://evil.example', null ) && true === $lf_try( home_url(), 'cross-site' ) );
 
+mbcom_section( 'Email me a login link' );
+$ml_member = mbcom_user( 'mbct_ml_member' );
+$ml_admin  = mbcom_user( 'mbct_admin', 'administrator' );
+$ml_call   = function ( $name, ...$args ) {
+	$m = new ReflectionMethod( \MemBuild\Community\Login::class, $name );
+	$m->setAccessible( true );
+	return $m->invoke( null, ...$args );
+};
+$ml_clear  = function () use ( $wpdb ) {
+	$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient%mbcom_link%'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+	wp_cache_flush();
+};
+$ml_clear();
+$ml_mails = array();
+$ml_catch = function ( $null, $atts ) use ( &$ml_mails ) {
+	$ml_mails[] = $atts;
+	return true;
+};
+add_filter( 'pre_wp_mail', $ml_catch, 10, 2 );
+delete_user_meta( $ml_member, 'mbcom_login_link' );
+$ml_ok = $ml_call( 'send_link', 'mbct_ml_member@example.test' );
+$ml_saved = get_user_meta( $ml_member, 'mbcom_login_link', true );
+mbcom_check( 'asking for a login link saves only its hash, for 15 minutes', true === $ml_ok && is_array( $ml_saved ) && 64 === strlen( $ml_saved['h'] ) && abs( $ml_saved['x'] - ( time() + 900 ) ) < 5 );
+do_action( 'shutdown' ); // the email goes once the page has been sent
+$ml_url = preg_match( '~https?://[^\s"<]+/login-link\?u=\d+&(?:amp;|#038;)?t=[A-Za-z0-9]+~', (string) ( end( $ml_mails )['message'] ?? '' ), $ml_m ) ? html_entity_decode( $ml_m[0] ) : '';
+mbcom_check( '…and emails the link to the member', '' !== $ml_url && 'mbct_ml_member@example.test' === ( end( $ml_mails )['to'] ?? '' ) );
+parse_str( (string) wp_parse_url( $ml_url, PHP_URL_QUERY ), $ml_q );
+mbcom_check( 'the emailed link is the right one', $ml_call( 'link_user', (int) ( $ml_q['u'] ?? 0 ), (string) ( $ml_q['t'] ?? '' ) ) instanceof WP_User );
+mbcom_check( '…a made-up one isn’t', null === $ml_call( 'link_user', $ml_member, 'nottherighttoken000000000000000000' ) );
+update_user_meta( $ml_member, 'mbcom_login_link', array( 'h' => $ml_saved['h'], 'x' => time() - 1 ) );
+mbcom_check( '…nor one older than 15 minutes', null === $ml_call( 'link_user', (int) ( $ml_q['u'] ?? 0 ), (string) ( $ml_q['t'] ?? '' ) ) );
+$ml_n = count( $ml_mails );
+$ml_unknown = $ml_call( 'send_link', 'nobody-here@example.test' );
+do_action( 'shutdown' );
+mbcom_check( 'an email with no account gets the same answer, and no email is sent', true === $ml_unknown && count( $ml_mails ) === $ml_n );
+delete_user_meta( $ml_admin, 'mbcom_login_link' );
+$ml_call( 'send_link', 'mbct_admin' );
+mbcom_check( 'people who run the site never get a login link (they keep their password and two-factor)', ! get_user_meta( $ml_admin, 'mbcom_login_link', true ) );
+$ml_clear();
+for ( $i = 0; $i < 4; $i++ ) {
+	delete_user_meta( $ml_member, 'mbcom_login_link' );
+	$ml_call( 'send_link', 'mbct_ml_member' );
+}
+mbcom_check( 'at most three login links an hour for one account', ! get_user_meta( $ml_member, 'mbcom_login_link', true ) );
+$ml_clear();
+for ( $i = 0; $i < 5; $i++ ) {
+	$ml_call( 'send_link', "nobody{$i}@example.test" );
+}
+mbcom_check( '…and five an hour from one address', is_wp_error( $ml_call( 'send_link', 'mbct_ml_member' ) ) );
+$ml_clear();
+remove_filter( 'pre_wp_mail', $ml_catch, 10 );
+delete_user_meta( $ml_member, 'mbcom_login_link' );
+$ml_mails = array();
+
+mbcom_section( 'Light unless the member picked dark' );
+$sc_was = $_COOKIE['mbcom_display'] ?? null;
+unset( $_COOKIE['mbcom_display'] );
+mbcom_check( 'the login, join and checkout pages are light for a visitor', 'light' === \MemBuild\Community\Login::scheme() );
+$_COOKIE['mbcom_display'] = 'dark';
+mbcom_check( '…dark when this browser’s member picked Dark', 'dark' === \MemBuild\Community\Login::scheme() );
+$_COOKIE['mbcom_display'] = 'auto';
+mbcom_check( '…following the device when they picked Auto', 'auto' === \MemBuild\Community\Login::scheme() );
+$_COOKIE['mbcom_display'] = '"><script>';
+mbcom_check( '…and light for anything else in the cookie', 'light' === \MemBuild\Community\Login::scheme() );
+if ( null === $sc_was ) {
+	unset( $_COOKIE['mbcom_display'] );
+} else {
+	$_COOKIE['mbcom_display'] = $sc_was;
+}
+
+mbcom_section( 'The host beside the login form' );
+$hs_before = \MemBuild\Community\Settings::all();
+list( $hs_s ) = mbcom_call( $ml_admin, 'PUT', '/settings', array( 'login_host' => $ml_member, 'login_live' => 0, 'login_magic' => '' ) );
+mbcom_check( 'only an admin or a moderator can be the host', 0 === (int) \MemBuild\Community\Settings::get( 'login_host' ) );
+mbcom_check( 'Show what’s happening and the login link can be switched off', false === \MemBuild\Community\Settings::get( 'login_live' ) && false === \MemBuild\Community\Settings::get( 'login_magic' ) );
+mbcom_call( $ml_admin, 'PUT', '/settings', array( 'login_host' => $ml_admin, 'login_text' => '', 'description' => 'We build memberships. Join us for more.' ) );
+$hs_host = \MemBuild\Community\Login::host();
+mbcom_check( 'an admin can be the host', $ml_admin === (int) \MemBuild\Community\Settings::get( 'login_host' ) );
+mbcom_check( 'with no line of their own, the host’s card says the first sentence of the description', 'We build memberships.' === $hs_host['line'] );
+mbcom_check( 'the card says “Host of” the community', false !== strpos( $hs_host['role'], \MemBuild\Community\Settings::name() ) );
+list( , $hs_get ) = mbcom_call( $ml_admin, 'GET', '/settings' );
+mbcom_check( 'Settings lists who can be the host', in_array( $ml_admin, array_map( 'intval', array_column( (array) ( $hs_get['hosts'] ?? array() ), 'id' ) ), true ) );
+mbcom_call( $ml_admin, 'PUT', '/settings', array_intersect_key( $hs_before, array_flip( array( 'login_host', 'login_text', 'login_live', 'login_magic', 'description' ) ) ) );
+
 mbcom_section( 'Lesson order' );
 $lo_admin = mbcom_user( 'mbct_admin', 'administrator' );
 $lo_mod   = mbcom_user( 'mbct_tp_mod', 'editor' );
@@ -2480,6 +2564,84 @@ delete_user_meta( $im_b, 'bp_favorite_activities' );
 require_once ABSPATH . 'wp-admin/includes/user.php';
 $im_n && wp_delete_user( $im_n->ID );
 mbcom_call( $im_admin, 'DELETE', "/groups/{$im_vip['id']}" );
+
+/* ---------------------------------------------------------------- */
+mbcom_section( 'Main website: the starter pages' );
+$sp_admin  = mbcom_user( 'mbct_sp_admin', 'administrator' );
+$sp_member = mbcom_user( 'mbct_sp_member' );
+\MemBuild\Community\Starter_Pages::rest_remove(); // a run that stopped halfway
+$sp_have = wp_insert_post( array( 'post_type' => 'page', 'post_status' => 'publish', 'post_title' => 'Refunds & cancelling', 'post_name' => 'mbct-our-refunds' ) );
+$sp_was  = array( get_option( 'show_on_front' ), (int) get_option( 'page_on_front' ), (int) get_option( 'wp_page_for_privacy_policy' ) );
+// WordPress's own "Privacy Policy" draft, as on a new site: it mustn't push ours to /privacy-policy-2/.
+$sp_draft = get_posts( array( 'post_type' => 'page', 'post_status' => 'draft', 'name' => 'privacy-policy', 'numberposts' => 1, 'fields' => 'ids' ) )[0] ?? 0;
+$sp_draft = $sp_draft ?: (int) wp_insert_post( array( 'post_type' => 'page', 'post_status' => 'draft', 'post_title' => 'Privacy Policy', 'post_name' => 'privacy-policy' ) );
+$sp_set = (array) get_option( \MemBuild\Community\Settings::OPTION, array() );
+update_option( \MemBuild\Community\Settings::OPTION, array( 'landing' => 'everyone' ) + $sp_set );
+\MemBuild\Community\Settings::flush();
+list( $st ) = mbcom_call( $sp_member, 'POST', '/starter-pages' );
+mbcom_check( 'a member can’t make the website pages', 403 === $st, (string) $st );
+list( $st, $sp ) = mbcom_call( $sp_admin, 'GET', '/starter-pages' );
+mbcom_check( 'Settings lists the 9 pages, none made yet', 200 === $st && 9 === count( $sp['pages'] ) && ! $sp['made'], wp_json_encode( $sp ) );
+$sp_by = array_column( $sp['pages'], null, 'slug' );
+mbcom_check( '…and spots a page the site already has (same name)', '' !== $sp_by['refunds']['have'] && '' === $sp_by['about']['have'], $sp_by['refunds']['have'] );
+$sp_want = array_values( array_diff( array_column( $sp['pages'], 'slug' ), array( 'refunds' ) ) );
+list( $st, $sp ) = mbcom_call( $sp_admin, 'POST', '/starter-pages', array( 'pages' => $sp_want, 'front' => true, 'parts' => true ) );
+$sp_ids = array_filter( array_column( $sp['pages'], 'id', 'slug' ) );
+mbcom_check( 'Create makes the picked pages, live', 200 === $st && $sp['made'] && 8 === count( $sp_ids ) && empty( $sp_ids['refunds'] ), wp_json_encode( $sp_ids ) );
+$sp_text = implode( '', array_map( fn( $id ) => get_post( $id )->post_content, $sp_ids ) );
+mbcom_check( '…with every {{…}} filled in', false === strpos( $sp_text, '{{' ), substr( $sp_text, strpos( $sp_text, '{{' ) ?: 0, 60 ) );
+mbcom_check( '…made of blocks that all parse', ! array_filter( parse_blocks( $sp_text ), fn( $b ) => null === $b['blockName'] && '' !== trim( $b['innerHTML'] ) ) );
+mbcom_check( 'Home is the front page', 'page' === get_option( 'show_on_front' ) && (int) get_option( 'page_on_front' ) === (int) $sp_ids['home'] );
+mbcom_check( '…and visitors see it: “everyone opens the community” becomes “members”', 'members' === \MemBuild\Community\Settings::get( 'landing' ) );
+mbcom_check( 'the privacy page setting points at the new one', (int) get_option( 'wp_page_for_privacy_policy' ) === (int) $sp_ids['privacy-policy'] );
+mbcom_check( '…at /privacy-policy/, not /privacy-policy-2/ (WordPress’s unpublished draft steps aside)', 'privacy-policy' === get_post_field( 'post_name', (int) $sp_ids['privacy-policy'] ) );
+if ( wp_is_block_theme() ) {
+	mbcom_check( 'the pages use the full-width layout', 'mbcom-starter' === get_post_meta( $sp_ids['home'], '_wp_page_template', true ) );
+	$sp_parts = get_posts( array( 'post_type' => 'wp_template_part', 'post_status' => 'publish', 'numberposts' => -1, 'tax_query' => array( array( 'taxonomy' => 'wp_theme', 'field' => 'name', 'terms' => get_stylesheet() ) ) ) );
+	mbcom_check( '…and the matching header and footer, with a menu', 2 === count( array_filter( $sp_parts, fn( $x ) => in_array( $x->post_name, array( 'header', 'footer' ), true ) && false !== strpos( $x->post_content, 'mbs-' ) && false === strpos( $x->post_content, '{{' ) ) ) );
+}
+list( $st ) = mbcom_call( $sp_admin, 'POST', '/starter-pages', array( 'pages' => $sp_want ) );
+mbcom_check( 'pressing Create again makes nothing twice', 409 === $st, (string) $st );
+mbcom_check( 'the live blocks show courses, events and plans', false !== strpos( do_blocks( '<!-- wp:membuild-community/courses /--><!-- wp:membuild-community/events /--><!-- wp:membuild-community/plans /-->' ), 'mbs-live' ) );
+// Every live block, on this nearly empty site: no PHP warnings, and fallbacks that read right.
+$sp_warn = array();
+set_error_handler( function ( $no, $msg, $file, $line ) use ( &$sp_warn ) { if ( false !== strpos( $file, 'starter' ) ) { $sp_warn[] = "{$msg} (" . basename( $file ) . ":{$line})"; } return false; } );
+$sp_all = '';
+foreach ( array( 'courses {"details":true,"filters":true,"more":true}', 'events', 'faces {"note":"Free to join"}', 'faces {"gallery":true}', 'plans {"trust":true}', 'compare', 'contact-form', 'stat', 'stat {"kind":"active","min":100000,"fallback":"Daily"}', 'peek', 'peek {"kind":"course"}', 'peek {"kind":"event"}', 'peek {"kind":"people"}', 'moments', 'team', 'team {"row":true}' ) as $sp_b ) {
+	$sp_all .= do_blocks( '<!-- wp:membuild-community/' . $sp_b . ' /-->' );
+}
+restore_error_handler();
+mbcom_check( 'every live block draws without a PHP warning', ! $sp_warn, implode( '; ', array_slice( $sp_warn, 0, 3 ) ) );
+mbcom_check( '…a number below its minimum shows its fallback words', false !== strpos( $sp_all, '>Daily<' ) );
+if ( ! \MemBuild\Community\Starter_Blocks::paid_plans() ) {
+	mbcom_check( '…and with no paid plan the table says Members, not “Become a Paid”', false === strpos( $sp_all, 'Become a Paid' ) && false !== strpos( $sp_all, '>Members<' ) );
+}
+mbcom_check( 'the round mark has the same letters as the app header', \MemBuild\Community\Settings::initials() === ( new ReflectionMethod( '\MemBuild\Community\Starter_Pages', 'initials' ) )->invoke( null ) );
+
+// The contact form.
+$sp_mails = count( $mbcom_mails );
+wp_set_current_user( 0 );
+list( $st ) = mbcom_call( 0, 'POST', '/contact', array( 'name' => 'Ana', 'email' => 'not-an-email', 'message' => 'Hi' ) );
+mbcom_check( 'the contact form asks for a real email', 400 === $st, (string) $st );
+list( $st ) = mbcom_call( 0, 'POST', '/contact', array( 'name' => 'Bot', 'email' => 'bot@example.test', 'message' => 'Buy now', 'website' => 'http://spam.test' ) );
+mbcom_check( '…says thanks to a robot but sends nothing', 200 === $st && count( $mbcom_mails ) === $sp_mails );
+list( $st ) = mbcom_call( 0, 'POST', '/contact', array( 'name' => "Ana\r\nBcc: x@example.test", 'email' => 'ana@example.test', 'message' => 'Where are my courses?' ) );
+$sp_mail = end( $mbcom_mails );
+mbcom_check( '…and a real message reaches the site’s email, with Reply-To the sender', 200 === $st && count( $mbcom_mails ) === $sp_mails + 1 && get_option( 'admin_email' ) === $sp_mail['to'] && false !== strpos( implode( "\n", (array) $sp_mail['headers'] ), 'ana@example.test' ), wp_json_encode( $sp_mail ) );
+mbcom_check( '…with no way to add headers from the name', false === strpos( implode( "\n", (array) $sp_mail['headers'] ), "\nBcc" ) && false === stripos( implode( "\n", (array) $sp_mail['headers'] ), 'Bcc:' ) );
+
+list( $st, $sp ) = mbcom_call( $sp_admin, 'DELETE', '/starter-pages' );
+mbcom_check( 'Remove puts the pages in the bin', 200 === $st && ! $sp['made'] && 'trash' === get_post_status( $sp_ids['home'] ) );
+mbcom_check( '…and “everyone opens the community” back', 'everyone' === \MemBuild\Community\Settings::get( 'landing' ) );
+update_option( \MemBuild\Community\Settings::OPTION, $sp_set );
+\MemBuild\Community\Settings::flush();
+mbcom_check( '…and the old front page and privacy page back', array( get_option( 'show_on_front' ), (int) get_option( 'page_on_front' ), (int) get_option( 'wp_page_for_privacy_policy' ) ) === $sp_was );
+mbcom_check( '…and WordPress’s draft gets its address back', 'privacy-policy' === get_post_field( 'post_name', $sp_draft ) );
+mbcom_check( '…and the theme’s own header and footer', ! get_posts( array( 'post_type' => 'wp_template_part', 'post_status' => 'any', 'numberposts' => 1, 's' => 'mbs-header' ) ) );
+foreach ( $sp_ids as $id ) {
+	wp_delete_post( $id, true );
+}
+wp_delete_post( $sp_have, true );
 
 /* ---------------------------------------------------------------- */
 echo "\n{$GLOBALS['mbcom_passed']} passed, {$GLOBALS['mbcom_failed']} failed\n";

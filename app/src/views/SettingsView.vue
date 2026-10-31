@@ -23,6 +23,7 @@ import JoiningSection from '../components/settings/JoiningSection.vue'
 import UpdatesSection from '../components/settings/UpdatesSection.vue'
 import AdvancedSection from '../components/settings/AdvancedSection.vue'
 import ImportSection from '../components/settings/ImportSection.vue'
+import StarterSection from '../components/settings/StarterSection.vue'
 import { t } from '../lib/i18n.js'
 
 /**
@@ -36,6 +37,7 @@ import { t } from '../lib/i18n.js'
 // (so password emails arrive before you invite anyone), then the rest.
 const SECTIONS = [
   { id: 'general', icon: 'home', label: t.__('Your community', 'membuild-community'), component: GeneralSection },
+  { id: 'website', icon: 'globe', label: t.__('Main website', 'membuild-community'), component: StarterSection },
   { id: 'joining', icon: 'key', label: t.__('Joining & logging in', 'membuild-community'), component: JoiningSection },
   { id: 'email', icon: 'mail', label: t.__('Email', 'membuild-community'), component: EmailSection },
   { id: 'features', icon: 'grid', label: t.__('Features', 'membuild-community'), component: FeaturesSection },
@@ -64,6 +66,7 @@ const summary = (id) => {
   const mods = (meta.value?.built_in_staff?.length || 0) + (f.moderators?.length || 0)
   return {
     general: t.__('Name, logo, color, default look', 'membuild-community'),
+    website: t.__('Home, Pricing, About and more', 'membuild-community'),
     joining: t.__('How people join, login page', 'membuild-community'),
     email: [{ default: t.__('Your web host', 'membuild-community'), resend: 'Resend', smtp: t.__('Another service', 'membuild-community') }[f.email?.mode] || '', t.__('test email', 'membuild-community')].filter(Boolean).join(' · '),
     features: t.__('Turn parts on and off', 'membuild-community'),

@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) || exit;
  */
 class Login {
 
-	const PAGES             = array( 'login', 'join', 'forgot-password', 'reset-password' );
+	const PAGES             = array( 'login', 'join', 'forgot-password', 'reset-password', 'login-link' );
 	const MIN_PASSWORD      = 8;
 	const MAX_PAIR_FAILS    = 10;  // failed logins for one account from one address, then refused …
 	const MAX_FAILS         = 30;  // … or from one address, whatever the account (a shared office or proxy still gets in) …
@@ -32,6 +32,10 @@ class Login {
 	const MAX_JOIN_TRIES    = 15;  // sign-up attempts per address per hour (so the form can't be used to test emails)
 	const AGE_COOKIE        = 'mbcom_age_check'; // set after a too-young answer, so the form can't simply be retried
 	const KEEP              = YEAR_IN_SECONDS; // "Keep me logged in" lasts a year, restarted while they keep using it
+	const LINK_META         = 'mbcom_login_link'; // "Email me a login link": the link's hash and when it ends, never the link itself
+	const LINK_LIFE         = 900; // a login link works once, for 15 minutes
+	const MAX_LINKS         = 5;   // login-link emails per address per hour
+	const MAX_ACCOUNT_LINKS = 3;   // login-link emails per account per hour
 
 	public static function register_hooks() {
 		add_filter( 'login_url', array( __CLASS__, 'login_url' ), 10, 2 );
@@ -166,7 +170,7 @@ class Login {
 			return false;
 		}
 		if ( ! self::enabled() ) {
-			wp_safe_redirect( 'login' === $path ? wp_login_url() : ( 'forgot-password' === $path ? wp_lostpassword_url() : site_url( 'wp-login.php?action=lostpassword' ) ) );
+			wp_safe_redirect( in_array( $path, array( 'login', 'login-link' ), true ) ? wp_login_url() : ( 'forgot-password' === $path ? wp_lostpassword_url() : site_url( 'wp-login.php?action=lostpassword' ) ) );
 			exit;
 		}
 		Helpers::no_page_cache();
@@ -188,6 +192,8 @@ class Login {
 			self::join_page();
 		} elseif ( 'forgot-password' === $path ) {
 			self::forgot_page();
+		} elseif ( 'login-link' === $path ) {
+			self::link_page();
 		} else {
 			self::reset_page();
 		}
@@ -212,6 +218,7 @@ class Login {
 		$error   = '';
 		$notice  = '';
 		$login   = '';
+		$wrong   = false; // a wrong password: the message gets a "Reset it" link
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only notices
 		if ( isset( $_GET['loggedout'] ) ) {
 			$notice = __( 'You’ve logged out.', 'membuild-community' );
@@ -225,6 +232,15 @@ class Login {
 			$account = self::account_key( $login );
 			if ( ! isset( $_POST['_mbcom_login'] ) || ! wp_verify_nonce( sanitize_key( $_POST['_mbcom_login'] ), 'mbcom_login' ) || self::cross_site() ) {
 				$error = __( 'The page timed out. Please try again.', 'membuild-community' );
+			} elseif ( isset( $_POST['magic'] ) && Settings::get( 'login_magic' ) ) {
+				// "Email me a login link": the same form, without the password.
+				$result = self::send_link( $login );
+				if ( is_wp_error( $result ) ) {
+					$error = $result->get_error_message();
+				} else {
+					self::render( 'linksent', array( 'sent' => $login, 'redirect' => $redirect ) );
+					return;
+				}
 			} elseif ( self::too_many( 'fail', self::MAX_FAILS ) || self::too_many( 'pair_' . $account, self::MAX_PAIR_FAILS ) ) {
 				$error = __( 'Too many tries. Wait a few minutes, then try again.', 'membuild-community' );
 			} else {
@@ -245,9 +261,10 @@ class Login {
 					self::count( 'pair_' . $account, self::FAIL_WINDOW );
 					self::count( 'fail_' . $account, self::FAIL_WINDOW );
 					// One message for every failure, so the form doesn't reveal which emails have accounts.
-					$error = '' === $login || empty( $_POST['pwd'] )
+					$wrong = '' !== $login && ! empty( $_POST['pwd'] );
+					$error = ! $wrong
 						? __( 'Enter your email or username and your password.', 'membuild-community' )
-						: __( 'The email, username or password you entered isn’t right.', 'membuild-community' );
+						: __( 'That password isn’t right.', 'membuild-community' ); // said for every failure, so it never tells whether the email has an account
 				} else {
 					$to = $redirect ?: apply_filters( 'login_redirect', admin_url(), '', $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core hook
 					wp_safe_redirect( $to ?: Portal::url() );
@@ -263,6 +280,8 @@ class Login {
 				'notice'   => $notice,
 				'login'    => $login,
 				'redirect' => $redirect,
+				'wrong'    => $wrong,
+				'live'     => self::live_note( self::preview_values()['live'] ?? null ),
 			)
 		);
 	}
@@ -282,6 +301,7 @@ class Login {
 		$min_age = (int) Settings::get( 'min_age' );
 		$values  = array( 'first' => '', 'last' => '', 'email' => '' );
 		$error   = '';
+		$code    = '';
 		$blocked = $min_age && isset( $_COOKIE[ self::AGE_COOKIE ] );
 
 		if ( ! $blocked && 'POST' === Helpers::method() ) {
@@ -298,7 +318,8 @@ class Login {
 				$result = self::create_account( $values, $pass, $born, $min_age, ! empty( $_POST['website'] ) );
 				if ( is_wp_error( $result ) ) {
 					$error   = $result->get_error_message();
-					$blocked = 'mbcom_too_young' === $result->get_error_code();
+					$code    = $result->get_error_code();
+					$blocked = 'mbcom_too_young' === $code;
 				} else {
 					wp_safe_redirect( Portal::url() );
 					exit;
@@ -309,11 +330,21 @@ class Login {
 			'join',
 			array(
 				'error'   => $error,
+				'code'    => $code,
 				'values'  => $values,
 				'min_age' => $min_age,
 				'blocked' => $blocked,
 				'terms'   => (string) Settings::get( 'terms_url' ),
 				'privacy' => get_privacy_policy_url(),
+				'faces'   => self::faces_note(),
+				// What they get, in a line each: only what this community has switched on.
+				'gets'    => array_filter(
+					array(
+						'chat' => array( __( 'The community', 'membuild-community' ), __( 'ask, share, get answers', 'membuild-community' ) ),
+						'cap'  => Settings::feature( 'classroom' ) ? array( __( 'Courses', 'membuild-community' ), __( 'learn step by step', 'membuild-community' ) ) : null,
+						'cal'  => Settings::feature( 'events' ) ? array( __( 'Live events', 'membuild-community' ), __( 'calls and workshops', 'membuild-community' ) ) : null,
+					)
+				),
 			)
 		);
 	}
@@ -343,7 +374,7 @@ class Login {
 		}
 		self::count( 'join_try', HOUR_IN_SECONDS );
 		if ( email_exists( $values['email'] ) ) {
-			return new \WP_Error( 'mbcom_email_taken', __( 'There’s already an account with this email. Log in, or reset your password if you’ve forgotten it.', 'membuild-community' ) );
+			return new \WP_Error( 'mbcom_email_taken', __( 'This email already has an account.', 'membuild-community' ) ); // the page adds "Log in or reset your password" links
 		}
 		if ( mb_strlen( $pass ) < self::MIN_PASSWORD ) {
 			/* translators: %d: minimum number of characters */
@@ -475,7 +506,7 @@ class Login {
 			if ( '' === $error ) {
 				reset_password( $user, $pass );
 				// Like Facebook, the new password logs you straight in.
-				$signed = wp_signon( array( 'user_login' => $user->user_login, 'user_password' => $pass, 'remember' => true ), is_ssl() );
+				$signed = wp_signon( array( 'user_login' => $user->user_login, 'user_password' => $pass, 'remember' => ! empty( $_POST['rememberme'] ) ), is_ssl() );
 				wp_safe_redirect( is_wp_error( $signed ) ? self::url( 'login', array( 'reset' => '1' ) ) : Portal::url() );
 				exit;
 			}
@@ -497,13 +528,205 @@ class Login {
 		return $errors->has_errors() ? wp_strip_all_tags( $errors->get_error_message() ) : '';
 	}
 
+	/* ---------- "Email me a login link" ---------- */
+
+	/** Who may log in with an emailed link: members. People who run or edit the site keep their password (and their two-factor check). */
+	private static function link_allowed( \WP_User $user ) {
+		/** Filters whether this account may log in with an emailed link. */
+		return (bool) apply_filters( 'membuild_community/login_link_allowed', self::keeps( $user->ID ) && ! Moderation::is_banned( $user->ID ), $user );
+	}
+
+	/**
+	 * Emails a one-time login link to the account with this email or username. Answers the same
+	 * whether or not there is one, so the form can't be used to find out who's a member.
+	 *
+	 * @return true|\WP_Error
+	 */
+	private static function send_link( $value ) {
+		if ( '' === $value ) {
+			return new \WP_Error( 'mbcom_link_empty', __( 'Enter your email or username.', 'membuild-community' ) );
+		}
+		if ( self::too_many( 'link', self::MAX_LINKS ) ) {
+			return new \WP_Error( 'mbcom_slow_down', __( 'Too many tries. Wait a while, then try again.', 'membuild-community' ) );
+		}
+		self::count( 'link', HOUR_IN_SECONDS );
+		$user = is_email( $value ) ? get_user_by( 'email', $value ) : get_user_by( 'login', $value );
+		if ( $user && self::link_allowed( $user ) && ! self::too_many( 'linkacct_' . $user->ID, self::MAX_ACCOUNT_LINKS ) ) {
+			self::count( 'linkacct_' . $user->ID, HOUR_IN_SECONDS );
+			$token = wp_generate_password( 32, false, false );
+			update_user_meta( $user->ID, self::LINK_META, array( 'h' => self::link_hash( $user->ID, $token ), 'x' => time() + self::LINK_LIFE ) );
+			// Sent once this reply has gone, so it takes as long whether or not the account exists.
+			self::$outbox[] = array( $user, self::url( 'login-link', array( 'u' => (string) $user->ID, 't' => $token ) ) );
+			add_action( 'shutdown', array( __CLASS__, 'send_links' ) );
+		}
+		return true;
+	}
+
+	/** @var array Login links waiting to be emailed: [user, link]. */
+	private static $outbox = array();
+
+	public static function send_links() {
+		if ( ! self::$outbox ) {
+			return;
+		}
+		if ( function_exists( 'fastcgi_finish_request' ) ) {
+			fastcgi_finish_request();
+		}
+		while ( self::$outbox ) {
+			list( $user, $url ) = array_shift( self::$outbox );
+			self::link_email( $user, $url );
+		}
+	}
+
+	private static function link_hash( $user_id, $token ) {
+		return hash_hmac( 'sha256', $user_id . '|' . $token, wp_salt( 'auth' ) );
+	}
+
+	private static function link_email( \WP_User $user, $url ) {
+		$name = Settings::name();
+		/* translators: %s: community name */
+		$subject = sprintf( __( 'Your login link for %s', 'membuild-community' ), $name );
+		/* translators: %s: community name */
+		$heading = sprintf( __( 'Log in to %s', 'membuild-community' ), $name );
+		$lines   = array(
+			__( 'Press the button to log in. The link works once, for 15 minutes.', 'membuild-community' ),
+			__( 'Didn’t ask for it? Ignore this email. Nobody can log in without the link.', 'membuild-community' ),
+		);
+		$body    = implode( '', array_map( fn( $l ) => '<p style="margin:14px 0 0;color:#4a4f59">' . esc_html( $l ) . '</p>', $lines ) );
+		$html    = Email::layout( $heading, $body, $url, __( 'Log me in', 'membuild-community' ), '', '', '<a href="' . esc_url( $url ) . '" style="color:#4a4f59;word-break:break-all">' . esc_html( $url ) . '</a>' );
+		Email::send( $user->user_email, $subject, $html, $heading . "\n\n" . $lines[0] . "\n" . $url . "\n\n" . $lines[1] . "\n" );
+	}
+
+	/** The account a login link belongs to while it still works, or null. */
+	private static function link_user( $user_id, $token ) {
+		$user  = $user_id && '' !== $token ? get_userdata( $user_id ) : false;
+		$saved = $user ? get_user_meta( $user->ID, self::LINK_META, true ) : null;
+		if ( ! $user || ! is_array( $saved ) || empty( $saved['h'] ) || (int) ( $saved['x'] ?? 0 ) < time() ) {
+			return null;
+		}
+		return hash_equals( (string) $saved['h'], self::link_hash( $user->ID, $token ) ) && self::link_allowed( $user ) ? $user : null;
+	}
+
+	/**
+	 * /community/login-link?u=…&t=…: opening the link shows one "Log in" button, and pressing
+	 * it logs in. Email scanners that open every link can't use it up, and a link copied to
+	 * another device still works there.
+	 */
+	private static function link_page() {
+		// phpcs:disable WordPress.Security.NonceVerification -- the link's token is the proof; the button also carries a nonce
+		$user_id = isset( $_REQUEST['u'] ) ? absint( $_REQUEST['u'] ) : 0;
+		$token   = isset( $_REQUEST['t'] ) ? preg_replace( '/[^a-zA-Z0-9]/', '', sanitize_text_field( wp_unslash( $_REQUEST['t'] ) ) ) : '';
+		// phpcs:enable
+		if ( 'POST' === Helpers::method() && ( self::too_many( 'linktry', self::MAX_FAILS ) || ! isset( $_POST['_mbcom_link'] ) || ! wp_verify_nonce( sanitize_key( $_POST['_mbcom_link'] ), 'mbcom_link' ) || self::cross_site() ) ) {
+			self::render( 'expired', array( 'link' => true, 'value' => '' ) );
+			return;
+		}
+		$user = self::link_user( $user_id, $token );
+		if ( ! $user ) {
+			if ( 'POST' === Helpers::method() ) {
+				self::count( 'linktry', self::FAIL_WINDOW );
+			}
+			self::render( 'expired', array( 'link' => true, 'value' => '' ) );
+			return;
+		}
+		if ( 'POST' === Helpers::method() ) {
+			delete_user_meta( $user->ID, self::LINK_META ); // once
+			wp_set_current_user( $user->ID );
+			wp_set_auth_cookie( $user->ID, true, is_ssl() );
+			do_action( 'wp_login', $user->user_login, $user ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core hook, so activity and security plugins see the login
+			wp_safe_redirect( Portal::url() );
+			exit;
+		}
+		self::render( 'linkgo', array( 'u' => $user->ID, 't' => $token, 'email' => $user->user_email ) );
+	}
+
+	/* ---------- Beside the form: the host, and what's happening ---------- */
+
+	/** Who can be the host on the login card: the site's admins and the community's moderators. */
+	public static function host_choices() {
+		$ids = array_merge(
+			get_users( array( 'role' => 'administrator', 'orderby' => 'ID', 'fields' => 'ID', 'number' => 20 ) ),
+			array_map( 'intval', (array) Settings::get( 'moderators' ) )
+		);
+		return array_values( Helpers::users( $ids ) );
+	}
+
+	/**
+	 * The card beside the form: the host's photo, name, "Host of …" and their one line.
+	 * Photo: the one chosen in Settings, else the host's profile photo, else the logo.
+	 *
+	 * @param array $over Settings' preview: 'host', 'line', 'photo' to show before saving.
+	 */
+	public static function host( array $over = array() ) {
+		$id = (int) ( $over['host'] ?? Settings::get( 'login_host' ) );
+		if ( ! $id || ! get_userdata( $id ) ) {
+			$id = (int) ( get_users( array( 'role' => 'administrator', 'number' => 1, 'orderby' => 'ID', 'fields' => 'ID' ) )[0] ?? 0 );
+		}
+		$user  = $id ? get_userdata( $id ) : null;
+		$line  = trim( (string) ( $over['line'] ?? Settings::get( 'login_text' ) ) );
+		if ( '' === $line ) {
+			$about = trim( (string) Settings::get( 'description' ) );
+			$line  = preg_match( '/^.+?[.!?](?=\s|$)/u', $about, $m ) ? $m[0] : $about;
+		}
+		$photo = (string) ( $over['photo'] ?? ( Settings::get( 'login_picture' )['url'] ?? '' ) );
+		if ( '' === $photo && $user ) {
+			$photo = (string) get_user_meta( $user->ID, 'mbcom_avatar_url', true );
+		}
+		return array(
+			'name'  => $user ? ( $user->first_name ?: $user->display_name ) : '',
+			/* translators: %s: community name */
+			'role'  => sprintf( __( 'Host of %s', 'membuild-community' ), Settings::name() ),
+			'line'  => $line,
+			'photo' => $photo,
+			'logo'  => '' === $photo ? (string) ( Settings::get( 'logo' )['url'] ?? '' ) : '',
+		);
+	}
+
+	/** Log in: the next live call within a week, when Settings shows what's happening. [title, when, day, date] or null. */
+	private static function live_note( $on = null ) {
+		if ( ! ( $on ?? Settings::get( 'login_live' ) ) || ! Settings::feature( 'events' ) ) {
+			return null;
+		}
+		$next = Starter_Blocks::next_events( 1 )[0] ?? null;
+		$at   = $next ? strtotime( $next['event_at'] . ' UTC' ) : 0;
+		if ( ! $at || $at > time() + WEEK_IN_SECONDS ) {
+			return null;
+		}
+		$left = $at - time();
+		$when = $left < HOUR_IN_SECONDS
+			? __( 'Starting soon', 'membuild-community' )
+			/* translators: %s: how long until it starts, like "2 hours" */
+			: ( $left < DAY_IN_SECONDS ? sprintf( __( 'In %s', 'membuild-community' ), human_time_diff( time(), $at ) ) : wp_date( 'l', $at ) );
+		return array(
+			'title' => $next['event_title'],
+			'when'  => $when . ' · ' . wp_date( (string) get_option( 'time_format' ), $at ), // "In 2 hours · 7:00 PM", "Thursday · 7:00 PM"
+			'day'   => wp_date( 'D', $at ),
+			'date'  => wp_date( 'j', $at ),
+		);
+	}
+
+	/** Join: some members' faces and how many there are, once there are five with a photo. */
+	private static function faces_note( $on = null ) {
+		if ( ! ( $on ?? Settings::get( 'login_live' ) ) ) {
+			return null;
+		}
+		$ids = Starter_Blocks::faces( 6 );
+		if ( count( $ids ) < 5 ) {
+			return null;
+		}
+		return array(
+			'photos' => array_map( fn( $id ) => (string) get_user_meta( $id, 'mbcom_avatar_url', true ), $ids ),
+			'count'  => (int) count_users()['total_users'],
+		);
+	}
+
 	/* ---------- Attempt limits (per address and per account) ---------- */
 
 	private static function bucket( $kind ) {
 		if ( str_starts_with( $kind, 'fail_' ) ) {
 			return 'mbcom_fail_acct_' . md5( substr( $kind, 5 ) ); // one account, from any address
 		}
-		if ( str_starts_with( $kind, 'resetacct_' ) ) {
+		if ( str_starts_with( $kind, 'resetacct_' ) || str_starts_with( $kind, 'linkacct_' ) ) {
 			return 'mbcom_' . $kind; // one account, from any address
 		}
 		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '';
@@ -542,20 +765,62 @@ class Login {
 
 	/* ---------- Output ---------- */
 
+	/**
+	 * Settings' live preview of the login page (?preview&pv[…]): an admin sees their changes before
+	 * saving. Read only for people who manage the community.
+	 */
+	private static function preview_values() {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only, admins only, nothing is saved
+		if ( ! isset( $_GET['preview'], $_GET['pv'] ) || ! is_array( $_GET['pv'] ) || ! Helpers::can_manage() || 'GET' !== Helpers::method() ) {
+			return array();
+		}
+		$pv  = wp_unslash( $_GET['pv'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- each value is cleaned below
+		// phpcs:enable
+		$out = array();
+		if ( isset( $pv['host'] ) ) {
+			$out['host'] = absint( $pv['host'] );
+		}
+		if ( isset( $pv['line'] ) ) {
+			$out['line'] = mb_substr( sanitize_text_field( (string) $pv['line'] ), 0, 200 );
+		}
+		if ( isset( $pv['photo'] ) ) {
+			// An image from the media library, or 0 for "Use my profile photo".
+			$out['photo'] = absint( $pv['photo'] ) ? (string) wp_get_attachment_image_url( absint( $pv['photo'] ), 'large' ) : '';
+		}
+		foreach ( array( 'live', 'magic' ) as $key ) {
+			if ( isset( $pv[ $key ] ) ) {
+				$out[ $key ] = (bool) $pv[ $key ];
+			}
+		}
+		return $out;
+	}
+
 	private static function render( $view, array $data ) {
 		status_header( 200 );
 		self::styles();
+		$pv       = self::preview_values();
 		$name     = Settings::name();
-		$tagline  = (string) ( Settings::get( 'login_text' ) ?: Settings::get( 'description' ) );
-		// The owner's own big line (its last word in the community's color), and their photo or our illustration.
+		$host     = self::host( $pv );
+		$magic    = (bool) ( $pv['magic'] ?? Settings::get( 'login_magic' ) );
+		$tagline  = $host['line'];
+		// The Join page's big line: its last word on its own line, highlighted.
 		$headline = trim( (string) Settings::get( 'login_headline' ) );
-		$picture  = Settings::get( 'login_picture' )['url'] ?? '';
+		$picture  = $host['photo'];
 		$join_label = Settings::get( 'signup_url' ) && ! get_option( 'users_can_register' ) ? trim( (string) Settings::get( 'signup_label' ) ) : '';
 		$logo     = Settings::get( 'logo' )['url'] ?? '';
 		$initials = Settings::initials();
 		$signup   = self::signup_link();
 		$icons    = App::icons();
 		include MEMBUILD_COMMUNITY_DIR . 'templates/login.php';
+	}
+
+	/**
+	 * These pages are light, unless this browser's member picked Dark (or Auto: follow the device)
+	 * in the community. The app keeps that pick in the mbcom_display cookie. 'light' | 'dark' | 'auto'.
+	 */
+	public static function scheme() {
+		$pick = isset( $_COOKIE['mbcom_display'] ) ? sanitize_key( wp_unslash( $_COOKIE['mbcom_display'] ) ) : '';
+		return in_array( $pick, array( 'dark', 'auto' ), true ) ? $pick : 'light';
 	}
 
 	/** Registers the page's stylesheet and script, with the accent tokens inline. */
@@ -567,7 +832,8 @@ class Login {
 		wp_add_inline_style(
 			'mbcom-login',
 			":root{--accent:{$c['accent']};--accent-ink:{$c['ink']};--accent-text:{$c['text']}}"
-			. "@media (prefers-color-scheme: dark){:root{--accent:{$c['dark']};--accent-ink:{$c['dark_ink']};--accent-text:{$c['dark_text']}}}"
+			. ":root.mb-dark{--accent:{$c['dark']};--accent-ink:{$c['dark_ink']};--accent-text:{$c['dark_text']}}"
+			. "@media (prefers-color-scheme: dark){:root.mb-auto{--accent:{$c['dark']};--accent-ink:{$c['dark_ink']};--accent-text:{$c['dark_text']}}}"
 		);
 		wp_register_script( 'mbcom-login', MEMBUILD_COMMUNITY_URL . 'assets/login/login.js', array(), $ver( 'assets/login/login.js' ), array( 'in_footer' => true ) );
 	}

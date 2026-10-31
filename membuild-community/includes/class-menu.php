@@ -42,10 +42,10 @@ class Menu {
 			$parent = (int) $item->menu_item_parent;
 			$link   = array(
 				'id'     => (int) $item->ID,
-				'title'  => wp_strip_all_tags( $item->title ),
+				'title'  => html_entity_decode( wp_strip_all_tags( $item->title ), ENT_QUOTES, 'UTF-8' ), // WordPress keeps "&" as &#038;; the app shows text, not HTML
 				'url'    => esc_url_raw( $item->url ),
 				'newTab' => '_blank' === $item->target,
-				'note'   => wp_strip_all_tags( (string) $item->description ),
+				'note'   => html_entity_decode( wp_strip_all_tags( (string) $item->description ), ENT_QUOTES, 'UTF-8' ),
 			);
 			if ( $parent && isset( $top[ $parent ] ) ) {
 				$out[ $top[ $parent ] ]['children'][] = $link;

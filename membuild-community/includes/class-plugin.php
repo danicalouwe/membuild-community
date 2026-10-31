@@ -19,13 +19,13 @@ defined( 'ABSPATH' ) || exit;
 final class Plugin {
 
 	/** Registered as soon as the plugin loads. */
-	const HOOKS = array( Media::class, Files::class, Blocks::class, Bunny::class, Health::class, Privacy::class, Menu::class, Login::class, Access::class, Email::class, Updater::class, Usage::class, Search::class, Events::class, Problems::class, Import::class );
+	const HOOKS = array( Media::class, Files::class, Blocks::class, Bunny::class, Health::class, Privacy::class, Menu::class, Login::class, Access::class, Email::class, Updater::class, Usage::class, Search::class, Events::class, Problems::class, Import::class, Starter_Pages::class );
 
 	/** Registered on init, once translations, roles and post types exist. */
 	const INIT = array( Portal::class, Rest_Members::class, Notifications::class, Points::class, Fluent_Cart::class );
 
 	/** Classes with REST routes. */
-	const REST = array( Rest_Feed::class, Rest_Media::class, Rest_Comments::class, Rest_Stories::class, Rest_Courses::class, Access::class, Rest_Gamification::class, Rest_Messages::class, Notifications::class, Settings::class, Rest_Members::class, Moderation::class, Email::class, App::class, Bunny::class, Blocks::class, Usage::class, Search::class, Rest_Places::class, Giphy::class, Discussions::class, Events::class, Problems::class, Online::class, First_Run::class, For_You::class, Topics::class, Import::class );
+	const REST = array( Rest_Feed::class, Rest_Media::class, Rest_Comments::class, Rest_Stories::class, Rest_Courses::class, Access::class, Rest_Gamification::class, Rest_Messages::class, Notifications::class, Settings::class, Rest_Members::class, Moderation::class, Email::class, App::class, Bunny::class, Blocks::class, Usage::class, Search::class, Rest_Places::class, Giphy::class, Discussions::class, Events::class, Problems::class, Online::class, First_Run::class, For_You::class, Topics::class, Import::class, Starter_Pages::class );
 
 	/** Hourly maintenance, each bounded so a late or doubled cron run stays cheap. */
 	const MAINTENANCE = array(

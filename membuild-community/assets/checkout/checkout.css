@@ -1,102 +1,166 @@
 /*
- * The membership checkout (templates/checkout.php): the community's side on the left,
- * FluentCart's form on the right, restyled to the community's look.
- * --mb-accent and --mb-ink come from the community's colour, printed inline.
+ * The membership checkout and thank-you pages (templates/checkout.php).
+ * Checkout: a slim bar, the plan on a dark card on the left, FluentCart's form on the right,
+ * restyled to the community's look (labels above 52px boxes, a 56px button in its colour).
+ * Thank you: the message alone, in the middle. --mb-accent and --mb-ink come from the
+ * community's colour, printed inline; dark mode follows the visitor's device.
  */
-html, body.mbck-body { margin: 0; min-height: 100%; background: #fff; }
-html:has(body.mbck-body) { margin-top: 0 !important; } /* no admin bar on this page */
+.mbck-body {
+	--bg: #ffffff;
+	--surface: #ffffff;
+	--text: #16181d;
+	--text-2: #5d6370;
+	--line: #e7e9ec;
+	--field: #d5d9df;
+	--soft: #f6f7f4;
+	--danger: #b42318;
+	--card: #16181d;
+	--card-2: #b9bec8;
+	color-scheme: light;
+}
+/* Dark only when this browser's member picked it (see Login::scheme): .mb-dark, or .mb-auto on a dark device. */
+:root.mb-dark .mbck-body {
+	--bg: #111214;
+	--surface: #1b1c20;
+	--text: #eceef1;
+	--text-2: #a2a7b0;
+	--line: #2c2e33;
+	--field: #3a3d44;
+	--soft: #1b1c20;
+	--danger: #ff8a80;
+	--card: #1f2126;
+	--card-2: #a2a7b0;
+	--mb-accent: var(--mb-accent-dark);
+	--mb-ink: var(--mb-ink-dark);
+	color-scheme: dark;
+}
+/* White words on a bright marker are hard to read: a dimmer one in the dark. */
+:root.mb-dark .mbck-hl { background: linear-gradient(transparent 58%, color-mix(in srgb, var(--mb-accent) 45%, transparent) 58%); }
+:root.mb-dark .mbck-sum { border: 1px solid var(--line); }
+:root.mb-dark .mbck .fct_payment_methods_list img[src*="offline-payment"] { filter: invert(1); }
+@media (prefers-color-scheme: dark) {
+	:root.mb-auto .mbck-body {
+		--bg: #111214;
+		--surface: #1b1c20;
+		--text: #eceef1;
+		--text-2: #a2a7b0;
+		--line: #2c2e33;
+		--field: #3a3d44;
+		--soft: #1b1c20;
+		--danger: #ff8a80;
+		--card: #1f2126;
+		--card-2: #a2a7b0;
+		--mb-accent: var(--mb-accent-dark);
+		--mb-ink: var(--mb-ink-dark);
+		color-scheme: dark;
+	}
+	/* White words on a bright marker are hard to read: a dimmer one in the dark. */
+	:root.mb-auto .mbck-hl { background: linear-gradient(transparent 58%, color-mix(in srgb, var(--mb-accent) 45%, transparent) 58%); }
+	:root.mb-auto .mbck-sum { border: 1px solid var(--line); }
+	:root.mb-auto .mbck .fct_payment_methods_list img[src*="offline-payment"] { filter: invert(1); }
+}
+html, body.mbck-body { margin: 0; min-height: 100%; background: var(--bg); }
+html:has(body.mbck-body) { margin-top: 0 !important; background: var(--bg); } /* no admin bar on this page */
 body.mbck-body #wpadminbar { display: none !important; }
 body.mbck-body {
-	color: #16181d;
+	color: var(--text);
 	font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 	-webkit-font-smoothing: antialiased;
 }
-.mbck, .mbck * { box-sizing: border-box; }
-.mbck { display: grid; grid-template-columns: minmax(380px, 44%) 1fr; min-height: 100vh; }
+.mbck-body *, .mbck-body *::before, .mbck-body *::after { box-sizing: border-box; }
+.mbck-body a { color: inherit; }
+.mbck-body a:focus-visible, .mbck-body summary:focus-visible { outline: 3px solid color-mix(in srgb, var(--mb-accent) 70%, var(--text)); outline-offset: 2px; }
+.mbck-hl { padding: 0 4px; background: linear-gradient(transparent 58%, color-mix(in srgb, var(--mb-accent) 85%, transparent) 58%); -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 
-/* Left: the community */
-.mbck-side {
-	position: relative;
-	display: flex;
-	flex-direction: column;
-	padding: 56px clamp(32px, 5vw, 72px) 48px;
-	overflow: hidden;
-	color: #fff;
-	background: linear-gradient(160deg, #121318 0%, #1c1f2a 60%, #262a38 100%);
-}
-.mbck-shape { position: absolute; border-radius: 50%; background: color-mix(in srgb, var(--mb-accent) 9%, transparent); pointer-events: none; }
-.mbck-shape.two { background: rgb(255 255 255 / 5%); }
-.mbck-shape.one { right: -120px; top: -90px; width: 340px; height: 340px; }
-.mbck-shape.two { left: -110px; bottom: -140px; width: 320px; height: 320px; }
-.mbck-brand { position: relative; display: inline-flex; align-items: center; gap: 12px; color: #fff; font-size: 15px; font-weight: 650; text-decoration: none; opacity: .94; }
-.mbck-brand:hover { opacity: 1; }
-.mbck-logo { display: grid; place-items: center; width: 36px; height: 36px; overflow: hidden; border-radius: 9px; background: var(--mb-accent); color: var(--mb-ink); font-size: 13px; font-weight: 800; }
+/* ---------- The bar ---------- */
+.mbck-bar { display: flex; align-items: center; gap: 10px; padding: 22px 32px; border-bottom: 1px solid var(--line); background: var(--bg); font-size: 17px; }
+.mbck-logo { display: grid; place-items: center; flex: none; width: 38px; height: 38px; overflow: hidden; border-radius: 11px; background: var(--mb-accent); color: var(--mb-ink); font-size: 14px; font-weight: 900; }
 .mbck-logo img { width: 100%; height: 100%; object-fit: cover; }
-.mbck-what { position: relative; margin-top: 64px; }
-.mbck-join { margin: 0; font-size: 16px; opacity: .82; }
-.mbck-price { margin: 6px 0 0; display: flex; align-items: baseline; gap: 8px; }
-.mbck-price strong { font-size: 44px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
-.mbck-price span { font-size: 16px; opacity: .82; }
-.mbck-perks { list-style: none; margin: 34px 0 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
-.mbck-perks li { display: flex; gap: 10px; align-items: flex-start; }
+.mbck-plans { margin-left: auto; color: var(--text-2) !important; font-size: 15px; font-weight: 650; text-decoration: none; }
+.mbck-plans:hover { color: var(--text) !important; text-decoration: underline; }
+.mbck-plans .narrow { display: none; }
+
+/* ---------- Checkout ---------- */
+.mbck { display: grid; grid-template-columns: 1.05fr 0.95fr; min-height: calc(100vh - 83px); }
+.mbck-side { padding: 24px; }
+.mbck-sum { position: sticky; top: 24px; display: flex; flex-direction: column; gap: 20px; min-height: calc(100vh - 131px); overflow: clip; padding: 40px; border-radius: 24px; background: var(--card); color: #fff; }
+.mbck-sum::before { content: ""; position: absolute; right: -80px; top: -80px; width: 320px; height: 320px; border-radius: 50%; background: var(--mb-accent); filter: blur(70px); opacity: 0.35; pointer-events: none; }
+.mbck-sum > * { position: relative; }
+.mbck-pill { align-self: flex-start; padding: 6px 12px; border-radius: 999px; background: rgb(255 255 255 / 12%); font-size: 13px; font-weight: 800; }
+.mbck-price { display: flex; align-items: baseline; gap: 8px; margin: 0; }
+.mbck-price strong { font-size: 64px; font-weight: 900; line-height: 1; letter-spacing: -2px; }
+.mbck-price span { color: var(--card-2); font-size: 20px; font-weight: 600; }
+.mbck-perks { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 20px 0 0; border-top: 1px solid rgb(255 255 255 / 14%); list-style: none; font-size: 16px; }
+.mbck-perks li { display: flex; gap: 12px; align-items: center; }
 .mbck-perks li::before {
-	content: ""; flex: none; width: 16px; height: 16px; margin-top: 3px;
-	background: var(--mb-accent);
-	-webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E") center / contain no-repeat;
-	mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E") center / contain no-repeat;
+	content: ""; flex: none; width: 24px; height: 24px; border-radius: 50%;
+	background: var(--mb-accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2316181d' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 13px no-repeat;
 }
-.mbck-due { position: relative; margin: auto 0 0; padding-top: 18px; border-top: 1px solid rgb(255 255 255 / 20%); display: flex; justify-content: space-between; }
-.mbck-due span { opacity: .85; }
+.mbck-due { display: flex; justify-content: space-between; margin: auto 0 0; padding-top: 16px; border-top: 1px solid rgb(255 255 255 / 14%); font-size: 16px; }
+.mbck-due span { color: var(--card-2); }
 
-/* Right: the form or the welcome */
-.mbck-main { display: flex; align-items: center; padding: 64px clamp(24px, 6vw, 96px); }
-.mbck-form, .mbck-done { width: 100%; max-width: 540px; }
-.mbck-main h1 { margin: 0 0 6px; font-family: inherit !important; font-size: 28px !important; font-weight: 750 !important; line-height: 1.2; letter-spacing: -.01em; color: #16181d; }
-.mbck-who { margin: 0 0 20px; color: #5d6470; font-size: 15px; }
-.mbck-note { display: flex; gap: 6px; align-items: center; justify-content: center; margin: 14px 0 0; color: #5d6470; font-size: 14px; }
+.mbck-main { display: flex; align-items: center; justify-content: center; padding: 32px 64px; }
+.mbck-form { display: flex; flex-direction: column; gap: 18px; width: 100%; max-width: 440px; }
+.mbck-main h1 { margin: 0; color: var(--text); font-family: inherit !important; font-size: 52px !important; font-weight: 750 !important; line-height: 1 !important; letter-spacing: -2px; overflow-wrap: anywhere; }
+.mbck-lead { margin: 0; color: var(--text-2); font-size: 18px; line-height: 1.55; }
+.mbck-me { display: flex; gap: 12px; align-items: center; margin: 0; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 16px; font-size: 15px; line-height: 1.4; }
+.mbck-me img { flex: none; width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+.mbck-me > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.mbck-me > span span { color: var(--text-2); }
+.mbck-me a, .mbck-already a { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; font-weight: 700; }
+.mbck-already { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 0; padding: 4px 16px; border-radius: 14px; background: var(--soft); font-size: 15px; }
+.mbck-already span { color: var(--text-2); }
+.mbck-already a { font-size: 15px; }
+.mbck-note { margin: 0; color: var(--text-2); font-size: 14px; line-height: 1.5; text-align: center; }
+.mbck-band { display: none; }
 
-/* FluentCart's form, simplified: one column, our fields, no repeated order summary. */
-.mbck .fct_checkout, .mbck .fluent-cart-checkout-page { margin: 0 !important; padding: 0 !important; max-width: none !important; }
+/* FluentCart's form, simplified: one column, our labels, no repeated order summary. */
+.mbck .fct_checkout, .mbck .fluent-cart-checkout-page { margin: 0 !important; padding: 0 !important; max-width: none !important; background: none !important; }
 .mbck .fct_checkout_inner { display: flex !important; flex-direction: column; gap: 0; margin: 0; }
 .mbck .fct_checkout_form, .mbck .fct_checkout_form_items { display: contents !important; }
 .mbck .fct_checkout_form_items > * { order: 1; }
 .mbck .fct_checkout_payment_methods { order: 3; }
 .mbck .fct_checkout_summary { order: 4; margin: 0 !important; padding: 0 !important; border: 0 !important; background: none !important; position: static !important; width: auto !important; }
-.mbck .fct_place_order_btn_wrap { order: 5; margin-top: 8px; }
+.mbck .fct_place_order_btn_wrap { order: 5; margin-top: 4px; }
 /* A membership needs no address: the billing section (fields are off in FluentCart, a saved one shows as a card) goes. */
 .mbck-body:not(.mbck-address) .mbck .fct_checkout_billing_and_shipping,
 .mbck .fct_checkout_shipping_methods.is-hidden { display: none !important; }
-/* The store still asks for an address (see the tip in Settings › Memberships): it shows, styled like the rest. */
-.mbck .fct_checkout_billing_and_shipping .fct_checkout_input_group { gap: 10px; }
+.mbck .fct_checkout_billing_and_shipping .fct_checkout_input_group { gap: 14px; }
 
 .mbck .fct_checkout_form_section { margin: 0 0 18px !important; padding: 0 !important; border: 0 !important; background: none !important; box-shadow: none !important; }
-.mbck .fct_form_section_header { padding: 0 !important; margin: 0 0 8px !important; border: 0 !important; background: none !important; }
-.mbck .fct_form_section_header_label, .mbck .fct_form_section_header h4 { margin: 0; font-size: 15px !important; font-weight: 650 !important; color: #16181d !important; }
+/* A member's own Name and Email: known, so they hide behind "Paying as …". */
+.mbck .fct_input_wrapper.mbck-known { display: none !important; }
+.mbck #billing_personal_information_section:not(:has(.fct_input_wrapper:not(.mbck-known))) { display: none !important; }
+.mbck .fct_form_section_header { padding: 0 !important; margin: 0 0 6px !important; border: 0 !important; background: none !important; }
+.mbck .fct_form_section_header_label, .mbck .fct_form_section_header h4 { margin: 0; font-size: 15px !important; font-weight: 700 !important; color: var(--text) !important; }
 .mbck .fct_form_section_body { padding: 0 !important; }
-.mbck .fct_checkout_input_group { display: flex; flex-direction: column; gap: 14px; border: 0 !important; }
-.mbck .fct_input_wrapper { margin: 0 !important; border: 0 !important; }
+.mbck .fct_checkout_input_group { display: flex; flex-direction: column; gap: 18px; border: 0 !important; }
+.mbck .fct_input_wrapper { display: flex !important; flex-direction: column; gap: 6px; margin: 0 !important; border: 0 !important; }
+.mbck .fct_input_wrapper::after, .mbck .fct_input_wrapper::before { display: none !important; } /* FluentCart's label inside the box: ours sits above */
+.mbck .mbck-label { color: var(--text); font-size: 15px; font-weight: 700; }
 .mbck .fct_input_wrapper input, .mbck .fct_input_wrapper select, .mbck .fct_coupon_input {
-	box-sizing: border-box !important;
 	width: 100% !important;
 	max-width: 100% !important;
+	height: 52px !important;
 	min-height: 52px !important;
+	margin: 0 !important;
 	padding: 0 16px !important;
-	border: 1px solid #d5d8dd !important;
-	border-radius: 12px !important;
-	background: #fff !important;
-	color: #16181d !important;
+	border: 1.5px solid var(--field) !important;
+	border-radius: 14px !important;
+	background: var(--surface) !important;
+	color: var(--text) !important;
 	font: inherit !important;
 	font-size: 16px !important;
 	box-shadow: none !important;
 }
-.mbck .fct_input_wrapper input:focus, .mbck .fct_input_wrapper select:focus, .mbck .fct_coupon_input:focus { outline: none !important; border: 2px solid #16181d !important; padding: 0 15px !important; }
-.mbck .fct_form_error { font-size: 14px; color: #c5221f; }
+.mbck .fct_input_wrapper input:focus, .mbck .fct_input_wrapper select:focus, .mbck .fct_coupon_input:focus { outline: none !important; border-color: var(--mb-accent) !important; box-shadow: 0 0 0 3px color-mix(in srgb, var(--mb-accent) 35%, transparent) !important; }
+.mbck .fct_form_error, .mbck .fct_error { color: var(--danger) !important; font-size: 14px; font-weight: 600; }
 
-/* Payment methods as big choice cards */
+/* Payment: the store's methods as choice cards; Stripe's card box sits inside the chosen one. */
 .mbck .fct_payment_methods_list { display: flex; flex-direction: column; gap: 10px; border: 0 !important; }
-.mbck .fct_payment_methods_list > * { border: 1px solid #d5d8dd !important; border-radius: 14px !important; background: #fff !important; overflow: hidden; }
-.mbck .fct_payment_methods_list > *:has(input:checked) { border: 2px solid #16181d !important; }
-.mbck .fct_payment_methods_list label { min-height: 60px; font-size: 16px; font-weight: 650; }
+.mbck .fct_payment_methods_list > * { border: 1.5px solid var(--field) !important; border-radius: 14px !important; background: var(--surface) !important; overflow: hidden; }
+.mbck .fct_payment_methods_list > *:has(input:checked) { border: 2px solid var(--text) !important; }
+.mbck .fct_payment_methods_list label { min-height: 56px; color: var(--text) !important; font-size: 16px; font-weight: 700; }
 
 /* Only the discount code is left from the summary */
 .mbck .fct_summary { border: 0 !important; background: none !important; padding: 0 !important; box-shadow: none !important; }
@@ -104,14 +168,22 @@ body.mbck-body {
 .mbck .fct_summary .fct_items_wrapper,
 .mbck .fct_summary_items_list > li:not(:has(.fct_coupon)) { display: none !important; }
 .mbck .fct_summary_items, .mbck .fct_summary_items_list { margin: 0 !important; padding: 0 !important; border: 0 !important; list-style: none; }
-.mbck .fct_coupon_toggle, .mbck .fct_coupon_toggle a { display: inline-block; padding: 0 !important; margin: 0 0 18px !important; border: 0 !important; background: none !important; color: #16181d !important; font-size: 15px !important; font-weight: 650 !important; text-decoration: none; }
+.mbck .fct_summary_box, .mbck .fct_summary .fct_form_section_body, .mbck .fct_form_section_body_inner, .mbck .fct_summary .fct_checkout_form_section { padding: 0 !important; margin: 0 !important; background: none !important; }
+.mbck .fct_summary_items_list > li:has(.fct_coupon) { padding: 0 !important; margin: 0 !important; border: 0 !important; }
+.mbck .fct_coupon_toggle, .mbck .fct_coupon_toggle a { display: inline-block; padding: 0 !important; margin: 0 0 14px !important; border: 0 !important; background: none !important; color: var(--text) !important; font-size: 15px !important; font-weight: 700 !important; text-decoration: underline; }
 .mbck .fct_coupon { padding: 0 !important; border: 0 !important; background: none !important; }
-.mbck .fct_coupon_toggle a:hover { text-decoration: underline; }
+.mbck .fct_coupon_field { position: relative; margin: 0 0 16px !important; padding: 0 !important; border: 0 !important; }
+.mbck .fct_coupon_icon { display: none !important; } /* the tag icon sat on top of the words */
 
-/* The main button: the community's colour, a big pill */
-.mbck .fct_place_order_btn {
+/* The main button, and Open the community: the community's colour, a big pill */
+.mbck .fct_place_order_btn, .mbck-btn {
+	display: flex !important;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
 	width: 100% !important;
 	min-height: 56px !important;
+	padding: 0 24px !important;
 	border: 0 !important;
 	border-radius: 999px !important;
 	background: var(--mb-accent) !important;
@@ -119,34 +191,52 @@ body.mbck-body {
 	font: inherit !important;
 	font-size: 17px !important;
 	font-weight: 800 !important;
-	box-shadow: none !important;
+	text-decoration: none;
+	box-shadow: 0 6px 18px color-mix(in srgb, var(--mb-accent) 45%, transparent) !important;
 	cursor: pointer;
 }
-.mbck .fct_place_order_btn:hover { filter: brightness(.96); }
+.mbck .fct_place_order_btn:hover, .mbck-btn:hover { filter: brightness(0.96); }
 
-/* Paid */
-.mbck-tick { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: #e5f4ea; color: #2fb36b; }
-.mbck-done h1 { margin-top: 22px; font-size: 30px; }
-.mbck-done p { margin: 0 0 28px; color: #5d6470; font-size: 17px; line-height: 1.5; }
-.mbck-go { display: inline-grid; place-items: center; min-width: 280px; min-height: 56px; padding: 0 28px; border-radius: 999px; background: var(--mb-accent); color: var(--mb-ink); font-size: 17px; font-weight: 800; text-decoration: none; }
-.mbck-back { display: block; margin-top: 18px; color: #16181d; font-size: 15px; font-weight: 650; text-decoration: none; }
-.mbck-back:hover { text-decoration: underline; }
-
-/* Phones: a short coloured band on top, the form under it */
-@media (max-width: 860px) {
-	.mbck { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
-	.mbck-side { padding: 22px 20px 24px; }
-	.mbck-what { margin-top: 18px; }
-	.mbck-price strong { font-size: 34px; }
-	.mbck-perks, .mbck-due, .mbck-shape.two { display: none; }
-	.mbck-main { align-items: flex-start; padding: 24px 20px 32px; }
-	.mbck-main h1 { font-size: 24px; }
+/* ---------- Thank you: just the message, in the middle ---------- */
+.mbck-thanks { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; min-height: 100vh; overflow: clip; padding: 24px; }
+.mbck-thanks::before { content: ""; position: absolute; left: 50%; top: -180px; width: 520px; height: 520px; margin-left: -260px; border-radius: 50%; background: var(--mb-accent); filter: blur(90px); opacity: 0.35; pointer-events: none; }
+.mbck-msg { position: relative; display: flex; flex-direction: column; align-items: center; gap: 22px; width: 100%; max-width: 560px; text-align: center; }
+.mbck-msg h1 { margin: 0; font-size: 72px; line-height: 1; font-weight: 800; letter-spacing: -2.4px; }
+.mbck-msg p { margin: 0; color: var(--text-2); font-size: 20px; line-height: 1.5; }
+.mbck-msg .mbck-btn { max-width: 340px; }
+.mbck-confetti { position: relative; display: block; width: 100%; max-width: 400px; height: 60px; }
+.mbck-confetti i { position: absolute; width: 8px; height: 14px; border-radius: 2px; }
+.mbck-confetti i:nth-child(1) { left: 7%; top: 10px; background: var(--mb-accent); transform: rotate(20deg); }
+.mbck-confetti i:nth-child(2) { left: 30%; top: 40px; background: #2fb36b; transform: rotate(-30deg); }
+.mbck-confetti i:nth-child(3) { left: 65%; top: 0; background: #f59e0b; transform: rotate(45deg); }
+.mbck-confetti i:nth-child(4) { left: 90%; top: 30px; background: var(--mb-accent); transform: rotate(-15deg); }
+.mbck-confetti i:nth-child(5) { left: 20%; top: 70%; background: #93a8f4; transform: rotate(60deg); }
+.mbck-confetti i:nth-child(6) { left: 80%; top: 80%; background: #2fb36b; transform: rotate(10deg); }
+@media (prefers-reduced-motion: no-preference) {
+	.mbck-confetti i { animation: mbck-fall 0.9s ease-out both; }
+	@keyframes mbck-fall { from { opacity: 0; translate: 0 -18px; } }
 }
 
-/* FluentCart's small label inside the field ("Name *"): no box of its own, so the field's round corners show. */
-.mbck .fct_input_wrapper::after { background: transparent !important; border: 0 !important; right: 16px !important; color: #5d6470 !important; }
-.mbck .fct_summary_items_list > li:has(.fct_coupon) { padding: 0 !important; margin: 0 !important; border: 0 !important; }
-.mbck .fct_summary_box, .mbck .fct_summary .fct_form_section_body, .mbck .fct_form_section_body_inner, .mbck .fct_summary .fct_checkout_form_section { padding: 0 !important; margin: 0 !important; }
-.mbck .fct_coupon_toggle, .mbck .fct_coupon_toggle a { margin-bottom: 12px !important; }
-.mbck .fct_coupon_field { position: relative; margin: 0 0 16px !important; padding: 0 !important; border: 0 !important; }
-.mbck .fct_coupon_icon { display: none !important; } /* the tag icon sat on top of the words */
+/* ---------- Phones: the bar, the price on a dark band (what's included one tap away), the form ---------- */
+@media (max-width: 900px) {
+	.mbck-bar { padding: 14px 20px; font-size: 15px; }
+	.mbck-logo { width: 34px; height: 34px; }
+	.mbck-plans { font-size: 14px; }
+	.mbck-plans .wide { display: none; }
+	.mbck-plans .narrow { display: inline; }
+	.mbck { display: block; min-height: 0; }
+	.mbck-side { display: none; }
+	.mbck-main { display: block; padding: 20px 22px 32px; }
+	.mbck-form { gap: 16px; margin: 0 auto; }
+	.mbck-band { display: block; overflow: hidden; border-radius: 20px; background: var(--card); color: #fff; }
+	.mbck-band summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 18px 20px; list-style: none; cursor: pointer; }
+	.mbck-band summary::-webkit-details-marker { display: none; }
+	.mbck-band small { color: var(--card-2); font-size: 13px; }
+	.mbck-band b { font-size: 26px; }
+	.mbck-band u { display: inline-flex; align-items: center; min-height: 44px; color: var(--card-2); font-size: 14px; }
+	.mbck-band .mbck-perks { margin: 0 20px 18px; font-size: 15px; }
+	.mbck-main h1 { font-size: 36px !important; letter-spacing: -1.3px; }
+	.mbck-lead { font-size: 16px; }
+	.mbck-msg h1 { font-size: 52px; }
+	.mbck-msg p { font-size: 18px; }
+}

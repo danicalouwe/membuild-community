@@ -501,12 +501,13 @@ class Fluent_Cart {
 			}
 		} elseif ( $page_id === (int) $settings->get( 'receipt_page_id' ) ) {
 			$order = self::receipt_order();
-			if ( $order && 'paid' === $order->payment_status ) {
-				$groups = self::order_groups( $order );
-				if ( $groups ) {
-					self::on_paid( array( 'order' => $order ) ); // in case the paid hooks haven't run yet
-					self::$view = array( 'step' => 'paid', 'group' => Access::groups()[ $groups[0] ] ?? null, 'order' => $order );
-				}
+			$groups = $order ? self::order_groups( $order ) : array();
+			if ( $groups && 'paid' === $order->payment_status ) {
+				self::on_paid( array( 'order' => $order ) ); // in case the paid hooks haven't run yet
+				self::$view = array( 'step' => 'paid', 'group' => Access::groups()[ $groups[0] ] ?? null, 'order' => $order );
+			} elseif ( $groups && in_array( $order->payment_status, array( 'pending', 'processing', 'authorized' ), true ) ) {
+				// The bank is still confirming (some cards and bank payments): "Almost there", and the page checks again.
+				self::$view = array( 'step' => 'pending', 'group' => Access::groups()[ $groups[0] ] ?? null, 'order' => $order );
 			}
 		}
 		// FluentCart's account page (where Manage billing goes): the community's frame, FluentCart's own app inside.
@@ -578,6 +579,19 @@ class Fluent_Cart {
 			return $t ? \FluentCart\App\Models\Order::query()->find( $t->order_id ) : null;
 		}
 		return null;
+	}
+
+	/** The product's short description in FluentCart (its excerpt): the line under "Join VIP." on the checkout. */
+	public static function blurb( $variation_id ) {
+		global $wpdb;
+		$text = $variation_id ? (string) $wpdb->get_var( $wpdb->prepare( 'SELECT p.post_excerpt FROM %i v JOIN %i p ON p.ID = v.post_id WHERE v.id = %d', $wpdb->prefix . 'fct_product_variations', $wpdb->posts, (int) $variation_id ) ) : ''; // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		return trim( wp_strip_all_tags( $text ) );
+	}
+
+	/** Where "Back to the plans" goes: the website's Pricing page when there is one, else the community. */
+	public static function plans_url() {
+		$page = get_page_by_path( 'pricing' );
+		return $page && 'publish' === $page->post_status ? get_permalink( $page ) : Portal::url();
 	}
 
 	/** For the left column: the published courses a membership opens, with their lesson counts. */

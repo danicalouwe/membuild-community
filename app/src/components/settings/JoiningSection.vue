@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { startAttachment } from '../../lib/attachments.js'
 import Icon from '../Icon.vue'
 import { useSettings } from './context.js'
@@ -37,7 +37,36 @@ const LANDING = [
   { key: 'off', label: t.__('Keep my home page as it is', 'membuild-community'), hint: t.__('The community stays at its own address only.', 'membuild-community') },
 ]
 
-// The login page's picture: our illustration, or the owner's own photo.
+// Beside the login and join forms: the host's photo, name and one line (see Login::host).
+const hosts = computed(() => meta.value.hosts || [])
+const firstAdmin = computed(() => hosts.value[0] || null)
+const host = computed(() => hosts.value.find((h) => h.id === form.value.login_host) || firstAdmin.value)
+const photoUrl = computed(() => form.value.login_picture?.url || host.value?.avatar || '')
+const firstSentence = computed(() => (String(form.value.description || '').match(/^.+?[.!?](?=\s|$)/) || [form.value.description || ''])[0])
+
+// The preview: the real login page with these choices, before saving (admins only, see Login::preview_values).
+const previewUrl = ref('')
+const previewQuery = () => {
+  const u = new URL(meta.value.login_url, window.location.href)
+  const f = form.value
+  u.searchParams.set('pv[host]', f.login_host || 0)
+  u.searchParams.set('pv[line]', f.login_text || '')
+  u.searchParams.set('pv[photo]', f.login_picture?.id || 0)
+  u.searchParams.set('pv[live]', f.login_live ? 1 : 0)
+  u.searchParams.set('pv[magic]', f.login_magic ? 1 : 0)
+  return u.toString()
+}
+let previewTimer
+watch(
+  () => [form.value.login_host, form.value.login_text, form.value.login_picture?.id, form.value.login_live, form.value.login_magic, meta.value.login_url],
+  () => {
+    clearTimeout(previewTimer)
+    previewTimer = setTimeout(() => (previewUrl.value = meta.value.login_url ? previewQuery() : ''), previewUrl.value ? 500 : 0)
+  },
+  { immediate: true },
+)
+
+// The host's photo: their own upload, or (empty) their profile photo.
 const pictureUpload = ref(null)
 const pictureInput = ref(null)
 function pickPicture(e) {
@@ -55,7 +84,7 @@ function pickPicture(e) {
 <template>
   <section id="s-joining" class="card group">
     <h2>{{ t.__('Joining & logging in', 'membuild-community') }}</h2>
-    <p class="intro">{{ t.__('How people join, and where they land.', 'membuild-community') }}</p>
+    <p class="intro">{{ t.__('How people join, how your login and join pages look, and where members land.', 'membuild-community') }}</p>
 
     <fieldset class="field" :disabled="meta.registration_locked">
       <legend class="label">{{ t.__('How people join', 'membuild-community') }}</legend>
@@ -117,41 +146,77 @@ function pickPicture(e) {
     </label>
 
     <div v-if="form.login_page" class="sub look">
-      <h3>{{ t.__('How your login and join pages look', 'membuild-community') }}</h3>
-      <label class="field">
-        <span class="label">{{ t.__('Big headline', 'membuild-community') }}</span>
-        <input v-model="form.login_headline" type="text" maxlength="80" :placeholder="t.__('Learn, share and grow together.', 'membuild-community')" />
-        <small>{{ t.__('The last word shows in your main color.', 'membuild-community') }}</small>
-      </label>
-      <label class="field">
-        <span class="label">{{ t.__('Text under it', 'membuild-community') }}</span>
-        <input v-model="form.login_text" type="text" maxlength="200" :placeholder="t.__('Same as your community description', 'membuild-community')" />
-        <small>{{ t.__('Leave it to use your description, or write a line just for this page.', 'membuild-community') }}</small>
-      </label>
-      <div class="field">
-        <span class="label">{{ t.__('Picture', 'membuild-community') }}</span>
-        <div class="choices cols-2 pics">
-          <label class="choice pic" :class="{ on: !form.login_picture }">
-            <input type="radio" name="picture" :checked="!form.login_picture" @change="form.login_picture = null; pictureUpload = null" />
-            <span class="thumb art"><i /><b /><span /></span>
-            <span class="mark" /><strong>{{ t.__('Our illustration', 'membuild-community') }}</strong><small>{{ t.__('Drawn in your main color.', 'membuild-community') }}</small>
+      <div class="look-cols">
+        <div class="look-fields">
+          <h3>{{ t.__('How your login and join pages look', 'membuild-community') }}</h3>
+          <div class="field">
+            <span class="label">{{ t.__('Photo', 'membuild-community') }}</span>
+            <div class="photo-row">
+              <span class="host-photo">
+                <img v-if="photoUrl" :src="photoUrl" alt="" />
+                <template v-else-if="pictureUpload?.status === 'working'">{{ t.__('Uploading…', 'membuild-community') }}</template>
+                <Icon v-else name="image" :size="22" />
+              </span>
+              <span class="photo-actions">
+                <span class="photo-btns">
+                  <button type="button" class="btn-soft" @click="pictureInput.click()">{{ t.__('Change photo', 'membuild-community') }}</button>
+                  <button v-if="form.login_picture" type="button" class="btn-text" @click="form.login_picture = null; pictureUpload = null">{{ t.__('Use my profile photo', 'membuild-community') }}</button>
+                </span>
+                <small>{{ t.__('A photo of you, the host. No photo? We use your profile photo, or your logo.', 'membuild-community') }}</small>
+              </span>
+            </div>
+            <input ref="pictureInput" class="sr-only" type="file" tabindex="-1" aria-hidden="true" accept="image/*" @change="pickPicture" />
+            <small v-if="pictureUpload?.status === 'error'" class="err">{{ pictureUpload.error }}</small>
+          </div>
+          <label class="field">
+            <span class="label">{{ t.__('Host', 'membuild-community') }}</span>
+            <span class="host-select">
+              <img v-if="host?.avatar" :src="host.avatar" alt="" />
+              <select v-model.number="form.login_host">
+                <option :value="0">{{ firstAdmin ? t.sprintf(/* translators: %s: a person's name */ t.__('%s (the first admin)', 'membuild-community'), firstAdmin.name) : t.__('The first admin', 'membuild-community') }}</option>
+                <option v-for="h in hosts" :key="h.id" :value="h.id">{{ h.name }}</option>
+              </select>
+            </span>
+            <small>{{ t.sprintf(/* translators: %s: community name */ t.__('Their name shows on the card as “Host of %s”. Admins and moderators can be the host.', 'membuild-community'), form.name) }}</small>
           </label>
-          <label class="choice pic" :class="{ on: !!form.login_picture }">
-            <input type="radio" name="picture" :checked="!!form.login_picture" @change="!form.login_picture && pictureInput.click()" />
-            <button type="button" class="thumb drop" @click.prevent="pictureInput.click()">
-              <img v-if="form.login_picture" :src="form.login_picture.url" alt="" />
-              <template v-else-if="pictureUpload?.status === 'working'">{{ t.__('Uploading…', 'membuild-community') }}</template>
-              <template v-else><Icon name="upload" :size="18" /> {{ t.__('Upload a photo', 'membuild-community') }}</template>
-            </button>
-            <span class="mark" /><strong>{{ t.__('Your own photo', 'membuild-community') }}</strong><small>{{ form.login_picture ? t.__('Shown beside the form. Click the photo to change it.', 'membuild-community') : t.__('Shown beside the form.', 'membuild-community') }}</small>
+          <label class="field">
+            <span class="label">{{ t.__('Your line', 'membuild-community') }}</span>
+            <input v-model="form.login_text" type="text" maxlength="200" :placeholder="firstSentence || t.__('What members get from you, in one sentence', 'membuild-community')" />
+            <small>{{ t.__('One sentence about what members get from you. Empty: the first sentence of your community description.', 'membuild-community') }}</small>
+          </label>
+          <label class="field">
+            <span class="label">{{ t.__('Join page headline', 'membuild-community') }}</span>
+            <input v-model="form.login_headline" type="text" maxlength="80" :placeholder="t.__('Join now.', 'membuild-community')" />
+            <small>{{ t.__('Empty: “Join now.” Log in always says “Welcome back.”', 'membuild-community') }}</small>
           </label>
         </div>
-        <input ref="pictureInput" class="sr-only" type="file" tabindex="-1" aria-hidden="true" accept="image/*" @change="pickPicture" />
-        <small v-if="pictureUpload?.status === 'error'" class="err">{{ pictureUpload.error }}</small>
-        <small><strong>{{ t.__('Photo tips:', 'membuild-community') }}</strong> {{ t.__('a wide photo, under 2 MB. Keep faces in the middle.', 'membuild-community') }}</small>
-        <a :href="meta.login_url" target="_blank" rel="noopener" class="open-link">{{ t.__('Open the login page', 'membuild-community') }} <Icon name="external" :size="14" /></a>
+        <div class="preview">
+          <span class="preview-title">{{ t.__('Preview · Log in', 'membuild-community') }}</span>
+          <div class="preview-frame">
+            <iframe :src="previewUrl" :title="t.__('Preview of your login page', 'membuild-community')" tabindex="-1" loading="lazy" />
+          </div>
+          <small>{{ t.__('Changes show here as you type.', 'membuild-community') }} <a :href="meta.login_url" target="_blank" rel="noopener" class="open-link">{{ t.__('Open the login page', 'membuild-community') }} <Icon name="external" :size="14" /></a></small>
+        </div>
       </div>
+      <label class="toggle-row">
+        <span>
+          <strong>{{ t.__('Show what’s happening', 'membuild-community') }}</strong>
+          <small>{{ t.__('The next live call on Log in, and member faces on Join, once there’s something real to show.', 'membuild-community') }}</small>
+        </span>
+        <input v-model="form.login_live" type="checkbox" class="switch" role="switch" />
+      </label>
+      <label class="toggle-row">
+        <span>
+          <strong>{{ t.__('“Email me a login link”', 'membuild-community') }}</strong>
+          <small>{{ t.__('Members can log in with a link sent to their email, no password needed. It works once, for 15 minutes.', 'membuild-community') }}</small>
+        </span>
+        <input v-model="form.login_magic" type="checkbox" class="switch" role="switch" />
+      </label>
     </div>
+    <p v-else class="off-note">
+      <span class="i" aria-hidden="true">i</span>
+      <span><strong>{{ t.__('Members use WordPress’s own login', 'membuild-community') }}</strong> {{ t.__('(or your security plugin’s) to log in, join and reset their password. After they log in, the community opens as usual. Checkout and Thank you don’t change.', 'membuild-community') }}</span>
+    </p>
 
     <hr class="rule" />
 
@@ -174,77 +239,194 @@ function pickPicture(e) {
   font-size: var(--fs-xl);
 }
 
-/* The two picture choices: a small picture on top, then the mark and words. */
-.pic {
-  grid-template-rows: auto auto auto;
-}
-
-.thumb {
-  grid-column: 1 / -1;
+.look-cols {
   display: flex;
+  gap: 36px;
+  align-items: flex-start;
+}
+
+.look-fields {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.look-fields h3 {
+  margin: 0;
+}
+
+.photo-row {
+  display: flex;
+  gap: 16px;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  height: 92px;
-  margin-bottom: 8px;
+}
+
+.host-photo {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 110px;
   overflow: hidden;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
   color: var(--text-2);
-  font-weight: 700;
+  font-size: var(--fs-sm);
 }
 
-.thumb.art {
-  position: relative;
-  background: linear-gradient(135deg, var(--accent-soft), var(--surface-2));
-}
-
-.thumb.art i,
-.thumb.art b,
-.thumb.art span {
-  position: absolute;
-  border-radius: var(--radius-xs);
-}
-
-.thumb.art i {
-  top: 18px;
-  left: 30%;
-  width: 46px;
-  height: 58px;
-  background: var(--accent);
-}
-
-.thumb.art b {
-  top: 26px;
-  left: calc(30% - 34px);
-  width: 46px;
-  height: 30px;
-  background: var(--surface);
-  box-shadow: 0 4px 10px color-mix(in srgb, var(--shadow-color) 10%, transparent);
-}
-
-.thumb.art span {
-  top: 60px;
-  left: calc(30% + 34px);
-  width: 18px;
-  height: 18px;
-  border: 3px solid var(--surface);
-  border-radius: 50%;
-  background: var(--accent);
-}
-
-.thumb.drop {
-  border: 2px dashed var(--border-strong);
-  background: var(--surface);
-}
-
-.thumb.drop img {
+.host-photo img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center 25%;
 }
 
-.pic .mark {
-  grid-row: auto;
+.photo-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.photo-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.btn-soft,
+.btn-text {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-md);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.btn-text {
+  padding: 0 12px;
+  border-color: transparent;
+  background: none;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.host-select {
+  position: relative;
+  display: block;
+}
+
+.host-select img {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  width: 28px;
+  height: 28px;
+  margin-top: -14px;
+  border-radius: 50%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.host-select img + select {
+  padding-left: 52px;
+}
+
+.preview {
+  flex: none;
+  width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.preview-title {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+/* The real page at 1280 × 900, shrunk to fit. */
+.preview-frame {
+  width: 420px;
+  height: 295px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.preview-frame iframe {
+  width: 1280px;
+  height: 900px;
+  border: 0;
+  transform: scale(0.328);
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+
+.look > .toggle-row {
+  margin-top: 8px;
+}
+
+.off-note {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 12px 0 0;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: var(--fs-md);
+  line-height: 1.5;
+}
+
+.off-note strong {
+  color: var(--text);
+}
+
+.off-note .i {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: var(--fs-sm);
+  font-weight: 800;
+}
+
+/* Side by side only when the card is wide; otherwise the preview sits under the fields, and on phones it hides. */
+.look {
+  container-type: inline-size;
+}
+
+@container (max-width: 900px) {
+  .look-cols {
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .look-fields {
+    width: 100%;
+  }
+}
+
+@container (max-width: 460px) {
+  .preview {
+    display: none;
+  }
 }
 
 .open-link {

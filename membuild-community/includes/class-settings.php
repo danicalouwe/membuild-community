@@ -62,9 +62,12 @@ class Settings {
 			'login_page'  => true, // the community's own login pages; see Login
 			'signup_url'  => '',   // when WordPress registration is off: where "Create new account" goes (e.g. a membership plugin's checkout)
 			'signup_label' => '',  // that button's words ("Become a member"); empty: the plain default
-			'login_headline' => '', // the login and join pages' big line; empty: "Learn, share and grow together."
-			'login_text'  => '',   // the line under it; empty: the community description
-			'login_picture' => null, // array( 'id', 'url' ): the owner's photo beside the form; null: our illustration
+			'login_headline' => '', // the Join page's big line; empty: "Join now." (Log in always says "Welcome back.")
+			'login_text'  => '',   // the host's line on the card beside the form; empty: the first sentence of the description
+			'login_picture' => null, // array( 'id', 'url' ): the host's photo beside the form; null: their profile photo, or the logo
+			'login_host'  => 0,    // whose name is on that card ("Host of …"); 0: the site's first admin
+			'login_live'  => true, // the next live call on Log in, member faces on Join, once they're real
+			'login_magic' => true, // "Email me a login link": log in with a one-time link, no password
 			'display'     => 'auto', // the look members start with: auto (match device) | light | dark; each can change it
 			'min_age'     => 13,   // 0, 13, 16 or 18; asked at sign-up, never stored
 			'terms_url'   => '',
@@ -293,6 +296,7 @@ class Settings {
 			'privacy_admin_url'   => admin_url( 'options-privacy.php' ),
 			'join_url'            => Login::url( 'join' ),
 			'login_url'           => Login::url( 'login', array( 'preview' => '1' ) ), // opens for admins too (see Login::login_page)
+			'hosts'               => Login::host_choices(), // who can be the host on the login card: admins and moderators
 			'accents'    => self::ACCENTS,
 			'rules'      => self::rule_labels(),
 			'thresholds' => Points::thresholds(),
@@ -433,6 +437,15 @@ class Settings {
 		}
 		if ( array_key_exists( 'login_page', $in ) ) {
 			$s['login_page'] = (bool) $in['login_page'];
+		}
+		if ( array_key_exists( 'login_host', $in ) ) {
+			$host            = (int) ( is_array( $in['login_host'] ) ? ( $in['login_host']['id'] ?? 0 ) : $in['login_host'] );
+			$s['login_host'] = $host && ( user_can( $host, 'moderate_comments' ) || in_array( $host, array_map( 'intval', (array) $s['moderators'] ), true ) ) ? $host : 0;
+		}
+		foreach ( array( 'login_live', 'login_magic' ) as $key ) {
+			if ( array_key_exists( $key, $in ) ) {
+				$s[ $key ] = (bool) $in[ $key ];
+			}
 		}
 		if ( array_key_exists( 'delete_data', $in ) ) {
 			$s['delete_data'] = (bool) $in['delete_data'];
