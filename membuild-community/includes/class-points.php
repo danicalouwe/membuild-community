@@ -108,6 +108,16 @@ class Points {
 		add_action( 'membuild_community/lesson_completed', fn( $lesson_id, $user_id ) => self::award( $user_id, 'lesson', 'lesson', $lesson_id ), 10, 2 );
 		add_action( 'membuild_community/lesson_uncompleted', fn( $lesson_id, $user_id ) => self::revoke( $user_id, 'lesson', 'lesson', $lesson_id ), 10, 2 );
 		add_action( 'membuild_community/course_completed', fn( $course_id, $user_id ) => self::award( $user_id, 'course', 'course', $course_id ), 10, 2 );
+		add_action( 'deleted_user', array( __CLASS__, 'on_user_deleted' ) );
+	}
+
+	/** A deleted account's points and level go with it, so it isn't counted as a member who was active, or on the leaderboard. */
+	public static function on_user_deleted( $user_id ) {
+		global $wpdb;
+		foreach ( array( 'member_stats', 'points' ) as $name ) {
+			$wpdb->delete( Install::table( $name ), array( 'user_id' => (int) $user_id ), array( '%d' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		}
+		delete_transient( 'mbcom_admin_totals' );
 	}
 
 	/** A reaction gives the author a point; changing its type keeps it, removing it takes it back. */

@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.15.0
+Stable tag: 1.15.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,11 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.15.1 =
+* Fixed: "Active this week" in wp-admin could show more people than there are members. Deleted accounts left their points and level behind; now they go with the account, and this update clears the ones left from before (this also corrects the leaderboard and each level's share of members).
+* Changed: For you beside the Home feed shows the event's name on its own line and the day under it ("Thursday · 6:00 PM"), so an event called "Thursday Q&A" no longer reads "Thursday Q&A Thursday".
+* Changed: new screenshots in the README, from the 1.15 demo, in light and dark.
 
 = 1.15.0 =
 * New: Log in and Join are led by you, the host: your photo with one line about what members get, your name as "Host of …", the next live call when there's one this week, and members' faces on Join once there are a few. Day one works too: no photo shows your logo.

@@ -284,7 +284,7 @@ JS;
 		$posts  = Install::table( 'posts' );
 		$totals = array(
 			'members'  => Helpers::member_total(),
-			'active'   => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE last_active >= %s', Install::table( 'member_stats' ), gmdate( 'Y-m-d', time() - 7 * DAY_IN_SECONDS ) ) ),
+			'active'   => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i s JOIN %i u ON u.ID = s.user_id WHERE s.last_active >= %s', Install::table( 'member_stats' ), $wpdb->users, gmdate( 'Y-m-d', time() - 7 * DAY_IN_SECONDS ) ) ), // accounts that still exist
 			'posts'    => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status = 'published' AND type = 'post'", $posts ) ),
 			'reels'    => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status = 'published' AND type = 'reel'", $posts ) ),
 			'comments' => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', Install::table( 'comments' ) ) ),

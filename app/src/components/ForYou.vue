@@ -16,7 +16,7 @@ const timeFmt = new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-di
 const dayFmt = new Intl.DateTimeFormat(locale, { weekday: 'long' })
 const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
 
-/** "Live Q&A tomorrow": the day only when it's today, tomorrow or this week. */
+/** The day under the event's name ("Tomorrow · 6:00 PM EDT"), only when it's today, tomorrow or this week. */
 function eventDay(e) {
   const days = Math.round((startOfDay(startOf(e)) - startOfDay(new Date())) / 86400000)
   if (days <= 0) return t.__('today', 'membuild-community')
@@ -24,11 +24,12 @@ function eventDay(e) {
   if (days < 7) return dayFmt.format(startOf(e))
   return ''
 }
-const eventTitle = (e) => {
+// The name on its own line: an event called "Thursday Q&A" never reads "Thursday Q&A Thursday".
+const eventTime = (e) => {
+  const time = `${timeFmt.format(startOf(e))} ${zoneName()}`.trim()
   const day = eventDay(e)
-  return day ? t.sprintf(/* translators: 1: event name, 2: "today", "tomorrow" or a weekday */ t.__('%1$s %2$s', 'membuild-community'), e.title, day) : e.title
+  return day ? `${day.charAt(0).toLocaleUpperCase(locale) + day.slice(1)} · ${time}` : time
 }
-const eventTime = (e) => `${timeFmt.format(startOf(e))} ${zoneName()}`.trim()
 const nextLine = (c) => t.sprintf(/* translators: %s: lesson title */ t.__('Next: %s', 'membuild-community'), c.next_lesson.title)
 const newLine = (n) => t.sprintf(/* translators: %d: number of people */ t._n('%d new member this week', '%d new members this week', n, 'membuild-community'), n)
 </script>
@@ -42,7 +43,7 @@ const newLine = (n) => t.sprintf(/* translators: %d: number of people */ t._n('%
         <small>{{ dateBadge(data.event).month }}</small>
         <strong>{{ dateBadge(data.event).day }}</strong>
       </span>
-      <span class="words"><strong>{{ eventTitle(data.event) }}</strong><small>{{ eventTime(data.event) }}</small></span>
+      <span class="words"><strong>{{ data.event.title }}</strong><small>{{ eventTime(data.event) }}</small></span>
       <Icon name="chevronRight" :size="18" class="chev" />
     </RouterLink>
 

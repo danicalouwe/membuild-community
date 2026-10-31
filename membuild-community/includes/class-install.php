@@ -32,6 +32,7 @@ class Install {
 		27 => 'backfill_course_starts',
 		29 => 'move_access_buttons',
 		32 => 'backfill_place_zones',
+		38 => 'remove_departed_stats',
 	);
 
 	/** Hourly maintenance (the name is kept from 0.1 so existing schedules carry on). */
@@ -100,6 +101,17 @@ class Install {
 	 * day they joined. Members already part-way through keep their old dates (their
 	 * start is the day they joined), so nothing that was open for them closes.
 	 */
+	/**
+	 * 38: points and level rows of accounts that were deleted (before 1.15.1 they stayed behind),
+	 * so "Active this week", the leaderboard and each level's share count only real members.
+	 */
+	public static function remove_departed_stats() {
+		global $wpdb;
+		foreach ( array( 'member_stats', 'points' ) as $name ) {
+			$wpdb->query( $wpdb->prepare( 'DELETE s FROM %i s LEFT JOIN %i u ON u.ID = s.user_id WHERE u.ID IS NULL', self::table( $name ), $wpdb->users ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		}
+	}
+
 	/** 32: each place learns its time zone from the latest in-person event already held there. */
 	public static function backfill_place_zones() {
 		global $wpdb;

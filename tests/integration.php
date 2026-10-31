@@ -2304,6 +2304,25 @@ remove_filter( 'pre_wp_mail', $ml_catch, 10 );
 delete_user_meta( $ml_member, 'mbcom_login_link' );
 $ml_mails = array();
 
+mbcom_section( 'Deleted accounts leave the counts' );
+require_once ABSPATH . 'wp-admin/includes/user.php';
+$dl_t     = \MemBuild\Community\Install::table( 'member_stats' );
+$dl_p     = \MemBuild\Community\Install::table( 'points' );
+$dl_user  = mbcom_user( 'mbct_dl_leaver' );
+$wpdb->replace( $dl_t, array( 'user_id' => $dl_user, 'points' => 40, 'level' => 3, 'last_active' => gmdate( 'Y-m-d' ) ) );
+$wpdb->insert( $dl_p, array( 'user_id' => $dl_user, 'reason' => 'post', 'object_type' => 'post', 'object_id' => 1, 'points' => 40, 'created_at' => current_time( 'mysql', true ) ) );
+wp_delete_user( $dl_user );
+mbcom_check( 'deleting an account removes its points and level', 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE user_id = %d', $dl_t, $dl_user ) ) + (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE user_id = %d', $dl_p, $dl_user ) ) );
+$wpdb->replace( $dl_t, array( 'user_id' => 987654, 'points' => 5, 'level' => 1, 'last_active' => gmdate( 'Y-m-d' ) ) );
+delete_transient( 'mbcom_admin_totals' );
+$dl_tot = new ReflectionMethod( \MemBuild\Community\Admin::class, 'totals' );
+$dl_tot->setAccessible( true );
+$dl_active = (int) $dl_tot->invoke( null )['active'];
+mbcom_check( '“Active this week” never counts an account that’s gone', $dl_active === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i s JOIN %i u ON u.ID = s.user_id WHERE s.last_active >= %s', $dl_t, $wpdb->users, gmdate( 'Y-m-d', time() - 7 * DAY_IN_SECONDS ) ) ) );
+\MemBuild\Community\Install::remove_departed_stats();
+mbcom_check( 'the update clears rows left behind by accounts deleted before', 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE user_id = 987654', $dl_t ) ) );
+delete_transient( 'mbcom_admin_totals' );
+
 mbcom_section( 'Light unless the member picked dark' );
 $sc_was = $_COOKIE['mbcom_display'] ?? null;
 unset( $_COOKIE['mbcom_display'] );
