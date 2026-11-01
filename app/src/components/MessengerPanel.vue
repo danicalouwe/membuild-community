@@ -26,7 +26,9 @@ const FILTERS = [
   { key: 'groups', label: t.__('Groups', 'membuild-community') },
 ]
 
-const nameOf = (th) => th.title || th.others.map((o) => o.name).join(', ') || t.__('Just you', 'membuild-community')
+// A one-on-one chat whose other member was deleted has nobody else in it.
+const gone = (th) => th.type === 'direct' && !th.others.length
+const nameOf = (th) => th.title || th.others.map((o) => o.name).join(', ') || (gone(th) ? t.__('Former member', 'membuild-community') : t.__('Just you', 'membuild-community'))
 const filtered = computed(() => {
   const q = query.value.trim().toLowerCase()
   return threads.value.filter(
@@ -103,6 +105,7 @@ function compose() {
         <button class="row" :class="{ unread: th.unread }" @click="openThread(th)">
           <span class="faces" :class="{ group: th.type === 'group' }">
             <Avatar v-for="o in th.others.slice(0, 2)" :key="o.id" :user="o" :size="th.type === 'group' ? 34 : 48" />
+            <Avatar v-if="gone(th)" :size="48" decorative />
           </span>
           <span class="text">
             <strong>{{ nameOf(th) }}</strong>

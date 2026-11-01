@@ -1056,6 +1056,11 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
     top: calc(14px + env(safe-area-inset-top));
   }
 
+  /* Search sits left of the round + (top right), so both can be tapped. */
+  .on-video.find {
+    right: 66px;
+  }
+
   /* YouTube's own buttons (sound among them) too: their player starts below the clock. */
   .reel.embed .yt-area {
     margin-top: env(safe-area-inset-top);
@@ -1064,7 +1069,7 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   /* Phones: a small round + at the top instead of the word. */
   .create {
     right: 14px;
-    top: calc(14px + env(safe-area-inset-top));
+    top: calc(19px + env(safe-area-inset-top)); /* level with the 52px round buttons */
     width: 42px;
     height: 42px;
     padding: 0;

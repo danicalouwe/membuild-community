@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.15.1
+Stable tag: 1.15.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -213,9 +213,9 @@ The plugin works without any outside service. These are only contacted when you 
 
 **MemBuild** (the plugin's authors: a weekly anonymous report, and updates if you ask for them)
 * Always, once a week: a random ID made on your site (not its address), the plugin, WordPress and PHP versions, the site's language and whether it's a multisite, sent to `https://tools.membuild.com/api.php`. Our server also notes the country the request comes from (two letters) and keeps no IP address. This is how we count active installs.
-* If "Share usage" is on (ticked by default on the card the Community overview shows once, and changeable in Community settings → Updates & usage): what the community is about and how big it expects to be, which features are on, how sign-up and video are set up, rough counts in ranges ("51-200 members", "11-50 posts"), and the errors caught in the plugin's own code (file, line, a scrubbed message, how often; see Community → Problems), still under the random ID. Never names, email addresses, the site's address, posts, comments, messages or stack traces.
-* Only if an admin presses "Keep me updated" (on that card, or in Settings → Updates & usage): the email address they typed, the site's address and name, and the plugin, WordPress and PHP versions, so we can email about new features. While "Share usage" is also on, the community's exact counts (members, members active in the last 30 days, posts, courses, events, which features are on, the last day a member was active) go with it and are refreshed weekly. Never member names, emails, posts, comments or messages. "Stop" removes the email and everything with it from our server.
-* Settings → Updates & usage shows exactly what is sent, and "Delete this site's data at MemBuild" removes all of it from our server. The weekly report is not sent from sites whose environment type is local or development. The `membuild_community/usage_reports` filter turns everything off.
+* If "Share usage" is on (ticked by default on the card the Community overview shows once, and changeable in Community settings → News from MemBuild): what the community is about and how big it expects to be, which features are on, how sign-up and video are set up, rough counts in ranges ("51-200 members", "11-50 posts"), and the errors caught in the plugin's own code (file, line, a scrubbed message, how often; see Community → Problems), still under the random ID. Never names, email addresses, the site's address, posts, comments, messages or stack traces.
+* Only if an admin presses "Keep me updated" (on that card, or in Settings → News from MemBuild): the email address they typed, the site's address and name, and the plugin, WordPress and PHP versions, so we can email about new features. While "Share usage" is also on, the community's exact counts (members, members active in the last 30 days, posts, courses, events, which features are on, the last day a member was active) go with it and are refreshed weekly. Never member names, emails, posts, comments or messages. "Stop" removes the email and everything with it from our server.
+* Settings → News from MemBuild shows exactly what is sent, and "Delete this site's data at MemBuild" removes all of it from our server. The weekly report is not sent from sites whose environment type is local or development. The `membuild_community/usage_reports` filter turns everything off.
 * Privacy: https://membuild.com/privacy
 
 The plugin shows no ads and sends nothing else to the plugin's authors.
@@ -262,6 +262,20 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.15.2 =
+* Fixed: editing a post and changing its topic showed an error and left the window open. The "Add a topic" list no longer runs off the screen on phones.
+* Fixed: on phones, the Discard and Share bar in Create reel and Create story sat over the middle of the picture. On Reels, Search no longer hides under New reel.
+* Fixed: the links in the phone Menu and the "Your account" menu can be reached with the keyboard, and Tab stays inside the open phone menu. The story viewer keeps keyboard focus inside it. Settings on a computer no longer opens far down the page at Joining.
+* Fixed: in a course that opens lessons over time, finished lessons could show as locked again. The Course map shows the right opening dates for in-order courses. Finishing a course a second time no longer shows points that weren't given.
+* Fixed: deleting a course or lesson now removes its files, video and cover. Deleting an event removes its "scheduled an event" alerts, which led to a missing page.
+* Fixed: a chat with someone whose account was deleted says "Former member" and takes no new messages.
+* Fixed: the Terms page and sign-up link settings only save a real web address.
+* Fixed: "replied to your comment" alerts open the post at that comment.
+* Fixed: the next-event note on the login page shows its time zone ("6:00 PM EDT").
+* Fixed: dark mode. Selected rows are a softer tint and their text is easier to read; the red Cancel and Delete event links are clearer.
+* Changed: clearer focus rings, names for the phone course buttons for screen readers, no grey smudge in the top corner, one empty message in Messages when there are no chats, and the "view as member" button no longer covers controls on phones.
+* Changed: smaller fixes to topic pills on phones, the web address box in Settings, lesson timing choices and the Members "Joined" column in wp-admin. Import says "1 course". The old "Updates & usage" name now reads "News from MemBuild" everywhere.
 
 = 1.15.1 =
 * Fixed: "Active this week" in wp-admin could show more people than there are members. Deleted accounts left their points and level behind; now they go with the account, and this update clears the ones left from before (this also corrects the leaderboard and each level's share of members).

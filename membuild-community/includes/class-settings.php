@@ -314,6 +314,13 @@ class Settings {
 		$old   = $s['slug'];
 		$error = fn( $msg ) => new \WP_Error( 'mbcom_invalid_setting', $msg, array( 'status' => 400 ) );
 
+		// Web addresses first, before anything is saved: a typo is refused, not stored as a broken link.
+		foreach ( array( 'signup_url', 'terms_url' ) as $key ) {
+			if ( array_key_exists( $key, $in ) && null === self::web_address( $in[ $key ] ) ) {
+				return new \WP_Error( 'mbcom_invalid_setting', __( 'Enter a full web address, like https://example.com/page', 'membuild-community' ), array( 'status' => 400, 'field' => $key ) );
+			}
+		}
+
 		if ( array_key_exists( 'name', $in ) ) {
 			$s['name'] = mb_substr( sanitize_text_field( (string) $in['name'] ), 0, 60 );
 		}
@@ -412,7 +419,7 @@ class Settings {
 			update_option( 'users_can_register', $in['registration'] ? 1 : 0 );
 		}
 		if ( array_key_exists( 'signup_url', $in ) ) {
-			$s['signup_url'] = esc_url_raw( (string) $in['signup_url'], array( 'http', 'https' ) );
+			$s['signup_url'] = self::web_address( $in['signup_url'] );
 		}
 		if ( array_key_exists( 'signup_label', $in ) ) {
 			$s['signup_label'] = mb_substr( sanitize_text_field( (string) $in['signup_label'] ), 0, 40 );
@@ -427,7 +434,7 @@ class Settings {
 			$s['display'] = in_array( $in['display'], array( 'auto', 'light', 'dark' ), true ) ? $in['display'] : 'auto';
 		}
 		if ( array_key_exists( 'terms_url', $in ) ) {
-			$s['terms_url'] = esc_url_raw( (string) $in['terms_url'], array( 'http', 'https' ) );
+			$s['terms_url'] = self::web_address( $in['terms_url'] );
 		}
 		if ( array_key_exists( 'min_age', $in ) ) {
 			$s['min_age'] = in_array( (int) $in['min_age'], array( 0, 13, 16, 18 ), true ) ? (int) $in['min_age'] : 13;
@@ -498,6 +505,28 @@ class Settings {
 
 	/** The logo is an image the admin just uploaded through /media/uploads. */
 	/** Published or draft courses that unlock at a level: id, title and the level. */
+	/**
+	 * A web address the owner typed, cleaned: '' when left empty, null when it isn't one
+	 * ("not a url"). "example.com/terms" gets https:// in front, as browsers do.
+	 */
+	public static function web_address( $raw ) {
+		$url = trim( (string) $raw );
+		if ( '' === $url ) {
+			return '';
+		}
+		if ( ! preg_match( '#^[a-z][a-z0-9+.-]*://#i', $url ) ) {
+			$url = 'https://' . $url;
+		}
+		$parts = wp_parse_url( $url );
+		$host  = strtolower( $parts['host'] ?? '' );
+		$ok    = $parts
+			&& in_array( strtolower( $parts['scheme'] ?? '' ), array( 'http', 'https' ), true )
+			&& ! preg_match( '/\s/', $url )
+			&& preg_match( '/^[\p{L}\p{N}-]+(\.[\p{L}\p{N}-]+)*$/u', $host )
+			&& ( str_contains( $host, '.' ) || 'localhost' === $host );
+		return $ok ? esc_url_raw( $url, array( 'http', 'https' ) ) : null;
+	}
+
 	private static function level_courses() {
 		global $wpdb;
 		return array_map(

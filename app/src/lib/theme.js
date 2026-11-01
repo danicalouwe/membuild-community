@@ -78,11 +78,12 @@ export function applyAccent(hex) {
     return
   }
   hex = hex.toLowerCase()
+  // Dark soft fill: 14% keeps --text-2 at 4.5:1 or better on it even with a bright main color (lime, white).
   const { light, dark } = accentTokens(hex)
   style.textContent = `
 :root { --accent: ${light.accent}; --accent-ink: ${light.ink}; --accent-text: ${light.text}; --accent-soft: color-mix(in srgb, ${hex} 12%, #ffffff); }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --accent: ${dark.accent}; --accent-ink: ${dark.ink}; --accent-text: ${dark.text}; --accent-soft: color-mix(in srgb, ${hex} 24%, #18191c); }
+  :root:not([data-theme="light"]) { --accent: ${dark.accent}; --accent-ink: ${dark.ink}; --accent-text: ${dark.text}; --accent-soft: color-mix(in srgb, ${hex} 14%, #18191c); }
 }
-:root[data-theme="dark"] { --accent: ${dark.accent}; --accent-ink: ${dark.ink}; --accent-text: ${dark.text}; --accent-soft: color-mix(in srgb, ${hex} 24%, #18191c); }`
+:root[data-theme="dark"] { --accent: ${dark.accent}; --accent-ink: ${dark.ink}; --accent-text: ${dark.text}; --accent-soft: color-mix(in srgb, ${hex} 14%, #18191c); }`
 }

@@ -589,6 +589,7 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
 }
 
 .choice input {
+  flex-shrink: 0; /* a long line beside it mustn't squash the round button into an oval */
   width: 22px;
   height: 22px;
   margin-top: 2px;

@@ -248,7 +248,8 @@ function open(id, postId = 0) {
 const focusPost = computed(() => Number(route.query.at) || 0)
 
 function applyProgress(res) {
-  Object.assign(course.value, { progress: res.progress, completed_count: res.completed_count })
+  // points_awarded: what finishing really gave (0 the second time), so the finish card never claims points twice.
+  Object.assign(course.value, { progress: res.progress, completed_count: res.completed_count, points_awarded: res.points_awarded })
 }
 
 /**
@@ -369,8 +370,8 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
     <div class="lv-top">
       <RouterLink to="/classroom" class="lv-back"><Icon name="chevronLeft" :size="18" /> {{ t.__('Classroom', 'membuild-community') }}</RouterLink>
       <span v-if="ownerView" class="owner-links">
-        <button @click="setEditing(true, 'settings')"><Icon name="settings" :size="18" /> <span>{{ t.__('Course settings', 'membuild-community') }}</span></button>
-        <button @click="setEditing(true)"><Icon name="list" :size="18" /> <span>{{ t.__('All lessons', 'membuild-community') }}</span></button>
+        <button :aria-label="t.__('Course settings', 'membuild-community')" @click="setEditing(true, 'settings')"><Icon name="settings" :size="18" /> <span>{{ t.__('Course settings', 'membuild-community') }}</span></button>
+        <button :aria-label="t.__('All lessons', 'membuild-community')" @click="setEditing(true)"><Icon name="list" :size="18" /> <span>{{ t.__('All lessons', 'membuild-community') }}</span></button>
       </span>
     </div>
 

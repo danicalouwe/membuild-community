@@ -11,7 +11,7 @@ import Avatar from './Avatar.vue'
 import Icon from './Icon.vue'
 import ReactionBadge from './ReactionBadge.vue'
 import { t } from '../lib/i18n.js'
-import { hasLayers } from '../lib/layers.js'
+import { isTopLayer, pushLayer } from '../lib/layers.js'
 
 /**
  * Full-screen story viewer. Tap right = next, tap left = previous, hold = pause.
@@ -163,11 +163,17 @@ function onPointerUp(e) {
   else next()
 }
 
+// A modal layer: Escape (closes the Seen by list first, then the viewer) and Tab staying inside
+// come from layers.js. Focus moves in on open and goes back to what opened it on close.
+const panel = ref(null)
+const layer = { root: () => panel.value, close: () => (showViewers.value ? (showViewers.value = false) : emit('close')), trap: true }
+let removeLayer = null
+let opener = null
+
 function onKey(e) {
-  if (hasLayers()) return // a dialog or menu on top handles its own keys
-  if (replying.value && e.key !== 'Escape') return // typing a reply: arrows and space belong to the text box
-  if (e.key === 'Escape') showViewers.value ? (showViewers.value = false) : emit('close')
-  else if (e.key === 'ArrowRight') next()
+  if (!isTopLayer(layer)) return // a dialog or menu on top handles its own keys
+  if (replying.value) return // typing a reply: arrows and space belong to the text box
+  if (e.key === 'ArrowRight') next()
   else if (e.key === 'ArrowLeft') prev()
   else if (e.key === ' ') {
     e.preventDefault()
@@ -227,14 +233,19 @@ async function remove() {
 onMounted(() => {
   show(gi.value, group.value ? firstUnseen(group.value) : 0)
   raf = requestAnimationFrame(tick)
+  opener = document.activeElement
+  removeLayer = pushLayer(layer)
   window.addEventListener('keydown', onKey)
   document.documentElement.style.overflow = 'hidden'
+  nextTick(() => panel.value?.focus({ preventScroll: true }))
 })
 onBeforeUnmount(() => {
   cancelAnimationFrame(raf)
   clearTimeout(holdTimer)
   window.removeEventListener('keydown', onKey)
+  removeLayer?.()
   document.documentElement.style.overflow = ''
+  if (opener?.isConnected) opener.focus({ preventScroll: true })
 })
 const storyLabel = (name) => t.sprintf(/* translators: %s: the name of the person who posted the story */ t.__('%s\'s story', 'membuild-community'), name)
 const seenBy = (n) => t.sprintf(/* translators: %d: number of people who saw the story */ t.__('Seen by %d', 'membuild-community'), n)
@@ -252,7 +263,7 @@ function unmute() {
 
 <template>
   <Teleport to="body">
-    <div class="viewer" role="dialog" aria-modal="true" :aria-label="storyLabel(group?.author.name)">
+    <div ref="panel" class="viewer" role="dialog" aria-modal="true" tabindex="-1" :aria-label="storyLabel(group?.author.name)">
       <button class="close-x" :aria-label="t.__('Close stories', 'membuild-community')" @click="emit('close')"><Icon name="close" :size="26" /></button>
       <button v-if="gi > 0" class="side left" :aria-label="t.__('Previous person', 'membuild-community')" @click="nextGroup(-1)"><Icon name="chevronLeft" :size="28" /></button>
       <button v-if="gi < stories.groups.length - 1" class="side right" :aria-label="t.__('Next person', 'membuild-community')" @click="nextGroup(1)"><Icon name="chevronRight" :size="28" /></button>

@@ -158,6 +158,7 @@ class Points {
 		if ( ! $user_id || ! isset( $rules[ $reason ] ) ) {
 			return 0;
 		}
+		self::$given[ "{$user_id}:{$reason}:{$object_id}" ] = 0;
 		list( $points, $cap ) = $rules[ $reason ];
 		$at                   = $at ?: Helpers::now();
 		$ledger               = Install::table( 'points' );
@@ -190,7 +191,25 @@ class Points {
 			return 0;
 		}
 		self::adjust( $user_id, $points );
+		self::$given[ "{$user_id}:{$reason}:{$object_id}" ] = (int) $points;
 		return $points;
+	}
+
+	/** Points award() gave in this request, by member, reason and object. */
+	private static $given = array();
+
+	/**
+	 * What a member was given just now for one thing (0 when nothing), so a screen
+	 * can say "+20 points" only when they really got them, e.g. finishing a course once.
+	 */
+	public static function just_given( $user_id, $reason, $object_id ) {
+		return self::$given[ "{$user_id}:{$reason}:{$object_id}" ] ?? 0;
+	}
+
+	/** Points a member already has in the ledger for one thing (e.g. finishing a course). */
+	public static function earned_for( $user_id, $reason, $object_type, $object_id ) {
+		global $wpdb;
+		return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT SUM(points) FROM %i WHERE user_id = %d AND reason = %s AND object_type = %s AND object_id = %d', Install::table( 'points' ), $user_id, $reason, $object_type, $object_id ) );
 	}
 
 	public static function revoke( $user_id, $reason, $object_type, $object_id, $actor_id = 0 ) {

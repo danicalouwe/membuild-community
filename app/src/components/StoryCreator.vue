@@ -540,13 +540,16 @@ onMounted(() => {
     font-size: var(--fs-4xl);
   }
 
+  /* The page scrolls as one, so nothing shrinks under the Discard/Share bar. */
   .right {
     display: block;
+    flex: none;
     order: 2;
     padding: 16px;
   }
 
   .editor {
+    flex: none;
     order: 3;
     overflow: visible;
     padding: 16px;
@@ -557,6 +560,7 @@ onMounted(() => {
     position: sticky;
     bottom: 0;
     order: 4;
+    margin-top: auto; /* at the bottom when there's little to fill the screen */
     padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
     background: var(--surface);
   }

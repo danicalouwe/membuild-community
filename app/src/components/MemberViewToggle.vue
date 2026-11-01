@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { showToast } from '../lib/toast.js'
 import Icon from './Icon.vue'
 import PopFrame from './PopFrame.vue'
@@ -10,13 +10,18 @@ import { t } from '../lib/i18n.js'
 // The admin's floating switch, on the right of every page. It asks which member to be
 // (a membership or none, and a level), then the whole community is that member's view
 // until Back to your view (dark, so it's clear).
-defineProps({
+const props = defineProps({
   docked: { type: Boolean, default: false }, // in the chat dock's column, or on its own
   compact: { type: Boolean, default: false }, // a chat window is open beside it: just the eye, round
 })
 // Always just a round eye, like the pencil: white in your own view; dark with the level in a
 // small lime badge while you're seeing it as a member, so the two are told apart at a glance.
 const round = true
+
+// On its own it floats over the page's bottom right, so the page gets room below its content
+// (phones only, see the unscoped style) and nothing at the bottom stays hidden under it.
+onMounted(() => !props.docked && document.documentElement.classList.add('mbcom-mvt-room'))
+onBeforeUnmount(() => !props.docked && document.documentElement.classList.remove('mbcom-mvt-room'))
 
 // Just after switching: one short note saying how to get back.
 onMounted(() => {
@@ -252,5 +257,16 @@ select {
   min-height: 52px;
   height: 52px;
   padding: 0;
+}
+</style>
+
+<style>
+/* Phones: room at the end of the page for the floating eye (not on full-screen Reels or the map). */
+@media (max-width: 767px) {
+  html.mbcom-mvt-room .shell:not(.immersive) .main:not(.flush)::after {
+    content: '';
+    display: block;
+    height: 64px;
+  }
 }
 </style>

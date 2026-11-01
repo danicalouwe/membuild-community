@@ -75,8 +75,10 @@ let alive = true
 const latest = useLatest()
 
 const others = computed(() => chat.value?.members.filter((m) => m.id !== cfg.user.id && !m.left) || [])
-const title = computed(() => chat.value?.title || listNames(others.value.map((m) => m.name)) || t.__('Just you', 'membuild-community'))
 const isGroup = computed(() => chat.value?.type === 'group')
+// A one-on-one chat whose other member was deleted: nobody left to read a reply.
+const gone = computed(() => chat.value?.type === 'direct' && !others.value.length)
+const title = computed(() => chat.value?.title || listNames(others.value.map((m) => m.name)) || (gone.value ? t.__('Former member', 'membuild-community') : t.__('Just you', 'membuild-community')))
 const userById = computed(() => Object.fromEntries((chat.value?.members || []).concat([cfg.user]).map((u) => [u.id, u])))
 const lastRealId = () => [...items.value].reverse().find((m) => typeof m.id === 'number')?.id || 0
 
@@ -503,6 +505,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
           <button :ref="headerMenuTrigger" class="name-btn" aria-haspopup="menu" :aria-expanded="headerMenu" @click="toggleHeaderMenu">
             <span class="faces" :class="{ group: isGroup }">
               <Avatar v-for="u in others.slice(0, 2)" :key="u.id" :user="u" :size="isGroup ? 26 : 32" :online="!isGroup" />
+              <Avatar v-if="gone" :size="32" decorative />
             </span>
             <strong>{{ title }}</strong>
             <Icon name="chevronDown" :size="16" />
@@ -541,6 +544,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
       <template v-if="chat">
         <span class="faces" :class="{ group: isGroup }">
           <Avatar v-for="u in others.slice(0, 2)" :key="u.id" :user="u" :size="isGroup ? 30 : 40" :online="!isGroup" />
+          <Avatar v-if="gone" :size="40" decorative />
         </span>
         <form v-if="renaming !== null" class="rename" @submit.prevent="saveName" @keydown.esc.stop="renaming = null">
           <div class="rename-row">
@@ -579,9 +583,9 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
       <div v-else-if="!chat" class="state"><div class="spinner" /></div>
       <template v-else>
         <div v-if="!hasMore" class="intro">
-          <span class="faces big"><Avatar v-for="u in others.slice(0, 3)" :key="u.id" :user="u" :size="64" badge /></span>
+          <span class="faces big"><Avatar v-for="u in others.slice(0, 3)" :key="u.id" :user="u" :size="64" badge /><Avatar v-if="gone" :size="64" decorative /></span>
           <strong>{{ title }}</strong>
-          <span>{{ isGroup ? t.__('Group chat', 'membuild-community') : t.__('You’re both members of this community', 'membuild-community') }}</span>
+          <span>{{ isGroup ? t.__('Group chat', 'membuild-community') : gone ? t.__('This member has left the community.', 'membuild-community') : t.__('You’re both members of this community', 'membuild-community') }}</span>
         </div>
         <div v-else-if="loadingOlder" class="state small"><div class="spinner" /></div>
 
@@ -655,6 +659,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
     </div>
 
     <p v-if="chat && cfg.community.restriction" class="composer muted-note">{{ t.__("You're muted, so you can't send messages right now.", 'membuild-community') }}</p>
+    <p v-else-if="chat && gone" class="composer muted-note">{{ t.__('This member has left the community, so you can’t reply.', 'membuild-community') }}</p>
     <p v-else-if="chat && blockedNotice" class="composer muted-note">{{ t.__('You blocked this person. Unblock them from their profile to message again.', 'membuild-community') }}</p>
     <form v-else-if="chat" class="composer" @submit.prevent="send">
       <div v-if="replyTo" class="replying">
@@ -1049,12 +1054,15 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  max-width: min(80%, 560px);
+  /* Room beside the bubble for its buttons (smiley and reply: 4 + 2 × 28, after the 36px avatar column),
+     so they never run off a narrow screen or chat window. */
+  max-width: min(80%, 560px, calc(100% - 96px));
   min-width: 0;
 }
 
 .mine .stack {
   align-items: flex-end;
+  max-width: min(80%, 560px, calc(100% - 92px)); /* yours: smiley, reply and ⋮ (4 + 3 × 28) */
 }
 
 .sender {
@@ -1532,10 +1540,6 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 @media (max-width: 767px) {
   .back {
     display: grid;
-  }
-
-  .stack {
-    max-width: 80%;
   }
 
   .actions {

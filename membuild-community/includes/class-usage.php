@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
  * the site's language: no address, no names, no emails.
  *
  * When an admin ticks "Share usage" (on by default on the Community overview's
- * card, and changeable in Settings → Updates & usage), the report also says what the
+ * card, and changeable in Settings → News from MemBuild), the report also says what the
  * community is about, which features are on and roughly how big it is, in
  * ranges ("51–200 members"), never exact numbers, plus the signatures of
  * errors caught in our own code (see Problems: file, line, scrubbed message,
@@ -28,7 +28,7 @@ defined( 'ABSPATH' ) || exit;
  * name, and the versions, to the same server; while sharing is on, it also
  * sends the community's exact counts (members, posts, courses, events, which
  * features are on), refreshed with each weekly report. "Stop" in Settings →
- * Updates & usage removes it from our server. The overview asks once, and once more
+ * News from MemBuild removes it from our server. The overview asks once, and once more
  * two weeks after "Not now"; after that only Settings offers it.
  *
  * Nothing anonymous is sent from local or development sites
@@ -393,7 +393,7 @@ class Usage {
 		);
 		printf(
 			'<p class="mbcom-setup-fine">%s</p>',
-			esc_html__( 'We get your email, your site’s address and name, and the plugin, WordPress and PHP versions. Stop any time in the community’s Settings → Updates & usage, which also shows exactly what’s sent.', 'membuild-community' )
+			esc_html__( 'We get your email, your site’s address and name, and the plugin, WordPress and PHP versions. Stop any time in the community’s Settings → News from MemBuild, which also shows exactly what’s sent.', 'membuild-community' )
 		);
 		echo '</form>';
 	}
@@ -436,7 +436,7 @@ class Usage {
 		update_option( self::OPTION, $state, false );
 	}
 
-	/* ---------- REST, for Settings → Updates & usage ---------- */
+	/* ---------- REST, for Settings → News from MemBuild ---------- */
 
 	public static function rest_get() {
 		$state = self::state();

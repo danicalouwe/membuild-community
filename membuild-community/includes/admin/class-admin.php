@@ -1070,7 +1070,7 @@ JS;
 .mbcom-admin .column-date{width:132px}.mbcom-admin .column-status{width:132px}.mbcom-admin .column-access{width:170px}.mbcom-admin .column-started{width:140px}
 .mbcom-admin .column-post{width:210px}.mbcom-admin .column-used{width:150px}
 .mbcom-admin .members .column-points{width:160px}.mbcom-admin .members .column-activity,.mbcom-admin .members .column-messages{width:118px}
-.mbcom-admin .members .column-last_active,.mbcom-admin .members .column-joined{width:124px}
+.mbcom-admin .members .column-last_active,.mbcom-admin .members .column-joined{width:148px}
 /* The thumbnail already says "reel"; the Type column only repeats it. */
 .mbcom-admin .posts .column-type{display:none}
 @media (max-width:1180px) and (min-width:783px){

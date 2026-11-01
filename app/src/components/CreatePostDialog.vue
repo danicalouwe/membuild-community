@@ -5,7 +5,7 @@ import { api } from '../api.js'
 import { cfg } from '../config.js'
 import CourseLinkCard from './CourseLinkCard.vue'
 import { showToast } from '../lib/toast.js'
-import { insertPost, removePost, replacePost, updatePost } from '../stores/feed.js'
+import { forgetTopicLists, insertPost, removePost, replacePost, updatePost } from '../stores/feed.js'
 import { postableTopics, topicById, topics } from '../lib/topics.js'
 import { startAttachment, startGif } from '../lib/attachments.js'
 import { giphyOn } from '../lib/giphy.js'
@@ -136,6 +136,26 @@ const topicsHere = computed(() => !props.place && !share && (topicChoices.value.
 const pickTopic = (id) => {
   topicId.value = id
   topicPicker.value = false
+}
+// The topic menu floats over the dialog (fixed, from the chip's spot), so the dialog's
+// scrolling body can't clip it and it stays on the screen; below the chip, or above when there's no room.
+const topicMenuStyle = ref(null)
+function toggleTopicPicker(e) {
+  if (topicPicker.value) {
+    topicPicker.value = false
+    return
+  }
+  const a = e.currentTarget.closest('.topic-pick').getBoundingClientRect()
+  const EDGE = 8
+  const width = Math.min(280, window.innerWidth - EDGE * 2)
+  const left = Math.max(EDGE, Math.min(a.left, window.innerWidth - width - EDGE))
+  const below = window.innerHeight - a.bottom - 6 - EDGE
+  const above = a.top - 6 - EDGE
+  topicMenuStyle.value =
+    below >= Math.min(320, above)
+      ? { left: left + 'px', width: width + 'px', top: a.bottom + 6 + 'px', maxHeight: Math.min(320, below) + 'px' }
+      : { left: left + 'px', width: width + 'px', bottom: window.innerHeight - a.top + 6 + 'px', maxHeight: Math.min(320, above) + 'px' }
+  topicPicker.value = true
 }
 const dirty = computed(() =>
   props.edit
@@ -354,7 +374,7 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
             <button class="round round-btn" :aria-label="t.__('Close', 'membuild-community')" @click="close"><Icon name="close" :size="22" /></button>
           </header>
 
-          <div class="body">
+          <div class="body" @scroll="topicPicker = false">
             <div class="author">
               <Avatar :user="cfg.user" :size="44" />
               <div>
@@ -373,11 +393,11 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
                   <span v-else class="chip"><Icon name="user" :size="15" /> {{ t.__('Community members', 'membuild-community') }}</span>
                   <span v-if="topicsHere" class="topic-pick">
                     <span v-if="chosenTopic" class="chip topic on">
-                      <button type="button" class="topic-open" :aria-expanded="topicPicker" aria-haspopup="listbox" @click="topicPicker = !topicPicker"><span class="topic-dot" :style="{ background: chosenTopic.color }" />{{ chosenTopic.name }}</button>
+                      <button type="button" class="topic-open" :aria-expanded="topicPicker" aria-haspopup="listbox" @click="toggleTopicPicker"><span class="topic-dot" :style="{ background: chosenTopic.color }" />{{ chosenTopic.name }}</button>
                       <button type="button" class="topic-clear" :aria-label="t.__('Remove the topic', 'membuild-community')" @click="pickTopic(0)"><Icon name="close" :size="13" /></button>
                     </span>
-                    <button v-else type="button" class="chip topic" :aria-expanded="topicPicker" aria-haspopup="listbox" @click="topicPicker = !topicPicker"><Icon name="hash" :size="15" /> {{ t.__('Add a topic', 'membuild-community') }}</button>
-                    <span v-if="topicPicker" class="topic-menu card" role="listbox" :aria-label="t.__('Topic (optional)', 'membuild-community')">
+                    <button v-else type="button" class="chip topic" :aria-expanded="topicPicker" aria-haspopup="listbox" @click="toggleTopicPicker"><Icon name="hash" :size="15" /> {{ t.__('Add a topic', 'membuild-community') }}</button>
+                    <span v-if="topicPicker" class="topic-menu card" :style="topicMenuStyle" role="listbox" :aria-label="t.__('Topic (optional)', 'membuild-community')">
                       <span class="topic-menu-title">{{ t.__('Topic (optional)', 'membuild-community') }}</span>
                       <button v-for="x in topicChoices" :key="x.id" type="button" role="option" :aria-selected="topicId === x.id" :class="{ on: topicId === x.id }" @click="pickTopic(x.id)">
                         <span class="topic-dot" :style="{ background: x.color }" />{{ x.name }}<small v-if="x.members_only">{{ t.__('members only', 'membuild-community') }}</small>
@@ -671,12 +691,8 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
 }
 
 .topic-menu {
-  position: absolute;
-  left: 0;
-  top: calc(100% + 6px);
+  position: fixed; /* placed by toggleTopicPicker */
   z-index: 5;
-  width: 280px;
-  max-height: 320px;
   overflow-y: auto;
   padding: 8px;
   display: flex;

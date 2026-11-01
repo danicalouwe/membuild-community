@@ -77,6 +77,8 @@ const after = computed(() =>
     { href: cfg.logoutUrl, icon: 'logout', label: t.__('Log out', 'membuild-community') },
   ].filter(Boolean),
 )
+// A RouterLink gets only `to` (an empty href would replace the link's own), a plain link only href.
+const linkProps = (i) => (i.action ? { type: 'button' } : i.to ? { to: i.to } : { href: i.href })
 const reportsNeed = (n) => t.sprintf(/* translators: %d: reports waiting */ t._n('%d report needs you', '%d reports need you', n, 'membuild-community'), n)
 
 const cap = (n, max) => (n > max ? `${max}+` : n)
@@ -112,10 +114,21 @@ function onMenuKey(e) {
   else if (e.key === 'ArrowUp') next = items[(i - 1 + items.length) % items.length]
   else if (e.key === 'Home') next = items[0]
   else if (e.key === 'End') next = items.at(-1)
+  // The phone menu covers the page like a sheet: Tab goes round inside it instead of out to the page behind.
+  else if (e.key === 'Tab' && isPhone.value && items.length) {
+    if (e.shiftKey && i <= 0) next = items.at(-1)
+    else if (!e.shiftKey && i === items.length - 1) next = items[0]
+  }
   if (next) {
     e.preventDefault()
     next.focus()
   }
+}
+// Tabbing out of an open menu closes it, so focus never sits on the page behind it.
+function onMenuFocusOut(e) {
+  const to = e.relatedTarget
+  if (!to || e.currentTarget.contains(to) || to.closest?.('[data-phone-menu]')) return
+  open.value = null
 }
 onMounted(() => {
   document.addEventListener('pointerdown', onDoc)
@@ -161,7 +174,7 @@ const accountLabel = () => {
       </button>
       <!-- Phones: it opens from the bottom bar, so it lives on the page (the top bar's blur would trap it). -->
       <Teleport to="body" :disabled="!isPhone">
-      <div v-if="open === 'shortcuts'" class="menu card shortcuts" :class="{ 'phone-menu': isPhone }" data-phone-menu @keydown="onMenuKey">
+      <div v-if="open === 'shortcuts'" class="menu card shortcuts" :class="{ 'phone-menu': isPhone }" data-phone-menu @keydown="onMenuKey" @focusout="onMenuFocusOut">
         <h2>{{ t.__('Menu', 'membuild-community') }}</h2>
         <!-- Phones have no avatar menu, so the grid holds everything. -->
         <template v-if="isPhone">
@@ -169,7 +182,7 @@ const accountLabel = () => {
             <Avatar :user="cfg.user" :size="40" badge />
             <strong>{{ cfg.user.name }}</strong>
           </RouterLink>
-          <component :is="i.to ? 'RouterLink' : 'a'" v-for="i in places" :key="i.label" :to="i.to" :href="i.href" class="item"><span class="ic"><Icon :name="i.icon" :size="18" /></span>
+          <component :is="i.to ? 'RouterLink' : 'a'" v-for="i in places" :key="i.label" v-bind="linkProps(i)" class="item"><span class="ic"><Icon :name="i.icon" :size="18" /></span>
             <span v-if="i.note" class="text"><span>{{ i.label }}</span><small>{{ i.note }}</small></span>
             <template v-else>{{ i.label }}</template></component>
           <hr v-if="shortcuts.length" />
@@ -195,7 +208,7 @@ const accountLabel = () => {
           <template v-for="group in [{ key: 'community', title: t.__('Your community', 'membuild-community'), items: community }, { key: 'you', title: t.__('You', 'membuild-community'), items: you }]" :key="group.key">
             <template v-if="group.items.length">
               <p class="group">{{ group.title }}</p>
-              <component :is="i.action ? 'button' : i.to ? 'RouterLink' : 'a'" v-for="i in group.items" :key="i.label" :to="i.to" :href="i.href" class="item" @click="i.action?.()">
+              <component :is="i.action ? 'button' : i.to ? 'RouterLink' : 'a'" v-for="i in group.items" :key="i.label" v-bind="linkProps(i)" class="item" @click="i.action?.()">
                 <span class="ic"><Icon :name="i.icon" :size="18" /></span>
                 <span v-if="i.note" class="text"><span>{{ i.label }}</span><small>{{ i.note }}</small></span>
                 <template v-else>{{ i.label }}</template>
@@ -211,7 +224,7 @@ const accountLabel = () => {
             </template>
           </template>
           <hr />
-          <component :is="i.action ? 'button' : i.to ? 'RouterLink' : 'a'" v-for="i in after" :key="i.label" :to="i.to" :href="i.href" class="item" @click="i.action?.()">
+          <component :is="i.action ? 'button' : i.to ? 'RouterLink' : 'a'" v-for="i in after" :key="i.label" v-bind="linkProps(i)" class="item" @click="i.action?.()">
             <span class="ic"><Icon :name="i.icon" :size="18" /></span>
             <span v-if="i.note" class="text"><span>{{ i.label }}</span><small>{{ i.note }}</small></span>
             <template v-else>{{ i.label }}</template>
@@ -265,7 +278,7 @@ const accountLabel = () => {
         <span v-if="cfg.community.isStaff && messages.reports" class="count report-dot" aria-hidden="true">{{ cap(messages.reports, 99) }}</span>
         <span class="chev"><Icon name="chevronDown" :size="12" /></span>
       </button>
-      <div v-if="open === 'account'" class="menu card account-menu" @keydown="onMenuKey">
+      <div v-if="open === 'account'" class="menu card account-menu" @keydown="onMenuKey" @focusout="onMenuFocusOut">
         <RouterLink to="/me" class="who">
           <Avatar :user="cfg.user" :size="40" badge />
           <strong>{{ cfg.user.name }}</strong>
@@ -273,7 +286,7 @@ const accountLabel = () => {
         <template v-for="group in [{ key: 'community', title: t.__('Your community', 'membuild-community'), items: community }, { key: 'you', title: t.__('You', 'membuild-community'), items: you }]" :key="group.key">
           <template v-if="group.items.length">
             <p class="group">{{ group.title }}</p>
-            <component :is="i.action ? 'button' : i.to ? 'RouterLink' : 'a'" v-for="i in group.items" :key="i.label" :to="i.to" :href="i.href" class="item" @click="i.action?.()">
+            <component :is="i.action ? 'button' : i.to ? 'RouterLink' : 'a'" v-for="i in group.items" :key="i.label" v-bind="linkProps(i)" class="item" @click="i.action?.()">
               <span class="ic"><Icon :name="i.icon" :size="18" /></span>
               <span v-if="i.note" class="text"><span>{{ i.label }}</span><small>{{ i.note }}</small></span>
               <template v-else>{{ i.label }}</template>
@@ -289,7 +302,7 @@ const accountLabel = () => {
           </template>
         </template>
         <hr />
-        <component :is="i.action ? 'button' : i.to ? 'RouterLink' : 'a'" v-for="i in after" :key="i.label" :to="i.to" :href="i.href" class="item" @click="i.action?.()">
+        <component :is="i.action ? 'button' : i.to ? 'RouterLink' : 'a'" v-for="i in after" :key="i.label" v-bind="linkProps(i)" class="item" @click="i.action?.()">
           <span class="ic"><Icon :name="i.icon" :size="18" /></span>
           <span v-if="i.note" class="text"><span>{{ i.label }}</span><small>{{ i.note }}</small></span>
           <template v-else>{{ i.label }}</template>

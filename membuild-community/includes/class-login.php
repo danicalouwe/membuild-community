@@ -692,16 +692,22 @@ class Login {
 		if ( ! $at || $at > time() + WEEK_IN_SECONDS ) {
 			return null;
 		}
+		// Visitors may live anywhere: the time is the event's own zone (else the site's), and says which.
+		global $wpdb;
+		$tz   = (string) $wpdb->get_var( $wpdb->prepare( 'SELECT event_tz FROM %i WHERE id = %d', Install::table( 'posts' ), $next['id'] ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$zone = in_array( $tz, timezone_identifiers_list(), true ) ? new \DateTimeZone( $tz ) : wp_timezone();
+		$abbr = wp_date( 'T', $at, $zone );
+		$abbr = preg_match( '/^(?:GMT)?([+-])(\d\d):?(\d\d)?$/', $abbr, $m ) ? 'GMT' . $m[1] . (int) $m[2] . ( ! empty( $m[3] ) && '00' !== $m[3] ? ':' . $m[3] : '' ) : $abbr; // "+08" or "GMT+0000" → "GMT+8" / "GMT+0", as the app writes it
 		$left = $at - time();
 		$when = $left < HOUR_IN_SECONDS
 			? __( 'Starting soon', 'membuild-community' )
 			/* translators: %s: how long until it starts, like "2 hours" */
-			: ( $left < DAY_IN_SECONDS ? sprintf( __( 'In %s', 'membuild-community' ), human_time_diff( time(), $at ) ) : wp_date( 'l', $at ) );
+			: ( $left < DAY_IN_SECONDS ? sprintf( __( 'In %s', 'membuild-community' ), human_time_diff( time(), $at ) ) : wp_date( 'l', $at, $zone ) );
 		return array(
 			'title' => $next['event_title'],
-			'when'  => $when . ' · ' . wp_date( (string) get_option( 'time_format' ), $at ), // "In 2 hours · 7:00 PM", "Thursday · 7:00 PM"
-			'day'   => wp_date( 'D', $at ),
-			'date'  => wp_date( 'j', $at ),
+			'when'  => $when . ' · ' . wp_date( (string) get_option( 'time_format' ), $at, $zone ) . ' ' . $abbr, // "In 2 hours · 7:00 PM EST", "Thursday · 7:00 PM GMT+8"
+			'day'   => wp_date( 'D', $at, $zone ),
+			'date'  => wp_date( 'j', $at, $zone ),
 		);
 	}
 
@@ -811,6 +817,9 @@ class Login {
 		$initials = Settings::initials();
 		$signup   = self::signup_link();
 		$icons    = App::icons();
+		// Settings' live preview sits in a frame inside Settings: a box there taking focus
+		// would scroll the whole Settings page down to it, so it doesn't.
+		$focus    = ! $pv;
 		include MEMBUILD_COMMUNITY_DIR . 'templates/login.php';
 	}
 

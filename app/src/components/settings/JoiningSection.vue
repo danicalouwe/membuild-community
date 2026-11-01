@@ -37,6 +37,25 @@ const LANDING = [
   { key: 'off', label: t.__('Keep my home page as it is', 'membuild-community'), hint: t.__('The community stays at its own address only.', 'membuild-community') },
 ]
 
+// A web address the server will take (same rule as Settings::web_address): empty, or a
+// real http(s) address with a host. "example.com/terms" is fine; https:// goes in front.
+const webAddress = (v) => {
+  const raw = String(v || '').trim()
+  if (!raw) return true
+  if (/\s/.test(raw)) return false
+  try {
+    const u = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? raw : `https://${raw}`)
+    return ['http:', 'https:'].includes(u.protocol) && (u.hostname.includes('.') || u.hostname === 'localhost')
+  } catch {
+    return false
+  }
+}
+const ADDRESS_ERROR = t.__('Enter a full web address, like https://example.com/page', 'membuild-community')
+// Checked once they leave the field, so it doesn't complain while they're still typing.
+const left = ref({})
+const signupBad = computed(() => left.value.signup && !webAddress(form.value.signup_url))
+const termsBad = computed(() => left.value.terms && !webAddress(form.value.terms_url))
+
 // Beside the login and join forms: the host's photo, name and one line (see Login::host).
 const hosts = computed(() => meta.value.hosts || [])
 const firstAdmin = computed(() => hosts.value[0] || null)
@@ -99,8 +118,9 @@ function pickPicture(e) {
       <div v-if="join === 'own'" class="sub">
         <label class="field">
           <span class="label">{{ t.__('Where the join button goes', 'membuild-community') }}</span>
-          <input v-model.trim="form.signup_url" type="url" placeholder="https://" />
-          <small>{{ t.__('Your checkout or sign-up page. After paying, members log in here.', 'membuild-community') }}</small>
+          <input v-model.trim="form.signup_url" type="url" placeholder="https://" :aria-invalid="signupBad" @blur="left.signup = true" aria-describedby="signup-url-note" />
+          <small v-if="signupBad" id="signup-url-note" class="error-text" role="alert">{{ ADDRESS_ERROR }}</small>
+          <small v-else id="signup-url-note">{{ t.__('Your checkout or sign-up page. After paying, members log in here.', 'membuild-community') }}</small>
         </label>
         <label class="field">
           <span class="label">{{ t.__('Button text', 'membuild-community') }}</span>
@@ -126,7 +146,8 @@ function pickPicture(e) {
         </fieldset>
         <label class="field">
           <span class="label">{{ t.__('Terms page', 'membuild-community') }} <em>{{ t.__('(optional)', 'membuild-community') }}</em></span>
-          <input v-model.trim="form.terms_url" type="url" placeholder="https://" />
+          <input v-model.trim="form.terms_url" type="url" placeholder="https://" :aria-invalid="termsBad" @blur="left.terms = true" />
+          <small v-if="termsBad" class="error-text" role="alert">{{ ADDRESS_ERROR }}</small>
           <small>
             {{ t.__('Shown when people sign up, with your Privacy Policy.', 'membuild-community') }}
             <a :href="meta.privacy_admin_url">{{ meta.privacy_url ? t.__('Change the Privacy Policy page', 'membuild-community') : t.__('Choose a Privacy Policy page', 'membuild-community') }}</a>

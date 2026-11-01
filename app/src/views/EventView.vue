@@ -698,7 +698,7 @@ h1 {
 
 .link.danger {
   align-self: center;
-  color: var(--danger);
+  color: var(--danger-text);
   font-size: var(--fs-lg);
 }
 

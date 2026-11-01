@@ -29,6 +29,7 @@ class Notifications {
 		add_action( 'membuild_community/comment_created', array( __CLASS__, 'on_comment' ), 20, 3 );
 		add_action( 'membuild_community/story_reacted', array( __CLASS__, 'on_story_reaction' ), 20, 3 );
 		add_action( 'membuild_community/level_up', array( __CLASS__, 'on_level_up' ), 20, 3 );
+		add_action( 'membuild_community/post_deleted', array( __CLASS__, 'on_post_deleted' ) );
 	}
 
 	/* ---------- Events ---------- */
@@ -64,7 +65,8 @@ class Notifications {
 			$parent    = $wpdb->get_row( $wpdb->prepare( 'SELECT id, user_id, content FROM %i WHERE id = %d', Install::table( 'comments' ), $comment['parent_id'] ), ARRAY_A );
 			$recipient = (int) $comment['reply_to_user_id'] ?: (int) ( $parent['user_id'] ?? 0 );
 			if ( $parent && $recipient ) {
-				self::notify( $recipient, 'comment_reply', 'comment', (int) $parent['id'], (int) $post['id'], $actor_id, array( 'snippet' => self::snippet( $comment['content'] ) ) );
+				// comment_id: the newest reply, so the alert opens the post on it, replies unfolded.
+				self::notify( $recipient, 'comment_reply', 'comment', (int) $parent['id'], (int) $post['id'], $actor_id, array( 'snippet' => self::snippet( $comment['content'] ), 'comment_id' => (int) $comment['id'] ) );
 				$notified[] = $recipient;
 			}
 		}
@@ -87,6 +89,14 @@ class Notifications {
 		global $wpdb;
 		$courses = $wpdb->get_col( $wpdb->prepare( "SELECT title FROM %i WHERE status = 'published' AND access = 'level' AND unlock_level = %d", Install::table( 'courses' ), $level ) );
 		self::notify( (int) $user_id, 'level_up', 'level', (int) $level, 0, 0, array( 'level' => (int) $level, 'courses' => $courses ) );
+	}
+
+	/** A deleted post or event takes its alerts with it, so none opens a page that's gone. */
+	public static function on_post_deleted( $post_id ) {
+		global $wpdb;
+		if ( (int) $post_id > 0 ) {
+			$wpdb->delete( Install::table( 'notifications' ), array( 'post_id' => (int) $post_id ) );
+		}
 	}
 
 	/* ---------- Writing ---------- */
@@ -255,6 +265,8 @@ class Notifications {
 			'lesson_open'    => array( 'name' => 'course', 'params' => array( 'courseId' => (int) ( $data['course_id'] ?? 0 ), 'lessonId' => (int) $r['object_id'] ) ),
 			'story_reaction' => array( 'name' => 'feed' ),
 			'event_new', 'event_changed', 'event_cancelled', 'event_reminder' => array( 'name' => 'event', 'params' => array( 'id' => (int) $r['post_id'] ) ),
+			// A reply opens on itself; older alerts without its id open on the comment answered.
+			'comment_reply'  => array( 'name' => 'feed', 'query' => array( 'post' => (int) $r['post_id'], 'comment' => (int) ( $data['comment_id'] ?? $r['object_id'] ) ) ),
 			default          => array( 'name' => 'feed', 'query' => array( 'post' => (int) $r['post_id'] ) ),
 		};
 		return array(

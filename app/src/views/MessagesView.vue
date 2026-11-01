@@ -30,6 +30,8 @@ const FILTERS = [
   { key: 'groups', label: t.__('Groups', 'membuild-community') },
 ]
 
+// No chats at all: the list's own "No messages yet" is the only empty state (not a second one beside it).
+const noChats = computed(() => loaded.value && !threads.value.length && !query.value && filter.value === 'all')
 const filtered = computed(() => {
   const q = query.value.trim().toLowerCase()
   return threads.value.filter(
@@ -40,7 +42,9 @@ const filtered = computed(() => {
   )
 })
 
-const nameOf = (th) => th.title || th.others.map((o) => o.name).join(', ') || t.__('Just you', 'membuild-community')
+// A one-on-one chat whose other member was deleted has nobody else in it.
+const gone = (th) => th.type === 'direct' && !th.others.length
+const nameOf = (th) => th.title || th.others.map((o) => o.name).join(', ') || (gone(th) ? t.__('Former member', 'membuild-community') : t.__('Just you', 'membuild-community'))
 
 // The server answers the tab and the search, 30 chats at a time; more load as you scroll.
 const hasMore = ref(false)
@@ -201,6 +205,7 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
           <button class="row" :class="{ active: th.id === threadId, unread: th.unread }" @click="open(th.id)">
             <span class="faces" :class="{ group: th.type === 'group' }">
               <Avatar v-for="o in th.others.slice(0, 2)" :key="o.id" :user="o" :size="th.type === 'group' ? 36 : 52" :online="th.type !== 'group'" />
+              <Avatar v-if="gone(th)" :size="52" decorative />
             </span>
             <span class="text">
               <strong>{{ nameOf(th) }}</strong>
@@ -217,7 +222,7 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
         </li>
         <li v-if="loadingMore" class="none-here">{{ t.__('Loading…', 'membuild-community') }}</li>
         <li v-if="loaded && !filtered.length && (threads.length || query || filter !== 'all')" class="none-here">{{ query ? t.__('No chats found.', 'membuild-community') : filter === 'unread' ? t.__('No unread chats.', 'membuild-community') : t.__('No group chats yet.', 'membuild-community') }}</li>
-        <ThemeSlot v-if="loaded && !threads.length && !query && filter === 'all'" name="app.empty-state" :data="{ page: 'messages', icon: 'comment', title: t.__('No messages yet', 'membuild-community'), text: t.__('Say hello to someone you met here. Messages are private between you.', 'membuild-community') }">
+        <ThemeSlot v-if="noChats" name="app.empty-state" :data="{ page: 'messages', icon: 'comment', title: t.__('No messages yet', 'membuild-community'), text: t.__('Say hello to someone you met here. Messages are private between you.', 'membuild-community') }">
         <li class="empty-state">
           <span class="empty-state-icon" aria-hidden="true"><Icon name="comment" :size="28" /></span>
           <h2 class="empty-state-title">{{ t.__('No messages yet', 'membuild-community') }}</h2>
@@ -230,7 +235,7 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
 
     <section class="pane card" :aria-label="t.__('Conversation', 'membuild-community')">
       <ChatView v-if="threadId" :key="threadId" :thread-id="threadId" @back="router.push({ name: 'messages' })" @left="router.push({ name: 'messages' }); loadInbox()" @read="onRead" @renamed="(c) => { const th = threads.find((x) => x.id === threadId); if (th) th.title = c.title }" @muted="(on) => { const th = threads.find((x) => x.id === threadId); if (th) th.muted = on }" />
-      <div v-else class="pick">
+      <div v-else-if="!noChats" class="pick">
         <span class="badge"><Icon name="chat" :size="30" /></span>
         <h2>{{ t.__('Your messages', 'membuild-community') }}</h2>
         <p>{{ t.__('Chat one-on-one or start a small group.', 'membuild-community') }}</p>
@@ -310,6 +315,11 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
 
 .row.active {
   background: var(--accent-soft);
+}
+
+/* Softer grey loses contrast on the tinted row (dark + lime), so the open chat's time steps up a shade. */
+.row.active .when {
+  color: var(--text-2);
 }
 
 .faces {

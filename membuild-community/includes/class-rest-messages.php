@@ -236,6 +236,10 @@ class Rest_Messages {
 		}
 		// "Members can only message staff" also covers chats that already exist.
 		$others = array_values( array_diff( array_column( self::members( (int) $thread['id'] ), 'id' ), array( get_current_user_id() ) ) );
+		// A one-to-one chat whose other member's account was deleted: nobody would read it (the app says so too).
+		if ( 'direct' === $thread['type'] && ! $others ) {
+			return new \WP_Error( 'mbcom_member_left', __( 'This member has left the community, so you can’t reply.', 'membuild-community' ), array( 'status' => 403 ) );
+		}
 		if ( 'direct' === $thread['type'] && ! Settings::can_message( get_current_user_id(), $others ) ) {
 			return new \WP_Error( 'mbcom_messaging_staff', __( 'You can message admins and moderators here.', 'membuild-community' ), array( 'status' => 403 ) );
 		}

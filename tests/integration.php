@@ -2662,6 +2662,132 @@ foreach ( $sp_ids as $id ) {
 }
 wp_delete_post( $sp_have, true );
 
+mbcom_section( 'Overnight fixes, 1 Nov (server)' );
+require_once ABSPATH . 'wp-admin/includes/user.php';
+$ov_a = mbcom_user( 'mbct_ov_stayer' );
+$ov_b = mbcom_user( 'mbct_ov_leaver' );
+list( , $ov_chat ) = mbcom_call( $ov_a, 'POST', '/messages/threads', array( 'user_ids' => array( $ov_b ) ) );
+list( $ov_s1 ) = mbcom_call( $ov_a, 'POST', "/messages/threads/{$ov_chat['id']}/messages", array( 'content' => 'Hello before you go' ) );
+wp_delete_user( $ov_b );
+list( $ov_s2, $ov_e ) = mbcom_call( $ov_a, 'POST', "/messages/threads/{$ov_chat['id']}/messages", array( 'content' => 'Still there?' ) );
+mbcom_check( 'a chat whose other member was deleted takes no new messages', in_array( $ov_s1, array( 200, 201 ), true ) && 403 === $ov_s2 && 'mbcom_member_left' === ( $ov_e['code'] ?? '' ) );
+
+$on_courses  = \MemBuild\Community\Install::table( 'lesson_progress' );
+$on_starts   = \MemBuild\Community\Install::table( 'course_starts' );
+$on_media    = \MemBuild\Community\Install::table( 'media' );
+$on_notes    = \MemBuild\Community\Install::table( 'notifications' );
+$on_forget   = function () {
+	foreach ( array( 'starts', 'recorded' ) as $prop ) {
+		$p = new ReflectionProperty( \MemBuild\Community\Rest_Courses::class, $prop );
+		$p->setAccessible( true );
+		$p->setValue( null, array() );
+	}
+};
+$on_img = imagecreatetruecolor( 20, 20 );
+ob_start();
+imagepng( $on_img );
+$on_png = ob_get_clean();
+
+// A dripped course where the member has progress but no start record (imported, or from before starts were kept).
+list( , $on_c ) = mbcom_call( $admin, 'POST', '/courses', array( 'title' => 'No start record' ) );
+$on_mod         = $on_c['modules'][0]['id'];
+list( , $on_l1 ) = mbcom_call( $admin, 'POST', "/modules/{$on_mod}/lessons", array( 'title' => 'First' ) );
+list( , $on_l2 ) = mbcom_call( $admin, 'POST', "/modules/{$on_mod}/lessons", array( 'title' => 'After three days' ) );
+list( , $on_l3 ) = mbcom_call( $admin, 'POST', "/modules/{$on_mod}/lessons", array( 'title' => 'After a month' ) );
+mbcom_call( $admin, 'PUT', "/lessons/{$on_l2['id']}", array( 'drip_days' => 3 ) );
+mbcom_call( $admin, 'PUT', "/lessons/{$on_l3['id']}", array( 'drip_days' => 30 ) );
+mbcom_call( $admin, 'PUT', "/courses/{$on_c['id']}", array( 'status' => 'published' ) );
+$on_m  = mbcom_user( 'mbct_nostart' );
+$on_ago = gmdate( 'Y-m-d H:i:s', time() - 10 * DAY_IN_SECONDS );
+foreach ( array( $on_l1, $on_l3 ) as $l ) { // l3: finished back when it was open (the drip was changed later)
+	$wpdb->insert( $on_courses, array( 'user_id' => $on_m, 'lesson_id' => $l['id'], 'course_id' => $on_c['id'], 'completed_at' => $on_ago ) );
+}
+$wpdb->delete( $on_starts, array( 'user_id' => $on_m, 'course_id' => $on_c['id'] ) );
+$on_forget();
+list( , $on_v ) = mbcom_call( $on_m, 'GET', "/courses/{$on_c['id']}" );
+$on_ls = array_column( $on_v['modules'][0]['lessons'], null, 'id' );
+mbcom_check( 'with no start record, dripped days count from their first finished lesson, not today', false === $on_ls[ $on_l2['id'] ]['locked'] && null === $on_ls[ $on_l2['id'] ]['unlock_at'] );
+mbcom_check( '…and a lesson they finished is never locked again', true === $on_ls[ $on_l3['id'] ]['completed'] && false === $on_ls[ $on_l3['id'] ]['locked'] && null === $on_ls[ $on_l3['id'] ]['unlock_at'] );
+$on_forget();
+list( $s ) = mbcom_call( $on_m, 'GET', "/lessons/{$on_l3['id']}" );
+mbcom_check( '…it still opens', 200 === $s, (string) $s );
+$on_forget();
+mbcom_call( $on_m, 'GET', "/lessons/{$on_l1['id']}" );
+mbcom_check( '…and opening a lesson keeps that first day as their start', $on_ago === $wpdb->get_var( $wpdb->prepare( 'SELECT started_at FROM %i WHERE user_id = %d AND course_id = %d', $on_starts, $on_m, $on_c['id'] ) ) );
+$wpdb->delete( $on_starts, array( 'user_id' => $on_m, 'course_id' => $on_c['id'] ) );
+list( , $on_map ) = mbcom_call( $admin, 'GET', "/courses/{$on_c['id']}/map" );
+mbcom_check( 'the Course map counts members with progress but no start record', 1 === $on_map['started'] );
+
+// The course bonus: "+20 points" only when it's really given.
+list( , $on_done ) = mbcom_call( $on_m, 'POST', "/lessons/{$on_l2['id']}/complete" );
+mbcom_check( 'finishing a course says the points it really gave', 100 === $on_done['progress'] && 20 === $on_done['points_awarded'], wp_json_encode( $on_done ) );
+mbcom_call( $on_m, 'DELETE', "/lessons/{$on_l2['id']}/complete" );
+list( , $on_again ) = mbcom_call( $on_m, 'POST', "/lessons/{$on_l2['id']}/complete" );
+mbcom_check( '…and none when they finish it again', 100 === $on_again['progress'] && 0 === $on_again['points_awarded'], wp_json_encode( $on_again ) );
+list( , $on_v ) = mbcom_call( $on_m, 'GET', "/courses/{$on_c['id']}" );
+mbcom_check( '…the course knows they have the bonus already', 20 === $on_v['finish_earned'] );
+
+// Deleting a lesson, a section or a course takes its video, files and cover with it.
+$on_file  = fn( $id ) => get_attached_file( (int) $wpdb->get_var( $wpdb->prepare( 'SELECT attachment_id FROM %i WHERE id = %d', $on_media, $id ) ) );
+$on_sheet = mbcom_upload( $admin, 'text/plain', "Sheet\n", 'sheet.txt' );
+mbcom_call( $admin, 'PUT', "/lessons/{$on_l1['id']}", array( 'resources' => array( array( 'media_id' => $on_sheet['id'], 'name' => 'Sheet' ) ) ) );
+$on_path = $on_file( $on_sheet['id'] );
+mbcom_call( $admin, 'DELETE', "/lessons/{$on_l1['id']}" );
+mbcom_check( 'deleting a lesson deletes its files from the server', $on_path && ! file_exists( $on_path ) && ! \MemBuild\Community\Media::get( (int) $on_sheet['id'] ) );
+$on_cover = mbcom_upload( $admin, 'image/png', $on_png, 'cover.png' );
+mbcom_call( $admin, 'PUT', "/courses/{$on_c['id']}", array( 'cover_media_id' => $on_cover['id'] ) );
+$on_cpath = $on_file( $on_cover['id'] );
+$on_sheet = mbcom_upload( $admin, 'text/plain', "Sheet two\n", 'sheet2.txt' );
+mbcom_call( $admin, 'PUT', "/lessons/{$on_l3['id']}", array( 'resources' => array( array( 'media_id' => $on_sheet['id'], 'name' => 'Sheet' ) ) ) );
+$on_path = $on_file( $on_sheet['id'] );
+$on_kept = mbcom_upload( $admin, 'image/png', $on_png, 'kept.png' );
+list( , $on_post ) = mbcom_call( $admin, 'POST', '/posts', array( 'content' => 'A post with a photo', 'media_ids' => array( $on_kept['id'] ) ) );
+mbcom_call( $admin, 'DELETE', "/courses/{$on_c['id']}" );
+mbcom_check( 'deleting a course deletes its lessons’ files and its cover', ! file_exists( $on_path ) && ! \MemBuild\Community\Media::get( (int) $on_sheet['id'] ) && $on_cpath && ! file_exists( $on_cpath ) && ! \MemBuild\Community\Media::get( (int) $on_cover['id'] ) );
+mbcom_check( '…and nobody else’s', (bool) \MemBuild\Community\Media::get( (int) $on_kept['id'] ) );
+mbcom_call( $admin, 'DELETE', "/posts/{$on_post['id']}" );
+
+// A deleted event takes its "scheduled an event" alerts with it.
+mbcom_call( $admin, 'PUT', '/settings', array( 'features' => array( 'events' => true ) ) );
+\MemBuild\Community\Settings::flush();
+list( , $on_ev ) = mbcom_call( $admin, 'POST', '/events', array( 'title' => 'Gone soon', 'at' => gmdate( 'c', time() + 2 * DAY_IN_SECONDS ), 'tz' => 'America/Chicago' ) );
+$on_eid   = (int) ( $on_ev['id'] ?? 0 );
+$on_count = fn() => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE post_id = %d', $on_notes, $on_eid ) );
+mbcom_check( 'a new event tells members', $on_eid && $on_count() > 0 );
+$on_note = ( new ReflectionMethod( \MemBuild\Community\Login::class, 'live_note' ) );
+$on_note->setAccessible( true );
+$on_live = $on_note->invoke( null, true );
+mbcom_check( 'the login page’s next live call says which time zone its time is in', $on_live && preg_match( '/ (?:[A-Z]{2,5}|GMT[+-]\d+(?::\d\d)?)$/', $on_live['when'] ), wp_json_encode( $on_live ) );
+mbcom_call( $admin, 'DELETE', "/posts/{$on_eid}" );
+mbcom_check( '…and deleting it removes those alerts, so none opens a missing page', 0 === $on_count() );
+
+// "Replied to your comment" opens the post on the reply.
+$on_asker  = mbcom_user( 'mbct_on_asker' );
+$on_helper = mbcom_user( 'mbct_on_helper' );
+list( , $on_rp ) = mbcom_call( $on_asker, 'POST', '/posts', array( 'content' => 'Ask me anything' ) );
+list( , $on_rc ) = mbcom_call( $on_helper, 'POST', "/posts/{$on_rp['id']}/comments", array( 'content' => 'A question' ) );
+list( , $on_rr ) = mbcom_call( $on_asker, 'POST', "/posts/{$on_rp['id']}/comments", array( 'content' => 'An answer', 'parent_id' => $on_rc['id'] ) );
+list( , $on_n ) = mbcom_call( $on_helper, 'GET', '/notifications' );
+$on_reply = array_values( array_filter( $on_n['items'], fn( $n ) => 'comment_reply' === $n['type'] ) )[0] ?? array();
+mbcom_check( 'a “replied to your comment” alert opens the post on that reply', (int) $on_rp['id'] === ( $on_reply['link']['query']['post'] ?? 0 ) && (int) $on_rr['id'] === ( $on_reply['link']['query']['comment'] ?? 0 ), wp_json_encode( $on_reply['link'] ?? null ) );
+$wpdb->query( $wpdb->prepare( "UPDATE %i SET data = '{}' WHERE type = 'comment_reply' AND post_id = %d", $on_notes, $on_rp['id'] ) );
+list( , $on_n ) = mbcom_call( $on_helper, 'GET', '/notifications' );
+$on_reply = array_values( array_filter( $on_n['items'], fn( $n ) => 'comment_reply' === $n['type'] ) )[0] ?? array();
+mbcom_check( '…and older alerts open on the comment that was answered', (int) $on_rc['id'] === ( $on_reply['link']['query']['comment'] ?? 0 ) );
+mbcom_call( $on_asker, 'DELETE', "/posts/{$on_rp['id']}" );
+
+// Web addresses in Joining: a typo is refused, not saved as a broken link.
+$on_before = \MemBuild\Community\Settings::get( 'terms_url' );
+list( $s, $on_err ) = mbcom_call( $admin, 'PUT', '/settings', array( 'terms_url' => 'not a url' ) );
+\MemBuild\Community\Settings::flush();
+mbcom_check( 'a Terms page that isn’t a web address is refused in plain words', 400 === $s && str_contains( (string) ( $on_err['message'] ?? '' ), 'full web address' ) && $on_before === \MemBuild\Community\Settings::get( 'terms_url' ), (string) $s );
+list( $s ) = mbcom_call( $admin, 'PUT', '/settings', array( 'signup_url' => 'nope' ) );
+mbcom_check( '…and so is a sign-up link', 400 === $s, (string) $s );
+list( $s, $on_ok ) = mbcom_call( $admin, 'PUT', '/settings', array( 'terms_url' => 'example.com/terms' ) );
+mbcom_check( '…an address without https:// gets it', 200 === $s && 'https://example.com/terms' === ( $on_ok['settings']['terms_url'] ?? '' ), (string) $s );
+list( $s, $on_ok ) = mbcom_call( $admin, 'PUT', '/settings', array( 'terms_url' => '' ) );
+mbcom_check( '…and an empty one clears it', 200 === $s && '' === ( $on_ok['settings']['terms_url'] ?? null ), (string) $s );
+
 /* ---------------------------------------------------------------- */
 echo "\n{$GLOBALS['mbcom_passed']} passed, {$GLOBALS['mbcom_failed']} failed\n";
 if ( $GLOBALS['mbcom_failed'] ) {

@@ -46,6 +46,15 @@ class Course_Map {
 			}
 		}
 
+		// Progress with no start record (imported, or from before starts were kept):
+		// started the day they first finished a lesson, as the member's own dates count.
+		$have = array_flip( array_map( 'intval', array_column( $starts, 'user_id' ) ) );
+		foreach ( $wpdb->get_results( $wpdb->prepare( 'SELECT user_id, MIN(completed_at) AS started_at FROM %i WHERE course_id = %d GROUP BY user_id', Install::table( 'lesson_progress' ), $id ), ARRAY_A ) as $p ) {
+			if ( ! isset( $have[ (int) $p['user_id'] ] ) ) {
+				$starts[] = $p;
+			}
+		}
+
 		$now      = time();
 		$steps    = array(); // lesson id => { on: [user ids], waiting: [user ids] }
 		$finished = array();

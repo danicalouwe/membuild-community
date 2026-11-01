@@ -59,6 +59,9 @@ onMounted(async () => {
   }
 })
 const lessons = computed(() => props.course.lessons_count || 0)
+// The bonus they really got: the finishing answer says so when the page passes it on;
+// otherwise the rule's points, unless they had them already (finishing again gives none).
+const points = computed(() => props.course.points_awarded ?? (props.course.finish_earned ? 0 : props.course.finish_points || 0))
 </script>
 
 <template>
@@ -75,7 +78,7 @@ const lessons = computed(() => props.course.lessons_count || 0)
       </p>
       <div class="chips">
         <span v-if="lessons" class="chip ok"><Icon name="check" :size="16" />{{ t.sprintf(/* translators: 1: lessons done, 2: lessons in the course */ t.__('%1$d of %2$d lessons', 'membuild-community'), lessons, lessons) }}</span>
-        <span v-if="course.finish_points" class="chip">{{ t.sprintf(/* translators: %d: points earned */ t.__('+%d points', 'membuild-community'), course.finish_points) }}</span>
+        <span v-if="points" class="chip">{{ t.sprintf(/* translators: %d: points earned */ t.__('+%d points', 'membuild-community'), points) }}</span>
       </div>
       <button class="btn btn-lg btn-dark" @click="share">{{ t.__('Share it with the community', 'membuild-community') }}</button>
       <RouterLink to="/classroom" class="btn btn-lg btn-outline" @click="emit('close')">{{ t.__('Back to Classroom', 'membuild-community') }}</RouterLink>

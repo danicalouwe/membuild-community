@@ -4,7 +4,7 @@
  * Led by the host: their photo with their one line on a card beside the form, and the next live
  * call (Log in) or members' faces (Join) once they're real. The form: a big two-line heading
  * (the second line highlighted), labels above 52px boxes, one main button. Phones: the form first.
- * Variables: $view, $data, $name, $host, $magic, $tagline, $headline, $picture, $join_label, $logo, $initials, $signup, $icons.
+ * Variables: $view, $data, $name, $host, $magic, $tagline, $headline, $picture, $join_label, $logo, $initials, $signup, $icons, $focus.
  *
  * @package membuild-community
  * @copyright 2026 Danica Louwe (MemBuild, https://membuild.com). GPL-2.0-or-later.
@@ -31,6 +31,8 @@ $mbcom_h1 = function ( $first, $second, $class = '' ) {
 };
 // The "Show" word on a password field; its words come from data attributes (see login.js).
 $mbcom_show  = '<button type="button" class="show" aria-pressed="false" data-show="' . esc_attr__( 'Show', 'membuild-community' ) . '" data-hide="' . esc_attr__( 'Hide', 'membuild-community' ) . '" aria-label="' . esc_attr__( 'Show password', 'membuild-community' ) . '">' . esc_html__( 'Show', 'membuild-community' ) . '</button>';
+// Boxes that take focus when the page opens; none in Settings' preview frame (see Login::render).
+$mbcom_af    = ( $focus ?? true ) ? 'autofocus' : '';
 $mbcom_arrow = '<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M8.5 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 $mbcom_ok    = '<span class="ok-mark" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>';
 $mbcom_warn  = '<svg class="warn-mark" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17.5v.5"/></svg>';
@@ -165,11 +167,11 @@ $mbcom_kses = array( 'strong' => array(), 'b' => array(), 'a' => array( 'href' =
 				<?php endif; ?>
 				<label class="field">
 					<span class="label"><?php esc_html_e( 'Email or username', 'membuild-community' ); ?></span>
-					<input name="log" type="text" value="<?php echo esc_attr( $data['login'] ); ?>" autocomplete="username" autocapitalize="off" spellcheck="false" required <?php echo $data['login'] ? '' : 'autofocus'; ?>>
+					<input name="log" type="text" value="<?php echo esc_attr( $data['login'] ); ?>" autocomplete="username" autocapitalize="off" spellcheck="false" required <?php echo $data['login'] ? '' : $mbcom_af; ?>>
 				</label>
 				<div class="field">
 					<span class="label"><label for="mbcom-pwd"><?php esc_html_e( 'Password', 'membuild-community' ); ?></label><a href="<?php echo esc_url( Login::url( 'forgot-password' ) ); ?>"><?php esc_html_e( 'Forgot password?', 'membuild-community' ); ?></a></span>
-					<span class="box"><input id="mbcom-pwd" name="pwd" type="password" autocomplete="current-password" required <?php echo $data['login'] ? 'autofocus' : ''; ?>><?php echo $mbcom_show; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped where built ?></span>
+					<span class="box"><input id="mbcom-pwd" name="pwd" type="password" autocomplete="current-password" required <?php echo $data['login'] ? $mbcom_af : ''; ?>><?php echo $mbcom_show; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped where built ?></span>
 				</div>
 				<label class="check"><input type="checkbox" name="rememberme" value="1" checked><span class="tick" aria-hidden="true"></span><?php esc_html_e( 'Keep me logged in', 'membuild-community' ); ?></label>
 				<?php do_action( 'login_form' ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- core hook, so CAPTCHA and two-factor plugins can add their fields ?>
@@ -243,7 +245,7 @@ $mbcom_kses = array( 'strong' => array(), 'b' => array(), 'a' => array( 'href' =
 				<?php wp_nonce_field( 'mbcom_forgot', '_mbcom_forgot', false ); ?>
 				<label class="field">
 					<span class="label"><?php esc_html_e( 'Email', 'membuild-community' ); ?></span>
-					<input name="user_login" type="text" value="<?php echo esc_attr( $data['value'] ); ?>" autocomplete="username" autocapitalize="off" spellcheck="false" required autofocus>
+					<input name="user_login" type="text" value="<?php echo esc_attr( $data['value'] ); ?>" autocomplete="username" autocapitalize="off" spellcheck="false" required <?php echo $mbcom_af; ?>>
 				</label>
 				<button class="btn" type="submit"><?php esc_html_e( 'Send me a link', 'membuild-community' ); ?> <?php echo $mbcom_arrow; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- a fixed icon ?></button>
 			</form>
@@ -267,7 +269,7 @@ $mbcom_kses = array( 'strong' => array(), 'b' => array(), 'a' => array( 'href' =
 				<input type="text" name="username" value="<?php echo esc_attr( $data['login'] ); ?>" autocomplete="username" hidden>
 				<div class="field">
 					<span class="label"><label for="mbcom-new"><?php esc_html_e( 'New password', 'membuild-community' ); ?></label><small><?php echo esc_html( $mbcom_min ); ?></small></span>
-					<span class="box"><input id="mbcom-new" name="pass" type="password" autocomplete="new-password" minlength="<?php echo (int) Login::MIN_PASSWORD; ?>" required autofocus><?php echo $mbcom_show; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped where built ?></span>
+					<span class="box"><input id="mbcom-new" name="pass" type="password" autocomplete="new-password" minlength="<?php echo (int) Login::MIN_PASSWORD; ?>" required <?php echo $mbcom_af; ?>><?php echo $mbcom_show; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped where built ?></span>
 				</div>
 				<label class="check"><input type="checkbox" name="rememberme" value="1" checked><span class="tick" aria-hidden="true"></span><?php esc_html_e( 'Keep me logged in', 'membuild-community' ); ?></label>
 				<button class="btn" type="submit"><?php esc_html_e( 'Save and log in', 'membuild-community' ); ?> <?php echo $mbcom_arrow; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- a fixed icon ?></button>
@@ -304,11 +306,11 @@ $mbcom_kses = array( 'strong' => array(), 'b' => array(), 'a' => array( 'href' =
 				<?php wp_nonce_field( 'mbcom_join', '_mbcom_join', false ); ?>
 				<label class="field">
 					<span class="label"><?php esc_html_e( 'First name', 'membuild-community' ); ?></span>
-					<input name="first_name" type="text" value="<?php echo esc_attr( $data['values']['first'] ); ?>" autocomplete="given-name" required <?php echo $data['error'] ? '' : 'autofocus'; ?>>
+					<input name="first_name" type="text" value="<?php echo esc_attr( $data['values']['first'] ); ?>" autocomplete="given-name" required <?php echo $data['error'] ? '' : $mbcom_af; ?>>
 				</label>
 				<div class="field<?php echo 'mbcom_email_taken' === $data['code'] ? ' has-error' : ''; ?>">
 					<label class="label" for="mbcom-email"><?php esc_html_e( 'Email', 'membuild-community' ); ?></label>
-					<input id="mbcom-email" name="email" type="email" value="<?php echo esc_attr( $data['values']['email'] ); ?>" autocomplete="email" required <?php echo 'mbcom_email_taken' === $data['code'] ? 'aria-invalid="true" aria-describedby="mbcom-email-error" autofocus' : ''; ?>>
+					<input id="mbcom-email" name="email" type="email" value="<?php echo esc_attr( $data['values']['email'] ); ?>" autocomplete="email" required <?php echo 'mbcom_email_taken' === $data['code'] ? 'aria-invalid="true" aria-describedby="mbcom-email-error" ' . $mbcom_af : ''; ?>>
 					<?php if ( 'mbcom_email_taken' === $data['code'] ) : ?>
 						<span class="field-error" id="mbcom-email-error" role="alert">
 							<?php
@@ -380,7 +382,7 @@ $mbcom_kses = array( 'strong' => array(), 'b' => array(), 'a' => array( 'href' =
 				<?php $mbcom_link ? wp_nonce_field( 'mbcom_login', '_mbcom_login', false ) : wp_nonce_field( 'mbcom_forgot', '_mbcom_forgot', false ); ?>
 				<label class="field">
 					<span class="label"><?php esc_html_e( 'Email', 'membuild-community' ); ?></span>
-					<input name="<?php echo $mbcom_link ? 'log' : 'user_login'; ?>" type="text" value="<?php echo esc_attr( $data['value'] ?? '' ); ?>" autocomplete="username" autocapitalize="off" spellcheck="false" required autofocus>
+					<input name="<?php echo $mbcom_link ? 'log' : 'user_login'; ?>" type="text" value="<?php echo esc_attr( $data['value'] ?? '' ); ?>" autocomplete="username" autocapitalize="off" spellcheck="false" required <?php echo $mbcom_af; ?>>
 				</label>
 				<button class="btn" type="submit"<?php echo $mbcom_link ? ' name="magic" value="1"' : ''; ?>><?php esc_html_e( 'Send me a new link', 'membuild-community' ); ?> <?php echo $mbcom_arrow; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- a fixed icon ?></button>
 			</form>

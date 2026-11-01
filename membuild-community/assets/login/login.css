@@ -20,6 +20,7 @@
 	--box: #b8bdc6;
 	--panel: color-mix(in srgb, var(--accent) 16%, #fff);
 	--shadow: 0 20px 50px rgb(16 24 40 / 16%);
+	--ring: var(--accent-text); /* the keyboard ring: the main color's text shade, so a light main color (lime) still shows */
 	color-scheme: light;
 }
 /* Dark only when this browser's member picked it (see Login::scheme): .mb-dark, or .mb-auto on a dark device. */
@@ -135,7 +136,7 @@ form { display: flex; flex-direction: column; gap: 18px; }
 .label a { color: var(--text); font-size: 14px; }
 .label small { color: var(--text-2); font-size: 14px; font-weight: 400; }
 .field input, .field select, .box { width: 100%; height: 52px; padding: 0 16px; border: 1.5px solid var(--field); border-radius: 14px; background: var(--surface); color: var(--text); font: inherit; font-size: 16px; outline: none; }
-.field input:focus, .field select:focus, .box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
+.field input:focus, .field select:focus, .box:focus-within { border-color: var(--ring); box-shadow: 0 0 0 1.5px var(--ring); }
 .has-error input, .has-error input:focus { border-color: var(--danger); }
 .has-error input:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 25%, transparent); }
 .field-error { color: var(--danger); font-size: 14px; font-weight: 600; line-height: 1.4; }
@@ -151,11 +152,11 @@ form { display: flex; flex-direction: column; gap: 18px; }
 .tick { flex: none; width: 22px; height: 22px; border: 2px solid var(--box); border-radius: 6px; }
 .check input:checked + .tick { position: relative; border-color: var(--text); background: var(--text); }
 .check input:checked + .tick::after { content: ""; position: absolute; left: 6px; top: 2px; width: 5px; height: 10px; border: solid var(--bg); border-width: 0 2.5px 2.5px 0; transform: rotate(45deg); }
-.check input:focus-visible + .tick { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent); }
+.check input:focus-visible + .tick { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ring); }
 
 .btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 56px; padding: 0 24px; border: 0; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font: inherit; font-size: 17px; font-weight: 800; text-decoration: none; cursor: pointer; box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 45%, transparent); }
 .btn:hover { filter: brightness(0.96); }
-.btn:focus-visible, .show:focus-visible, a:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 70%, var(--text)); outline-offset: 2px; }
+.btn:focus-visible, .show:focus-visible, a:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; }
 .btn.outline { min-height: 52px; border: 1.5px solid var(--field); background: transparent; color: var(--text); font-size: 16px; box-shadow: none; }
 .btn.outline:hover { background: var(--soft); filter: none; }
 .btn.grey { background: var(--grey); color: var(--text); box-shadow: none; }

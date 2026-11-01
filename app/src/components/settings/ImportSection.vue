@@ -80,10 +80,10 @@ const options = computed(() => {
   if (!s) return []
   return [
     { key: 'profiles', title: t.__('Members’ profiles', 'membuild-community'), count: n(s.members), text: t.__('Photo, cover, bio and location. Everyone keeps their own login.', 'membuild-community') },
-    { key: 'posts', title: t.__('Posts and comments', 'membuild-community'), count: t.sprintf(/* translators: 1: posts, 2: comments */ t.__('%1$s posts · %2$s comments', 'membuild-community'), n(s.posts), n(s.comments)), text: t.__('With their photos, dates and authors. Replies to replies join the same comment, as they do here.', 'membuild-community') },
+    { key: 'posts', title: t.__('Posts and comments', 'membuild-community'), count: t.sprintf(t._n('%s post', '%s posts', s.posts, 'membuild-community'), n(s.posts)) + ' · ' + t.sprintf(t._n('%s comment', '%s comments', s.comments, 'membuild-community'), n(s.comments)), text: t.__('With their photos, dates and authors. Replies to replies join the same comment, as they do here.', 'membuild-community') },
     s.reactions ? { key: 'reactions', title: t.__('Reactions', 'membuild-community'), count: n(s.reactions), text: isFluent.value ? t.__('Kept as they are when they match; others become Like.', 'membuild-community') : t.__('Love, haha, wow, sad and angry stay as they are; others become Like.', 'membuild-community') } : null,
-    s.courses ? { key: 'courses', title: t.__('Courses', 'membuild-community'), count: t.sprintf(/* translators: 1: courses, 2: lessons */ t._n('%1$s course · %2$s lessons', '%1$s courses · %2$s lessons', s.courses, 'membuild-community'), n(s.courses), n(s.lessons)), text: t.__('Into the Classroom, with their sections, lessons and videos, and each member’s progress. Private courses become a membership with the same people.', 'membuild-community') } : null,
-    s.messages ? { key: 'messages', title: t.__('Messages', 'membuild-community'), count: t.sprintf(/* translators: %s: number of chats */ t.__('%s chats', 'membuild-community'), n(s.messages)), text: t.__('Private and group chats, encrypted here like all messages.', 'membuild-community') } : null,
+    s.courses ? { key: 'courses', title: t.__('Courses', 'membuild-community'), count: t.sprintf(t._n('%s course', '%s courses', s.courses, 'membuild-community'), n(s.courses)) + ' · ' + t.sprintf(t._n('%s lesson', '%s lessons', s.lessons, 'membuild-community'), n(s.lessons)), text: t.__('Into the Classroom, with their sections, lessons and videos, and each member’s progress. Private courses become a membership with the same people.', 'membuild-community') } : null,
+    s.messages ? { key: 'messages', title: t.__('Messages', 'membuild-community'), count: t.sprintf(/* translators: %s: number of chats */ t._n('%s chat', '%s chats', s.messages, 'membuild-community'), n(s.messages)), text: t.__('Private and group chats, encrypted here like all messages.', 'membuild-community') } : null,
     { key: 'points', title: t.__('Points', 'membuild-community'), count: t.__('worked out from the above', 'membuild-community'), text: t.__('So long-time members keep their place instead of starting at Level 1.', 'membuild-community') },
   ].filter(Boolean)
 })
@@ -179,12 +179,12 @@ async function pause() {
 const doneTiles = computed(() => {
   const c = job.value?.counts || {}
   return [
-    { v: c.members, l: t.__('members', 'membuild-community') },
-    { v: c.posts, l: t.__('posts', 'membuild-community') },
-    { v: c.comments, l: t.__('comments', 'membuild-community') },
-    { v: c.reactions, l: t.__('reactions', 'membuild-community') },
-    { v: c.courses, l: t.__('courses', 'membuild-community') },
-    { v: c.messages, l: t.__('chats', 'membuild-community') },
+    { v: c.members, l: t._n('member', 'members', c.members, 'membuild-community') },
+    { v: c.posts, l: t._n('post', 'posts', c.posts, 'membuild-community') },
+    { v: c.comments, l: t._n('comment', 'comments', c.comments, 'membuild-community') },
+    { v: c.reactions, l: t._n('reaction', 'reactions', c.reactions, 'membuild-community') },
+    { v: c.courses, l: t._n('course', 'courses', c.courses, 'membuild-community') },
+    { v: c.messages, l: t._n('chat', 'chats', c.messages, 'membuild-community') },
   ].filter((x) => x.v)
 })
 const took = computed(() => {
@@ -459,12 +459,12 @@ const foundLine = (s) =>
     : t.sprintf(/* translators: %s: "3 days ago" */ t.__('Switched off, but its data is still here. Last activity %s.', 'membuild-community'), ago(s.last))
 const foundTiles = (s) =>
   [
-    { v: s.members, l: t.__('members', 'membuild-community') },
-    { v: s.posts, l: t.__('posts', 'membuild-community') },
-    { v: s.comments, l: t.__('comments', 'membuild-community') },
-    { v: s.messages, l: t.__('chats', 'membuild-community') },
-    { v: s.groups, l: s.key === 'fluentcommunity' ? t.__('spaces', 'membuild-community') : t.__('groups', 'membuild-community') },
-    { v: s.courses, l: t.__('courses', 'membuild-community') },
+    { v: s.members, l: t._n('member', 'members', s.members, 'membuild-community') },
+    { v: s.posts, l: t._n('post', 'posts', s.posts, 'membuild-community') },
+    { v: s.comments, l: t._n('comment', 'comments', s.comments, 'membuild-community') },
+    { v: s.messages, l: t._n('chat', 'chats', s.messages, 'membuild-community') },
+    { v: s.groups, l: s.key === 'fluentcommunity' ? t._n('space', 'spaces', s.groups, 'membuild-community') : t._n('group', 'groups', s.groups, 'membuild-community') },
+    { v: s.courses, l: t._n('course', 'courses', s.courses, 'membuild-community') },
   ].filter((x) => x.v)
 const stepNo = computed(() => ({ choose: 1, check: 2, progress: 3, done: 4 })[screen.value] || 0)
 </script>
@@ -614,7 +614,7 @@ const stepNo = computed(() => ({ choose: 1, check: 2, progress: 3, done: 4 })[sc
               <p class="im-pro-more">{{ t.__('And so much more…', 'membuild-community') }}</p>
               <div v-if="updates?.subscribed" class="im-pro-done" role="status">
                 <span class="im-pro-ok"><Icon name="check" :size="16" /></span>
-                <span><strong>{{ t.__('You’ll hear when Pro is ready.', 'membuild-community') }}</strong> {{ t.sprintf(/* translators: %s: an email address */ t.__('Emails go to %s. Stop any time in Updates & usage.', 'membuild-community'), updates.email) }}</span>
+                <span><strong>{{ t.__('You’ll hear when Pro is ready.', 'membuild-community') }}</strong> {{ t.sprintf(/* translators: %s: an email address */ t.__('Emails go to %s. Stop any time in News from MemBuild.', 'membuild-community'), updates.email) }}</span>
               </div>
               <div v-else class="im-pro-act">
                 <button type="button" class="btn btn-lg im-pro-btn" :disabled="proBusy || !updates?.allowed" @click="tellMe">{{ proBusy ? t.__('Signing you up…', 'membuild-community') : t.__('Tell me when it’s ready', 'membuild-community') }}</button>

@@ -43,10 +43,34 @@ const dateOf = (days) => new Date(today.getTime() + days * 86400000).toLocaleDat
 const all = computed(() => props.course.modules.flatMap((m) => m.lessons))
 const numberOf = (l) => all.value.indexOf(l) + 1
 const prevOf = (l) => all.value[all.value.indexOf(l) - 1] || null
+const fixedTime = (iso) => new Date(`${iso}T00:00:00`).getTime()
+// When each lesson opens for Sam. In a one-after-another course a lesson also waits
+// for the one before it, so it never opens before that one does.
+const opensAt = computed(() => {
+  const out = new Map()
+  let before = 0
+  for (const l of all.value) {
+    let at = l.open_on ? fixedTime(l.open_on) : today.getTime() + (l.drip_days || 0) * 86400000
+    if (props.course.in_order) at = Math.max(at, before)
+    out.set(l.id, at)
+    before = at
+  }
+  return out
+})
+const dateFor = (l) => new Date(opensAt.value.get(l.id)).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
+// Opens later only because the lesson before it has to be finished first.
+const waitsForPrev = (l) => {
+  const prev = prevOf(l)
+  if (!props.course.in_order || !prev) return false
+  const own = l.open_on ? fixedTime(l.open_on) : today.getTime() + (l.drip_days || 0) * 86400000
+  return own <= opensAt.value.get(prev.id)
+}
 // A wait appears only where days pass between one lesson and the next.
 const waitBefore = (l) => {
   if (l.open_on || prevOf(l)?.open_on) return 0 // a fixed date isn't a wait counted from the start
-  const before = prevOf(l)?.drip_days || 0
+  // In order, the lesson can't open before any earlier one, so count from the latest of them.
+  const earlier = all.value.slice(0, all.value.indexOf(l)).filter((x) => !x.open_on)
+  const before = props.course.in_order ? Math.max(0, ...earlier.map((x) => x.drip_days || 0)) : prevOf(l)?.drip_days || 0
   return Math.max(0, (l.drip_days || 0) - before)
 }
 const sectionRange = (m) => {
@@ -151,8 +175,8 @@ const confetti = Array.from({ length: 28 }, (_, i) => {
 })
 
 const lessonsLabel = (n) => t.sprintf(/* translators: %d: number of lessons */ t._n('%d lesson', '%d lessons', n, 'membuild-community'), n)
-const fixed = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
-const opensLabel = (l) => (l.open_on ? t.__('On a set date', 'membuild-community') : l.drip_days > 0 ? t.sprintf(/* translators: %d: days */ t._n('After %d day', 'After %d days', l.drip_days, 'membuild-community'), l.drip_days) : t.__('Right away', 'membuild-community'))
+const opensLabel = (l) =>
+  waitsForPrev(l) ? t.sprintf(/* translators: %d: lesson number */ t.__('After lesson %d', 'membuild-community'), numberOf(l) - 1) : l.open_on ? t.__('On a set date', 'membuild-community') : l.drip_days > 0 ? t.sprintf(/* translators: %d: days */ t._n('After %d day', 'After %d days', l.drip_days, 'membuild-community'), l.drip_days) : t.__('Right away', 'membuild-community')
 const waitLabel = (d, first) =>
   first ? t.sprintf(/* translators: %d: days */ t._n('Wait %d day', 'Wait %d days', d, 'membuild-community'), d) : t.sprintf(/* translators: %d: days */ t._n('Wait %d more day', 'Wait %d more days', d, 'membuild-community'), d)
 const onLabel = (u) =>
@@ -171,6 +195,13 @@ const popTitle = computed(() => {
   return t.sprintf(/* translators: %d: members */ t._n('%d member on this lesson', '%d members on this lesson', o.n, 'membuild-community'), o.n)
 })
 const samStarts = computed(() => t.sprintf(/* translators: %s: a date */ t.__('Pretend a member named Sam starts this course on %s.', 'membuild-community'), dateOf(0)))
+const finishPoints = computed(() => props.course.finish_points ?? 20)
+// The bonus the owner set for finishing a course (Points settings); none when it's 0.
+const finishNote = computed(() =>
+  finishPoints.value
+    ? t.sprintf(/* translators: %d: points */ t._n('They get %d bonus point. The course shows as Completed.', 'They get %d bonus points. The course shows as Completed.', finishPoints.value, 'membuild-community'), finishPoints.value)
+    : t.__('The course shows as Completed.', 'membuild-community'),
+)
 const isFirstWait = (l) => {
   const i = all.value.indexOf(l)
   return all.value.slice(0, i).every((x) => !waitBefore(x))
@@ -242,7 +273,7 @@ const isFirstWait = (l) => {
             <Icon :name="l.has_video ? 'play' : 'file'" :size="16" class="kind" />
             <span class="title">{{ l.title }}</span>
             <span class="chip soft"><Icon name="clock" :size="14" /> {{ opensLabel(l) }}</span>
-            <span class="chip dark">{{ l.open_on ? fixed(l.open_on) : dateOf(l.drip_days || 0) }}</span>
+            <span class="chip dark">{{ dateFor(l) }}</span>
             <button class="chip people" :class="{ zero: !stepOf(l.id).on }" :disabled="!stepOf(l.id).on" :title="t.__('Who’s on this lesson', 'membuild-community')" @click="showPeople(l)"><Icon name="users" :size="15" /> {{ live ? stepOf(l.id).on : '…' }}</button>
             <button class="go" :aria-label="t.__('Edit this lesson', 'membuild-community')" @click="emit('edit', l.id)"><Icon name="chevronRight" :size="20" /></button>
           </div>
@@ -260,7 +291,7 @@ const isFirstWait = (l) => {
         <strong>{{ t.__('They finish the course', 'membuild-community') }}</strong>
       </span>
       <button class="chip dark" :disabled="!live?.finished" @click="showFinished"><Icon name="users" :size="15" /> {{ live ? live.finished : '…' }}</button>
-      <p class="finish-note">{{ t.__('They get 20 bonus points. The course shows as Completed.', 'membuild-community') }}</p>
+      <p class="finish-note">{{ finishNote }}</p>
     </div>
 
     <div v-if="openFor" class="pop-back" @click.self="openFor = null">

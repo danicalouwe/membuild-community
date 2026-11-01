@@ -360,6 +360,9 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
   -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent); /* exempt: mask shape, not a colour */
   mask-image: linear-gradient(90deg, #000 calc(100% - 40px), transparent); /* exempt: mask shape, not a colour */
   padding-right: 32px;
+  /* Room above and below so the phone pills' 44px tap area isn't cut off by the scroll; the margin keeps the row's height. */
+  padding-block: 4px;
+  margin-block: -4px;
 }
 
 .topic-pills::-webkit-scrollbar {
@@ -555,6 +558,11 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
   }
 
   .sort {
+    padding: 0 12px;
+  }
+
+  /* The same side gutter as the rest of the phone page. */
+  .topic-row {
     padding: 0 12px;
   }
 

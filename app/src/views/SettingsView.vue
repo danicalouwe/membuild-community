@@ -693,9 +693,12 @@ onBeforeUnmount(() => spy?.disconnect())
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 60%;
+  flex-shrink: 0; /* the whole address shows when there's room; only long ones are cut at 60% */
 }
 
 .styled :deep(.url input) {
+  flex: 1;
+  min-width: 0;
   border: 0;
   padding-left: 0;
   outline: none;
