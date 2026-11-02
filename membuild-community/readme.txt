@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.16.0
+Stable tag: 1.16.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,18 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.16.1 =
+* Fixed: "Already paid? Check again" always answers. If no payment is found yet, the box says so and what to check. If it is found, the box closes and the course opens.
+* Fixed: the first in-person event at a place starts from that place's time zone (from its map pin), not the host's, and asks the host to check it once.
+* Fixed: Add to calendar points to the event's page, never the join link, so the link isn't handed out before the Join button turns on.
+* Fixed: staff and the person who shared it can remove a place's What's new, even after it's approved.
+* Fixed: on phones the Places map drops the +/- buttons (pinch to zoom) and the map credit is no longer hidden.
+* Fixed: taking back a reaction takes your name off the author's alert; if you were the only one, the alert goes.
+* Fixed: text stories on light colours (Sun, Peach, Candy, Lime) use dark words so they're easy to read.
+* Fixed: on phones every small button has a 44px tap area without changing its look: header buttons, post and comment actions, chat buttons, the Reels buttons and map pins. The admin view switch no longer covers the Reels menu.
+* Fixed: on phones small text is at least 13px: event dates, chat times, "Seen", Reels counts and level badges.
+* Fixed: pop-up headers no longer count as a second page banner for screen readers, loading spinners are announced, and with reduced motion on, reels and reel cards wait for a tap instead of playing on their own.
 
 = 1.16.0 =
 * New: courses can open on a start date. In Course settings, "How does this course open?" has three answers: All at once, From when they join, or On a start date. With a start date everyone moves together: each lesson opens a set number of days after that day, for everyone. Members who join late find the lessons so far already open.

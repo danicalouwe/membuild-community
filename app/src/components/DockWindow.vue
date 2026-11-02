@@ -10,7 +10,7 @@ const emit = defineEmits(['close'])
 
 <template>
   <section class="dw" role="dialog" :aria-label="title" @keydown.esc.stop="emit('close')">
-    <header class="dw-head">
+    <header class="dw-head" role="none">
       <h2>{{ title }}</h2>
       <button class="dw-x" :aria-label="t.__('Close', 'membuild-community')" @click="emit('close')"><Icon name="close" :size="20" /></button>
     </header>

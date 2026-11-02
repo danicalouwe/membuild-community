@@ -2914,6 +2914,32 @@ $wpdb->delete( $on_notes, array( 'user_id' => $sd_m ) );
 mbcom_call( $admin, 'DELETE', "/courses/{$sd_c['id']}" );
 wp_delete_user( $sd_m );
 
+// A place with no events yet guesses its time zone from its pin, not from where the host is.
+$gz = array( 'Europe/London' => array( 53.48, -2.24 ), 'America/Chicago' => array( 30.27, -97.74 ), 'Australia/Sydney' => array( -33.87, 151.21 ), 'Asia/Manila' => array( 10.31, 123.89 ) );
+foreach ( $gz as $want => $at ) {
+	mbcom_check( "a pin at {$at[0]},{$at[1]} guesses {$want}", $want === \MemBuild\Community\Rest_Places::guess_zone( $at[0], $at[1] ), (string) \MemBuild\Community\Rest_Places::guess_zone( $at[0], $at[1] ) );
+}
+
+// Taking a reaction back takes your name off the author's alert; the last one out removes it.
+$ur_a = mbcom_user( 'mbct_ur_author' );
+$ur_b = mbcom_user( 'mbct_ur_b' );
+$ur_c = mbcom_user( 'mbct_ur_c' );
+list( , $ur_post ) = mbcom_call( $ur_a, 'POST', '/posts', array( 'content' => 'React then take it back' ) );
+$ur_pid = (int) $ur_post['id'];
+mbcom_call( $ur_b, 'PUT', "/posts/{$ur_pid}/reaction", array( 'type' => 'like' ) );
+mbcom_call( $ur_c, 'PUT', "/posts/{$ur_pid}/reaction", array( 'type' => 'love' ) );
+$ur_row = fn() => $wpdb->get_row( $wpdb->prepare( "SELECT actor_ids, actors_count FROM %i WHERE user_id = %d AND type = 'post_reaction' AND object_id = %d", $on_notes, $ur_a, $ur_pid ), ARRAY_A );
+mbcom_check( 'two reactions fold into one alert', 2 === (int) ( $ur_row()['actors_count'] ?? 0 ), wp_json_encode( $ur_row() ) );
+mbcom_call( $ur_c, 'DELETE', "/posts/{$ur_pid}/reaction" );
+mbcom_check( '…taking one back leaves only the other name', (string) $ur_b === ( $ur_row()['actor_ids'] ?? '' ) && 1 === (int) ( $ur_row()['actors_count'] ?? 0 ), wp_json_encode( $ur_row() ) );
+mbcom_call( $ur_b, 'DELETE', "/posts/{$ur_pid}/reaction" );
+mbcom_check( '…and when the last one goes, so does the alert', null === $ur_row(), wp_json_encode( $ur_row() ) );
+mbcom_call( $ur_a, 'DELETE', "/posts/{$ur_pid}" );
+$wpdb->delete( $on_notes, array( 'user_id' => $ur_a ) );
+foreach ( array( $ur_a, $ur_b, $ur_c ) as $ur_u ) {
+	wp_delete_user( $ur_u );
+}
+
 /* ---------------------------------------------------------------- */
 echo "\n{$GLOBALS['mbcom_passed']} passed, {$GLOBALS['mbcom_failed']} failed\n";
 if ( $GLOBALS['mbcom_failed'] ) {

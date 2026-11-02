@@ -48,7 +48,7 @@ const panelStyle = () => ({
         v-bind="$attrs"
       >
         <slot name="header" :close="() => emit('close', 'button')">
-          <header class="top">
+          <header class="top" role="none">
             <h2 :id="headingId">{{ title }}</h2>
             <button class="round round-btn" :aria-label="t.__('Close', 'membuild-community')" @click="emit('close', 'button')"><Icon name="close" :size="20" /></button>
           </header>

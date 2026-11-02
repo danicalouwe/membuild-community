@@ -51,7 +51,7 @@ async function save() {
 <template>
   <BaseDialog :label="t.__('Receipt', 'membuild-community')" :width="560" phone="sheet" @close="emit('close')">
     <template #header="{ close }">
-      <header class="brand-bar">
+      <header class="brand-bar" role="none">
         <span class="logo"><img v-if="logo" :src="logo" alt="" /><template v-else>{{ initials }}</template></span>
         <strong>{{ r?.store || cfg.community.name }}</strong>
         <button class="round" :aria-label="t.__('Close', 'membuild-community')" @click="close"><Icon name="close" :size="20" /></button>

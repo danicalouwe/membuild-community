@@ -235,7 +235,7 @@ onBeforeUnmount(() => {
 
     <button
       ref="trigger"
-      class="trigger"
+      class="trigger tap-44"
       :class="[{ on: active }, current]"
       :aria-pressed="!!active"
       :aria-label="label"

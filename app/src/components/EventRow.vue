@@ -267,7 +267,7 @@ const people = (n) =>
   }
 
   .date small {
-    font-size: var(--fs-3xs);
+    font-size: var(--fs-sm); /* 13px: the smallest text on a phone */
   }
 
   .date strong {

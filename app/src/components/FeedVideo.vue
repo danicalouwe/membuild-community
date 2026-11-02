@@ -47,9 +47,12 @@ onBeforeUnmount(() => {
   if (playing === el.value) playing = null
 })
 
+// Reduced motion on: a reel's card keeps its still picture; a tap opens it in Reels, where it waits for play.
+const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
 function play() {
   const v = el.value
-  if (!v) return
+  if (!v || (calm && props.to)) return
   if (playing && playing !== v) playing.pause()
   playing = v
   v.play().catch(() => {})

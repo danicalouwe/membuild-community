@@ -255,4 +255,11 @@ const goingLabel = (n) => t.sprintf(/* translators: %d: number of members going 
     justify-content: center;
   }
 }
+
+/* Phones: the month at 13px, the smallest text on a phone. */
+@media (max-width: 767px) {
+  .date small {
+    font-size: var(--fs-sm);
+  }
+}
 </style>

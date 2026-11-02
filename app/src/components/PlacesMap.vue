@@ -55,8 +55,8 @@ function pin(place) {
   return L.divIcon({
     className: '',
     html: `<span class="mbcom-pin${cls}"><span>${PIN_SVG}</span></span>${tag}`,
-    iconSize: [36, 44],
-    iconAnchor: [18, 42],
+    iconSize: [44, 44], // 44 wide to tap; the pin itself stays 36, in the middle
+    iconAnchor: [22, 42],
   })
 }
 
@@ -100,7 +100,8 @@ function faceGroup(cluster) {
 function bubble(cluster) {
   const n = cluster.getChildCount()
   const size = n < 10 ? 36 : n < 100 ? 44 : 52
-  return L.divIcon({ className: '', html: `<span class="mbcom-cluster" style="--size:${size}px">${n < 1000 ? n : `${Math.floor(n / 1000)}k`}</span>`, iconSize: [size, size] })
+  const hit = Math.max(size, 44) // the small bubble keeps its look but is 44 to tap
+  return L.divIcon({ className: 'mbcom-hit', html: `<span class="mbcom-cluster" style="--size:${size}px">${n < 1000 ? n : `${Math.floor(n / 1000)}k`}</span>`, iconSize: [hit, hit] })
 }
 
 // A hidden map (a place page on a phone) has no size: moving it then only gives NaN errors.
@@ -416,6 +417,7 @@ defineExpose({
   place-items: center;
   width: 36px;
   height: 36px;
+  margin: 0 auto;
   border-radius: 50% 50% 50% 6px;
   transform: rotate(-45deg);
   background: var(--accent);
@@ -505,6 +507,11 @@ defineExpose({
 .map :deep(.mbcom-pin.on) {
   transform: rotate(-45deg) scale(1.25);
   border-color: var(--text);
+}
+
+.map :deep(.mbcom-hit) {
+  display: grid;
+  place-items: center;
 }
 
 .map :deep(.mbcom-cluster) {
@@ -639,7 +646,7 @@ defineExpose({
 .map :deep(.mbcom-new) {
   position: absolute;
   top: -10px;
-  left: 24px;
+  left: 28px;
   padding: 1px 7px;
   border-radius: var(--radius-pill);
   background: #e8590c;

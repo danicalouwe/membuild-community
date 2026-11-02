@@ -325,7 +325,7 @@ function unmute() {
           <button v-if="isVideo && muted && ready" class="sound-pill" @click="unmute"><Icon name="mute" :size="18" /> {{ t.__('Tap for sound', 'membuild-community') }}</button>
         </div>
 
-        <div v-if="!ready" class="spinner" :aria-label="t.__('Loading', 'membuild-community')" />
+        <div v-if="!ready" class="spinner" role="status" :aria-label="t.__('Loading', 'membuild-community')" />
         <span v-if="burst" :key="burst.key" class="burst"><ReactionBadge :type="burst.type" :size="88" /></span>
 
         <!-- Bottom: viewers for your own story, quick reactions for others -->
@@ -363,7 +363,7 @@ function unmute() {
       <Transition name="sheet">
         <div v-if="showViewers" class="sheet-backdrop" @click.self="showViewers = false">
           <div class="sheet" role="dialog" :aria-label="viewers ? seenBy(viewers.count) : t.__('Seen by', 'membuild-community')">
-            <header>
+            <header role="none">
               <strong>{{ viewers ? seenBy(viewers.count) : t.__('Seen by', 'membuild-community') }}</strong>
               <button :aria-label="t.__('Close', 'membuild-community')" @click="showViewers = false"><Icon name="close" :size="20" /></button>
             </header>

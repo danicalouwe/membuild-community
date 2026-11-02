@@ -88,7 +88,7 @@ function compose() {
 
 <template>
   <div class="panel">
-    <header class="head">
+    <header class="head" role="none">
       <h2>{{ t.__('Chats', 'membuild-community') }}</h2>
       <span class="tools">
         <button class="round" :aria-label="t.__('See all in Messages', 'membuild-community')" :title="t.__('See all in Messages', 'membuild-community')" @click="go({ name: 'messages' })"><Icon name="expand" :size="18" /></button>

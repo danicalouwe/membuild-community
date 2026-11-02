@@ -161,7 +161,7 @@ const accountLabel = () => {
     <div v-if="isPhone || shortcuts.length || editShortcuts" class="slot">
       <button
         v-if="!isPhone"
-        class="circle"
+        class="circle tap-44"
         :class="{ on: open === 'shortcuts' }"
         :aria-label="t.__('Menu', 'membuild-community')"
         :title="t.__('Menu', 'membuild-community')"
@@ -240,7 +240,7 @@ const accountLabel = () => {
 
     <div v-if="feature('messages')" class="slot">
       <button
-        class="circle"
+        class="circle tap-44"
         :class="{ on: open === 'messenger' || route.name === 'messages' }"
         :aria-label="withCount(t.__('Messenger', 'membuild-community'), messages.unread)"
         :title="t.__('Messenger', 'membuild-community')"
@@ -257,7 +257,7 @@ const accountLabel = () => {
 
     <div class="slot bell">
       <button
-        class="circle"
+        class="circle tap-44"
         :class="{ on: open === 'notifications' }"
         :aria-label="withCount(t.__('Notifications', 'membuild-community'), messages.notifications)"
         :title="t.__('Notifications', 'membuild-community')"

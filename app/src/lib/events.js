@@ -55,14 +55,17 @@ export function untilLabel(e, now = Date.now()) {
   return t.sprintf(/* translators: %d: days */ t.__('in %d days', 'membuild-community'), days)
 }
 
-/** Where a calendar entry says it is: the place and address, or the link. */
-const whereOf = (e, pageUrl) => (e.place?.name ? [e.place.name, e.place.address].filter(Boolean).join(', ') : e.url || pageUrl)
+/**
+ * Where a calendar entry says it is: the place and address, or the event's page. Never the join
+ * link itself: that turns on 15 minutes before, on the page, and a calendar would hand it out early.
+ */
+const whereOf = (e, pageUrl) => (e.place?.name ? [e.place.name, e.place.address].filter(Boolean).join(', ') : pageUrl)
 
 const stamp = (d) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
 
 /** Links that add the event to the member's own calendar. Apple and Outlook's desktop apps take the .ics file. */
 export function calendarLinks(e, pageUrl) {
-  const details = [e.description?.trim(), e.url, pageUrl].filter(Boolean).join('\n\n')
+  const details = [e.description?.trim(), pageUrl].filter(Boolean).join('\n\n')
   const dates = `${stamp(startOf(e))}/${stamp(endOf(e))}`
   const where = whereOf(e, pageUrl)
   return {
@@ -84,8 +87,8 @@ export function downloadIcs(e, pageUrl, siteName) {
     `DTSTART:${stamp(startOf(e))}`,
     `DTEND:${stamp(endOf(e))}`,
     `SUMMARY:${esc(e.title)}`,
-    `DESCRIPTION:${esc([e.description?.trim(), e.url, pageUrl].filter(Boolean).join('\n\n'))}`,
-    `URL:${e.url || pageUrl}`,
+    `DESCRIPTION:${esc([e.description?.trim(), pageUrl].filter(Boolean).join('\n\n'))}`,
+    `URL:${pageUrl}`,
     `LOCATION:${esc(whereOf(e, pageUrl))}`,
     'END:VEVENT',
     'END:VCALENDAR',

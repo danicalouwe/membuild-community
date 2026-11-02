@@ -31,7 +31,7 @@ const meta = computed(() => [kindName(props.file.ext), fileSize(props.file.size)
 <template>
   <Teleport to="body">
     <div ref="panel" class="fp" role="dialog" aria-modal="true" :aria-label="file.name" tabindex="-1">
-      <header class="bar">
+      <header class="bar" role="none">
         <FileTile :ext="file.ext" :size="44" />
         <div class="what">
           <strong>{{ file.name }}</strong>

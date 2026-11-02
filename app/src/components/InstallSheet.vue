@@ -36,7 +36,7 @@ const heading = t.sprintf(/* translators: %s: the site's name */ t.__('Get the %
   <Teleport to="body">
     <div class="backdrop" @mousedown.self="emit('close')">
       <div ref="sheet" class="sheet" role="dialog" aria-modal="true" :aria-label="t.__('Add to your phone', 'membuild-community')">
-        <header>
+        <header role="none">
           <h2>{{ heading }}</h2>
           <button class="round round-btn" :aria-label="t.__('Close', 'membuild-community')" @click="emit('close')"><Icon name="close" :size="20" /></button>
         </header>

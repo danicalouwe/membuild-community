@@ -197,7 +197,7 @@ async function remove() {
       </template>
       <span v-if="post.pinned" class="pin" :title="t.__('Pinned by an admin', 'membuild-community')"><Icon name="pin" :size="14" /> {{ pinLabel }}</span>
       <div v-if="!post.pending" :ref="menuRoot" class="menu-wrap">
-        <button :ref="menuTrigger" class="icon-btn" :aria-label="t.__('Post options', 'membuild-community')" aria-haspopup="menu" :aria-expanded="menu" @click="toggleMenu"><Icon name="more" /></button>
+        <button :ref="menuTrigger" class="icon-btn tap-44" :aria-label="t.__('Post options', 'membuild-community')" aria-haspopup="menu" :aria-expanded="menu" @click="toggleMenu"><Icon name="more" /></button>
         <div v-if="menu" :ref="menuList" class="menu" role="menu" @keydown="onMenuKey">
           <template v-if="canPin && inCourse">
             <button v-if="post.lesson && post.pin !== 'lesson'" role="menuitem" class="plain" @click="pinInCourse('lesson')"><Icon name="pin" :size="18" /> {{ t.__('Pin to lesson', 'membuild-community') }}</button>

@@ -28,7 +28,9 @@ const list = lists.reels
 const scroller = ref(null)
 const active = ref(0)
 const muted = ref(sessionStorage.getItem('mbcom-muted') !== '0')
-const paused = ref(false)
+// Reduced motion on: each reel waits for a tap (the play button shows) instead of playing by itself.
+const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+const paused = ref(calm)
 const buffering = ref(false)
 const bar = ref(null)
 const commentsFor = ref(null)
@@ -86,7 +88,7 @@ function onVisibility() {
 }
 
 watch(active, async (i, prev) => {
-  paused.value = false
+  paused.value = calm
   buffering.value = false
   const old = videos.get(prev)
   if (old) {
@@ -363,23 +365,23 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
               </a>
             </div>
             <div class="rail row">
-              <button class="rail-btn" :class="{ liked: post.my_reaction }" :aria-label="t.__('Like', 'membuild-community')" :aria-pressed="!!post.my_reaction" @click="toggleLike">
+              <button class="rail-btn tap-44" :class="{ liked: post.my_reaction }" :aria-label="t.__('Like', 'membuild-community')" :aria-pressed="!!post.my_reaction" @click="toggleLike">
                 <span class="ic"><Icon name="heart" :size="24" /></span><span>{{ compactNumber(post.reactions_count) }}</span>
               </button>
-              <button class="rail-btn" :aria-label="t.__('Comments', 'membuild-community')" @click="commentsFor = post">
+              <button class="rail-btn tap-44" :aria-label="t.__('Comments', 'membuild-community')" @click="commentsFor = post">
                 <span class="ic"><Icon name="comment" :size="23" /></span><span>{{ compactNumber(post.comments_count) }}</span>
               </button>
-              <button class="rail-btn" :aria-label="t._x('Share', 'verb', 'membuild-community')" @click="share"><span class="ic"><Icon name="share" :size="23" /></span></button>
+              <button class="rail-btn tap-44" :aria-label="t._x('Share', 'verb', 'membuild-community')" @click="share"><span class="ic"><Icon name="share" :size="23" /></span></button>
               <div class="more-wrap">
-                  <button class="rail-btn" :aria-label="t.__('More', 'membuild-community')" aria-haspopup="menu" :aria-expanded="moreOpen && i === active" @click.stop="moreOpen = !moreOpen"><span class="ic"><Icon name="more" :size="23" /></span></button>
+                  <button class="rail-btn tap-44" :aria-label="t.__('More', 'membuild-community')" aria-haspopup="menu" :aria-expanded="moreOpen && i === active" @click.stop="moreOpen = !moreOpen"><span class="ic"><Icon name="more" :size="23" /></span></button>
                   <div v-if="moreOpen && i === active" class="more-menu" role="menu" @click.stop>
                     <button v-if="!isMine(post)" role="menuitem" @click="report(post)"><Icon name="flag" :size="20" /> {{ t.__('Report', 'membuild-community') }}</button>
                     <button v-if="post.can_delete" role="menuitem" class="danger" @click="removeReel(post)"><Icon name="trash" :size="20" /> {{ isMine(post) ? t.__('Delete reel…', 'membuild-community') : t.__('Remove reel…', 'membuild-community') }}</button>
                   </div>
                 </div>
-              <button class="rail-btn" :aria-label="t.__('Search', 'membuild-community')" @click="router.push({ name: 'search' })"><span class="ic"><Icon name="search" :size="23" /></span></button>
+              <button class="rail-btn tap-44" :aria-label="t.__('Search', 'membuild-community')" @click="router.push({ name: 'search' })"><span class="ic"><Icon name="search" :size="23" /></span></button>
               <!-- Phones only: the round + at the top would sit on YouTube's own buttons. -->
-              <button class="rail-btn phone-new" :aria-label="t.__('New reel', 'membuild-community')" @click="startCreate()"><span class="ic"><Icon name="plus" :size="23" /></span><span>{{ t.__('New reel', 'membuild-community') }}</span></button>
+              <button class="rail-btn tap-44 phone-new" :aria-label="t.__('New reel', 'membuild-community')" @click="startCreate()"><span class="ic"><Icon name="plus" :size="23" /></span><span>{{ t.__('New reel', 'membuild-community') }}</span></button>
             </div>
           </div>
         </template>
@@ -409,7 +411,7 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
             <span>{{ t.__('This usually takes under a minute. You can keep browsing; we’ll put it in Reels as soon as it’s ready.', 'membuild-community') }}</span>
           </div>
           <div v-if="i === active && paused" class="center-icon"><Icon name="play" :size="56" /></div>
-          <div v-if="i === active && buffering && !paused && !isProcessing(post.media[0])" class="spinner" :aria-label="t.__('Loading', 'membuild-community')" />
+          <div v-if="i === active && buffering && !paused && !isProcessing(post.media[0])" class="spinner" role="status" :aria-label="t.__('Loading', 'membuild-community')" />
           <!-- Sound and search as round buttons on the video, like Facebook. -->
           <button class="on-video sound" :aria-label="muted ? t.__('Turn sound on', 'membuild-community') : t.__('Mute', 'membuild-community')" :title="muted ? t.__('Turn sound on', 'membuild-community') : t.__('Mute', 'membuild-community')" @click.stop="muted = !muted"><Icon :name="muted ? 'mute' : 'volume'" :size="24" /></button>
           <button class="on-video find" :aria-label="t.__('Search', 'membuild-community')" :title="t.__('Search', 'membuild-community')" @click.stop="router.push({ name: 'search' })"><Icon name="search" :size="24" /></button>
@@ -426,20 +428,20 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
           </div>
 
           <div class="rail">
-            <button class="rail-btn" :class="{ liked: post.my_reaction }" :aria-label="t.__('Like', 'membuild-community')" :aria-pressed="!!post.my_reaction" @click="toggleLike">
+            <button class="rail-btn tap-44" :class="{ liked: post.my_reaction }" :aria-label="t.__('Like', 'membuild-community')" :aria-pressed="!!post.my_reaction" @click="toggleLike">
               <span class="ic"><Icon name="heart" :size="28" /></span>
               <span>{{ compactNumber(post.reactions_count) }}</span>
             </button>
-            <button class="rail-btn" :aria-label="t.__('Comments', 'membuild-community')" @click="commentsFor = post">
+            <button class="rail-btn tap-44" :aria-label="t.__('Comments', 'membuild-community')" @click="commentsFor = post">
               <span class="ic"><Icon name="comment" :size="27" /></span>
               <span>{{ compactNumber(post.comments_count) }}</span>
             </button>
-            <button class="rail-btn" :aria-label="t._x('Share', 'verb', 'membuild-community')" @click="share">
+            <button class="rail-btn tap-44" :aria-label="t._x('Share', 'verb', 'membuild-community')" @click="share">
               <span class="ic"><Icon name="share" :size="26" /></span>
               <span>{{ t._x('Share', 'verb', 'membuild-community') }}</span>
             </button>
   <div class="more-wrap">
-              <button class="rail-btn" :aria-label="t.__('More', 'membuild-community')" aria-haspopup="menu" :aria-expanded="moreOpen && i === active" @click.stop="moreOpen = !moreOpen"><span class="ic"><Icon name="more" :size="28" /></span></button>
+              <button class="rail-btn tap-44" :aria-label="t.__('More', 'membuild-community')" aria-haspopup="menu" :aria-expanded="moreOpen && i === active" @click.stop="moreOpen = !moreOpen"><span class="ic"><Icon name="more" :size="28" /></span></button>
               <div v-if="moreOpen && i === active" class="more-menu" role="menu" @click.stop>
                 <button v-if="!isMine(post)" role="menuitem" @click="report(post)"><Icon name="flag" :size="20" /> {{ t.__('Report', 'membuild-community') }}</button>
                 <button v-if="post.can_delete" role="menuitem" class="danger" @click="removeReel(post)"><Icon name="trash" :size="20" /> {{ isMine(post) ? t.__('Delete reel…', 'membuild-community') : t.__('Remove reel…', 'membuild-community') }}</button>
@@ -1008,6 +1010,11 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
 }
 
 @media (max-width: 767px) {
+  /* The counts under Like, Comments and Share: 13px, the smallest text on a phone. */
+  .rail-btn {
+    font-size: var(--fs-sm);
+  }
+
   .stage {
     --reel-h: calc(100dvh - var(--tabbar-h) - env(safe-area-inset-bottom));
   }
@@ -1069,9 +1076,9 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   /* Phones: a small round + at the top instead of the word. */
   .create {
     right: 14px;
-    top: calc(19px + env(safe-area-inset-top)); /* level with the 52px round buttons */
-    width: 42px;
-    height: 42px;
+    top: calc(16px + env(safe-area-inset-top)); /* level with the 48px round buttons */
+    width: 44px;
+    height: 44px;
     padding: 0;
     border-radius: 50%;
     background: color-mix(in srgb, var(--on-color) 16%, transparent);

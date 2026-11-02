@@ -570,6 +570,25 @@ h4 {
 /* ---------- Shared kit: one source of truth for the shapes every page repeats ----------
    A page uses these classes and keeps only what is truly its own (its layout, a one-off size). */
 
+/* A small icon button that keeps its look but gets a 44px tap area on phones (an invisible
+   ring around it). Markup: add class="tap-44". A page that places the button itself keeps its
+   own position; the ::after belongs to this class. */
+@media (max-width: 767px) {
+  :where(.tap-44) {
+    position: relative;
+  }
+
+  .tap-44::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+}
+
 /* "‹ Back to …" at the top of an inner page (a link or a button). */
 .back-link {
   display: inline-flex;

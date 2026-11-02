@@ -140,7 +140,7 @@ const noneLabel = computed(() => t.sprintf(/* translators: %s: the search text *
 
 <template>
   <div ref="root" class="search" :class="{ open }" @keydown="onKey">
-    <button type="button" class="opener" :aria-label="t.__('Search', 'membuild-community')" :title="t.__('Search', 'membuild-community')" @click="show">
+    <button type="button" class="opener tap-44" :aria-label="t.__('Search', 'membuild-community')" :title="t.__('Search', 'membuild-community')" @click="show">
       <Icon name="search" :size="20" />
     </button>
 

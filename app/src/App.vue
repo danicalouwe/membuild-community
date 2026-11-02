@@ -190,7 +190,7 @@ const isActive = (tab) =>
       <ThemeSlot name="app.top-bar" :data="{ tabs: desktopTabs, isActive, user: cfg.user, logo: cfg.community.logo, siteName: cfg.siteName, home: '/' }">
       <div class="topbar-inner">
         <div class="start">
-          <RouterLink to="/" class="brand" :aria-label="homeLabel" :title="cfg.siteName">
+          <RouterLink to="/" class="brand tap-44" :aria-label="homeLabel" :title="cfg.siteName">
             <img v-if="cfg.community.logo" :src="cfg.community.logo" alt="" class="logo" />
             <span v-else class="logo mark" aria-hidden="true">{{ initials }}</span>
           </RouterLink>
@@ -268,7 +268,7 @@ const isActive = (tab) =>
 
     <PostDialog v-if="linked" :key="linked.id" :post="linked" :highlight="Number(route.query.comment) || 0" @close="closeLinked" />
     <ChatDock v-if="showDock" />
-    <MemberViewToggle v-else-if="canSeeAsMember && !(!isWide && route.name === 'messages' && route.params.threadId)" /><!-- not over an open chat on a phone -->
+    <MemberViewToggle v-else-if="canSeeAsMember && !(!isWide && ((route.name === 'messages' && route.params.threadId) || route.name === 'reels'))" /><!-- not over an open chat or the Reels buttons on a phone -->
     <VideoDock v-if="video.media" />
     <ThemeSlot name="app.level-up" :data="{ levelUp: levelShown ? me.levelUp : null, dismiss: () => (me.levelUp = null) }"><LevelUpToast /></ThemeSlot>
     <Toast />
@@ -646,6 +646,10 @@ const isActive = (tab) =>
 @media (max-width: 767px) {
   .top-tabs {
     display: none;
+  }
+
+  .brand {
+    overflow: visible; /* just the logo here, so its 44px tap area isn't cut off */
   }
 
   .topbar-inner {

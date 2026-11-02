@@ -104,7 +104,7 @@ const reelBy = (name) => t.sprintf(/* translators: %s: the name of the person wh
 
 <template>
   <section v-if="reels.items.length" class="tray card" :aria-label="t.__('Reels', 'membuild-community')">
-    <header>
+    <header role="none">
       <span class="title"><Icon name="reels" :size="22" /> {{ t.__('Reels', 'membuild-community') }}</span>
       <RouterLink to="/reels" class="see-all">{{ t.__('See all', 'membuild-community') }}</RouterLink>
     </header>

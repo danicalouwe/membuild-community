@@ -38,7 +38,9 @@ class Notifications {
 	public static function on_reaction( $object_type, $object_id, $actor_id, $type ) {
 		global $wpdb;
 		if ( ! $type || 'down' === $type ) {
-			return; // removing a reaction or a private downvote doesn't notify
+			// Taking a reaction back (or a private downvote) takes your name off the author's alert.
+			self::unnotify( 'post' === $object_type ? 'post_reaction' : 'comment_reaction', $object_type, $object_id, $actor_id );
+			return;
 		}
 		if ( 'post' === $object_type ) {
 			$post = $wpdb->get_row( $wpdb->prepare( 'SELECT id, user_id, content FROM %i WHERE id = %d', Install::table( 'posts' ), $object_id ), ARRAY_A );
@@ -191,6 +193,28 @@ class Notifications {
 		 * @param string $type            e.g. "post_comment", "comment_reply", "level_up".
 		 */
 		do_action( 'membuild_community/notification_created', (int) $wpdb->insert_id, $user_id, $type );
+	}
+
+	/**
+	 * Takes one actor back out of the alerts about an object, read or not. An alert
+	 * with nobody left on it goes.
+	 */
+	public static function unnotify( $type, $object_type, $object_id, $actor_id ) {
+		global $wpdb;
+		$table = Install::table( 'notifications' );
+		$rows  = $wpdb->get_results(
+			$wpdb->prepare( 'SELECT id, actor_ids, actors_count FROM %i WHERE type = %s AND object_type = %s AND object_id = %d AND FIND_IN_SET(%d, actor_ids)', $table, $type, $object_type, $object_id, $actor_id ),
+			ARRAY_A
+		);
+		foreach ( $rows as $r ) {
+			$actors = array_values( array_diff( array_filter( array_map( 'intval', explode( ',', (string) $r['actor_ids'] ) ) ), array( (int) $actor_id ) ) );
+			$count  = max( 0, (int) $r['actors_count'] - 1 );
+			if ( ! $actors || ! $count ) {
+				$wpdb->delete( $table, array( 'id' => $r['id'] ) );
+				continue;
+			}
+			$wpdb->update( $table, array( 'actor_ids' => implode( ',', $actors ), 'actors_count' => $count ), array( 'id' => $r['id'] ) );
+		}
 	}
 
 	/* ---------- API ---------- */

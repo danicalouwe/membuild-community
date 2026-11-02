@@ -271,6 +271,11 @@ async function notNowNews(n) {
   await api.deletePlaceNews(n.id)
   news.value = news.value.filter((x) => x.id !== n.id)
 }
+async function removeNews(n) {
+  if (!(await askConfirm({ title: t.__('Remove this What’s new?', 'membuild-community'), text: t.__('It comes off the place now, before its end date.', 'membuild-community'), confirm: t.__('Remove', 'membuild-community'), danger: true }))) return
+  await takeBackNews(n)
+  load() // its tag comes off the card and the map too
+}
 async function takeBackNews(n) {
   await api.deletePlaceNews(n.id)
   detail.value = await api.place(detail.value.id)
@@ -748,6 +753,7 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
         <strong>{{ n.text }}</strong>
         <small>{{ t.sprintf(/* translators: 1: member name, 2: a date */ t.__('Shared by %1$s · disappears after %2$s', 'membuild-community'), n.by?.name || '', endsLabel(n.ends_on)) }}</small>
         <button v-if="n.mine && n.status === 'pending'" class="link danger" @click="takeBackNews(n)">{{ t.__('Take it back', 'membuild-community') }}</button>
+        <button v-else-if="n.mine || canEdit" class="link danger" @click="removeNews(n)">{{ t.__('Remove', 'membuild-community') }}</button>
       </div>
       <button v-if="detail.status === 'published'" class="share-new" @click="openNews">✦ {{ t.__('Share what’s new here', 'membuild-community') }}</button>
 
@@ -1889,6 +1895,21 @@ button.pc:hover {
 
   .pcard:not(.placed) {
     top: 128px !important;
+  }
+
+  /* Phones zoom with a pinch, like Google and Apple Maps, so no +/- (they sat under the
+     search card). The map credit moves up, just under the card, where nothing covers it. */
+  .map-pane :deep(.leaflet-control-zoom) {
+    display: none;
+  }
+
+  .map-pane :deep(.leaflet-bottom.leaflet-right) {
+    top: 122px;
+    bottom: auto;
+  }
+
+  .has-detail .map-pane :deep(.leaflet-bottom.leaflet-right) {
+    top: 0;
   }
 
   .search {

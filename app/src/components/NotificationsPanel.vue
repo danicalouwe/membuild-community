@@ -149,7 +149,7 @@ const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles
 
 <template>
   <div class="panel" :class="{ page }">
-    <header class="head">
+    <header class="head" role="none">
       <h2>{{ t.__('Alerts', 'membuild-community') }}</h2>
       <button v-if="unread || items.some((n) => !n.read)" class="link" @click="readAll">{{ t.__('Mark all as read', 'membuild-community') }}</button>
     </header>

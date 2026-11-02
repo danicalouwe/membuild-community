@@ -116,14 +116,14 @@ function react(type) {
 
       <div class="actions">
         <ReactionButton :current="c.my_reaction" :size="20" @react="react" />
-        <button class="act text-btn" @click="$emit('reply', c)">{{ t._x('Reply', 'verb: reply to a comment', 'membuild-community') }}</button>
+        <button class="act text-btn tap-44" @click="$emit('reply', c)">{{ t._x('Reply', 'verb: reply to a comment', 'membuild-community') }}</button>
         <button v-if="canChooseBest && !reply && !pendingOrFailed" class="act text-btn" :class="{ on: c.best }" :aria-pressed="!!c.best" @click="$emit('best', c)">
           {{ c.best ? t.__('Unmark best', 'membuild-community') : t.__('Best answer', 'membuild-community') }}
         </button>
         <span v-if="copied" class="act text-btn subtle" role="status">{{ t.__('Link copied', 'membuild-community') }}</span>
         <!-- Like a group's comment on Facebook: Like · Reply, and everything else behind ⋯. -->
         <span v-if="!pendingOrFailed" :ref="menuRoot" class="more-wrap">
-          <button :ref="menuTrigger" class="act more" :aria-label="t.__('Comment options', 'membuild-community')" aria-haspopup="menu" :aria-expanded="menu" @click="toggleMenu"><Icon name="more" :size="18" /></button>
+          <button :ref="menuTrigger" class="act more tap-44" :aria-label="t.__('Comment options', 'membuild-community')" aria-haspopup="menu" :aria-expanded="menu" @click="toggleMenu"><Icon name="more" :size="18" /></button>
           <span v-if="menu" :ref="menuList" class="menu" :class="{ up }" role="menu" @keydown="onMenuKey">
             <button role="menuitem" @click="closeMenu(); copyLink()"><Icon name="link" :size="16" /> {{ t.__('Copy link', 'membuild-community') }}</button>
             <button v-if="feature('messages')" role="menuitem" @click="closeMenu(); sendInMessage()"><Icon name="messenger" :size="16" /> {{ t.__('Send in a message', 'membuild-community') }}</button>

@@ -14,6 +14,7 @@ import { t } from '../lib/i18n.js'
 const props = defineProps({
   course: { type: Object, required: true },
   checking: { type: Boolean, default: false },
+  notYet: { type: Boolean, default: false }, // checked again and still no payment
 })
 const emit = defineEmits(['close', 'recheck'])
 
@@ -104,6 +105,7 @@ const partOf = computed(() =>
         <template v-if="offer">
           <div v-if="offer.price" class="price"><b>{{ offer.price }}</b> <span>{{ periodWords(offer.period) }}</span></div>
           <a :href="offer.url" target="_blank" rel="noopener" class="btn btn-lg btn-dark wide">{{ t.__('Continue to checkout', 'membuild-community') }} <Icon name="external" :size="18" /></a>
+          <p class="not-yet" role="status">{{ notYet && !checking ? t.__('We don’t see your payment yet. It can take a minute. Check you’re logged in with the email you paid with, then try again.', 'membuild-community') : '' }}</p>
           <button class="again" :disabled="checking" @click="emit('recheck')">{{ checking ? t.__('Checking…', 'membuild-community') : t.__('Already paid? Check again', 'membuild-community') }}</button>
         </template>
         <p v-else class="ask">{{ t.__('Ask an admin for access.', 'membuild-community') }}</p>
@@ -209,6 +211,19 @@ h2 {
   font: inherit;
   font-weight: 700;
   cursor: pointer;
+}
+
+.not-yet {
+  margin: 0;
+  color: var(--text-2);
+  text-align: center;
+}
+
+.not-yet:empty {
+  position: absolute; /* out of the layout, but still there so the message is read out when it comes */
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
 }
 
 .ask {

@@ -63,13 +63,13 @@ const shareCount = (n) => t.sprintf(/* translators: %s: number of shares, e.g. "
     </div>
     <div class="bar">
       <ReactionButton class="like" :current="post.my_reaction" labelled @react="(type) => setReaction(post, type)" />
-      <button class="act" @click="$emit('comment')">
+      <button class="act tap-44" @click="$emit('comment')">
         <Icon name="comment" :size="20" />
         <span>{{ t._x('Comment', 'verb: write a comment', 'membuild-community') }}</span>
       </button>
       <button
         v-if="inCourse && cfg.community.courses?.helpful !== false"
-        class="act helpful"
+        class="act helpful tap-44"
         :class="{ on: post.my_helpful }"
         :aria-pressed="post.my_helpful"
         :disabled="isMine"
@@ -79,7 +79,7 @@ const shareCount = (n) => t.sprintf(/* translators: %s: number of shares, e.g. "
         <Icon name="arrowUp" :size="20" />
         <span>{{ t._x('Helpful', 'button: mark a post as helpful', 'membuild-community') }}</span>
       </button>
-      <button v-else class="act" :aria-live="copied ? 'polite' : null" @click="share">
+      <button v-else class="act tap-44" :aria-live="copied ? 'polite' : null" @click="share">
         <Icon name="share" :size="20" />
         <span>{{ copied ? t.__('Link copied', 'membuild-community') : t._x('Share', 'verb', 'membuild-community') }}</span>
       </button>

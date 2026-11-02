@@ -95,6 +95,7 @@ const whenNote = computed(() =>
 const zoneHint = computed(() => {
   const p = inPerson.value ? place.value : null
   if (!p) return null
+  if (!p.tz && p.tz_guess && form.value.tz === p.tz_guess) return { first: true, text: t.sprintf(/* translators: 1: place name, 2: e.g. "Central Standard Time" */ t.__('The first event at %1$s. From the map, it’s on %2$s. Check that’s right; we’ll remember it for the place.', 'membuild-community'), p.name, zoneLabel(form.value.tz)) }
   if (!p.tz) return { first: true, text: t.sprintf(/* translators: %s: place name */ t.__('The first event at %s: pick the time zone it’s in. We’ll remember it for the place, so next time it’s filled in.', 'membuild-community'), p.name) }
   if (form.value.tz !== p.tz) return null
   return { first: false, text: t.sprintf(/* translators: 1: place name, 2: e.g. "Austin time" */ t.__('Filled in from %1$s: %2$s. Change it only if this one is somewhere else.', 'membuild-community'), p.name, zoneName.value) }
@@ -120,7 +121,7 @@ function pickPlace() {
   form.value.address = p.address
   form.value.lat = p.lat
   form.value.lng = p.lng
-  form.value.tz = p.tz || myZone // the place remembers where it is; a new one starts from yours
+  form.value.tz = p.tz || p.tz_guess || myZone // the place remembers where it is; a new one starts from its pin, not from where you are
 }
 async function find() {
   error.value = ''

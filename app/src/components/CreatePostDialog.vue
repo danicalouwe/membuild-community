@@ -369,7 +369,7 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
       >
         <!-- Main view -->
         <template v-if="view === 'main'">
-          <header class="top">
+          <header class="top" role="none">
             <h2>{{ edit ? t.__('Edit post', 'membuild-community') : t.__('Create post', 'membuild-community') }}</h2>
             <button class="round round-btn" :aria-label="t.__('Close', 'membuild-community')" @click="close"><Icon name="close" :size="22" /></button>
           </header>
@@ -498,7 +498,7 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
 
         <!-- Feeling view -->
         <template v-else>
-          <header class="top">
+          <header class="top" role="none">
             <button class="round round-btn back" :aria-label="t.__('Back', 'membuild-community')" @click="view = 'main'"><Icon name="chevronLeft" :size="22" /></button>
             <h2>{{ t.__('How are you feeling?', 'membuild-community') }}</h2>
           </header>

@@ -189,6 +189,7 @@ class Rest_Places {
 				'phone_country' => ( $r['phone_country'] ?? '' ) ?: null, // "PH": the number is dialled from there
 				'hours'       => $r['hours'],
 				'tz'          => $r['tz'] ?? null, // where it is, for events held here
+				'tz_guess'    => ( $r['tz'] ?? '' ) ? null : self::guess_zone( (float) $r['lat'], (float) $r['lng'] ), // no events here yet: the zone of the nearest city
 				'week'        => self::week( $r['week'] ?? '' ), // hours by day, or null (then `hours` is free text)
 				'access'      => self::can_edit() && (int) ( $r['access_group'] ?? 0 ) ? array( 'id' => (int) $r['access_group'], 'name' => Access::groups()[ (int) $r['access_group'] ]['name'] ?? '' ) : null,
 				'cover'       => $r['cover_url'] ?: null,
@@ -645,5 +646,55 @@ class Rest_Places {
 
 	private static function not_found() {
 		return new \WP_Error( 'mbcom_not_found', __( 'Place not found.', 'membuild-community' ), array( 'status' => 404 ) );
+	}
+
+	/**
+	 * A best guess at a place's time zone from its pin: the zone whose main city is nearest
+	 * (PHP knows where each one is). Right almost everywhere; the host checks it once.
+	 */
+	public static function guess_zone( $lat, $lng ) {
+		static $cities = null;
+		if ( ! $lat && ! $lng ) {
+			return null;
+		}
+		if ( null === $cities ) {
+			$cities = array();
+			foreach ( \DateTimeZone::listIdentifiers() as $id ) {
+				$at = ( new \DateTimeZone( $id ) )->getLocation();
+				if ( $at && '??' !== $at['country_code'] ) {
+					$cities[ $id ] = array( deg2rad( $at['latitude'] ), deg2rad( $at['longitude'] ) );
+				}
+			}
+		}
+		$la   = deg2rad( $lat );
+		$lo   = deg2rad( $lng );
+		$best = null;
+		$near = INF;
+		foreach ( $cities as $id => $c ) {
+			// The angle between the two points on the globe (the haversine formula, without the radius).
+			$d = sin( ( $c[0] - $la ) / 2 ) ** 2 + cos( $la ) * cos( $c[0] ) * sin( ( $c[1] - $lo ) / 2 ) ** 2;
+			if ( $d < $near ) {
+				$near = $d;
+				$best = $id;
+			}
+		}
+		// Border and island zones that keep a bigger neighbour's clock: name the neighbour, so a pin in
+		// Manchester reads London, not Isle of Man, and one in Austin reads Chicago, not Matamoros.
+		$same = array(
+			'Europe/Isle_of_Man'   => 'Europe/London',
+			'Europe/Jersey'        => 'Europe/London',
+			'Europe/Guernsey'      => 'Europe/London',
+			'Europe/Mariehamn'     => 'Europe/Helsinki',
+			'Europe/Busingen'      => 'Europe/Zurich',
+			'Europe/Vaduz'         => 'Europe/Zurich',
+			'Europe/Vatican'       => 'Europe/Rome',
+			'Europe/San_Marino'    => 'Europe/Rome',
+			'Europe/Monaco'        => 'Europe/Paris',
+			'Arctic/Longyearbyen'  => 'Europe/Oslo',
+			'America/Matamoros'    => 'America/Chicago',
+			'America/Tijuana'      => 'America/Los_Angeles',
+			'America/Ciudad_Juarez' => 'America/Denver',
+		);
+		return $same[ $best ] ?? $best;
 	}
 }

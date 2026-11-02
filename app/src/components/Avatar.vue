@@ -18,9 +18,10 @@ const props = defineProps({
 
 // The design system's dot: 14px, 12px on small photos, a little bigger on a profile's big photo.
 const dotSize = (size) => (size <= 40 ? 12 : size >= 100 ? 20 : 14)
-// The level badge grows with small photos but stops at 20px across, so it never crowds a big one.
-const badgeFont = (size) => Math.min(12, Math.max(9, Math.round(size * 0.3)))
-const badgeWidth = (size) => Math.min(20, Math.max(15, Math.round(size * 0.44)))
+// The level badge grows with the photo (number 11–13px, so it stays readable) but stops at 22px
+// across, so it never crowds a big one. Photos under 32px (a reply's) are too small for one.
+const badgeFont = (size) => Math.min(13, Math.max(11, Math.round(size * 0.3)))
+const badgeWidth = (size) => Math.min(22, Math.max(17, Math.round(size * 0.46)))
 const profileLabel = (name) => t.sprintf(/* translators: %s: member's name */ t.__("%s's profile", 'membuild-community'), name)
 // No photo, or it won't load (a deleted file): their initials in a grey circle, never a broken image.
 const failed = ref(false)
@@ -60,7 +61,7 @@ const levelLabel = (level) => t.sprintf(/* translators: %d: level number */ t.__
       @error="failed = true"
     />
     <span
-      v-if="badge && user?.level"
+      v-if="badge && user?.level && size >= 32"
       class="level"
       :style="{ fontSize: `${badgeFont(size)}px`, minWidth: `${badgeWidth(size)}px` }"
       :aria-label="levelLabel(user.level)"

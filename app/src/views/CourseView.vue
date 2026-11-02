@@ -187,14 +187,17 @@ async function loadCourse() {
 // A locked course: "Get access for $49/month" or "How to unlock" opens what it takes.
 const unlocking = ref(false)
 const rechecking = ref(false)
+const notPaidYet = ref(false) // "Check again" found no payment: the dialog says so
 async function recheck() {
   rechecking.value = true
+  notPaidYet.value = false
   await loadCourse()
   rechecking.value = false
   if (!course.value?.lock) {
     unlocking.value = false
+    showToast(t.__('You’re in. The course is open.', 'membuild-community'), '🎉')
     if (props.lessonId) loadLesson(Number(props.lessonId))
-  }
+  } else notPaidYet.value = true
 }
 
 // The words for a locked course (the dripped and in-order cards build their own from the outline).
@@ -603,7 +606,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
     <span v-if="tip" class="lv-tip" role="tooltip" :style="{ left: tip.x + 'px', top: tip.y + 'px' }">{{ tip.text }}</span>
     <ThemeSlot name="app.lesson-done" :data="{ done: doneCard, onNext: goNext, onClose: () => (doneCard = null) }"><LessonDone :done="doneCard" @next="goNext" @close="doneCard = null" /></ThemeSlot>
     <FilePreview v-if="previewing" :file="previewing" :place="course && lesson ? `${course.title} › ${lesson.title}` : ''" @close="previewing = null" />
-    <UnlockDialog v-if="unlocking && course?.lock" :course="course" :checking="rechecking" @recheck="recheck" @close="unlocking = false" />
+    <UnlockDialog v-if="unlocking && course?.lock" :course="course" :checking="rechecking" :not-yet="notPaidYet" @recheck="recheck" @close="unlocking = false; notPaidYet = false" />
     <ThemeSlot v-if="finished" name="course.finished" :data="{ course, onClose: () => (finished = false) }"><CourseComplete :course="course" @close="finished = false" /></ThemeSlot>
   </div>
 </template>

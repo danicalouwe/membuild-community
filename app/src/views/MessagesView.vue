@@ -192,7 +192,7 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
     <aside class="inbox card">
       <header class="inbox-head">
         <h1>{{ t.__('Chats', 'membuild-community') }}</h1>
-        <button class="new" :aria-label="t.__('New message', 'membuild-community')" @click="composing = true"><Icon name="plus" :size="20" /></button>
+        <button class="new tap-44" :aria-label="t.__('New message', 'membuild-community')" @click="composing = true"><Icon name="plus" :size="20" /></button>
       </header>
       <label v-if="!loaded || threads.length || query || filter !== 'all'" class="section-search search"><Icon name="search" :size="18" /><input v-model="query" type="search" :placeholder="t.__('Search chats', 'membuild-community')" :aria-label="t.__('Search chats', 'membuild-community')" /></label>
 

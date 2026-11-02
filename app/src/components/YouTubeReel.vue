@@ -20,12 +20,14 @@ const host = ref(null)
 const failed = ref(false)
 let player = null
 let ready = false
+// Reduced motion on: YouTube's own play button starts it, nothing plays by itself.
+const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 function sync() {
   if (!player || !ready) return
   props.muted ? player.mute() : player.unMute()
-  if (props.active) player.playVideo()
-  else player.pauseVideo()
+  if (props.active && !calm) player.playVideo()
+  else if (!props.active) player.pauseVideo()
 }
 
 watch(() => [props.active, props.muted], sync)

@@ -499,7 +499,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 
 <template>
   <section class="chat" :class="{ docked }">
-    <header v-if="docked" class="head">
+    <header v-if="docked" class="head" role="none">
       <template v-if="chat">
         <div :ref="headerMenuRoot" class="menu-wrap name-wrap">
           <button :ref="headerMenuTrigger" class="name-btn" aria-haspopup="menu" :aria-expanded="headerMenu" @click="toggleHeaderMenu">
@@ -540,7 +540,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
       </form>
     </div>
     <header v-if="!docked" class="head">
-      <button class="icon back" :aria-label="t.__('Back to chats', 'membuild-community')" @click="emit('back')"><Icon name="chevronLeft" :size="22" /></button>
+      <button class="icon back tap-44" :aria-label="t.__('Back to chats', 'membuild-community')" @click="emit('back')"><Icon name="chevronLeft" :size="22" /></button>
       <template v-if="chat">
         <span class="faces" :class="{ group: isGroup }">
           <Avatar v-for="u in others.slice(0, 2)" :key="u.id" :user="u" :size="isGroup ? 30 : 40" :online="!isGroup" />
@@ -580,14 +580,14 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 
     <div ref="scroller" class="scroll" @wheel.passive="unpin" @touchstart.passive="unpin" @mousedown="unpin" @keydown="unpin" @scroll.passive="onScroll" @click="menuFor = null; moreFor = null">
       <p v-if="error" class="state">{{ error }}</p>
-      <div v-else-if="!chat" class="state"><div class="spinner" /></div>
+      <div v-else-if="!chat" class="state"><div class="spinner" role="status" :aria-label="t.__('Loading', 'membuild-community')" /></div>
       <template v-else>
         <div v-if="!hasMore" class="intro">
           <span class="faces big"><Avatar v-for="u in others.slice(0, 3)" :key="u.id" :user="u" :size="64" badge /><Avatar v-if="gone" :size="64" decorative /></span>
           <strong>{{ title }}</strong>
           <span>{{ isGroup ? t.__('Group chat', 'membuild-community') : gone ? t.__('This member has left the community.', 'membuild-community') : t.__('You’re both members of this community', 'membuild-community') }}</span>
         </div>
-        <div v-else-if="loadingOlder" class="state small"><div class="spinner" /></div>
+        <div v-else-if="loadingOlder" class="state small"><div class="spinner" role="status" :aria-label="t.__('Loading', 'membuild-community')" /></div>
 
         <template v-for="row in rows" :key="row.m.id">
           <div v-if="row.showTime" class="time">{{ stamp(row.m.created_at) }}</div>
@@ -627,10 +627,10 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 
                 <!-- Like Messenger: react, reply, and ⋮ (Unsend) on your own; the smiley sits nearest the bubble. -->
                 <div v-if="!row.m.unsent && !row.m.pending && !row.m.failed" class="actions" :class="{ open: menuFor === row.m.id || moreFor === row.m.id }">
-                  <button :class="{ on: menuFor === row.m.id }" :aria-label="t.__('React', 'membuild-community')" :aria-expanded="menuFor === row.m.id" @click.stop="openReactions(row.m, $event)"><Icon name="smile" :size="17" /></button>
-                  <button :aria-label="t.__('Reply', 'membuild-community')" @click.stop="startReply(row.m)"><Icon name="share" :size="16" class="flip" /></button>
+                  <button class="tap-44" :class="{ on: menuFor === row.m.id }" :aria-label="t.__('React', 'membuild-community')" :aria-expanded="menuFor === row.m.id" @click.stop="openReactions(row.m, $event)"><Icon name="smile" :size="17" /></button>
+                  <button class="tap-44" :aria-label="t.__('Reply', 'membuild-community')" @click.stop="startReply(row.m)"><Icon name="share" :size="16" class="flip" /></button>
                   <span v-if="row.m.mine" class="more-wrap">
-                    <button :class="{ on: moreFor === row.m.id }" :aria-label="t.__('More', 'membuild-community')" :aria-expanded="moreFor === row.m.id" @click.stop="openMore(row.m)"><Icon name="more" :size="18" class="vertical" /></button>
+                    <button class="tap-44" :class="{ on: moreFor === row.m.id }" :aria-label="t.__('More', 'membuild-community')" :aria-expanded="moreFor === row.m.id" @click.stop="openMore(row.m)"><Icon name="more" :size="18" class="vertical" /></button>
                     <span v-if="moreFor === row.m.id" class="more-menu card" role="menu" @click.stop>
                       <button role="menuitem" @click="unsend(row.m)"><Icon name="trash" :size="16" /> {{ t.__('Unsend', 'membuild-community') }}</button>
                     </span>
@@ -1538,6 +1538,14 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 }
 
 @media (max-width: 767px) {
+  /* 13px: the smallest text on a phone (times, Seen, Sending…). */
+  .time,
+  .status,
+  .failed,
+  .seen {
+    font-size: var(--fs-sm);
+  }
+
   .back {
     display: grid;
   }

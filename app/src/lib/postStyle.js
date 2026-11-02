@@ -26,10 +26,14 @@ const STORY_EXTRA = {
 }
 export const STORY_BACKGROUNDS = ['community', 'peach', 'grape', 'forest', 'sun', 'night', 'candy', 'ocean', 'sunset', 'blue', 'fire', 'slate']
 
+// Light backgrounds, where white words fall under 3:1: dark words instead.
+const STORY_DARK_WORDS = ['lime', 'peach', 'candy', 'sun']
+
 /** CSS for a text story's background (and its words' colour). */
 export function storyBg(key) {
   if (key === 'community') return { background: 'var(--accent)', color: 'var(--accent-ink)' }
-  return { background: STORY_EXTRA[key] || BACKGROUNDS[key] || BACKGROUNDS.grape }
+  const bg = { background: STORY_EXTRA[key] || BACKGROUNDS[key] || BACKGROUNDS.grape }
+  return STORY_DARK_WORDS.includes(key) ? { ...bg, color: 'var(--ink)' } : bg
 }
 
 /** Backgrounds apply to short, text-only posts (same rule as the server). */
