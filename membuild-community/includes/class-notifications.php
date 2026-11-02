@@ -30,6 +30,7 @@ class Notifications {
 		add_action( 'membuild_community/story_reacted', array( __CLASS__, 'on_story_reaction' ), 20, 3 );
 		add_action( 'membuild_community/level_up', array( __CLASS__, 'on_level_up' ), 20, 3 );
 		add_action( 'membuild_community/post_deleted', array( __CLASS__, 'on_post_deleted' ) );
+		add_action( 'deleted_user', array( __CLASS__, 'on_user_deleted' ) );
 	}
 
 	/* ---------- Events ---------- */
@@ -96,6 +97,37 @@ class Notifications {
 		global $wpdb;
 		if ( (int) $post_id > 0 ) {
 			$wpdb->delete( Install::table( 'notifications' ), array( 'post_id' => (int) $post_id ) );
+		}
+	}
+
+	/**
+	 * A deleted member takes their alerts with them: their own list, and their name in
+	 * everyone else's. An alert that was only about them goes; one shared with others
+	 * keeps the others.
+	 */
+	public static function on_user_deleted( $user_id ) {
+		global $wpdb;
+		$user_id = (int) $user_id;
+		if ( $user_id <= 0 ) {
+			return;
+		}
+		$table = Install::table( 'notifications' );
+		$wpdb->delete( $table, array( 'user_id' => $user_id ) );
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id, actor_ids, actors_count FROM %i WHERE FIND_IN_SET( %d, actor_ids )', $table, $user_id ), ARRAY_A );
+		foreach ( $rows as $r ) {
+			$left = array_values( array_diff( array_filter( array_map( 'intval', explode( ',', (string) $r['actor_ids'] ) ) ), array( $user_id ) ) );
+			if ( ! $left ) {
+				$wpdb->delete( $table, array( 'id' => (int) $r['id'] ) );
+				continue;
+			}
+			$wpdb->update(
+				$table,
+				array(
+					'actor_ids'    => implode( ',', $left ),
+					'actors_count' => max( count( $left ), (int) $r['actors_count'] - 1 ),
+				),
+				array( 'id' => (int) $r['id'] )
+			);
 		}
 	}
 

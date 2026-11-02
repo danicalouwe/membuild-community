@@ -204,4 +204,13 @@ class Helpers {
 		$text = sanitize_textarea_field( (string) $text );
 		return mb_substr( trim( $text ), 0, $max );
 	}
+
+	/** The site's time zone for the browser: its name, or Etc/GMT±N for a whole-hour offset, or '' for an offset like +05:30 (the app then uses siteOffset). */
+	public static function zone_name() {
+		$tz = wp_timezone_string();
+		if ( preg_match( '/^([+-])(\d{2}):00$/', $tz, $m ) ) {
+			return '+00:00' === $tz ? 'UTC' : 'Etc/GMT' . ( '+' === $m[1] ? '-' : '+' ) . (int) $m[2]; // Etc/ names flip the sign
+		}
+		return preg_match( '/^[+-]\d{2}:\d{2}$/', $tz ) ? '' : $tz;
+	}
 }

@@ -122,6 +122,13 @@ class Rest_Courses {
 		if ( ! $course || Access::hidden( $course ) ) {
 			return new \WP_Error( 'mbcom_not_found', __( 'Course not found.', 'membuild-community' ), array( 'status' => 404 ) );
 		}
+		// A course on a start date: a member who can open it is in, so they hear when lessons open.
+		// Their own start is the course's (or today, before it begins), so a later switch to
+		// "From when they join" counts from when they came in, not from a long-ago look.
+		if ( 'date' === $course['open_mode'] && ! Access::lock( $course ) ) {
+			$timing = self::timing( (int) $course['id'] );
+			self::mark_started( (int) $course['id'], $timing['start'] ? min( time(), $timing['start'] ) : null );
+		}
 		return self::outline( $course );
 	}
 
@@ -278,6 +285,23 @@ class Rest_Courses {
 		if ( isset( $req['in_order'] ) ) {
 			$data['in_order'] = rest_sanitize_boolean( $req['in_order'] ) ? 1 : 0; // Lesson order: one after another
 		}
+		if ( isset( $req['opens'] ) ) {
+			if ( ! in_array( $req['opens'], array( 'all', 'join', 'date' ), true ) ) {
+				return new \WP_Error( 'mbcom_bad_opens', __( 'Pick how the course opens.', 'membuild-community' ), array( 'status' => 400 ) );
+			}
+			$data['open_mode'] = $req['opens']; // How does this course open?
+		}
+		if ( array_key_exists( 'starts_on', $req->get_params() ) ) {
+			$date = $req['starts_on'];
+			if ( null !== $date && '' !== $date && ! self::valid_day( $date ) ) {
+				return new \WP_Error( 'mbcom_bad_date', __( 'Pick a real start date.', 'membuild-community' ), array( 'status' => 400 ) );
+			}
+			$data['starts_on'] = self::valid_day( $date ) ? $date : null;
+		}
+		// On a start date needs a date: a week from today until the owner picks one.
+		if ( 'date' === ( $data['open_mode'] ?? $course['open_mode'] ) && ! self::valid_day( array_key_exists( 'starts_on', $data ) ? $data['starts_on'] : $course['starts_on'] ) ) {
+			$data['starts_on'] = wp_date( 'Y-m-d', time() + WEEK_IN_SECONDS );
+		}
 		$data = array_merge( $data, Access::course_update( $req->get_params(), $course ) );
 		if ( isset( $req['status'] ) && in_array( $req['status'], array( 'draft', 'published' ), true ) ) {
 			$data['status'] = $req['status'];
@@ -286,7 +310,20 @@ class Rest_Courses {
 			$media             = $req['cover_media_id'] ? self::claim_media( (int) $req['cover_media_id'], array( 'image' ) ) : null;
 			$data['cover_url'] = $media['url'] ?? null;
 		}
+		$was = self::open_for_all( (int) $course['id'] );
 		$wpdb->update( Install::table( 'courses' ), $data, array( 'id' => $course['id'] ) );
+		unset( self::$timings[ (int) $course['id'] ] );
+		// An earlier start date (or All at once) opens lessons now: tell the members who are waiting.
+		if ( null !== $was && 'published' === ( $data['status'] ?? $course['status'] ) ) {
+			$opened = array();
+			foreach ( array_diff_key( self::open_for_all( (int) $course['id'] ) ?? array(), $was ) as $l ) {
+				$opened[] = $l + array( 'course_id' => (int) $course['id'], 'course' => $data['title'] ?? $course['title'] );
+			}
+			// Sent in the background, so a big community doesn't hold up the owner's save.
+			if ( $opened ) {
+				wp_schedule_single_event( time(), self::TELL_HOOK, array( $opened ) );
+			}
+		}
 		return self::outline( self::course_row( (int) $course['id'] ) );
 	}
 
@@ -417,8 +454,7 @@ class Rest_Courses {
 			$data['drip_days'] = max( 0, min( 3650, (int) $params['drip_days'] ) );
 		}
 		if ( array_key_exists( 'open_on', $params ) ) {
-			$date            = (string) $params['open_on'];
-			$data['open_on'] = preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) && self::date_ts( $date ) ? $date : null;
+			$data['open_on'] = self::valid_day( $params['open_on'] ) ? $params['open_on'] : null;
 		}
 		if ( array_key_exists( 'media_id', $params ) ) {
 			$media            = $params['media_id'] ? self::claim_media( (int) $params['media_id'], array( 'video', 'embed' ) ) : null;
@@ -528,10 +564,19 @@ class Rest_Courses {
 		if ( Helpers::can_manage() ) {
 			return null;
 		}
+		$timing = $course_id ? self::timing( (int) $course_id ) : array( 'mode' => '' );
+		if ( 'all' === $timing['mode'] ) {
+			return null; // All at once: every lesson open
+		}
 		// "On a date you pick": the same day for everyone, from midnight in the site's time zone.
-		if ( $open_on ) {
+		if ( $open_on && self::valid_day( $open_on ) ) {
 			$at = self::date_ts( $open_on );
 			return $at > time() ? $at : null;
+		}
+		// On a start date: days count from the course's start, the same for everyone.
+		if ( 'date' === $timing['mode'] ) {
+			$unlock = self::date_ts( self::days_after( $timing['starts_on'], $drip_days ) );
+			return $unlock > time() ? $unlock : null;
 		}
 		if ( $drip_days <= 0 ) {
 			return null;
@@ -553,6 +598,148 @@ class Rest_Courses {
 			return null;
 		}
 		return $unlock;
+	}
+
+	private static $timings = array();
+
+	/**
+	 * How a course opens: mode 'all' (every lesson open), 'date' (from its start
+	 * date, the timestamp in start) or '' / 'join' (from when each member starts).
+	 */
+	public static function timing( $course_id ) {
+		global $wpdb;
+		if ( ! isset( self::$timings[ $course_id ] ) ) {
+			self::prime_timings( array( $course_id ) );
+		}
+		return self::$timings[ $course_id ];
+	}
+
+	/** timing() for several courses in one query (course lists, search, discussions). */
+	public static function prime_timings( array $ids ) {
+		global $wpdb;
+		$ids = array_values( array_diff( array_unique( array_map( 'intval', $ids ) ), array_keys( self::$timings ) ) );
+		if ( ! $ids ) {
+			return;
+		}
+		$rows = $wpdb->get_results(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- a list of %d placeholders; values are bound.
+			$wpdb->prepare( 'SELECT id, open_mode, starts_on FROM %i WHERE id IN (' . implode( ',', array_fill( 0, count( $ids ), '%d' ) ) . ')', array_merge( array( Install::table( 'courses' ) ), $ids ) ),
+			OBJECT_K
+		);
+		foreach ( $ids as $id ) {
+			$row   = $rows[ $id ] ?? null;
+			$day   = $row && self::valid_day( $row->starts_on ) ? $row->starts_on : null;
+			$mode  = (string) ( $row->open_mode ?? '' );
+			self::$timings[ $id ] = array(
+				'mode'      => 'date' === $mode && ! $day ? '' : $mode,
+				'start'     => $day ? self::date_ts( $day ) : 0,
+				'starts_on' => $day,
+			);
+		}
+	}
+
+	/** A course on a start date that hasn't begun yet: its start day (Y-m-d), else null. Admins see it open. */
+	private static function starts_soon( $row ) {
+		if ( 'date' !== ( $row['open_mode'] ?? '' ) || Helpers::can_manage() ) {
+			return null;
+		}
+		$timing = self::timing( (int) $row['id'] );
+		return 'date' === $timing['mode'] && $timing['start'] > time() ? $timing['starts_on'] : null;
+	}
+
+	/** A real Y-m-d calendar day in a sensible range (not 2026-02-30, 0000-00-00 or 9999-12-31). */
+	public static function valid_day( $date ) {
+		if ( ! is_string( $date ) || ! preg_match( '/^(\d{4})-\d{2}-\d{2}$/', $date, $m ) || $m[1] < 2000 || $m[1] > 2100 ) {
+			return false;
+		}
+		$d = \DateTimeImmutable::createFromFormat( '!Y-m-d', $date, wp_timezone() );
+		return $d && $d->format( 'Y-m-d' ) === $date;
+	}
+
+	/**
+	 * Which lessons are open for everyone in a course right now (id => {lesson_id, title}),
+	 * for courses that open all at once or on a start date; null for "From when they
+	 * join", where each member has their own dates.
+	 */
+	private static function open_for_all( $course_id ) {
+		global $wpdb;
+		unset( self::$timings[ $course_id ] );
+		$timing = self::timing( $course_id );
+		if ( ! in_array( $timing['mode'], array( 'all', 'date' ), true ) ) {
+			return null;
+		}
+		$out = array();
+		foreach ( $wpdb->get_results( $wpdb->prepare( 'SELECT id, title, drip_days, open_on FROM %i WHERE course_id = %d', Install::table( 'lessons' ), $course_id ), ARRAY_A ) as $l ) {
+			$day = 'all' === $timing['mode'] ? null : ( self::valid_day( $l['open_on'] ) ? $l['open_on'] : self::days_after( $timing['starts_on'], $l['drip_days'] ) );
+			if ( ! $day || self::date_ts( $day ) <= time() ) {
+				$out[ (int) $l['id'] ] = array( 'lesson_id' => (int) $l['id'], 'title' => $l['title'] );
+			}
+		}
+		return $out;
+	}
+
+	/** Tells everyone in a course (who hasn't finished it) that a lesson opened, in batches. */
+	const TELL_HOOK = 'mbcom_tell_opened';
+
+	public static function register_hooks() {
+		add_action( self::TELL_HOOK, fn( $lessons ) => array_map( array( __CLASS__, 'tell_opened' ), (array) $lessons ) );
+		// A deleted account leaves its courses too.
+		add_action(
+			'deleted_user',
+			function ( $user_id ) {
+				global $wpdb;
+				$wpdb->delete( Install::table( 'course_starts' ), array( 'user_id' => (int) $user_id ) );
+			}
+		);
+	}
+
+	/** Tells the members in a course, who haven't finished it or heard already, that a lesson is open. */
+	public static function tell_opened( array $l ) {
+		global $wpdb;
+		$after = 0;
+		do {
+			$users = $wpdb->get_col(
+				$wpdb->prepare(
+					'SELECT s.user_id FROM %i s LEFT JOIN %i p ON p.user_id = s.user_id AND p.lesson_id = %d
+					LEFT JOIN %i n ON n.user_id = s.user_id AND n.type = \'lesson_open\' AND n.object_type = \'lesson\' AND n.object_id = %d
+					WHERE s.course_id = %d AND s.user_id > %d AND p.user_id IS NULL AND n.id IS NULL ORDER BY s.user_id ASC LIMIT 1000',
+					Install::table( 'course_starts' ),
+					Install::table( 'lesson_progress' ),
+					$l['lesson_id'],
+					Install::table( 'notifications' ),
+					$l['lesson_id'],
+					$l['course_id'],
+					$after
+				)
+			);
+			foreach ( $users as $u ) {
+				Notifications::notify( (int) $u, 'lesson_open', 'lesson', (int) $l['lesson_id'], 0, 0, array( 'title' => $l['title'], 'course' => $l['course'], 'course_id' => (int) $l['course_id'] ) );
+				$after = (int) $u;
+			}
+		} while ( count( $users ) === 1000 );
+	}
+
+	/** The lessons the current member finished in some courses, as a set (lesson id => true). */
+	public static function finished_in( array $course_ids ) {
+		global $wpdb;
+		if ( ! $course_ids || ! get_current_user_id() ) {
+			return array();
+		}
+		return array_fill_keys(
+			array_map(
+				'intval',
+				$wpdb->get_col(
+					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- a list of %d placeholders; values are bound.
+					$wpdb->prepare( 'SELECT lesson_id FROM %i WHERE user_id = %d AND course_id IN (' . implode( ',', array_fill( 0, count( $course_ids ), '%d' ) ) . ')', array_merge( array( Install::table( 'lesson_progress' ), get_current_user_id() ), array_map( 'intval', $course_ids ) ) )
+				)
+			),
+			true
+		);
+	}
+
+	/** The Y-m-d date some days after another, by the calendar (so clock changes don't shift it). */
+	public static function days_after( $date, $days ) {
+		return ( new \DateTimeImmutable( $date, wp_timezone() ) )->modify( '+' . max( 0, (int) $days ) . ' days' )->format( 'Y-m-d' );
 	}
 
 	/** Midnight of a Y-m-d date in the site's time zone, as a timestamp. */
@@ -609,7 +796,7 @@ class Rest_Courses {
 			$wpdb->prepare(
 				"SELECT s.user_id, l.id AS lesson_id, l.title, c.id AS course_id, c.title AS course
 				FROM %i s JOIN %i l ON l.course_id = s.course_id JOIN %i c ON c.id = l.course_id
-				WHERE c.status = 'published' AND l.drip_days > 0 AND ( l.open_on IS NULL OR l.open_on = '' )
+				WHERE c.status = 'published' AND c.open_mode IN ('', 'join') AND l.drip_days > 0 AND ( l.open_on IS NULL OR l.open_on = '' )
 				AND s.started_at + INTERVAL l.drip_days DAY > %s AND s.started_at + INTERVAL l.drip_days DAY <= %s
 				LIMIT 2000",
 				Install::table( 'course_starts' ),
@@ -624,7 +811,7 @@ class Rest_Courses {
 			$wpdb->prepare(
 				"SELECT l.id AS lesson_id, l.title, l.open_on, c.id AS course_id, c.title AS course
 				FROM %i l JOIN %i c ON c.id = l.course_id
-				WHERE c.status = 'published' AND l.open_on IS NOT NULL AND l.open_on <> '' AND l.open_on BETWEEN %s AND %s",
+				WHERE c.status = 'published' AND c.open_mode <> 'all' AND l.open_on IS NOT NULL AND l.open_on <> '' AND l.open_on BETWEEN %s AND %s",
 				Install::table( 'lessons' ),
 				Install::table( 'courses' ),
 				gmdate( 'Y-m-d', $last - DAY_IN_SECONDS ),
@@ -632,15 +819,33 @@ class Rest_Courses {
 			),
 			ARRAY_A
 		);
+		// On a start date: each lesson opens its days after the course's start, for everyone in it.
+		$starting = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT l.id AS lesson_id, l.title, l.drip_days, c.starts_on, c.id AS course_id, c.title AS course
+				FROM %i l JOIN %i c ON c.id = l.course_id
+				WHERE c.status = 'published' AND c.open_mode = 'date' AND c.starts_on IS NOT NULL AND ( l.open_on IS NULL OR l.open_on = '' )
+				AND c.starts_on + INTERVAL l.drip_days DAY BETWEEN %s AND %s",
+				Install::table( 'lessons' ),
+				Install::table( 'courses' ),
+				gmdate( 'Y-m-d', $last - DAY_IN_SECONDS ),
+				gmdate( 'Y-m-d', $now + DAY_IN_SECONDS )
+			),
+			ARRAY_A
+		);
+		foreach ( $starting as $l ) {
+			if ( ! self::valid_day( $l['starts_on'] ) ) {
+				continue;
+			}
+			$l['open_on'] = self::days_after( $l['starts_on'], $l['drip_days'] );
+			$dated[]      = $l;
+		}
 		foreach ( $dated as $l ) {
 			$at = self::date_ts( $l['open_on'] );
 			if ( $at <= $last || $at > $now ) {
 				continue;
 			}
-			$users = $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE course_id = %d LIMIT 2000', Install::table( 'course_starts' ), $l['course_id'] ) );
-			foreach ( $users as $u ) {
-				$found[] = $l + array( 'user_id' => $u );
-			}
+			self::tell_opened( $l ); // everyone in the course, in batches
 		}
 		foreach ( $found as $r ) {
 			$done = $wpdb->get_var( $wpdb->prepare( 'SELECT 1 FROM %i WHERE user_id = %d AND lesson_id = %d', Install::table( 'lesson_progress' ), $r['user_id'], $r['lesson_id'] ) );
@@ -651,7 +856,7 @@ class Rest_Courses {
 	}
 
 	/** Opening a lesson starts the course (once): its dripped lessons count from today. */
-	public static function mark_started( $course_id ) {
+	public static function mark_started( $course_id, $at = null ) {
 		global $wpdb;
 		$me = get_current_user_id();
 		if ( ! $me || Helpers::can_manage() ) {
@@ -662,7 +867,7 @@ class Rest_Courses {
 			return;
 		}
 		// No record yet: keep the day they first finished a lesson, if any, so "lesson opens" alerts follow it.
-		$now = $start ? gmdate( 'Y-m-d H:i:s', $start ) : Helpers::now();
+		$now = $start ? gmdate( 'Y-m-d H:i:s', $start ) : ( $at ? gmdate( 'Y-m-d H:i:s', $at ) : Helpers::now() );
 		$wpdb->query( $wpdb->prepare( 'INSERT IGNORE INTO %i (user_id, course_id, started_at) VALUES (%d, %d, %s)', Install::table( 'course_starts' ), $me, $course_id, $now ) );
 		self::$starts[ "{$me}:{$course_id}" ]   = strtotime( $now . ' UTC' );
 		self::$recorded[ "{$me}:{$course_id}" ] = true;
@@ -761,6 +966,7 @@ class Rest_Courses {
 			'locked_level' => $lock && 'level' === $lock['reason'] ? $lock['level'] : 0,
 			'questions'    => empty( $row['questions_off'] ) && Settings::course_part( 'questions' ) ? 'on' : 'off',
 			'in_order'     => ! empty( $row['in_order'] ),
+			'starts_soon'  => self::starts_soon( $row ), // On a start date, before it: the day (Y-m-d)
 		);
 		if ( Helpers::can_manage() ) {
 			$groups               = Access::groups();
@@ -825,10 +1031,11 @@ class Rest_Courses {
 				'completed' => isset( $done[ (int) $l['id'] ] ),
 				'locked'    => $level_locked || (bool) $unlock || isset( $after[ (int) $l['id'] ] ), // $after never holds a finished lesson
 				'unlock_at' => $unlock ? gmdate( 'c', $unlock ) : null,
+				'opens_on'  => $unlock ? wp_date( 'Y-m-d', $unlock ) : null, // the site's calendar day, so every time zone shows the same date
 				'after'     => $after[ (int) $l['id'] ] ?? null, // in order: the lesson to finish first
 				'has_video' => (bool) $l['media_id'],
 				'drip_days' => (int) $l['drip_days'],
-				'open_on'   => $l['open_on'] ?: null,
+				'open_on'   => self::valid_day( $l['open_on'] ) ? $l['open_on'] : null,
 				'minutes'   => self::minutes( (int) $l['chars'], $l['media_id'] ? $l : null ),
 				'files'     => $files,
 				'posts'     => (int) ( $talk[ $l['id'] ]->n ?? 0 ),
@@ -852,6 +1059,9 @@ class Rest_Courses {
 			'finish_points'   => (int) ( Points::rules()['course'][0] ?? 0 ), // "+20 points" when it's done
 			'finish_earned'   => Points::earned_for( get_current_user_id(), 'course', 'course', (int) $course['id'] ), // got already: finishing again gives none
 			'started_on'      => self::started_at( (int) $course['id'] ) ? gmdate( 'c', self::started_at( (int) $course['id'] ) ) : null, // drip counts from here
+			// How does this course open? Never chosen: from when they join if any lesson waits, else all at once.
+			'opens'           => in_array( self::timing( (int) $course['id'] )['mode'], array( 'all', 'join', 'date' ), true ) ? self::timing( (int) $course['id'] )['mode'] : ( array_filter( $lessons, fn( $l ) => (int) $l['drip_days'] > 0 || self::valid_day( $l['open_on'] ) ) ? 'join' : 'all' ),
+			'starts_on'       => self::timing( (int) $course['id'] )['starts_on'],
 			'modules'         => array_map(
 				fn( $m ) => array( 'id' => (int) $m['id'], 'title' => $m['title'], 'lessons' => $by_module[ (int) $m['id'] ] ?? array() ),
 				$modules
@@ -889,7 +1099,7 @@ class Rest_Courses {
 			'media'        => $media ? Media::format( $media ) : null,
 			'resources'    => self::files( json_decode( (string) $lesson['resources'], true ) ?: array(), true ),
 			'drip_days'    => (int) $lesson['drip_days'],
-			'open_on'      => $lesson['open_on'] ?: null,
+			'open_on'      => self::valid_day( $lesson['open_on'] ) ? $lesson['open_on'] : null,
 			'completed'    => $completed,
 			'prev_id'   => false !== $pos && $pos > 0 ? (int) $order[ $pos - 1 ] : null,
 			'next_id'      => false !== $pos && $pos < count( $order ) - 1 ? (int) $order[ $pos + 1 ] : null,
@@ -959,6 +1169,7 @@ class Rest_Courses {
 	 */
 	private static function journeys( array $ids ) {
 		global $wpdb;
+		self::prime_timings( $ids );
 		$in      = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
 		$lessons = $wpdb->get_results(
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $in is a list of %d placeholders; values are bound.

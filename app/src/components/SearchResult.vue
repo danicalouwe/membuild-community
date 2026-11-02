@@ -8,6 +8,7 @@ import Avatar from './Avatar.vue'
 import Icon from './Icon.vue'
 import { levelLabel } from '../config.js'
 import { t, locale } from '../lib/i18n.js'
+import { siteDay } from '../lib/time.js'
 import { CATEGORY } from '../lib/places.js'
 
 /**
@@ -109,7 +110,7 @@ function lockText(i) {
   if (i.draft) return t.__('Draft', 'membuild-community')
   if (i.lock?.reason === 'level') return t.sprintf(/* translators: %d: level number */ t.__('Unlocks at level %d', 'membuild-community'), i.lock.level)
   if (i.lock?.reason === 'groups') return i.lock.groups?.length ? t.sprintf(/* translators: %s: group names */ t.__('For %s', 'membuild-community'), i.lock.groups.join(', ')) : t.__('For a member group', 'membuild-community')
-  if (i.unlock_at) return t.sprintf(/* translators: %s: a date */ t.__('Unlocks %s', 'membuild-community'), new Date(i.unlock_at).toLocaleDateString(locale, { month: 'short', day: 'numeric' }))
+  if (i.unlock_at) return t.sprintf(/* translators: %s: a date */ t.__('Unlocks %s', 'membuild-community'), siteDay(i.unlock_at, { month: 'short', day: 'numeric' }))
   return ''
 }
 

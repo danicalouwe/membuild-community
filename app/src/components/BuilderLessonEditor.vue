@@ -9,6 +9,7 @@ import Icon from './Icon.vue'
 import LessonPlayer from './LessonPlayer.vue'
 import RichEditor from './RichEditor.vue'
 import { t } from '../lib/i18n.js'
+import { localToday, realDay } from '../lib/time.js'
 
 /**
  * Editing one lesson (Version 2 builder): it saves by itself a moment after
@@ -19,13 +20,14 @@ const props = defineProps({
   lesson: { type: Object, required: true },
   course: { type: Object, required: true },
 })
-const emit = defineEmits(['saved', 'deleted', 'go', 'done', 'status'])
+const emit = defineEmits(['saved', 'deleted', 'go', 'done', 'status', 'settings'])
 
 const title = ref('')
 const content = ref('')
 const opens = ref('now') // now | days | date
 const days = ref(7)
 const openOn = ref('') // YYYY-MM-DD
+const lastDay = ref('') // the last real day in that box
 const media = ref(null)
 const pendingVideo = ref(null)
 const resources = ref([])
@@ -48,6 +50,7 @@ function load(l) {
   opens.value = l.open_on ? 'date' : l.drip_days > 0 ? 'days' : 'now'
   days.value = l.drip_days > 0 ? l.drip_days : 7
   openOn.value = l.open_on || ''
+  lastDay.value = l.open_on || ''
   media.value = l.media
   pendingVideo.value = null
   resources.value = l.resources.map((r) => ({ ...r }))
@@ -69,10 +72,10 @@ const next = computed(() => all.value[index.value + 1] || null)
 const dripDays = computed(() => (opens.value === 'days' ? Math.max(1, Math.min(365, Number(days.value) || 1)) : 0))
 // A lesson that opens before the one above it would show up first: say so, and offer the fix.
 const earlier = computed(() => (opens.value !== 'date' && prev.value && !prev.value.open_on && prev.value.drip_days > dripDays.value ? prev.value : null))
-const todayIso = new Date().toISOString().slice(0, 10)
+const todayIso = localToday()
 const dateText = computed(() =>
   openDate.value
-    ? t.sprintf(/* translators: %s: a date */ t.__('Everyone can open it on %s, whenever they started the course.', 'membuild-community'), new Date(`${openDate.value}T00:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }))
+    ? t.sprintf(/* translators: %s: a date */ byStart.value ? t.__('Everyone in this course can open it on %s.', 'membuild-community') : t.__('Everyone can open it on %s, whenever they started the course.', 'membuild-community'), new Date(`${openDate.value}T00:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }))
     : t.__('Pick the day it opens.', 'membuild-community'),
 )
 const whereLabel = computed(() => (here.value ? t.sprintf(/* translators: 1: lesson number, 2: number of lessons, 3: section name */ t.__('Lesson %1$d of %2$d · %3$s', 'membuild-community'), index.value + 1, all.value.length, here.value.module) : ''))
@@ -88,7 +91,9 @@ function later(ms = 900) {
   clearTimeout(timer)
   timer = setTimeout(save, ms)
 }
-const openDate = computed(() => (opens.value === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(openOn.value) ? openOn.value : ''))
+// A day still being typed (year 0002) keeps the last real one, and leaving the box puts it back.
+watch(openOn, (v) => realDay(v) && (lastDay.value = v), { immediate: true })
+const openDate = computed(() => (opens.value === 'date' ? (realDay(openOn.value) ? openOn.value : lastDay.value) : ''))
 watch([title, content, dripDays, openDate], () => later())
 watch([media, () => resources.value.length], () => later(200))
 
@@ -114,8 +119,8 @@ async function save() {
       const updated = await api.updateLesson(props.lesson.id, {
         title: title.value.trim() || t.__('New lesson', 'membuild-community'),
         content: content.value,
-        drip_days: dripDays.value,
-        open_on: openDate.value,
+        // "On a date you pick" with no day yet keeps the lesson's timing as it was
+        ...(opens.value === 'date' && !openDate.value ? {} : { drip_days: dripDays.value, open_on: openDate.value }),
         media_id: media.value?.id || null,
         resources: resources.value.map((r) => ({ media_id: r.item ? r.item.media.id : r.media_id, name: r.name })),
       })
@@ -229,6 +234,17 @@ const exampleText = computed(() => {
   const open = new Date(start.getTime() + dripDays.value * 86400000)
   return t.sprintf(/* translators: 1: a date, 2: a later date */ t.__('Pretend a member named Sam starts this course on %1$s. Sam can open this lesson on %2$s. Every member gets their own date, counted from the day they start.', 'membuild-community'), shortDate(start), shortDate(open))
 })
+// How the course opens (Course settings): all at once hides the waits; a start date counts them from that day.
+const byStart = computed(() => props.course.opens === 'date' && !!props.course.starts_on)
+const longDate = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
+const plusDays = (iso, n) => {
+  const d = new Date(`${iso}T00:00:00`)
+  d.setDate(d.getDate() + n)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+const startsLine = computed(() => (byStart.value ? t.__('This course starts on %s.', 'membuild-community').split('%s') : []))
+const startDayText = computed(() => (byStart.value ? t.sprintf(/* translators: %s: a date */ t.__('Opens %s, when the course starts.', 'membuild-community'), longDate(props.course.starts_on)) : ''))
+const startExample = computed(() => (byStart.value ? t.__('Opens %s for everyone in this course.', 'membuild-community').split('%s') : []))
 const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */ t.__('Delete “%s”?', 'membuild-community'), props.lesson.title))
 </script>
 
@@ -310,14 +326,43 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
 
     <section class="box">
       <h3>{{ t.__('When does this lesson open?', 'membuild-community') }}</h3>
-      <label class="choice" :class="{ on: opens === 'now' }">
+      <p v-if="course.opens === 'all'" class="course-opens">
+        {{ t.__('Every lesson is open from the start.', 'membuild-community') }}
+        <button type="button" class="co-link" @click="emit('settings')">{{ t.__('Change it in Course settings', 'membuild-community') }}</button>
+      </p>
+      <p v-else-if="byStart" class="course-opens">
+        {{ startsLine[0] }}<b>{{ longDate(course.starts_on) }}</b>{{ startsLine[1] }}
+        <button type="button" class="co-link" @click="emit('settings')">{{ t.__('Change it in Course settings', 'membuild-community') }}</button>
+      </p>
+      <template v-if="course.opens !== 'all'">
+      <label v-if="byStart" class="choice" :class="{ on: opens === 'now' }">
+        <input v-model="opens" type="radio" value="now" />
+        <span>
+          <strong>{{ t.__('On the start day', 'membuild-community') }}</strong>
+          <small>{{ startDayText }}</small>
+        </span>
+      </label>
+      <label v-if="byStart" class="choice" :class="{ on: opens === 'days' }">
+        <input v-model="opens" type="radio" value="days" />
+        <span>
+          <strong>{{ t.__('Some days after the start', 'membuild-community') }}</strong>
+          <small>{{ t.__('Good for one lesson a week.', 'membuild-community') }}</small>
+          <span v-if="opens === 'days'" class="days">
+            {{ t.__('Open it', 'membuild-community') }}
+            <input v-model="days" type="number" min="1" max="365" :aria-label="t.__('Days', 'membuild-community')" />
+            {{ t.__('days after the start.', 'membuild-community') }}
+          </span>
+          <span v-if="opens === 'days'" class="example plain">{{ startExample[0] }}<strong>{{ longDate(plusDays(course.starts_on, dripDays)) }}</strong>{{ startExample[1] }}</span>
+        </span>
+      </label>
+      <label v-if="!byStart" class="choice" :class="{ on: opens === 'now' }">
         <input v-model="opens" type="radio" value="now" />
         <span>
           <strong>{{ t.__('Right away', 'membuild-community') }}</strong>
           <small>{{ t.__('Members can open it as soon as they start the course.', 'membuild-community') }}</small>
         </span>
       </label>
-      <label class="choice" :class="{ on: opens === 'days' }">
+      <label v-if="!byStart" class="choice" :class="{ on: opens === 'days' }">
         <input v-model="opens" type="radio" value="days" />
         <span>
           <strong>{{ t.__('Some days after they start the course', 'membuild-community') }}</strong>
@@ -337,9 +382,9 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
         <input v-model="opens" type="radio" value="date" />
         <span>
           <strong>{{ t.__('On a date you pick', 'membuild-community') }}</strong>
-          <small>{{ t.__('Good for a live launch, when everyone gets it on the same day.', 'membuild-community') }}</small>
+          <small>{{ byStart ? t.__('For a lesson with its own day, like a live session.', 'membuild-community') : t.__('Good for a live launch, when everyone gets it on the same day.', 'membuild-community') }}</small>
           <span v-if="opens === 'date'" class="days">
-            <input v-model="openOn" type="date" class="date" :min="todayIso" :aria-label="t.__('Opening day', 'membuild-community')" />
+            <input v-model="openOn" type="date" class="date" :min="todayIso" max="2100-12-31" @blur="realDay(openOn) || (openOn = lastDay)" :aria-label="t.__('Opening day', 'membuild-community')" />
           </span>
           <span v-if="opens === 'date'" class="example plain">{{ dateText }}</span>
         </span>
@@ -348,6 +393,7 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
         <span><strong>{{ t.__('This lesson opens before the one above it.', 'membuild-community') }}</strong> {{ earlierLabel }}</span>
         <button class="btn btn-lg" type="button" @click="useEarlier">{{ makeSame }}</button>
       </div>
+      </template>
     </section>
 
     <footer class="nav">
@@ -650,6 +696,36 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
 
 .example.plain {
   border-style: solid;
+}
+
+.example.plain strong {
+  display: inline;
+  font-size: inherit;
+}
+
+/* How the course opens, from Course settings. */
+.course-opens {
+  margin: 4px 0 14px;
+  font-size: var(--fs-lg);
+  color: var(--text-2);
+}
+
+.course-opens:last-child {
+  margin-bottom: 0;
+}
+
+.course-opens b {
+  color: var(--text);
+}
+
+.co-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 .example b {

@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.15.3
+Stable tag: 1.16.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,18 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.16.0 =
+* New: courses can open on a start date. In Course settings, "How does this course open?" has three answers: All at once, From when they join, or On a start date. With a start date everyone moves together: each lesson opens a set number of days after that day, for everyone. Members who join late find the lessons so far already open.
+* New: "What's the difference?" next to that question explains each answer in plain words, with an example. It opens under the link on a computer and from the bottom on a phone.
+* New: before a course starts, members see "Starts Mon, Nov 16" on the Classroom card and the main button, and the overview says Lesson 1 opens then and that they'll get an alert. Each lesson shows its own opening date.
+* Changed: moving a start date earlier, or switching to All at once, tells waiting members right away. The alerts go out in the background, and nobody gets the same lesson alert twice.
+* Changed: lesson opening days follow the site's time zone everywhere (lesson list, Course map, search, the "next lesson opens" note), so members in other time zones see the same day.
+* Changed: a member who has caught up with every open lesson lands on the course overview, which shows when the next lesson opens, not back on lesson 1.
+* Changed: "No, one at a time" now reads "Finish one to open the next."
+* Fixed: in a course set to go in order, the builder's Lessons tab says "After lesson N", like the Course map. The course overview counts opening a lesson as starting, so it shows the real opening dates and Continue.
+* Fixed: locked lessons no longer log errors in the browser console. Deleting a member removes their alerts and their name from shared ones, and their course records.
+* Fixed: date boxes ignore half-typed dates and dates that don't exist.
 
 = 1.15.3 =
 * Changed: when nobody is on the Places map yet, the panel shows one short invite ("Let members near you find you", with Show me on the map) instead of an empty "Members · 0" heading. On phones it is a single short line.

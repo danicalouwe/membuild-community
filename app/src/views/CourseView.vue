@@ -22,6 +22,7 @@ import { lockHint, lockLabel, unlockButton } from '../lib/access.js'
 import UnlockDialog from '../components/UnlockDialog.vue'
 import { asMember } from '../lib/preview.js'
 import { t } from '../lib/i18n.js'
+import { siteDay } from '../lib/time.js'
 import { useLatest } from '../lib/useLatest.js'
 
 const props = defineProps({
@@ -67,7 +68,9 @@ const tab = computed(() => {
   if (asked === 'posts' && course.value?.questions === 'off') return props.lessonId ? 'lesson' : 'overview'
   return ['overview', 'posts'].includes(asked) ? asked : props.lessonId ? 'lesson' : 'overview'
 })
-const resumeLesson = () => allLessons.value.find((l) => !l.completed && !l.locked) || allLessons.value[0]
+const openNext = () => allLessons.value.find((l) => !l.completed && !l.locked)
+// Caught up with every open lesson: the last one they finished, not lesson 1.
+const resumeLesson = () => openNext() || allLessons.value.findLast((l) => l.completed) || allLessons.value[0]
 function setTab(name) {
   if (name === 'lesson' && !props.lessonId) {
     const resume = resumeLesson()
@@ -77,7 +80,15 @@ function setTab(name) {
   router.replace({ query: { ...route.query, tab: name === 'lesson' || (name === 'overview' && !props.lessonId) ? undefined : name } })
 }
 const moduleDone = (m) => m.lessons.filter((l) => l.completed).length
-const started = computed(() => (course.value?.completed_count || 0) > 0 || !!course.value?.started_on)
+// On a start date, seeing the course counts them in; that isn't starting it.
+const started = computed(() => (course.value?.completed_count || 0) > 0 || (!!course.value?.started_on && course.value?.opens !== 'date'))
+// On a start date and before it: the main button shows the day instead.
+const startsOn = computed(() => {
+  const c = course.value
+  if (c?.opens !== 'date' || !c.starts_on || c.lock || c.can_manage || !allLessons.value.length || !allLessons.value.every((l) => l.locked && l.unlock_at)) return null
+  return new Date(`${c.starts_on}T00:00:00`)
+})
+const startsLabel = (long) => t.sprintf(/* translators: %s: a date */ t.__('Starts %s', 'membuild-community'), startsOn.value.toLocaleDateString(undefined, long ? { weekday: 'long', month: 'long', day: 'numeric' } : { weekday: 'short', month: 'short', day: 'numeric' }))
 const nextOpen = computed(() => !!lesson.value?.next_id && !nextLocked.value)
 // A lesson that isn't open for them yet (dripped or dated), with the lessons either side of it.
 const waiting = computed(() => {
@@ -95,12 +106,12 @@ const orderWait = computed(() => {
 })
 /** "This course goes in order. Finish [lesson] first, and this lesson opens.", split around the title so it can be bold. */
 const orderText = () => t.__('This course goes in order. Finish %s first, and this lesson opens.', 'membuild-community').split('%s')
-const opensDay = (iso) => new Date(iso).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })
-const opensShort = (iso) => t.sprintf(/* translators: %s: a short date, e.g. "Thu, Oct 29" */ t.__('Opens %s', 'membuild-community'), new Date(iso).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }))
+const opensDay = (iso) => siteDay(iso, { weekday: 'long', month: 'long', day: 'numeric' })
+const opensShort = (iso) => t.sprintf(/* translators: %s: a short date, e.g. "Thu, Oct 29" */ t.__('Opens %s', 'membuild-community'), siteDay(iso, { weekday: 'short', month: 'short', day: 'numeric' }))
 /** "This lesson opens on [date], 7 days after you started the course. …", split around the date so it can be bold. */
 function waitText(l) {
   const days = l.drip_days
-  const text = l.open_on
+  const text = l.open_on || course.value.opens === 'date'
     ? /* translators: 1: the day it opens, e.g. "Thursday, October 29" */ t.__('This lesson opens on %1$s. We’ll send you a notification when it’s ready.', 'membuild-community')
     : course.value.started_on
       ? /* translators: 1: the day it opens, 2: number of days */ t._n('This lesson opens on %1$s, %2$d day after you started the course. We’ll send you a notification when it’s ready.', 'This lesson opens on %1$s, %2$d days after you started the course. We’ll send you a notification when it’s ready.', days, 'membuild-community')
@@ -165,7 +176,7 @@ async function loadCourse() {
     const c = course.value
     const midway = c.completed_count > 0 && c.progress < 100 && !c.lock
     if (!props.lessonId && !route.query.tab && midway && !editing.value) {
-      const resume = resumeLesson()
+      const resume = openNext() // caught up and waiting for the next lesson: the overview shows when it opens
       if (resume) router.replace({ name: 'course', params: { courseId: props.courseId, lessonId: resume.id }, query: route.query })
     }
   } catch (err) {
@@ -186,12 +197,32 @@ async function recheck() {
   }
 }
 
+// The words for a locked course (the dripped and in-order cards build their own from the outline).
+const lockedMessage = () => {
+  const lock = course.value?.lock
+  if (lock?.reason === 'level') return t.sprintf(/* translators: %d: level number */ t.__('Reach Level %d to unlock this course.', 'membuild-community'), lock.level)
+  if (lock) return t.__('This course is for members of a group.', 'membuild-community')
+  return t.__('This lesson is not available.', 'membuild-community')
+}
+
 const latestLesson = useLatest()
 async function loadLesson(id) {
   const current = latestLesson() // clicking through lessons quickly: only the last one opens
   lessonError.value = null
   if (!id) {
     lesson.value = null
+    return
+  }
+  // The outline already knows a lesson is locked: show why without asking the server
+  // (which would refuse with a 403 that lands in the browser console).
+  await courseReady
+  if (!current()) return
+  const outlineLesson = allLessons.value.find((l) => l.id === id)
+  if (course.value?.lock || outlineLesson?.locked) {
+    lesson.value = null
+    lessonError.value = { message: lockedMessage(), title: outlineLesson?.title }
+    outlineOpen.value = false
+    window.scrollTo({ top: 0 })
     return
   }
   try {
@@ -201,14 +232,15 @@ async function loadLesson(id) {
   } catch (err) {
     if (!current()) return
     lesson.value = null
-    const outlineLesson = allLessons.value.find((l) => l.id === id)
     lessonError.value = { message: err.message, title: outlineLesson?.title }
   }
   outlineOpen.value = false
   window.scrollTo({ top: 0 })
 }
 
-watch(() => props.courseId, loadCourse, { immediate: true })
+// Set before the lesson watcher runs, so a lesson opened by link waits for its outline.
+let courseReady = Promise.resolve()
+watch(() => props.courseId, () => (courseReady = loadCourse()), { immediate: true })
 watch(() => props.lessonId, loadLesson, { immediate: true })
 
 /**
@@ -455,6 +487,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
               <button class="lv-round" :title="t.__('Next lesson', 'membuild-community')" :aria-label="t.__('Next lesson', 'membuild-community')" :disabled="!waiting.next || waiting.next.locked" @click="open(waiting.next.id)"><Icon name="chevronRight" :size="22" /></button>
             </template>
             <button v-else-if="course.lock && unlockButton(course.lock)" class="btn btn-lg btn-dark lv-main-btn" @click="unlocking = true"><Icon name="lock" :size="18" /> {{ unlockButton(course.lock) }}</button>
+            <button v-else-if="tab !== 'lesson' && startsOn" class="btn btn-lg lv-main-btn lv-starts" disabled>{{ startsLabel(false) }}</button>
             <button v-else-if="tab !== 'lesson' && !course.lock && allLessons.length" class="btn btn-lg btn-dark lv-main-btn" @click="continueCourse">
               {{ course.progress >= 100 ? t.__('Review the course', 'membuild-community') : started ? t.__('Continue', 'membuild-community') : t.__('Start course', 'membuild-community') }} <Icon name="arrowRight" :size="18" />
             </button>
@@ -561,6 +594,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
         <button class="btn btn-lg btn-dark lv-grow" @click="setEditing(true)"><Icon name="pencil" :size="18" /> {{ t.__('Edit this lesson', 'membuild-community') }}</button>
       </template>
       <button v-else-if="course.lock && unlockButton(course.lock)" class="btn btn-lg btn-dark lv-grow" @click="unlocking = true"><Icon name="lock" :size="18" /> {{ unlockButton(course.lock) }}</button>
+      <button v-else-if="startsOn" class="btn btn-lg lv-grow lv-starts" disabled>{{ startsLabel(true) }}</button>
       <button v-else-if="!course.lock && allLessons.length" class="btn btn-lg btn-dark lv-grow" @click="continueCourse">
         {{ course.progress >= 100 ? t.__('Review the course', 'membuild-community') : started ? t.__('Continue', 'membuild-community') : t.__('Start course', 'membuild-community') }} <Icon name="arrowRight" :size="18" />
       </button>
@@ -1108,6 +1142,11 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
   color: var(--text-2);
 }
 
+.lv-tabs button:not(.on):not(:disabled):hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
 .lv-tabs button.on {
   background: var(--accent-soft);
   color: var(--accent-text);
@@ -1142,6 +1181,13 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
 
 .lv-round:not(:disabled):hover {
   background: var(--surface-2);
+}
+
+.lv-starts:disabled {
+  background: var(--surface-2);
+  color: var(--text);
+  opacity: 1;
+  cursor: default;
 }
 
 .lv-main-btn {

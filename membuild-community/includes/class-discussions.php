@@ -101,8 +101,10 @@ class Discussions {
 				$wpdb->prepare( 'SELECT id, course_id, drip_days, open_on FROM %i WHERE course_id IN (' . implode( ',', array_fill( 0, count( $out['courses'] ), '%d' ) ) . ')', array_merge( array( Install::table( 'lessons' ) ), $out['courses'] ) ),
 				ARRAY_A
 			);
+			Rest_Courses::prime_timings( $out['courses'] );
+			$finished = Rest_Courses::finished_in( $out['courses'] ); // a finished lesson stays open
 			foreach ( $lessons as $l ) {
-				if ( ! Rest_Courses::unlock_at( (int) $l['drip_days'], (int) $l['course_id'], $l['open_on'] ) ) {
+				if ( isset( $finished[ (int) $l['id'] ] ) || ! Rest_Courses::unlock_at( (int) $l['drip_days'], (int) $l['course_id'], $l['open_on'] ) ) {
 					$out['lessons'][] = (int) $l['id'];
 				}
 			}

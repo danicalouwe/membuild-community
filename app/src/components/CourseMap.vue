@@ -5,7 +5,7 @@ import { api } from '../api.js'
 import { canDock, openChat } from '../stores/chatDock.js'
 import Avatar from './Avatar.vue'
 import Icon from './Icon.vue'
-import { timeAgo } from '../lib/time.js'
+import { localToday, timeAgo } from '../lib/time.js'
 import { t } from '../lib/i18n.js'
 
 /**
@@ -36,9 +36,19 @@ watch(
 )
 const stepOf = (id) => live.value?.lessons.find((s) => s.lesson_id === id) || { on: 0, waiting: 0, people: [], waiters: [] }
 
-// Sam starts today; each lesson's date is today + its days.
-const today = new Date()
-const dateOf = (days) => new Date(today.getTime() + days * 86400000).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
+// Sam starts today (or on the course's start date); each lesson's date is that day + its days.
+const start = computed(() => (byStart.value ? new Date(`${props.course.starts_on}T00:00:00`) : new Date()))
+const byStart = computed(() => props.course.opens === 'date' && !!props.course.starts_on)
+// All at once: every lesson opens right away, whatever waits it kept from before.
+const own = (l) => (l && props.course.opens === 'all' ? { open_on: null, drip_days: 0 } : l)
+// Calendar days, so a clock change never moves a lesson to the day before.
+const plus = (days) => {
+  const d = new Date(start.value)
+  d.setDate(d.getDate() + days)
+  return d
+}
+const startsLater = computed(() => byStart.value && props.course.starts_on > localToday())
+const dateOf = (days) => plus(days).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
 
 const all = computed(() => props.course.modules.flatMap((m) => m.lessons))
 const numberOf = (l) => all.value.indexOf(l) + 1
@@ -50,7 +60,7 @@ const opensAt = computed(() => {
   const out = new Map()
   let before = 0
   for (const l of all.value) {
-    let at = l.open_on ? fixedTime(l.open_on) : today.getTime() + (l.drip_days || 0) * 86400000
+    let at = own(l).open_on ? fixedTime(own(l).open_on) : plus(own(l).drip_days || 0).getTime()
     if (props.course.in_order) at = Math.max(at, before)
     out.set(l.id, at)
     before = at
@@ -62,23 +72,23 @@ const dateFor = (l) => new Date(opensAt.value.get(l.id)).toLocaleDateString(unde
 const waitsForPrev = (l) => {
   const prev = prevOf(l)
   if (!props.course.in_order || !prev) return false
-  const own = l.open_on ? fixedTime(l.open_on) : today.getTime() + (l.drip_days || 0) * 86400000
-  return own <= opensAt.value.get(prev.id)
+  const mine = own(l).open_on ? fixedTime(own(l).open_on) : plus(own(l).drip_days || 0).getTime()
+  return mine <= opensAt.value.get(prev.id)
 }
 // A wait appears only where days pass between one lesson and the next.
 const waitBefore = (l) => {
-  if (l.open_on || prevOf(l)?.open_on) return 0 // a fixed date isn't a wait counted from the start
+  if (own(l).open_on || own(prevOf(l))?.open_on) return 0 // a fixed date isn't a wait counted from the start
   // In order, the lesson can't open before any earlier one, so count from the latest of them.
-  const earlier = all.value.slice(0, all.value.indexOf(l)).filter((x) => !x.open_on)
-  const before = props.course.in_order ? Math.max(0, ...earlier.map((x) => x.drip_days || 0)) : prevOf(l)?.drip_days || 0
-  return Math.max(0, (l.drip_days || 0) - before)
+  const earlier = all.value.slice(0, all.value.indexOf(l)).filter((x) => !own(x).open_on)
+  const before = props.course.in_order ? Math.max(0, ...earlier.map((x) => own(x).drip_days || 0)) : own(prevOf(l))?.drip_days || 0
+  return Math.max(0, (own(l).drip_days || 0) - before)
 }
 const sectionRange = (m) => {
-  const d = m.lessons.filter((l) => !l.open_on).map((l) => l.drip_days || 0)
+  const d = m.lessons.filter((l) => !own(l).open_on).map((l) => own(l).drip_days || 0)
   if (!d.length) return ''
   const lo = Math.min(...d)
   const hi = Math.max(...d)
-  if (!hi) return t.__('right away', 'membuild-community')
+  if (!hi) return byStart.value ? t.__('on the start day', 'membuild-community') : t.__('right away', 'membuild-community')
   return lo === hi ? t.sprintf(/* translators: %d: day */ t.__('day %d', 'membuild-community'), lo) : t.sprintf(/* translators: 1: first day, 2: last day */ t.__('days %1$d–%2$d', 'membuild-community'), lo, hi)
 }
 
@@ -176,7 +186,7 @@ const confetti = Array.from({ length: 28 }, (_, i) => {
 
 const lessonsLabel = (n) => t.sprintf(/* translators: %d: number of lessons */ t._n('%d lesson', '%d lessons', n, 'membuild-community'), n)
 const opensLabel = (l) =>
-  waitsForPrev(l) ? t.sprintf(/* translators: %d: lesson number */ t.__('After lesson %d', 'membuild-community'), numberOf(l) - 1) : l.open_on ? t.__('On a set date', 'membuild-community') : l.drip_days > 0 ? t.sprintf(/* translators: %d: days */ t._n('After %d day', 'After %d days', l.drip_days, 'membuild-community'), l.drip_days) : t.__('Right away', 'membuild-community')
+  waitsForPrev(l) ? t.sprintf(/* translators: %d: lesson number */ t.__('After lesson %d', 'membuild-community'), numberOf(l) - 1) : own(l).open_on ? t.__('On a set date', 'membuild-community') : own(l).drip_days > 0 ? (byStart.value ? t.sprintf(/* translators: %d: days */ t._n('%d day after the start', '%d days after the start', own(l).drip_days, 'membuild-community'), own(l).drip_days) : t.sprintf(/* translators: %d: days */ t._n('After %d day', 'After %d days', own(l).drip_days, 'membuild-community'), own(l).drip_days)) : byStart.value ? t.__('On the start day', 'membuild-community') : t.__('Right away', 'membuild-community')
 const waitLabel = (d, first) =>
   first ? t.sprintf(/* translators: %d: days */ t._n('Wait %d day', 'Wait %d days', d, 'membuild-community'), d) : t.sprintf(/* translators: %d: days */ t._n('Wait %d more day', 'Wait %d more days', d, 'membuild-community'), d)
 const onLabel = (u) =>
@@ -194,7 +204,7 @@ const popTitle = computed(() => {
   if (o.kind === 'waiting') return t.sprintf(/* translators: %d: members */ t._n('%d member waiting for it to open', '%d members waiting for it to open', o.n, 'membuild-community'), o.n)
   return t.sprintf(/* translators: %d: members */ t._n('%d member on this lesson', '%d members on this lesson', o.n, 'membuild-community'), o.n)
 })
-const samStarts = computed(() => t.sprintf(/* translators: %s: a date */ t.__('Pretend a member named Sam starts this course on %s.', 'membuild-community'), dateOf(0)))
+const samStarts = computed(() => (byStart.value ? t.sprintf(/* translators: %s: a date */ (byStart.value && props.course.starts_on < localToday() ? t.__('This course started on %s.', 'membuild-community') : t.__('This course starts on %s.', 'membuild-community')), dateOf(0)) : t.sprintf(/* translators: %s: a date */ t.__('Pretend a member named Sam starts this course on %s.', 'membuild-community'), dateOf(0))))
 const finishPoints = computed(() => props.course.finish_points ?? 20)
 // The bonus the owner set for finishing a course (Points settings); none when it's 0.
 const finishNote = computed(() =>
@@ -225,7 +235,7 @@ const isFirstWait = (l) => {
       <div class="mini-body">
         <strong>{{ course.title }}</strong>
         <small v-if="course.description">{{ course.description }}</small>
-        <span>{{ t.__('Start course', 'membuild-community') }} · {{ lessonsLabel(all.length) }}</span>
+        <span>{{ startsLater ? t.sprintf(/* translators: %s: a date */ t.__('Starts %s', 'membuild-community'), start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })) : t.__('Start course', 'membuild-community') }} · {{ lessonsLabel(all.length) }}</span>
       </div>
     </div>
     <span class="arrow" />
@@ -234,12 +244,13 @@ const isFirstWait = (l) => {
       <span class="badge"><Icon name="user" :size="20" /></span>
       <span class="step-text">
         <small>{{ t.__('Start', 'membuild-community') }}</small>
-        <strong>{{ t.__('A member starts the course', 'membuild-community') }}</strong>
+        <strong>{{ byStart ? t.__('The course starts', 'membuild-community') : t.__('A member starts the course', 'membuild-community') }}</strong>
       </span>
       <span class="chip dark"><Icon name="users" :size="15" /> {{ live ? live.started : '…' }}</span>
       <div class="example">
-        <span class="status-tag dark">{{ t.__('Example only', 'membuild-community') }}</span>
-        <p>{{ samStarts }} {{ t.__('The black dates on the right show when each lesson would open for Sam. Every member gets their own dates, counted from the day they start.', 'membuild-community') }}</p>
+        <span v-if="course.opens === 'join'" class="status-tag dark">{{ t.__('Example only', 'membuild-community') }}</span>
+        <p v-if="course.opens === 'all'">{{ t.__('Every lesson is open from the start.', 'membuild-community') }}</p>
+        <p v-else>{{ samStarts }} {{ byStart ? t.__('The black dates on the right show when each lesson opens. Everyone in the course gets the same dates.', 'membuild-community') : t.__('The black dates on the right show when each lesson would open for Sam. Every member gets their own dates, counted from the day they start.', 'membuild-community') }}</p>
       </div>
     </div>
 
@@ -253,7 +264,7 @@ const isFirstWait = (l) => {
       </template>
       <template v-else-if="m === course.modules[0]">
         <span class="arrow" />
-        <span class="wait none" :class="{ on: playing && lit >= 1 }"><Icon name="clock" :size="16" /> {{ t.__('No wait: opens right away', 'membuild-community') }}</span>
+        <span class="wait none" :class="{ on: playing && lit >= 1 }"><Icon name="clock" :size="16" /> {{ byStart ? t.__('No wait: opens on the start day', 'membuild-community') : t.__('No wait: opens right away', 'membuild-community') }}</span>
       </template>
       <span class="arrow" />
 

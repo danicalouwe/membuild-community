@@ -99,6 +99,7 @@ const linkTo = (c) =>
 const editCourse = (c) => router.push({ name: 'course', params: { courseId: c.id }, query: { edit: 1 } })
 const lessonOf = (c) => t.sprintf(/* translators: 1: lesson number, 2: number of lessons */ t.__('Lesson %1$d of %2$d', 'membuild-community'), c.next_lesson.number, c.lessons_count)
 const lessonsLabel = (n) => t.sprintf(/* translators: %d: number of lessons */ t._n('%d lesson', '%d lessons', n, 'membuild-community'), n)
+const startsOn = (iso) => t.sprintf(/* translators: %s: a date, e.g. "Nov 16" */ t.__('Starts %s', 'membuild-community'), new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))
 const doneOf = (c) => t.sprintf(/* translators: 1: lessons finished, 2: lessons in the course */ t.__('%1$d of %2$d lessons', 'membuild-community'), c.completed_count, c.lessons_count)
 const membersLabel = (n) => t.sprintf(/* translators: %d: members taking the course */ t._n('%d member', '%d members', n, 'membuild-community'), n)
 const postsLabel = (n) => t.sprintf(/* translators: %d: number of posts */ t._n('%d post', '%d posts', n, 'membuild-community'), n)
@@ -212,6 +213,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
               <span class="foot-left">{{ !c.lock && stateOf(c) !== 'new' ? doneOf(c) : c.lessons_count ? lessonsLabel(c.lessons_count) : '' }}</span>
               <span v-if="c.lock" class="state locked-state"><Icon name="lock" :size="15" /> {{ lockFoot(c.lock) }}</span>
               <span v-else-if="stateOf(c) === 'done'" class="state done-state"><Icon name="check" :size="16" /> {{ t.__('Completed', 'membuild-community') }}</span>
+              <span v-else-if="c.starts_soon" class="state"><Icon name="calendar" :size="15" /> {{ startsOn(c.starts_soon) }}</span>
               <span v-else-if="stateOf(c) === 'going'" class="state go">{{ t.__('Continue', 'membuild-community') }} <Icon name="arrowRight" :size="16" /></span>
               <span v-else-if="c.lessons_count" class="state go">{{ t.__('Start course', 'membuild-community') }} <Icon name="arrowRight" :size="16" /></span>
               <span v-else class="state">{{ t.__('Coming soon', 'membuild-community') }}</span>

@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) || exit;
 final class Plugin {
 
 	/** Registered as soon as the plugin loads. */
-	const HOOKS = array( Media::class, Files::class, Blocks::class, Bunny::class, Health::class, Privacy::class, Menu::class, Login::class, Access::class, Email::class, Updater::class, Usage::class, Search::class, Events::class, Problems::class, Import::class, Starter_Pages::class );
+	const HOOKS = array( Media::class, Files::class, Blocks::class, Bunny::class, Health::class, Privacy::class, Menu::class, Login::class, Access::class, Email::class, Updater::class, Usage::class, Search::class, Events::class, Problems::class, Import::class, Starter_Pages::class, Rest_Courses::class );
 
 	/** Registered on init, once translations, roles and post types exist. */
 	const INIT = array( Portal::class, Rest_Members::class, Notifications::class, Points::class, Fluent_Cart::class );

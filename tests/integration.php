@@ -2788,6 +2788,132 @@ mbcom_check( '…an address without https:// gets it', 200 === $s && 'https://ex
 list( $s, $on_ok ) = mbcom_call( $admin, 'PUT', '/settings', array( 'terms_url' => '' ) );
 mbcom_check( '…and an empty one clears it', 200 === $s && '' === ( $on_ok['settings']['terms_url'] ?? null ), (string) $s );
 
+// A deleted member's alerts go with them: their own, and their name in everyone else's.
+$du_owner = mbcom_user( 'mbct_du_owner' );
+$du_gone  = mbcom_user( 'mbct_du_gone' );
+$du_stay  = mbcom_user( 'mbct_du_stay' );
+\MemBuild\Community\Notifications::notify( $du_owner, 'post_reaction', 'post', 990001, 990001, $du_gone, array( 'snippet' => 'Only them' ) );
+\MemBuild\Community\Notifications::notify( $du_owner, 'post_reaction', 'post', 990002, 990002, $du_stay, array( 'snippet' => 'Both' ) );
+\MemBuild\Community\Notifications::notify( $du_owner, 'post_reaction', 'post', 990002, 990002, $du_gone, array( 'snippet' => 'Both' ) );
+\MemBuild\Community\Notifications::notify( $du_gone, 'level_up', 'level', 2, 0, 0, array( 'level' => 2 ) );
+wp_delete_user( $du_gone );
+$du_rows = $wpdb->get_results( $wpdb->prepare( 'SELECT object_id, actor_ids, actors_count FROM %i WHERE user_id = %d', $on_notes, $du_owner ), ARRAY_A );
+mbcom_check( 'deleting a member removes alerts that were only about them', ! array_filter( $du_rows, fn( $r ) => 990001 === (int) $r['object_id'] ) );
+$du_both = array_values( array_filter( $du_rows, fn( $r ) => 990002 === (int) $r['object_id'] ) )[0] ?? array();
+mbcom_check( '…keeps a shared alert with only the others in it', (string) $du_stay === ( $du_both['actor_ids'] ?? '' ) && 1 === (int) ( $du_both['actors_count'] ?? 0 ), wp_json_encode( $du_both ) );
+mbcom_check( '…and removes their own alerts', 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE user_id = %d', $on_notes, $du_gone ) ) );
+$wpdb->delete( $on_notes, array( 'user_id' => $du_owner ) );
+wp_delete_user( $du_owner );
+wp_delete_user( $du_stay );
+
+// How a course opens: all at once, from when they join, or on a start date (everyone together).
+$sd_forget = function () {
+	foreach ( array( 'starts', 'recorded', 'timings' ) as $prop ) {
+		$p = new ReflectionProperty( \MemBuild\Community\Rest_Courses::class, $prop );
+		$p->setAccessible( true );
+		$p->setValue( null, array() );
+	}
+};
+$sd_day   = fn( $days ) => wp_date( 'Y-m-d', time() + $days * DAY_IN_SECONDS );
+list( , $sd_c ) = mbcom_call( $admin, 'POST', '/courses', array( 'title' => 'Group course' ) );
+$sd_mod   = $sd_c['modules'][0]['id'];
+list( , $sd_l1 ) = mbcom_call( $admin, 'POST', "/modules/{$sd_mod}/lessons", array( 'title' => 'Day one' ) );
+list( , $sd_l2 ) = mbcom_call( $admin, 'POST', "/modules/{$sd_mod}/lessons", array( 'title' => 'A week in' ) );
+mbcom_call( $admin, 'PUT', "/lessons/{$sd_l2['id']}", array( 'drip_days' => 7 ) );
+list( , $sd_v ) = mbcom_call( $admin, 'PUT', "/courses/{$sd_c['id']}", array( 'status' => 'published' ) );
+mbcom_check( 'a course never asked how it opens reads "from when they join" when a lesson waits', 'join' === $sd_v['opens'] && null === $sd_v['starts_on'], wp_json_encode( array( $sd_v['opens'], $sd_v['starts_on'] ) ) );
+$sd_m = mbcom_user( 'mbct_cohort' );
+list( , $sd_v ) = mbcom_call( $admin, 'PUT', "/courses/{$sd_c['id']}", array( 'opens' => 'all' ) );
+$sd_forget();
+list( , $sd_v ) = mbcom_call( $sd_m, 'GET', "/courses/{$sd_c['id']}" );
+mbcom_check( 'all at once: every lesson is open, whatever wait it kept', 'all' === $sd_v['opens'] && ! array_filter( $sd_v['modules'][0]['lessons'], fn( $l ) => $l['locked'] ) );
+list( , $sd_v ) = mbcom_call( $admin, 'PUT', "/courses/{$sd_c['id']}", array( 'opens' => 'date' ) );
+mbcom_check( 'picking a start date with none set starts it a week from today', 'date' === $sd_v['opens'] && $sd_day( 7 ) === $sd_v['starts_on'], (string) $sd_v['starts_on'] );
+mbcom_call( $admin, 'PUT', "/courses/{$sd_c['id']}", array( 'starts_on' => $sd_day( 10 ) ) );
+$sd_forget();
+list( , $sd_v ) = mbcom_call( $sd_m, 'GET', "/courses/{$sd_c['id']}" );
+$sd_ls    = array_column( $sd_v['modules'][0]['lessons'], null, 'id' );
+$sd_start = \MemBuild\Community\Rest_Courses::date_ts( $sd_day( 10 ) );
+mbcom_check( 'before the start date, the first lesson opens on it', true === $sd_ls[ $sd_l1['id'] ]['locked'] && gmdate( 'c', $sd_start ) === $sd_ls[ $sd_l1['id'] ]['unlock_at'], (string) $sd_ls[ $sd_l1['id'] ]['unlock_at'] );
+mbcom_check( '…and a 7-day lesson a week after it, the same for everyone', gmdate( 'c', \MemBuild\Community\Rest_Courses::date_ts( $sd_day( 17 ) ) ) === $sd_ls[ $sd_l2['id'] ]['unlock_at'], (string) $sd_ls[ $sd_l2['id'] ]['unlock_at'] );
+mbcom_check( '…seeing the course counts the member in, so they hear when lessons open', '1' === $wpdb->get_var( $wpdb->prepare( 'SELECT 1 FROM %i WHERE user_id = %d AND course_id = %d', $on_starts, $sd_m, $sd_c['id'] ) ) );
+$sd_forget();
+list( $s ) = mbcom_call( $sd_m, 'GET', "/lessons/{$sd_l1['id']}" );
+mbcom_check( '…and the lesson itself stays shut until then', 403 === $s, (string) $s );
+mbcom_call( $admin, 'PUT', "/courses/{$sd_c['id']}", array( 'starts_on' => $sd_day( -5 ) ) );
+$sd_forget();
+list( , $sd_v ) = mbcom_call( $sd_m, 'GET', "/courses/{$sd_c['id']}" );
+$sd_ls = array_column( $sd_v['modules'][0]['lessons'], null, 'id' );
+mbcom_check( 'joining after the start: the lessons so far are open, later ones keep the group’s date', false === $sd_ls[ $sd_l1['id'] ]['locked'] && gmdate( 'c', \MemBuild\Community\Rest_Courses::date_ts( $sd_day( 2 ) ) ) === $sd_ls[ $sd_l2['id'] ]['unlock_at'], wp_json_encode( $sd_ls[ $sd_l2['id'] ] ) );
+foreach ( array( '2026-02-30', '0000-00-00', '9999-12-31', 'soon' ) as $sd_bad ) {
+	list( $s ) = mbcom_call( $admin, 'PUT', "/courses/{$sd_c['id']}", array( 'starts_on' => $sd_bad ) );
+	mbcom_check( "a start date that isn't a real day is refused ({$sd_bad})", 400 === $s, (string) $s );
+}
+list( $s ) = mbcom_call( $admin, 'PUT', "/courses/{$sd_c['id']}", array( 'opens' => 'bogus' ) );
+mbcom_check( '…and so is a way of opening that doesn’t exist', 400 === $s, (string) $s );
+list( $s ) = mbcom_call( $sd_m, 'PUT', "/courses/{$sd_c['id']}", array( 'opens' => 'all' ) );
+mbcom_check( '…and a member can’t change how a course opens', 403 === $s || 401 === $s, (string) $s );
+$sd_forget();
+$sd_m2 = mbcom_user( 'mbct_cohort_late' );
+mbcom_call( $sd_m2, 'GET', "/courses/{$sd_c['id']}" );
+mbcom_check( 'seeing the course after it began counts them in from the course’s start, not the day they looked', gmdate( 'Y-m-d H:i:s', \MemBuild\Community\Rest_Courses::date_ts( $sd_day( -5 ) ) ) === $wpdb->get_var( $wpdb->prepare( 'SELECT started_at FROM %i WHERE user_id = %d AND course_id = %d', $on_starts, $sd_m2, $sd_c['id'] ) ) );
+$wpdb->delete( $on_starts, array( 'user_id' => $sd_m2 ) );
+wp_delete_user( $sd_m2 );
+// Moving the start earlier opens lessons now: the members waiting hear at once.
+$wpdb->delete( $on_notes, array( 'user_id' => $sd_m ) );
+wp_unschedule_hook( \MemBuild\Community\Rest_Courses::TELL_HOOK ); // alerts queued by the steps above
+mbcom_call( $admin, 'PUT', "/courses/{$sd_c['id']}", array( 'starts_on' => $sd_day( -8 ) ) );
+$sd_later = function () { // the alerts go out in the background; run them now
+	foreach ( _get_cron_array() as $sd_at => $sd_hooks ) {
+		foreach ( $sd_hooks[ \MemBuild\Community\Rest_Courses::TELL_HOOK ] ?? array() as $sd_ev ) {
+			do_action_ref_array( \MemBuild\Community\Rest_Courses::TELL_HOOK, $sd_ev['args'] );
+			wp_unschedule_event( $sd_at, \MemBuild\Community\Rest_Courses::TELL_HOOK, $sd_ev['args'] );
+		}
+	}
+};
+$sd_later();
+$sd_alerts = $wpdb->get_col( $wpdb->prepare( "SELECT object_id FROM %i WHERE user_id = %d AND type = 'lesson_open'", $on_notes, $sd_m ) );
+mbcom_check( 'an earlier start date tells waiting members the lessons it opened', array( (string) $sd_l2['id'] ) === $sd_alerts, wp_json_encode( $sd_alerts ) );
+$sd_later();
+mbcom_call( $admin, 'PUT', "/courses/{$sd_c['id']}", array( 'starts_on' => $sd_day( 20 ) ) );
+mbcom_call( $admin, 'PUT', "/courses/{$sd_c['id']}", array( 'starts_on' => $sd_day( -8 ) ) );
+$sd_later();
+$sd_forget();
+update_option( \MemBuild\Community\Rest_Courses::OPENED_OPTION, \MemBuild\Community\Rest_Courses::date_ts( $sd_day( -9 ) ), false );
+\MemBuild\Community\Rest_Courses::notify_opened();
+mbcom_check( '…and a late hourly run or a second move doesn’t tell them twice', 1 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE user_id = %d AND type = 'lesson_open' AND object_id = %d", $on_notes, $sd_m, $sd_l2['id'] ) ) );
+// A start date saved by an older version that isn't a real day: read as never chosen, and a save puts in a real one.
+$wpdb->update( $on_courses_tbl = \MemBuild\Community\Install::table( 'courses' ), array( 'starts_on' => '0000-00-00' ), array( 'id' => $sd_c['id'] ) );
+$sd_forget();
+list( , $sd_o ) = mbcom_call( $admin, 'GET', "/courses/{$sd_c['id']}" );
+mbcom_check( 'a broken saved start date isn’t shown as one', 'date' !== ( $sd_o['opens'] ?? '' ) && null === ( $sd_o['starts_on'] ?? null ), wp_json_encode( array( $sd_o['opens'] ?? null, $sd_o['starts_on'] ?? null ) ) );
+list( , $sd_o ) = mbcom_call( $admin, 'PUT', "/courses/{$sd_c['id']}", array( 'title' => $sd_c['title'] ) );
+mbcom_check( '…and saving the course puts in a real one', 'date' === ( $sd_o['opens'] ?? '' ) && \MemBuild\Community\Rest_Courses::valid_day( $sd_o['starts_on'] ?? '' ), wp_json_encode( array( $sd_o['opens'] ?? null, $sd_o['starts_on'] ?? null ) ) );
+mbcom_call( $admin, 'PUT', "/courses/{$sd_c['id']}", array( 'starts_on' => $sd_day( -8 ) ) );
+$sd_later();
+$wpdb->delete( $on_notes, array( 'user_id' => $sd_m ) );
+// A finished lesson stays open everywhere, even when the start moves later.
+$wpdb->insert( $on_courses, array( 'user_id' => $sd_m, 'lesson_id' => $sd_l1['id'], 'course_id' => $sd_c['id'], 'completed_at' => gmdate( 'Y-m-d H:i:s' ) ) );
+mbcom_call( $admin, 'PUT', "/courses/{$sd_c['id']}", array( 'starts_on' => $sd_day( 20 ) ) );
+$sd_forget();
+wp_set_current_user( $sd_m );
+$sd_open = \MemBuild\Community\Discussions::open();
+wp_set_current_user( 0 );
+mbcom_check( 'a lesson they finished stays open for posts and search after the start moves later', in_array( (int) $sd_l1['id'], $sd_open['lessons'] ?? array(), true ), wp_json_encode( $sd_open ) );
+$wpdb->delete( $on_courses, array( 'user_id' => $sd_m ) );
+// The hourly run tells everyone in when a lesson opens on its day.
+mbcom_call( $admin, 'PUT', "/courses/{$sd_c['id']}", array( 'starts_on' => $sd_day( -7 ) ) );
+$sd_forget();
+$sd_later();
+$wpdb->delete( $on_notes, array( 'user_id' => $sd_m ) ); // the change itself already told them; now the hourly run
+update_option( \MemBuild\Community\Rest_Courses::OPENED_OPTION, \MemBuild\Community\Rest_Courses::date_ts( $sd_day( 0 ) ) - 60, false );
+\MemBuild\Community\Rest_Courses::notify_opened();
+$sd_alerts = $wpdb->get_col( $wpdb->prepare( "SELECT object_id FROM %i WHERE user_id = %d AND type = 'lesson_open'", $on_notes, $sd_m ) );
+mbcom_check( 'on the day a lesson opens, members in the course get an alert', in_array( (string) $sd_l2['id'], $sd_alerts, true ) && ! in_array( (string) $sd_l1['id'], $sd_alerts, true ), wp_json_encode( $sd_alerts ) );
+$wpdb->delete( $on_notes, array( 'user_id' => $sd_m ) );
+mbcom_call( $admin, 'DELETE', "/courses/{$sd_c['id']}" );
+wp_delete_user( $sd_m );
+
 /* ---------------------------------------------------------------- */
 echo "\n{$GLOBALS['mbcom_passed']} passed, {$GLOBALS['mbcom_failed']} failed\n";
 if ( $GLOBALS['mbcom_failed'] ) {

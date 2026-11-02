@@ -5,7 +5,7 @@ import { api } from '../api.js'
 import Avatar from './Avatar.vue'
 import Icon from './Icon.vue'
 import { lockHint, lockLabel } from '../lib/access.js'
-import { timeAgo } from '../lib/time.js'
+import { siteDay, timeAgo } from '../lib/time.js'
 import { renderMarkdown } from '../lib/markdown.js'
 import { t } from '../lib/i18n.js'
 
@@ -22,7 +22,11 @@ const next = computed(() => lessons.value.find((l) => !l.completed && !l.locked)
 // The course's length only when every lesson's is known (a video without one would make it look shorter).
 const sum = (list) => (list.length && list.every((l) => l.minutes) ? list.reduce((n, l) => n + l.minutes, 0) : 0)
 const minutes = computed(() => sum(lessons.value))
-const started = computed(() => props.course.completed_count > 0)
+// Started = opened a lesson (the drip clock starts then), not only finished one, like the lesson page.
+// On a start date, seeing the course counts them in; that isn't starting it.
+const started = computed(() => props.course.completed_count > 0 || (!!props.course.started_on && props.course.opens !== 'date'))
+// On a start date and before it: every lesson still waits for the day.
+const startsOn = computed(() => (props.course.opens === 'date' && props.course.starts_on && !props.course.lock && lessons.value.length && lessons.value.every((l) => l.locked && l.unlock_at) ? new Date(`${props.course.starts_on}T00:00:00`) : null))
 const numberOf = (l) => lessons.value.indexOf(l) + 1
 const fallback = (id) => `linear-gradient(135deg, hsl(${(id * 67) % 360} 65% 55%), hsl(${(id * 67 + 50) % 360} 60% 38%))`
 
@@ -64,7 +68,7 @@ const repliesLabel = (n) => t.sprintf(/* translators: %d: number of replies */ t
 const helpfulLabel = (n) => t.sprintf(/* translators: %d: members who found the post helpful */ t.__('%d found this helpful', 'membuild-community'), n)
 const allPosts = (n) => t.sprintf(/* translators: %d: number of posts */ t._n('See all %d post', 'See all %d posts', n, 'membuild-community'), n)
 const completedOf = (done, total) => t.sprintf(/* translators: 1: lessons completed, 2: lessons in the course */ t.__('%1$d/%2$d lessons completed', 'membuild-community'), done, total)
-const opensOn = (iso) => t.sprintf(/* translators: %s: a date, e.g. "Thu, Oct 29" */ t.__('Opens %s', 'membuild-community'), new Date(iso).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }))
+const opensOn = (iso) => t.sprintf(/* translators: %s: a date, e.g. "Thu, Oct 29" */ t.__('Opens %s', 'membuild-community'), siteDay(iso, { weekday: 'short', month: 'short', day: 'numeric' }))
 const afterStart = (n) => t.sprintf(/* translators: %d: days */ t._n('Opens %d day after you start', 'Opens %d days after you start', n, 'membuild-community'), n)
 const moduleMeta = (m) => [lessonsLabel(m.lessons.length), sum(m.lessons) ? minLabel(sum(m.lessons)) : ''].filter(Boolean).join(' · ')
 const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…` : text)
@@ -94,6 +98,13 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
           <span>
             <strong>{{ lockLabel(course.lock) }}</strong>
             <p v-if="lockHint(course.lock)">{{ lockHint(course.lock) }}</p>
+          </span>
+        </div>
+        <div v-else-if="startsOn" class="ov-starts">
+          <span class="ov-cal"><small>{{ startsOn.toLocaleDateString(undefined, { month: 'short' }) }}</small><strong>{{ startsOn.getDate() }}</strong></span>
+          <span>
+            <strong>{{ t.sprintf(/* translators: %s: a date, e.g. "Monday, November 16" */ t.__('Starts %s', 'membuild-community'), startsOn.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })) }}</strong>
+            <small>{{ t.__('You’re in. Lesson 1 opens then, and we’ll let you know.', 'membuild-community') }}</small>
           </span>
         </div>
         <div v-else-if="lessons.length" class="ov-progress">
@@ -133,7 +144,7 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
               <span v-if="l.files"><Icon name="paperclip" :size="15" /> {{ filesLabel(l.files) }}</span>
             </small>
           </span>
-          <span v-if="l.unlock_at && l.locked && !course.lock" class="ov-opens"><Icon name="lock" :size="14" /> {{ started ? opensOn(l.unlock_at) : afterStart(l.drip_days) }}</span>
+          <span v-if="l.unlock_at && l.locked && !course.lock" class="ov-opens"><Icon name="lock" :size="14" /> {{ started || course.opens === 'date' ? opensOn(l.unlock_at) : afterStart(l.drip_days) }}</span>
           <span v-else-if="next && l.id === next.id && !course.lock" class="btn btn-dark ov-go">{{ started ? t.__('Continue', 'membuild-community') : t.__('Start', 'membuild-community') }} <Icon name="arrowRight" :size="16" /></span>
           <Icon v-else-if="!course.lock" name="chevronRight" :size="20" class="ov-chev" />
         </button>
@@ -337,6 +348,61 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
 
 .ov-lockbox p {
   font-size: var(--fs-base) !important;
+}
+
+.ov-starts {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: var(--radius-xl);
+  background: var(--accent-soft);
+}
+
+.ov-starts > span:last-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.ov-starts > span:last-child strong {
+  display: block;
+  font-size: var(--fs-lg);
+}
+
+.ov-starts > span:last-child small {
+  display: block;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+.ov-cal {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 52px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  color: var(--ink);
+  line-height: 1.1;
+  box-shadow: var(--shadow-sm);
+}
+
+.ov-cal small {
+  align-self: stretch;
+  padding: 3px 8px;
+  background: var(--date-month);
+  color: var(--date-month-text);
+  font-size: var(--fs-2xs);
+  font-weight: 800;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.ov-cal strong {
+  padding: 3px 8px 5px;
+  font-size: var(--fs-xl);
 }
 
 .ov-lockbox p,
@@ -635,6 +701,26 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
 
   .ov-go {
     padding: 0 14px;
+  }
+}
+
+/* Phones: the "Opens …" pill goes under the title, so long titles keep their width. */
+@media (max-width: 599px) {
+  .ov-row:has(.ov-opens) {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .ov-row:has(.ov-opens) .ov-ltext {
+    flex: 1 1 calc(100% - 48px); /* the whole line beside the mark, so the pill always drops below */
+  }
+
+  .ov-opens {
+    order: 3;
+    height: 32px;
+    margin-left: 44px; /* under the title: the 32px mark and the 12px gap */
+    padding: 0 12px;
+    font-size: var(--fs-sm);
   }
 
   .ov-saying {

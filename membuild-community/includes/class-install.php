@@ -408,6 +408,8 @@ class Install {
 			about mediumtext NULL,
 			questions_off tinyint(1) NOT NULL DEFAULT 0,
 			in_order tinyint(1) NOT NULL DEFAULT 0,
+			open_mode varchar(8) NOT NULL DEFAULT '',
+			starts_on date NULL,
 			sort_order int(10) NOT NULL DEFAULT 0,
 			created_by bigint(20) unsigned NOT NULL,
 			created_at datetime NOT NULL,

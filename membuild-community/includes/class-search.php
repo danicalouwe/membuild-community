@@ -379,9 +379,11 @@ class Search {
 			ARRAY_A
 		);
 		// phpcs:enable
+		Rest_Courses::prime_timings( array_keys( $courses ) );
+		$finished = Rest_Courses::finished_in( array_keys( $courses ) ); // a finished lesson stays open
 		foreach ( $lessons as $l ) {
 			$course = $courses[ (int) $l['course_id'] ];
-			$unlock = $course['lock'] ? null : Rest_Courses::unlock_at( (int) $l['drip_days'], (int) $l['course_id'], $l['open_on'] );
+			$unlock = $course['lock'] || isset( $finished[ (int) $l['id'] ] ) ? null : Rest_Courses::unlock_at( (int) $l['drip_days'], (int) $l['course_id'], $l['open_on'] );
 			if ( ! $l['by_title'] && $unlock ) {
 				continue; // matched only by text the member can't read yet
 			}

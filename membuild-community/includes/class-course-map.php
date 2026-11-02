@@ -56,6 +56,7 @@ class Course_Map {
 		}
 
 		$now      = time();
+		$timing   = Rest_Courses::timing( $id );
 		$steps    = array(); // lesson id => { on: [user ids], waiting: [user ids] }
 		$finished = array();
 		$since    = array();
@@ -78,7 +79,15 @@ class Course_Map {
 				}
 				continue;
 			}
-			$opens         = $next['open_on'] ? Rest_Courses::date_ts( $next['open_on'] ) : $started + (int) $next['drip_days'] * DAY_IN_SECONDS;
+			if ( 'all' === $timing['mode'] ) {
+				$opens = 0; // all at once
+			} elseif ( $next['open_on'] ) {
+				$opens = Rest_Courses::date_ts( $next['open_on'] );
+			} elseif ( 'date' === $timing['mode'] ) {
+				$opens = Rest_Courses::date_ts( Rest_Courses::days_after( $timing['starts_on'], $next['drip_days'] ) ); // from the course's start date
+			} else {
+				$opens = $started + (int) $next['drip_days'] * DAY_IN_SECONDS;
+			}
 			$since[ $u ]   = max( $started, isset( $last[ $u ] ) ? strtotime( $last[ $u ] . ' UTC' ) : 0 );
 			$which         = $opens > $now ? 'waiting' : 'on';
 			$steps[ (int) $next['id'] ][ $which ][] = $u;

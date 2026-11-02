@@ -136,6 +136,8 @@ class Portal {
 			// wp_logout_url() is HTML-escaped (&amp;); the app needs the plain URL or the nonce gets lost.
 			'logoutUrl' => html_entity_decode( wp_logout_url( Login::enabled() ? Login::url( 'login', array( 'loggedout' => '1' ) ) : home_url() ) ),
 			'siteUrl'   => add_query_arg( 'mbcom_site', '1', home_url( '/' ) ),
+			'siteZone'  => Helpers::zone_name(), // lesson opening days are the site's calendar days
+			'siteOffset' => (int) ( wp_timezone()->getOffset( new \DateTimeImmutable() ) / 60 ), // minutes, for a fixed offset like +05:30 with no zone name
 			'adminUrl'  => Helpers::can_manage() ? admin_url( 'admin.php?page=membuild-community' ) : '', // the plugin's Community overview in wp-admin
 			'shortcuts' => array(
 				'items'   => Menu::items(),

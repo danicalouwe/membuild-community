@@ -11,6 +11,7 @@ import CourseMap from './CourseMap.vue'
 import RichEditor from './RichEditor.vue'
 import Icon from './Icon.vue'
 import { t } from '../lib/i18n.js'
+import { localToday, realDay } from '../lib/time.js'
 import { offerButton } from '../lib/offer.js'
 
 /**
@@ -27,6 +28,47 @@ const emit = defineEmits(['update:course', 'exit', 'preview'])
 const route = useRoute()
 const router = useRouter()
 const part = computed(() => (['settings', 'map'].includes(route.query.part) ? route.query.part : 'lessons'))
+// "Change it in Course settings": open Settings at the question itself.
+async function toOpens() {
+  await setPart('settings')
+  await nextTick()
+  // after the router's own scroll to the top
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+  const el = document.getElementById('cb-opens')
+  el?.scrollIntoView({ block: 'center' })
+  el?.closest('fieldset')?.querySelector('input:checked')?.focus({ preventScroll: true })
+}
+// "What's the difference?": a panel under the link (a sheet on phones). Esc or a click outside closes it.
+const helpOpen = ref(false)
+const helpBtn = ref(null)
+const helpPanel = ref(null)
+async function toggleHelp() {
+  helpOpen.value = !helpOpen.value
+  if (helpOpen.value) {
+    await nextTick()
+    helpPanel.value?.querySelector('button')?.focus()
+  }
+}
+function closeHelp() {
+  if (!helpOpen.value) return
+  helpOpen.value = false
+  helpBtn.value?.focus()
+}
+function helpKey(e) {
+  if (e.key === 'Escape' && helpOpen.value) {
+    e.stopPropagation()
+    closeHelp()
+  }
+}
+function helpOutside(e) {
+  if (helpOpen.value && !helpPanel.value?.contains(e.target) && !helpBtn.value?.contains(e.target)) helpOpen.value = false
+}
+document.addEventListener('keydown', helpKey, true)
+document.addEventListener('pointerdown', helpOutside, true)
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', helpKey, true)
+  document.removeEventListener('pointerdown', helpOutside, true)
+})
 const setPart = (p) => router.replace({ name: 'course', params: { courseId: props.course.id }, query: { edit: 1, part: p === 'lessons' ? undefined : p } })
 
 const modules = computed(() => props.course.modules)
@@ -226,6 +268,16 @@ function saveCourse(patch, wait = 0) {
   }, wait)
 }
 const retrySettings = () => saveCourse({}, 0)
+// The start date saves when the owner leaves the box (or presses Enter), once it's a real day:
+// saving while they type would cut the year short.
+const startDraft = ref('')
+watch(() => props.course.starts_on, (v) => (startDraft.value = v || ''), { immediate: true })
+function saveStart() {
+  if (!realDay(startDraft.value)) return (startDraft.value = props.course.starts_on || '')
+  if (startDraft.value !== props.course.starts_on) saveCourse({ starts_on: startDraft.value })
+}
+const todayIso = localToday()
+const startPassed = computed(() => props.course.opens === 'date' && !!props.course.starts_on && props.course.starts_on < todayIso)
 watch(() => form.value.title, (v, old) => old !== undefined && v.trim() && v !== props.course.title && saveCourse({ title: v.trim() }, 900))
 watch(() => form.value.description, (v, old) => old !== undefined && v !== props.course.description && saveCourse({ description: v }, 900))
 watch(() => form.value.about, (v, old) => old !== undefined && v !== (props.course.about || '') && saveCourse({ about: v }, 1200))
@@ -306,10 +358,17 @@ const lessonsLabel = (n) => t.sprintf(/* translators: %d: number of lessons */ t
 const overview = computed(() =>
   t.sprintf(/* translators: 1: "10 lessons", 2: number of sections */ t._n('%1$s in %2$d section', '%1$s in %2$d sections', modules.value.length, 'membuild-community'), lessonsLabel(allLessons.value.length), modules.value.length),
 )
+const startPlus = (n) => {
+  const d = new Date(`${props.course.starts_on}T00:00:00`)
+  d.setDate(d.getDate() + n)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 const onDate = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-const opensLabel = (l) => (l.open_on ? t.sprintf(/* translators: %s: a date */ t.__('On %s', 'membuild-community'), onDate(l.open_on)) : l.drip_days > 0 ? t.sprintf(/* translators: %d: days */ t._n('After %d day', 'After %d days', l.drip_days, 'membuild-community'), l.drip_days) : t.__('Right away', 'membuild-community'))
+// In-order courses: a lesson with no wait of its own opens after the one before (as the Course map says).
+// One at a time comes first (as the Course map says): a lesson with no wait of its own opens after the one before.
+const opensLabel = (l) => (props.course.in_order && numberOf(l) > 1 && (props.course.opens === 'all' || (!l.open_on && !(l.drip_days > 0))) ? t.sprintf(/* translators: %d: lesson number */ t.__('After lesson %d', 'membuild-community'), numberOf(l) - 1) : props.course.opens === 'all' ? t.__('Right away', 'membuild-community') : props.course.opens === 'date' && !l.open_on ? (l.drip_days > 0 ? t.sprintf(/* translators: %s: a date */ t.__('On %s', 'membuild-community'), onDate(startPlus(l.drip_days))) : t.__('On the start day', 'membuild-community')) : props.course.in_order && numberOf(l) > 1 && !l.open_on && !(l.drip_days > 0) ? t.sprintf(/* translators: %d: lesson number */ t.__('After lesson %d', 'membuild-community'), numberOf(l) - 1) : l.open_on ? t.sprintf(/* translators: %s: a date */ t.__('On %s', 'membuild-community'), onDate(l.open_on)) : l.drip_days > 0 ? t.sprintf(/* translators: %d: days */ t._n('After %d day', 'After %d days', l.drip_days, 'membuild-community'), l.drip_days) : t.__('Right away', 'membuild-community'))
 const filesLabel = (n) => t.sprintf(/* translators: %d: number of files */ t._n('%d file', '%d files', n, 'membuild-community'), n)
-const allNow = (m) => m.lessons.length && m.lessons.every((l) => !(l.drip_days > 0) && !l.open_on)
+const allNow = (m) => m.lessons.length && (props.course.opens === 'all' || (props.course.opens !== 'date' && m.lessons.every((l) => !(l.drip_days > 0) && !l.open_on)))
 const moveToLabel = (m) => t.sprintf(/* translators: %s: section name */ t.__('Move to “%s”', 'membuild-community'), m.title)
 const publishTitle = computed(() => t.sprintf(/* translators: %s: course name */ t.__('Publish “%s”?', 'membuild-community'), props.course.title))
 const deleteTitle = computed(() => t.sprintf(/* translators: %s: course name */ t.__('Delete “%s” for good?', 'membuild-community'), props.course.title))
@@ -343,7 +402,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
     <!-- Lessons -->
     <template v-else-if="part === 'lessons'">
       <template v-if="lessonId">
-        <BuilderLessonEditor v-if="lesson" ref="editor" :lesson="lesson" :course="course" @saved="onSaved" @deleted="onDeleted" @go="editLesson" @done="backToList" />
+        <BuilderLessonEditor v-if="lesson" ref="editor" :lesson="lesson" :course="course" @saved="onSaved" @deleted="onDeleted" @go="editLesson" @done="backToList" @settings="toOpens" />
         <p v-else-if="lessonError" class="cb-error">{{ lessonError }}</p>
         <div v-else class="card cb-loading"><div class="skeleton" style="height: 24px; width: 50%" /></div>
       </template>
@@ -527,6 +586,54 @@ const counter = computed(() => `${form.value.description.length} / 160`)
 
       <section class="card cb-settings cb-group">
         <div class="cb-ghead"><span class="cb-gnum">3</span><span><strong>{{ t.__('How it works', 'membuild-community') }}</strong><small>{{ t.__('How members go through it.', 'membuild-community') }}</small></span></div>
+        <fieldset class="field opens">
+          <legend id="cb-opens">
+            {{ t.__('How does this course open?', 'membuild-community') }}
+            <button ref="helpBtn" type="button" class="help-link" :aria-expanded="helpOpen" aria-controls="cb-opens-help" @click="toggleHelp"><Icon name="info" :size="18" /> {{ t.__('What’s the difference?', 'membuild-community') }}</button>
+          </legend>
+          <div v-if="helpOpen" class="help-veil" aria-hidden="true" />
+          <div v-if="helpOpen" id="cb-opens-help" ref="helpPanel" class="help-pop" role="dialog" aria-labelledby="cb-opens-help-title">
+            <header>
+              <strong id="cb-opens-help-title">{{ t.__('How a course can open', 'membuild-community') }}</strong>
+              <button type="button" class="round-btn" :aria-label="t.__('Close', 'membuild-community')" @click="closeHelp"><Icon name="close" :size="20" /></button>
+            </header>
+            <section>
+              <strong>{{ t.__('All at once', 'membuild-community') }}</strong>
+              <p>{{ t.__('Members get every lesson as soon as they join.', 'membuild-community') }}</p>
+              <p class="eg">{{ t.__('Good for a recorded course people watch at their own speed.', 'membuild-community') }}</p>
+            </section>
+            <section>
+              <strong>{{ t.__('From when they join', 'membuild-community') }}</strong>
+              <p>{{ t.__('Each member gets lessons on their own timeline. You choose how many days each lesson waits.', 'membuild-community') }}</p>
+              <p class="eg">{{ t.__('Example: Lesson 2 waits 3 days. Sam joins on Monday, so Sam gets Lesson 2 on Thursday.', 'membuild-community') }}</p>
+            </section>
+            <section>
+              <strong>{{ t.__('On a start date', 'membuild-community') }}</strong>
+              <p>{{ t.__('Everyone starts on the same day and gets each lesson at the same time.', 'membuild-community') }}</p>
+              <p class="eg">{{ t.__('Example: The course starts on November 16. Lesson 2 waits 3 days, so everyone gets it on November 19.', 'membuild-community') }}</p>
+            </section>
+            <p class="help-foot">{{ t.__('You can change this any time. Lessons people already finished stay open.', 'membuild-community') }}</p>
+          </div>
+          <div class="pick-row three">
+            <label class="choice mid" :class="{ on: course.opens === 'all' }">
+              <input type="radio" name="cb-opens" :checked="course.opens === 'all'" @change="saveCourse({ opens: 'all' })" />
+              <span><strong>{{ t.__('All at once', 'membuild-community') }}</strong><small>{{ t.__('Every lesson open.', 'membuild-community') }}</small></span>
+            </label>
+            <label class="choice mid" :class="{ on: course.opens === 'join' }">
+              <input type="radio" name="cb-opens" :checked="course.opens === 'join'" @change="saveCourse({ opens: 'join' })" />
+              <span><strong>{{ t.__('From when they join', 'membuild-community') }}</strong><small>{{ t.__('Timed per member.', 'membuild-community') }}</small></span>
+            </label>
+            <label class="choice mid" :class="{ on: course.opens === 'date' }">
+              <input type="radio" name="cb-opens" :checked="course.opens === 'date'" @change="saveCourse({ opens: 'date' })" />
+              <span><strong>{{ t.__('On a start date', 'membuild-community') }}</strong><small>{{ t.__('Everyone together.', 'membuild-community') }}</small></span>
+            </label>
+          </div>
+          <div v-if="course.opens === 'date'" class="start-date">
+            <label for="cb-start">{{ t.__('Start date', 'membuild-community') }}</label>
+            <input id="cb-start" v-model="startDraft" type="date" min="2000-01-01" max="2100-12-31" aria-describedby="cb-start-hint" @blur="saveStart" @keydown.enter.prevent="saveStart" />
+            <small id="cb-start-hint">{{ startPassed ? t.__('This day has passed, so the lessons up to today are open.', 'membuild-community') : t.__('Lesson timing starts here.', 'membuild-community') }}</small>
+          </div>
+        </fieldset>
         <fieldset class="field">
           <legend>{{ t.__('Can members skip ahead?', 'membuild-community') }}</legend>
           <div class="pick-row">
@@ -536,7 +643,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
             </label>
             <label class="choice" :class="{ on: course.in_order }">
               <input type="radio" :checked="course.in_order" @change="saveCourse({ in_order: true })" />
-              <span><strong>{{ t.__('No, one at a time', 'membuild-community') }}</strong><small>{{ t.__('A lesson opens when they finish the one before.', 'membuild-community') }}</small></span>
+              <span><strong>{{ t.__('No, one at a time', 'membuild-community') }}</strong><small>{{ t.__('Finish one to open the next.', 'membuild-community') }}</small></span>
             </label>
           </div>
           <small>{{ t.__('You and your moderators can always open every lesson.', 'membuild-community') }}</small>
@@ -1236,6 +1343,151 @@ const counter = computed(() => `${form.value.description.length} / 160`)
 
 .choice strong {
   font-size: var(--fs-xl);
+}
+
+.choice.mid {
+  align-items: center;
+}
+
+.field.opens {
+  position: relative;
+}
+
+.field.opens legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 12px;
+}
+
+.help-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  font: inherit;
+  font-size: var(--fs-md);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.help-link:hover {
+  color: var(--text);
+}
+
+.help-pop {
+  position: absolute;
+  top: 52px;
+  left: 0;
+  z-index: 40;
+  width: min(460px, 100%);
+  max-height: min(640px, calc(100dvh - 120px));
+  overflow: auto;
+  padding: 16px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-pop);
+}
+
+.help-pop header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  font-size: var(--fs-xl);
+}
+
+.help-pop section {
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+
+.help-pop section p {
+  margin: 4px 0 0;
+  line-height: 1.45;
+}
+
+.help-pop .eg {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: var(--fs-md);
+}
+
+.help-pop .help-foot {
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  color: var(--text-2);
+  font-size: var(--fs-md);
+}
+
+.help-veil {
+  display: none;
+}
+
+@media (max-width: 599px) {
+  .help-veil {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 89;
+    background: color-mix(in srgb, var(--backdrop) 60%, transparent);
+  }
+
+  .help-pop {
+    position: fixed;
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 90;
+    width: 100%;
+    max-height: 85dvh;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    border: 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+}
+
+.choice.mid input {
+  margin-top: 0;
+}
+
+.start-date {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 20px;
+  font-weight: 700;
+}
+
+.start-date input {
+  max-width: 360px;
+  height: 52px;
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 400;
+}
+
+.start-date small {
+  font-weight: 400;
+  color: var(--text-2);
 }
 
 .choice select {

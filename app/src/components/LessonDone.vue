@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import Icon from './Icon.vue'
 import { t } from '../lib/i18n.js'
+import { siteDay } from '../lib/time.js'
 
 /**
  * "Lesson done!": the small celebration after Mark Complete, in the same family
@@ -84,7 +85,7 @@ const progress = (d) => t.sprintf(/* translators: 1: lessons done, 2: lessons in
 const upNext = (title) => t.sprintf(/* translators: %s: lesson title */ t.__('Next: %s', 'membuild-community'), title)
 // The countdown sits in the button, so a long lesson title can never hide it: "Go now (5)".
 const goNow = () => t.sprintf(/* translators: %d: seconds until the next lesson opens by itself */ t.__('Go now (%d)', 'membuild-community'), left.value)
-const opensOn = (iso) => t.sprintf(/* translators: %s: a date, e.g. "Thu, Oct 29" */ t.__('Next lesson opens %s', 'membuild-community'), new Date(iso).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }))
+const opensOn = (iso) => t.sprintf(/* translators: %s: a date, e.g. "Thu, Oct 29" */ t.__('Next lesson opens %s', 'membuild-community'), siteDay(iso, { weekday: 'short', month: 'short', day: 'numeric' }))
 </script>
 
 <template>
@@ -181,9 +182,7 @@ const opensOn = (iso) => t.sprintf(/* translators: %s: a date, e.g. "Thu, Oct 29
 }
 
 .text .line {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere; /* wraps rather than hiding the date the next lesson opens */
 }
 
 .text .line b {
