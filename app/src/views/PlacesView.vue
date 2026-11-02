@@ -148,6 +148,8 @@ function closePerson() {
 const person = computed(() => people.value.find((p) => p.user.id === personId.value) || null)
 const sameCity = (a, b) => String(a || '').split(',')[0].trim().toLowerCase() === String(b || '').split(',')[0].trim().toLowerCase()
 const peopleHere = computed(() => (city.value ? people.value.filter((p) => sameCity(p.city, city.value)) : people.value))
+// Nobody on the map anywhere (and not me): the panel shows the invite in place of an empty faces row.
+const noFaces = computed(() => !peopleLoading.value && !people.value.length && !myMap.value)
 async function loadPeople() {
   try {
     const res = await api.placeMembers()
@@ -655,7 +657,18 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
         </div>
       </template>
       <template v-else>
-        <template v-if="membersOn">
+        <!-- Nobody on the map yet: one invite instead of an empty Members heading. -->
+        <div v-if="membersOn && noFaces" class="map-invite">
+          <span class="mi-ic"><Icon name="mapPin" :size="22" /></span>
+          <span class="mi-text">
+            <strong class="lg">{{ t.__('Let members near you find you', 'membuild-community') }}</strong>
+            <strong class="sm">{{ t.__('Be on the map', 'membuild-community') }}</strong>
+            <small class="lg">{{ t.__('Only your city shows, never your address. Take it off any time.', 'membuild-community') }}</small>
+            <small class="sm">{{ t.__('Only your city shows.', 'membuild-community') }}</small>
+          </span>
+          <button class="link" @click="openMe"><span class="lg">{{ t.__('Show me on the map', 'membuild-community') }}</span><span class="sm">{{ t.__('Show me', 'membuild-community') }}</span></button>
+        </div>
+        <template v-else-if="membersOn">
           <header class="ph">
             <h2>{{ t.__('Members', 'membuild-community') }}<template v-if="!peopleLoading"> · {{ peopleHere.length }}</template></h2>
             <button class="link" @click="openMe"><span class="lg">{{ myMap ? t.__('You’re on the map · Change', 'membuild-community') : t.__('Show me on the map', 'membuild-community') }}</span><span class="sm">{{ myMap ? t.__('Change', 'membuild-community') : t.__('Show me', 'membuild-community') }}</span></button>
@@ -668,11 +681,11 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
             </button>
             <span v-if="peopleHere.length > moreFaces.n.value" :key="moreFaces.n.value" :ref="(el) => (moreFaces.spot.value = el)" class="more-spot" aria-hidden="true" />
             <template v-if="peopleLoading"><span v-for="n in 8" :key="`sk${n}`" class="mface mface-sk" aria-hidden="true"><span class="skeleton" /><i class="skeleton" /><i class="skeleton" /></span></template>
-            <p v-else-if="!peopleHere.length" class="empty-note">{{ t.__('Nobody’s on the map yet. Be the first: Show me on the map.', 'membuild-community') }}</p>
+            <p v-else-if="!peopleHere.length" class="empty-note">{{ t.__('Nobody’s on the map here yet.', 'membuild-community') }}</p>
           </div>
         </template>
         <template v-if="placesOn">
-        <header class="ph" :class="{ second: membersOn }">
+        <header class="ph" :class="{ second: membersOn && !noFaces }">
           <h2 v-if="city">{{ t.sprintf(/* translators: %s: a city */ t.__('In %s', 'membuild-community'), city) }} · {{ inCity.length }}</h2>
           <h2 v-else>{{ t.__('Places', 'membuild-community') }}<template v-if="!loading"> · {{ inCity.length }}</template></h2>
           <button v-if="city" class="link" @click="clearSearch">{{ t.__('Show everywhere', 'membuild-community') }}</button>
@@ -1252,6 +1265,74 @@ button.pc:hover {
   grid-column: 1 / -1;
   padding: 12px 0;
   color: var(--text-2);
+}
+
+/* Nobody on the map yet: one calm invite row above the places. */
+.map-invite {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 12px 0 18px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+}
+
+.mi-ic {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+
+.mi-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.mi-text strong {
+  display: block;
+  font-size: var(--fs-lg);
+}
+
+.mi-text small {
+  display: block;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+.mi-text .sm {
+  display: none;
+}
+
+.mi-text strong,
+.mi-text small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-invite .link {
+  flex: none;
+  height: 44px;
+  padding: 0 18px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.map-invite .link:hover {
+  background: var(--border);
+}
+
+.map-invite .link .sm {
+  display: none;
 }
 
 /* Members in the panel: big faces with first name and city. */
@@ -1835,12 +1916,40 @@ button.pc:hover {
     font-size: var(--fs-md);
   }
 
-  .ph .link .lg {
+  .ph .link .lg,
+  .map-invite .link .lg {
     display: none;
   }
 
-  .ph .link .sm {
+  .ph .link .sm,
+  .map-invite .link .sm {
     display: inline;
+  }
+
+  /* Phones: no icon and the short line, so the invite stays two lines tall. */
+  .map-invite {
+    gap: 12px;
+    margin: 4px 0 14px;
+    padding: 10px 10px 10px 14px;
+  }
+
+  .mi-ic,
+  .mi-text .lg {
+    display: none;
+  }
+
+  .mi-text .sm {
+    display: block;
+  }
+
+  .mi-text strong {
+    font-size: var(--fs-md);
+  }
+
+  .map-invite .link {
+    height: 36px;
+    padding: 0 14px;
+    font-size: var(--fs-md);
   }
 
   .ph h2 {

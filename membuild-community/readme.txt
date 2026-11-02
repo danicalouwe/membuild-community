@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.15.2
+Stable tag: 1.15.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,9 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.15.3 =
+* Changed: when nobody is on the Places map yet, the panel shows one short invite ("Let members near you find you", with Show me on the map) instead of an empty "Members · 0" heading. On phones it is a single short line.
 
 = 1.15.2 =
 * Fixed: editing a post and changing its topic showed an error and left the window open. The "Add a topic" list no longer runs off the screen on phones.
