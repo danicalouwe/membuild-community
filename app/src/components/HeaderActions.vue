@@ -259,8 +259,8 @@ const accountLabel = () => {
       <button
         class="circle tap-44"
         :class="{ on: open === 'notifications' }"
-        :aria-label="withCount(t.__('Notifications', 'membuild-community'), messages.notifications)"
-        :title="t.__('Notifications', 'membuild-community')"
+        :aria-label="withCount(t.__('Alerts', 'membuild-community'), messages.notifications)"
+        :title="t.__('Alerts', 'membuild-community')"
         :aria-expanded="open === 'notifications'"
         @click="toggle('notifications')"
       >

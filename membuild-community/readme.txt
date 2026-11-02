@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.16.1
+Stable tag: 1.16.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,13 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.16.2 =
+* Changed: Import with more than one community plugin on the site shows one main button, on the one with the most members ("The biggest, so start here."). The others are listed under "Also on this site".
+* Changed: an online event says when Join turns on, and "No replay for this one", once, beside Online, instead of twice.
+* New: a new post shows "Posted" with a ring in the main colour for a few seconds and is scrolled into view. Posted under a topic that isn't showing, a note says where, with View post.
+* Changed: a failed test email says what went wrong in plain words (your host's mail, Resend's key or sending address, your email server's login or address). The original error is under "Details for your host", with Copy.
+* Fixed: wording. "the button for VIP Members" (was "VIP Members's"), "This removes the lesson" for a course with one lesson, the lesson question box is titled "Ask a question" with an Ask button, the bell is called Alerts everywhere, "humor".
 
 = 1.16.1 =
 * Fixed: "Already paid? Check again" always answers. If no payment is found yet, the box says so and what to check. If it is found, the box closes and the course opens.

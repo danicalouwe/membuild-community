@@ -2920,6 +2920,28 @@ foreach ( $gz as $want => $at ) {
 	mbcom_check( "a pin at {$at[0]},{$at[1]} guesses {$want}", $want === \MemBuild\Community\Rest_Places::guess_zone( $at[0], $at[1] ), (string) \MemBuild\Community\Rest_Places::guess_zone( $at[0], $at[1] ) );
 }
 
+// A failed test email says what went wrong in plain words, by how the site sends email.
+$pf_cache = new \ReflectionProperty( '\MemBuild\Community\Settings', 'cache' );
+$pf_cache->setAccessible( true );
+\MemBuild\Community\Settings::all();
+$pf_was = $pf_cache->getValue();
+$pf_mode = function ( $mode ) use ( $pf_cache, $pf_was ) {
+	$all          = $pf_was;
+	$all['email'] = array_merge( is_array( $all['email'] ?? null ) ? $all['email'] : array(), array( 'mode' => $mode, 'from_email' => 'hello@example.test' ) );
+	$pf_cache->setValue( null, $all );
+};
+$pf = fn( $raw ) => \MemBuild\Community\Email::plain_failure( $raw );
+$pf_mode( 'default' );
+mbcom_check( 'test email, host mail: no mailer jargon', ! \MemBuild\Community\Email::smtp_plugin() ? false !== strpos( $pf( 'Could not instantiate mail function.' ), 'web host' ) : true );
+$pf_mode( 'resend' );
+mbcom_check( '…Resend, wrong key: says the key', false !== strpos( $pf( 'SMTP Error: Could not authenticate.' ), 'key' ) );
+mbcom_check( '…Resend, domain not verified: names the From address', false !== strpos( $pf( 'SMTP Error: data not accepted. The example.test domain is not verified' ), 'hello@example.test' ) );
+$pf_mode( 'smtp' );
+mbcom_check( '…SMTP, bad login: username or password', false !== strpos( $pf( 'SMTP Error: Could not authenticate.' ), 'username or password' ) );
+mbcom_check( '…SMTP, no connection: server name and port', false !== strpos( $pf( 'SMTP Error: Could not connect to SMTP host.' ), 'port' ) );
+mbcom_check( '…anything else: asks to open the details', false !== strpos( $pf( 'Something odd' ), 'details' ) );
+$pf_cache->setValue( null, $pf_was );
+
 // Taking a reaction back takes your name off the author's alert; the last one out removes it.
 $ur_a = mbcom_user( 'mbct_ur_author' );
 $ur_b = mbcom_user( 'mbct_ur_b' );

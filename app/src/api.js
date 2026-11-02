@@ -65,7 +65,9 @@ const expired = (res, data) => res.status === 403 && data?.code === 'rest_cookie
 
 function failure(res, data) {
   const generic = /* translators: %d: HTTP status code, e.g. 500 */ t.__('Something went wrong (error %d). Please try again.', 'membuild-community')
-  return new ApiError(data?.message || t.sprintf(generic, res.status), res.status, data?.code)
+  const err = new ApiError(data?.message || t.sprintf(generic, res.status), res.status, data?.code)
+  if (data?.data?.details) err.details = data.data.details // the raw cause, for a "details" link
+  return err
 }
 
 export async function request(path, options = {}) {

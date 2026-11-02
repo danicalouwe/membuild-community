@@ -373,7 +373,11 @@ const moveToLabel = (m) => t.sprintf(/* translators: %s: section name */ t.__('M
 const publishTitle = computed(() => t.sprintf(/* translators: %s: course name */ t.__('Publish “%s”?', 'membuild-community'), props.course.title))
 const deleteTitle = computed(() => t.sprintf(/* translators: %s: course name */ t.__('Delete “%s” for good?', 'membuild-community'), props.course.title))
 const deleteSectionTitle = computed(() => (removing.value ? t.sprintf(/* translators: %s: section name */ t.__('Delete the section “%s”?', 'membuild-community'), removing.value.title) : ''))
-const deleteBody = computed(() => t.sprintf(/* translators: %s: "10 lessons" */ t.__('This removes all %s, their files, every post and question in the course, and every member’s progress.', 'membuild-community'), lessonsLabel(allLessons.value.length)))
+const deleteBody = computed(() =>
+  allLessons.value.length === 1
+    ? t.__('This removes the lesson, its files, every post and question in the course, and every member’s progress.', 'membuild-community')
+    : t.sprintf(/* translators: %s: "10 lessons" */ t.__('This removes all %s, their files, every post and question in the course, and every member’s progress.', 'membuild-community'), lessonsLabel(allLessons.value.length)),
+)
 const sectionBody = computed(() => (removing.value ? t.sprintf(/* translators: %s: "3 lessons" */ t.__('Its %s go too, with their files, questions and every member’s progress on them.', 'membuild-community'), lessonsLabel(removing.value.lessons.length)) : ''))
 const counter = computed(() => `${form.value.description.length} / 160`)
 </script>
@@ -557,7 +561,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
               <p v-if="!groups.length">{{ t.__('There are no memberships yet.', 'membuild-community') }}</p>
               <p v-else-if="!chosenGroups.length" class="warn-text">{{ t.__('Pick at least one. Until you do, only you and your moderators can open it.', 'membuild-community') }}</p>
               <div v-if="shown" class="ms-sees">
-                <strong>{{ t.sprintf(/* translators: %s: membership name */ t.__('Everyone else sees the %s’s button', 'membuild-community'), shown.name) }}</strong>
+                <strong>{{ t.sprintf(/* translators: %s: membership name */ t.__('Everyone else sees the button for %s', 'membuild-community'), shown.name) }}</strong>
                 <p v-if="shown.offer" class="ms-row">{{ t.__('Members see:', 'membuild-community') }} <span class="ms-btn"><Icon name="lock" :size="15" /> {{ offerButton(shown.offer) }}</span></p>
                 <p v-else class="ms-row">{{ t.__('It’s invite only, so there’s no button. Members see “Ask an admin for access”.', 'membuild-community') }}</p>
                 <p v-if="alsoOpens.length" class="ms-also">

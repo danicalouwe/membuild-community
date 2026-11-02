@@ -10,7 +10,7 @@ const { form } = useSettings()
 const RATINGS = [
   { key: 'g', label: 'G', hint: t.__('Everyone', 'membuild-community') },
   { key: 'pg', label: 'PG', hint: t.__('Mild', 'membuild-community') },
-  { key: 'pg-13', label: 'PG-13', hint: t.__('Some adult humour', 'membuild-community') },
+  { key: 'pg-13', label: 'PG-13', hint: t.__('Some adult humor', 'membuild-community') },
   { key: 'r', label: 'R', hint: t.__('Adult', 'membuild-community') },
 ]
 

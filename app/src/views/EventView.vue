@@ -98,9 +98,12 @@ const whereTitle = computed(() => {
   return service.value ? t.sprintf(/* translators: %s: Zoom, Google Meet… */ t.__('Online, on %s', 'membuild-community'), service.value) : t.__('Online', 'membuild-community')
 })
 const whereNote = computed(() => {
-  if (state.value === 'past') return e.value?.recording ? t.__('Watch any time', 'membuild-community') : t.__('No replay yet', 'membuild-community')
+  if (state.value === 'past') return e.value?.recording ? t.__('Watch any time', 'membuild-community') : t.__('No replay for this one', 'membuild-community')
   if (state.value === 'live') return isStream.value ? t.__('Playing on this page', 'membuild-community') : t.__('It’s open now', 'membuild-community')
-  return isStream.value ? t.__('The stream plays on this page', 'membuild-community') : t.__('The Join button appears here', 'membuild-community')
+  // Said once, here: when the Join button (or the stream) turns on. No second note under the button.
+  if (isStream.value) return t.__('Plays on this page 15 minutes before it starts', 'membuild-community')
+  if (e.value?.url) return t.sprintf(/* translators: %s: a time, e.g. "5:45 PM EST" */ t.__('Join turns on at %s, 15 minutes before', 'membuild-community'), joinAt.value)
+  return t.__('The Join button appears here', 'membuild-community')
 })
 
 /* ---------- Host: who's going, the replay ---------- */
@@ -287,10 +290,6 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
             <template v-else>{{ t.__('I’m going', 'membuild-community') }}</template>
           </button>
           <p v-if="host && e.url && !isStream" class="note">{{ t.sprintf(/* translators: %s: a time, e.g. "12:45 PM ET" */ t.__('You can open it any time. Members’ button turns on at %s.', 'membuild-community'), joinAt) }}</p>
-          <p v-else-if="e.url && state !== 'live'" class="note">
-            <template v-if="isStream">{{ t.__('The stream plays on this page 15 minutes before it starts.', 'membuild-community') }}</template>
-            <template v-else>{{ t.sprintf(/* translators: 1: "Join on Google Meet", 2: a time */ t.__('%1$s turns on at %2$s, 15 minutes before.', 'membuild-community'), joinLabel, joinAt) }}</template>
-          </p>
           <div class="cal-wrap">
             <button class="cal" aria-haspopup="menu" :aria-expanded="calOpen" @click="calOpen = !calOpen"><Icon name="calendar" :size="18" /> {{ t.__('Add to calendar', 'membuild-community') }}</button>
             <div v-if="calOpen" class="menu cal-menu" role="menu" @click="calOpen = false">
@@ -321,7 +320,6 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
             <p v-if="replayError" class="error-text">{{ replayError }}</p>
             <p class="note">{{ t.__('It shows on this page and in Past events. YouTube and Vimeo play right here.', 'membuild-community') }}</p>
           </form>
-          <p v-else class="note">{{ t.__('There’s no replay for this one.', 'membuild-community') }}</p>
         </template>
 
         <p v-else class="note">{{ t.__('This event was cancelled.', 'membuild-community') }}</p>

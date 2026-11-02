@@ -14,7 +14,7 @@ export const tabs = [
   { name: 'places', path: '/places', label: t._x('Places', 'tab', 'membuild-community'), icon: 'mapPin', desktopOnly: true, feature: 'places' },
   { name: 'leaderboard', path: '/leaderboard', label: t._x('Leaderboard', 'tab', 'membuild-community'), icon: 'trophy', desktopOnly: true, feature: 'leaderboard' },
   // Messages and notifications are header icons; on phones the bell is a tab.
-  { name: 'notifications', path: '/notifications', label: t._x('Notifications', 'tab', 'membuild-community'), short: t._x('Alerts', 'phone tab', 'membuild-community'), icon: 'bell', mobileOnly: true },
+  { name: 'notifications', path: '/notifications', label: t._x('Alerts', 'tab', 'membuild-community'), short: t._x('Alerts', 'phone tab', 'membuild-community'), icon: 'bell', mobileOnly: true },
   { name: 'me', path: '/me', label: t._x('Profile', 'tab', 'membuild-community'), short: t._x('Me', 'phone tab', 'membuild-community'), icon: 'user' },
 ]
 

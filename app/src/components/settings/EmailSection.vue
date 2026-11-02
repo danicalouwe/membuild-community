@@ -13,9 +13,20 @@ const DELIVERY = [
 
 const { form, meta, dirty } = useSettings()
 const testing = ref(false)
-const testResult = ref(null) // { ok, message }
+const testResult = ref(null) // { ok, message, details }
+const showDetails = ref(false)
+const copied = ref(false)
+async function copyDetails() {
+  try {
+    await navigator.clipboard.writeText(testResult.value.details)
+    copied.value = true
+  } catch {
+    copied.value = false
+  }
+}
 // A fresh form (saved or discarded) makes an old test result meaningless.
 watch(form, () => (testResult.value = null))
+watch(testResult, () => ((showDetails.value = false), (copied.value = false)))
 
 const resendHelp = around(/* translators: %s: the link "resend.com/api-keys" */ t.__('Create one at %s with “Sending access”.', 'membuild-community'))
 
@@ -27,7 +38,7 @@ async function sendTest() {
     const at = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(new Date())
     testResult.value = { ok: true, to: res.to, at }
   } catch (err) {
-    testResult.value = { ok: false, message: err.message }
+    testResult.value = { ok: false, message: err.message, details: err.details || '' }
   } finally {
     testing.value = false
   }
@@ -125,8 +136,14 @@ const goesThrough = (plugin) => t.sprintf(/* translators: %s: name of the SMTP p
       </p>
       <p v-else-if="testResult" class="result bad-box" role="alert">
         <Icon name="alert" :size="18" />
-        <span><strong>{{ t.__('The email didn’t send.', 'membuild-community') }}</strong> {{ testResult.message }} <template v-if="form.email.mode === 'default'">{{ t.__('Choose Resend above (free for small communities, about 5 minutes to set up), then press Send a test email again.', 'membuild-community') }} <a href="https://resend.com/docs/introduction" target="_blank" rel="noopener">{{ t.__('How to set up Resend', 'membuild-community') }}</a></template></span>
+        <span><strong>{{ t.__('The email didn’t send.', 'membuild-community') }}</strong> {{ testResult.message }} <template v-if="form.email.mode === 'default'">{{ t.__('Choose Resend above (free for small communities, about 5 minutes to set up), then press Send a test email again.', 'membuild-community') }} <a href="https://resend.com/docs/introduction" target="_blank" rel="noopener">{{ t.__('How to set up Resend', 'membuild-community') }}</a></template>
+          <button v-if="testResult.details" type="button" class="details-link" :aria-expanded="showDetails" @click="showDetails = !showDetails">{{ t.__('Details for your host', 'membuild-community') }}</button>
+        </span>
       </p>
+      <div v-if="testResult && !testResult.ok && showDetails" class="details-box">
+        <code>{{ testResult.details }}</code>
+        <small>{{ form.email.mode === 'default' ? t.__('Send this to your host if you’d rather fix their mail than use Resend.', 'membuild-community') : t.__('Send this to your host or whoever runs your email.', 'membuild-community') }} <button type="button" class="details-link" @click="copyDetails">{{ copied ? t.__('Copied', 'membuild-community') : t.__('Copy', 'membuild-community') }}</button></small>
+      </div>
     </fieldset>
 
     <label class="toggle-row">
@@ -169,5 +186,45 @@ const goesThrough = (plugin) => t.sprintf(/* translators: %s: name of the SMTP p
 .bad-box a {
   color: inherit;
   font-weight: 700;
+}
+
+.details-link {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.bad-box .details-link {
+  display: block;
+  margin-top: 6px;
+  font-size: var(--fs-sm);
+}
+
+.details-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.details-box code {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  overflow-wrap: anywhere;
+}
+
+.details-box small {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
 }
 </style>

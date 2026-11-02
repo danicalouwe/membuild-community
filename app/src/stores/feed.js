@@ -196,6 +196,13 @@ export function insertPost(post) {
   lists[`member-${post.author?.id}`]?.items.unshift(post) // and the top of the writer's own profile
 }
 
+/** Posts the member has just put up: they show “✓ Posted” and a ring for a few seconds. */
+export const justPosted = reactive(new Set())
+export function markPosted(id) {
+  justPosted.add(id)
+  setTimeout(() => justPosted.delete(id), 3000)
+}
+
 export function replacePost(localKey, post) {
   for (const list of Object.values(lists)) {
     const i = list.items.findIndex((p) => p.localKey === localKey)

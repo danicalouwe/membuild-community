@@ -255,9 +255,44 @@ class Email {
 			update_option( 'mbcom_test_email_ok', time(), false ); // setup guide: emails were checked
 		}
 		if ( is_wp_error( $result ) ) {
-			return new \WP_Error( 'mbcom_mail_failed', $result->get_error_message(), array( 'status' => 502 ) );
+			$raw = $result->get_error_message();
+			return new \WP_Error( 'mbcom_mail_failed', self::plain_failure( $raw ), array( 'status' => 502, 'details' => $raw ) );
 		}
 		return array( 'sent' => true, 'to' => $user->user_email );
+	}
+
+	/**
+	 * What went wrong with a test email, in plain words, by how the site sends email.
+	 * The mailer's own message ("Could not instantiate mail function.") goes along as
+	 * details, for the owner's host or developer.
+	 */
+	public static function plain_failure( $raw ) {
+		$mode = self::settings()['mode'];
+		$says = fn( $word ) => false !== stripos( $raw, $word );
+		if ( 'default' === $mode && ! self::smtp_plugin() ) {
+			return __( 'Your web host didn’t send it. Many hosts block email from websites.', 'membuild-community' );
+		}
+		if ( 'resend' === $mode ) {
+			if ( $says( 'authenticate' ) ) {
+				return __( 'Resend didn’t accept the key. Copy the whole API key from Resend again and paste it above.', 'membuild-community' );
+			}
+			if ( $says( 'verif' ) || $says( 'domain' ) || $says( 'from address' ) ) {
+				/* translators: %s: the From address */
+				return sprintf( __( 'Resend won’t send from %s yet. Add your domain in Resend first, or use the address Resend gave you.', 'membuild-community' ), ( self::settings()['from_email'] ?: get_option( 'admin_email' ) ) );
+			}
+			if ( $says( 'connect' ) ) {
+				return __( 'We couldn’t reach Resend. Ask your host to allow outgoing email on port 465.', 'membuild-community' );
+			}
+		}
+		if ( 'smtp' === $mode ) {
+			if ( $says( 'authenticate' ) ) {
+				return __( 'Your email server said the username or password is wrong. Check them with whoever runs your email.', 'membuild-community' );
+			}
+			if ( $says( 'connect' ) ) {
+				return __( 'We couldn’t reach your email server. Check the server name and port (usually 587).', 'membuild-community' );
+			}
+		}
+		return __( 'We don’t know why. Open the details and send them to your host.', 'membuild-community' );
 	}
 
 	private static function delivery_label() {

@@ -466,6 +466,11 @@ const foundTiles = (s) =>
     { v: s.groups, l: s.key === 'fluentcommunity' ? t._n('space', 'spaces', s.groups, 'membuild-community') : t._n('group', 'groups', s.groups, 'membuild-community') },
     { v: s.courses, l: t._n('course', 'courses', s.courses, 'membuild-community') },
   ].filter((x) => x.v)
+// The plugin with the most members gets the one main button; the others are listed under it.
+const byMembers = computed(() => [...(state.value?.found || [])].sort((a, b) => (b.members || 0) - (a.members || 0)))
+const biggest = computed(() => byMembers.value[0] || null)
+const alsoFound = computed(() => byMembers.value.slice(1))
+const shortLine = (s) => foundTiles(s).slice(0, 2).map((x) => `${n(x.v)} ${x.l}`).join(', ')
 const stepNo = computed(() => ({ choose: 1, check: 2, progress: 3, done: 4 })[screen.value] || 0)
 </script>
 
@@ -488,16 +493,25 @@ const stepNo = computed(() => ({ choose: 1, check: 2, progress: 3, done: 4 })[sc
       <template v-if="screen === 'start'">
         <h2 class="im-top">{{ t.__('Import', 'membuild-community') }}</h2>
         <p class="intro">{{ t.__('Bring members and their history from another community plugin, or add members from a spreadsheet. Nothing in the old plugin is changed or deleted.', 'membuild-community') }}</p>
-        <div v-for="s in state.found" :key="s.key" class="im-box">
+        <div v-if="biggest" class="im-box">
           <div class="im-found">
             <span class="im-ic accent"><Icon name="box" :size="20" /></span>
-            <span class="im-words"><strong>{{ t.sprintf(/* translators: %s: plugin name */ t.__('%s, found on this site', 'membuild-community'), s.label) }}</strong><small>{{ foundLine(s) }}</small></span>
-            <button type="button" class="btn btn-lg btn-primary" @click="choose(s)">{{ t.__('Import', 'membuild-community') }} <Icon name="arrowRight" :size="18" /></button>
+            <span class="im-words"><strong>{{ t.sprintf(/* translators: %s: plugin name */ t.__('%s, found on this site', 'membuild-community'), biggest.label) }}</strong><small>{{ foundLine(biggest) }}{{ alsoFound.length ? ` ${t.__('The biggest, so start here.', 'membuild-community')}` : '' }}</small></span>
+            <button type="button" class="btn btn-lg btn-primary" @click="choose(biggest)">{{ t.__('Import', 'membuild-community') }} <Icon name="arrowRight" :size="18" /></button>
           </div>
           <div class="im-tiles">
-            <span v-for="x in foundTiles(s)" :key="x.l" class="im-tile"><strong>{{ n(x.v) }}</strong>{{ x.l }}</span>
+            <span v-for="x in foundTiles(biggest)" :key="x.l" class="im-tile"><strong>{{ n(x.v) }}</strong>{{ x.l }}</span>
           </div>
         </div>
+        <!-- More than one plugin found: one main button (the one with the most members), the rest quieter. -->
+        <template v-if="alsoFound.length">
+          <h3 class="im-also">{{ t.__('Also on this site', 'membuild-community') }}</h3>
+          <div v-for="s in alsoFound" :key="s.key" class="im-box im-found">
+            <span class="im-ic"><Icon name="box" :size="20" /></span>
+            <span class="im-words"><strong>{{ s.label }}</strong><small>{{ shortLine(s) }}</small></span>
+            <button type="button" class="btn btn-lg" @click="choose(s)">{{ t.__('Import', 'membuild-community') }}</button>
+          </div>
+        </template>
         <div class="im-box im-found">
           <span class="im-ic"><Icon name="file" :size="20" /></span>
           <span class="im-words"><strong>{{ t.__('A list of members (spreadsheet)', 'membuild-community') }}</strong><small>{{ t.__('From Kajabi, Skool, Circle, Mighty Networks or anywhere that exports a CSV: names and emails, and anything else you have.', 'membuild-community') }}</small></span>
@@ -935,6 +949,11 @@ const stepNo = computed(() => ({ choose: 1, check: 2, progress: 3, done: 4 })[sc
 .im-names {
   color: var(--text-2);
   font-weight: 600;
+}
+
+.group.im h3.im-also {
+  margin: 22px 0 10px;
+  font-size: var(--fs-lg);
 }
 
 .im-tiles {

@@ -5,7 +5,7 @@ import { api } from '../api.js'
 import { cfg } from '../config.js'
 import CourseLinkCard from './CourseLinkCard.vue'
 import { showToast } from '../lib/toast.js'
-import { forgetTopicLists, insertPost, removePost, replacePost, updatePost } from '../stores/feed.js'
+import { forgetTopicLists, insertPost, markPosted, removePost, replacePost, updatePost } from '../stores/feed.js'
 import { postableTopics, topicById, topics } from '../lib/topics.js'
 import { startAttachment, startGif } from '../lib/attachments.js'
 import { giphyOn } from '../lib/giphy.js'
@@ -98,6 +98,9 @@ const BACKGROUND_NAMES = {
 const placeholder = props.place
   ? t.__('Ask a question, share a win or add a tip…', 'membuild-community')
   : t.sprintf(/* translators: %s: the person's first name */ t.__("What's on your mind, %s?", 'membuild-community'), firstName)
+// Inside a lesson the button says “Ask a question”, so the box and its button say the same.
+const asking = !props.edit && !!props.place?.lesson
+const dialogTitle = props.edit ? t.__('Edit post', 'membuild-community') : asking ? t.__('Ask a question', 'membuild-community') : t.__('Create post', 'membuild-community')
 const placeLabel = props.place?.lesson
   ? props.place.lesson.title
   : props.place && t.sprintf(/* translators: %s: course title */ t.__('%s · Discussion', 'membuild-community'), props.place.course.title)
@@ -290,6 +293,22 @@ async function submit() {
     pointsMayHaveChanged()
     // They stay where they are; the message offers the post instead of jumping to Home.
     if (share) showToast(t.__('Shared to Home', 'membuild-community'), '', { icon: 'megaphone', action: { label: t.__('View post', 'membuild-community'), post: saved.id } })
+    else {
+      markPosted(saved.id)
+      // On this page but out of view (under the stories, say)? Bring it into view, so “✓ Posted” is seen.
+      // Went somewhere else (another topic)? Say so, with a way to it.
+      await nextTick()
+      requestAnimationFrame(() => {
+        const el = [...document.querySelectorAll(`[data-post-id="${saved.id}"]`)].find((x) => x.getBoundingClientRect().height)
+        if (el) {
+          const r = el.getBoundingClientRect()
+          if (r.top < 0 || r.top > window.innerHeight - 160) el.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
+        } else {
+          const where = saved.topic?.name
+          showToast(where ? t.sprintf(/* translators: %s: a topic name */ t.__('Posted in %s', 'membuild-community'), where) : t.__('Posted', 'membuild-community'), '✓', { action: { label: t.__('View post', 'membuild-community'), post: saved.id } })
+        }
+      })
+    }
   } catch (err) {
     removePost(key)
     // Reopen with everything restored, so nothing the member wrote is lost.
@@ -362,7 +381,7 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
         :class="{ dragging }"
         role="dialog"
         aria-modal="true"
-        :aria-label="edit ? t.__('Edit post', 'membuild-community') : t.__('Create post', 'membuild-community')"
+        :aria-label="dialogTitle"
         @dragover.prevent="dragging = true"
         @dragleave.self="dragging = false"
         @drop.prevent="onDrop"
@@ -370,7 +389,7 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
         <!-- Main view -->
         <template v-if="view === 'main'">
           <header class="top" role="none">
-            <h2>{{ edit ? t.__('Edit post', 'membuild-community') : t.__('Create post', 'membuild-community') }}</h2>
+            <h2>{{ dialogTitle }}</h2>
             <button class="round round-btn" :aria-label="t.__('Close', 'membuild-community')" @click="close"><Icon name="close" :size="22" /></button>
           </header>
 
@@ -492,7 +511,7 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
           </div>
 
           <footer class="foot">
-            <button class="post-btn" :disabled="!canPost || (edit && !dirty)" @click="submit">{{ edit ? (saving ? t.__('Saving…', 'membuild-community') : t.__('Save', 'membuild-community')) : t._x('Post', 'verb: publish', 'membuild-community') }}</button>
+            <button class="post-btn" :disabled="!canPost || (edit && !dirty)" @click="submit">{{ edit ? (saving ? t.__('Saving…', 'membuild-community') : t.__('Save', 'membuild-community')) : asking ? t._x('Ask', 'verb: post a question', 'membuild-community') : t._x('Post', 'verb: publish', 'membuild-community') }}</button>
           </footer>
         </template>
 

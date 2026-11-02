@@ -2,7 +2,7 @@
 import { computed, defineAsyncComponent, ref } from 'vue'
 import { askConfirm } from '../lib/confirm.js'
 import { api } from '../api.js'
-import { forgetTopicLists, removePost, setCoursePin, setPinned, takePost, updatePost } from '../stores/feed.js'
+import { forgetTopicLists, justPosted, removePost, setCoursePin, setPinned, takePost, updatePost } from '../stores/feed.js'
 import { topics, topicsShown } from '../lib/topics.js'
 import { showToast } from '../lib/toast.js'
 import BaseDialog from './BaseDialog.vue'
@@ -41,6 +41,7 @@ const { open: menu, root: menuRoot, trigger: menuTrigger, list: menuList, toggle
 const editing = ref(false)
 const reporting = ref(false)
 const isMine = computed(() => props.post.author?.id === cfg.user.id)
+const fresh = computed(() => justPosted.has(props.post.id)) // just put up by this member: “✓ Posted” and a ring for a moment
 const canPin = computed(() => cfg.community.isStaff && props.post.type === 'post' && !props.post.pending)
 // Moderators put a Home post in the right topic (its author is told). Not course posts or events.
 const canMoveTopic = computed(() => cfg.community.isStaff && !props.post.pending && !props.post.course && !props.post.event && topics.items.length > 0)
@@ -138,7 +139,7 @@ async function remove() {
 </script>
 
 <template>
-  <article class="post card" :class="{ pending: post.pending, 'menu-open': menu }" :data-post-id="post.id">
+  <article class="post card" :class="{ pending: post.pending, 'just-posted': fresh, 'menu-open': menu }" :data-post-id="post.id">
     <!-- In Home, a course question leads with the course (its cover as the picture, the author
          tucked on its corner), the way a group post reads in a Facebook home feed. -->
     <header class="head">
@@ -165,7 +166,7 @@ async function remove() {
           </template>
           <em v-if="post.author?.level" class="lvl" :aria-label="t.sprintf(t.__('Level %d', 'membuild-community'), post.author.level)">{{ post.author.level }}</em>
           <em v-if="staffLabel" class="staff">{{ staffLabel }}</em>
-          · {{ post.pending ? t.__('Posting…', 'membuild-community') : timeAgo(post.created_at) }}<template v-if="post.edited"> · {{ t.__('Edited', 'membuild-community') }}</template>
+          · <template v-if="post.pending">{{ t.__('Posting…', 'membuild-community') }}</template><strong v-else-if="fresh" class="posted">✓ {{ t.__('Posted', 'membuild-community') }}</strong><template v-else>{{ timeAgo(post.created_at) }}</template><template v-if="post.edited"> · {{ t.__('Edited', 'membuild-community') }}</template>
           <template v-if="post.lesson">
             · {{ t.__('in', 'membuild-community') }}
             <RouterLink class="in-lesson" :to="{ name: 'course', params: { courseId: post.course.id, lessonId: post.lesson.id } }">{{ post.lesson.title }}</RouterLink>
@@ -190,7 +191,7 @@ async function remove() {
         </div>
         <span>
           <em v-if="staffLabel" class="staff">{{ staffLabel }}</em>
-          {{ post.pending ? t.__('Posting…', 'membuild-community') : timeAgo(post.created_at) }}<template v-if="post.edited"> · {{ t.__('Edited', 'membuild-community') }}</template
+          <template v-if="post.pending">{{ t.__('Posting…', 'membuild-community') }}</template><strong v-else-if="fresh" class="posted">✓ {{ t.__('Posted', 'membuild-community') }}</strong><template v-else>{{ timeAgo(post.created_at) }}</template><template v-if="post.edited"> · {{ t.__('Edited', 'membuild-community') }}</template
           ><template v-if="post.topic && topicsShown"> · <RouterLink class="topic-link" :to="{ name: 'feed', query: { topic: post.topic.id } }"><span class="topic-dot" :style="{ background: post.topic.color }" />{{ post.topic.name }}</RouterLink></template>
         </span>
       </div>
@@ -409,6 +410,21 @@ async function remove() {
 
 .post.pending {
   opacity: 0.75;
+}
+
+/* Inset, because content-visibility clips anything drawn outside the card. */
+.post.just-posted {
+  box-shadow: inset 0 0 0 3px var(--accent), var(--shadow);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .post {
+    transition: box-shadow 0.6s ease;
+  }
+}
+
+.posted {
+  color: var(--ok-text);
 }
 
 .head {
