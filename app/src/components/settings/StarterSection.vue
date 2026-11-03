@@ -93,7 +93,7 @@ async function remove() {
       <div class="sp-pages">
         <label v-for="p in state.pages" :key="p.slug" class="sp-tick">
           <input type="checkbox" :checked="picked.includes(p.slug)" @change="toggle(p.slug)" />
-          <span class="sp-mark"><Icon name="check" :size="14" /></span>
+          <span class="sp-mark tick-box"><Icon name="check" :size="14" /></span>
           <span class="sp-words">
             <strong>{{ p.title }}</strong>
             <small v-if="p.have">{{ t.__('You already have one.', 'membuild-community') }} <a :href="p.have" target="_blank" rel="noopener">{{ t.__('See it', 'membuild-community') }}</a></small>
@@ -103,12 +103,12 @@ async function remove() {
       <hr class="rule" />
       <label class="sp-tick" :class="{ off: !picked.includes('home') }">
         <input v-model="front" type="checkbox" :disabled="!picked.includes('home')" />
-        <span class="sp-mark"><Icon name="check" :size="14" /></span>
+        <span class="sp-mark tick-box"><Icon name="check" :size="14" /></span>
         <span class="sp-words"><strong>{{ t.__('Show Home as the front page of the site', 'membuild-community') }}</strong></span>
       </label>
       <label v-if="state.blockTheme" class="sp-tick">
         <input v-model="parts" type="checkbox" />
-        <span class="sp-mark"><Icon name="check" :size="14" /></span>
+        <span class="sp-mark tick-box"><Icon name="check" :size="14" /></span>
         <span class="sp-words"><strong>{{ t.__('Use the matching header and footer', 'membuild-community') }}</strong></span>
       </label>
       <p v-else class="sp-warn">{{ t.__('Your theme isn’t a block theme, so the pages are made but your theme keeps its own header and footer. Twenty Twenty-Five (free) shows them as designed.', 'membuild-community') }}</p>
@@ -146,28 +146,6 @@ async function remove() {
 .sp-tick input {
   position: absolute;
   opacity: 0;
-}
-
-.sp-mark {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border: 2px solid var(--border-strong);
-  border-radius: var(--radius-xs);
-  color: transparent;
-}
-
-.sp-tick input:checked + .sp-mark {
-  border-color: var(--text);
-  background: var(--text);
-  color: var(--surface);
-}
-
-.sp-tick input:focus-visible + .sp-mark {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 
 .sp-words {

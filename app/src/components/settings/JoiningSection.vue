@@ -63,27 +63,36 @@ const host = computed(() => hosts.value.find((h) => h.id === form.value.login_ho
 const photoUrl = computed(() => form.value.login_picture?.url || host.value?.avatar || '')
 const firstSentence = computed(() => (String(form.value.description || '').match(/^.+?[.!?](?=\s|$)/) || [form.value.description || ''])[0])
 
-// The preview: the real login page with these choices, before saving (admins only, see Login::preview_values).
+// The preview: the real login or join page with these choices, before saving (admins only, see
+// Login::preview_values). Typing the Join headline flips it to Join.
 const previewUrl = ref('')
+const previewPage = ref('login') // 'login' | 'join'
+const pageUrl = () => (previewPage.value === 'join' ? meta.value.join_preview_url : meta.value.login_url)
 const previewQuery = () => {
-  const u = new URL(meta.value.login_url, window.location.href)
+  const u = new URL(pageUrl(), window.location.href)
   const f = form.value
   u.searchParams.set('pv[host]', f.login_host || 0)
   u.searchParams.set('pv[line]', f.login_text || '')
   u.searchParams.set('pv[photo]', f.login_picture?.id || 0)
   u.searchParams.set('pv[live]', f.login_live ? 1 : 0)
   u.searchParams.set('pv[magic]', f.login_magic ? 1 : 0)
+  u.searchParams.set('pv[headline]', f.login_headline || '')
   return u.toString()
 }
 let previewTimer
 watch(
-  () => [form.value.login_host, form.value.login_text, form.value.login_picture?.id, form.value.login_live, form.value.login_magic, meta.value.login_url],
+  () => [form.value.login_host, form.value.login_text, form.value.login_picture?.id, form.value.login_live, form.value.login_magic, form.value.login_headline, meta.value.login_url],
   () => {
     clearTimeout(previewTimer)
-    previewTimer = setTimeout(() => (previewUrl.value = meta.value.login_url ? previewQuery() : ''), previewUrl.value ? 500 : 0)
+    previewTimer = setTimeout(() => (previewUrl.value = pageUrl() ? previewQuery() : ''), previewUrl.value ? 500 : 0)
   },
   { immediate: true },
 )
+// Switching between Log in and Join shows the other page straight away.
+watch(previewPage, () => {
+  clearTimeout(previewTimer)
+  previewUrl.value = pageUrl() ? previewQuery() : ''
+})
 
 // The host's photo: their own upload, or (empty) their profile photo.
 const pictureUpload = ref(null)
@@ -108,9 +117,9 @@ function pickPicture(e) {
     <fieldset class="field" :disabled="meta.registration_locked">
       <legend class="label">{{ t.__('How people join', 'membuild-community') }}</legend>
       <div class="choices">
-        <label v-for="w in WAYS" :key="w.key" class="choice" :class="{ on: join === w.key }">
+        <label v-for="w in WAYS" :key="w.key" class="choice pick-card" :class="{ on: join === w.key }">
           <input v-model="join" type="radio" name="join" :value="w.key" />
-          <span class="mark" /><strong>{{ w.label }}</strong><small>{{ w.hint }}</small>
+          <span class="mark pick-dot" /><strong>{{ w.label }}</strong><small>{{ w.hint }}</small>
         </label>
       </div>
       <small v-if="meta.registration_locked">{{ t.__('On a network of sites, only the network admin can change this (Network Admin → Settings → Registration).', 'membuild-community') }}</small>
@@ -133,9 +142,9 @@ function pickPicture(e) {
         <fieldset class="field">
           <legend class="label">{{ t.__('Minimum age', 'membuild-community') }}</legend>
           <div class="choices cols-4">
-            <label v-for="a in AGES" :key="a.value" class="choice" :class="{ on: form.min_age === a.value }">
+            <label v-for="a in AGES" :key="a.value" class="choice pick-card" :class="{ on: form.min_age === a.value }">
               <input v-model.number="form.min_age" type="radio" name="min_age" :value="a.value" />
-              <span class="mark" /><strong>{{ a.label }}</strong><small>{{ a.hint }}</small>
+              <span class="mark pick-dot" /><strong>{{ a.label }}</strong><small>{{ a.hint }}</small>
             </label>
           </div>
           <small>{{ t.__('New members pick their birth month and year. It isn’t saved.', 'membuild-community') }}</small>
@@ -207,16 +216,22 @@ function pickPicture(e) {
           </label>
           <label class="field">
             <span class="label">{{ t.__('Join page headline', 'membuild-community') }}</span>
-            <input v-model="form.login_headline" type="text" maxlength="80" :placeholder="t.__('Join now.', 'membuild-community')" />
+            <input v-model="form.login_headline" type="text" maxlength="80" :placeholder="t.__('Join now.', 'membuild-community')" @focus="previewPage = 'join'" />
             <small>{{ t.__('Empty: “Join now.” Log in always says “Welcome back.”', 'membuild-community') }}</small>
           </label>
         </div>
         <div class="preview">
-          <span class="preview-title">{{ t.__('Preview · Log in', 'membuild-community') }}</span>
-          <div class="preview-frame">
-            <iframe :src="previewUrl" :title="t.__('Preview of your login page', 'membuild-community')" tabindex="-1" loading="lazy" />
+          <div class="preview-head">
+            <span class="preview-title">{{ previewPage === 'join' ? t.__('Preview · Join', 'membuild-community') : t.__('Preview · Log in', 'membuild-community') }}</span>
+            <span class="preview-pick" role="radiogroup" :aria-label="t.__('Which page to preview', 'membuild-community')">
+              <button type="button" class="filter-pill" role="radio" :class="{ on: previewPage === 'login' }" :aria-checked="previewPage === 'login'" @click="previewPage = 'login'">{{ t.__('Log in', 'membuild-community') }}</button>
+              <button type="button" class="filter-pill" role="radio" :class="{ on: previewPage === 'join' }" :aria-checked="previewPage === 'join'" :disabled="!meta.join_preview_url" @click="previewPage = 'join'">{{ t.__('Join', 'membuild-community') }}</button>
+            </span>
           </div>
-          <small>{{ t.__('Changes show here as you type.', 'membuild-community') }} <a :href="meta.login_url" target="_blank" rel="noopener" class="open-link">{{ t.__('Open the login page', 'membuild-community') }} <Icon name="external" :size="14" /></a></small>
+          <div class="preview-frame">
+            <iframe :src="previewUrl" :title="previewPage === 'join' ? t.__('Preview of your join page', 'membuild-community') : t.__('Preview of your login page', 'membuild-community')" tabindex="-1" loading="lazy" />
+          </div>
+          <small>{{ t.__('Changes show here as you type.', 'membuild-community') }} <a :href="pageUrl()" target="_blank" rel="noopener" class="open-link">{{ previewPage === 'join' ? t.__('Open the join page', 'membuild-community') : t.__('Open the login page', 'membuild-community') }} <Icon name="external" :size="14" /></a></small>
         </div>
       </div>
       <label class="toggle-row">
@@ -244,9 +259,9 @@ function pickPicture(e) {
     <fieldset class="field">
       <legend class="label">{{ t.__('Where members land', 'membuild-community') }}</legend>
       <div class="choices">
-        <label v-for="l in LANDING" :key="l.key" class="choice" :class="{ on: form.landing === l.key }">
+        <label v-for="l in LANDING" :key="l.key" class="choice pick-card" :class="{ on: form.landing === l.key }">
           <input v-model="form.landing" type="radio" name="landing" :value="l.key" />
-          <span class="mark" /><strong>{{ l.label }}<span v-if="l.tag" class="tag">{{ l.tag }}</span></strong><small>{{ l.hint }}</small>
+          <span class="mark pick-dot" /><strong>{{ l.label }}<span v-if="l.tag" class="tag">{{ l.tag }}</span></strong><small>{{ l.hint }}</small>
         </label>
       </div>
       <small class="note">{{ t.__('After logging in, members go to the feed and admins to the dashboard.', 'membuild-community') }}</small>
@@ -365,6 +380,18 @@ function pickPicture(e) {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.preview-pick {
+  display: flex;
+  gap: 6px;
 }
 
 .preview-title {

@@ -4,7 +4,7 @@ defineProps({ picture: { type: Boolean, default: true } })
 </script>
 
 <template>
-  <div class="card post-sk" aria-hidden="true">
+  <div class="card post-sk sk-wait" aria-hidden="true">
     <div class="row">
       <div class="skeleton" style="width: 40px; height: 40px; border-radius: 50%" />
       <div style="flex: 1">

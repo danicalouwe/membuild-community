@@ -410,7 +410,7 @@ const isFirstWait = (l) => {
 .arrow {
   width: 2px;
   height: 28px;
-  background: var(--border-strong, #c9ced6);
+  background: var(--border-strong);
   position: relative;
 }
 
@@ -420,7 +420,7 @@ const isFirstWait = (l) => {
   left: -4px;
   bottom: -2px;
   border: 5px solid transparent;
-  border-top-color: var(--border-strong, #c9ced6);
+  border-top-color: var(--border-strong);
 }
 
 .step,
@@ -480,7 +480,7 @@ const isFirstWait = (l) => {
 .example {
   flex: 1 1 100%;
   padding: 12px 14px;
-  border: 1px dashed var(--border-strong, #c9ced6);
+  border: 1px dashed var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--surface-2);
   font-size: var(--fs-lg);

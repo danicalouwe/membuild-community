@@ -227,7 +227,7 @@ const heading = computed(() => (editing.value ? t.__('Edit event', 'membuild-com
           <div class="cover-row">
             <span class="cover" :style="cover ? { backgroundImage: `url(${cover})` } : plainCover()"><small v-if="!cover">{{ t.__('Until you add a photo', 'membuild-community') }}</small></span>
             <span class="cover-act">
-              <label class="btn btn-lg btn-ghost"><Icon name="image" :size="18" /> {{ cover ? t.__('Change photo', 'membuild-community') : t.__('Upload a photo', 'membuild-community') }}<input class="sr-only" type="file" tabindex="-1" aria-hidden="true" accept="image/*" @change="pickCover" /></label>
+              <label class="btn btn-ghost"><Icon name="image" :size="18" /> {{ cover ? t.__('Change photo', 'membuild-community') : t.__('Upload a photo', 'membuild-community') }}<input class="sr-only" type="file" tabindex="-1" aria-hidden="true" accept="image/*" @change="pickCover" /></label>
               <button v-if="cover" type="button" class="link" @click="cover = null; coverId = null">{{ t.__('Remove', 'membuild-community') }}</button>
               <small>{{ t.__('16:9, at least 1600 × 900. No photo? Members see this cover made from your main color.', 'membuild-community') }}</small>
             </span>
@@ -268,9 +268,9 @@ const heading = computed(() => (editing.value ? t.__('Edit event', 'membuild-com
       <section class="card box">
         <h2>{{ t.__('Where is it?', 'membuild-community') }}</h2>
         <div class="cards3" role="radiogroup">
-          <button v-for="w in [{ k: 'online', i: 'video', l: t.__('Online', 'membuild-community'), d: t.__('Zoom, Google Meet or a live stream.', 'membuild-community') }, { k: 'person', i: 'mapPin', l: t.__('In person', 'membuild-community'), d: t.__('A place people come to.', 'membuild-community') }, { k: 'both', i: 'users', l: t.__('Both', 'membuild-community'), d: t.__('A place, plus a link for everyone else.', 'membuild-community') }]" :key="w.k" type="button" role="radio" class="pick" :class="{ on: form.where === w.k }" :aria-checked="form.where === w.k" @click="form.where = w.k">
+          <button v-for="w in [{ k: 'online', i: 'video', l: t.__('Online', 'membuild-community'), d: t.__('Zoom, Google Meet or a live stream.', 'membuild-community') }, { k: 'person', i: 'mapPin', l: t.__('In person', 'membuild-community'), d: t.__('A place people come to.', 'membuild-community') }, { k: 'both', i: 'users', l: t.__('Both', 'membuild-community'), d: t.__('A place, plus a link for everyone else.', 'membuild-community') }]" :key="w.k" type="button" role="radio" class="pick pick-card" :class="{ on: form.where === w.k }" :aria-checked="form.where === w.k" @click="form.where = w.k">
             <span class="pick-ic"><Icon :name="w.i" :size="20" /></span>
-            <span class="dot" />
+            <span class="dot pick-dot" />
             <strong>{{ w.l }}</strong>
             <small>{{ w.d }}</small>
           </button>
@@ -321,12 +321,12 @@ const heading = computed(() => (editing.value ? t.__('Edit event', 'membuild-com
       <section v-if="cfg.community.canManage" class="card box">
         <h2>{{ t.__('Who can come?', 'membuild-community') }}</h2>
         <div class="cards2" role="radiogroup">
-          <button type="button" role="radio" class="pick" :class="{ on: who === 'everyone' }" :aria-checked="who === 'everyone'" @click="who = 'everyone'">
-            <span class="pick-ic"><Icon name="users" :size="20" /></span><span class="dot" />
+          <button type="button" role="radio" class="pick pick-card" :class="{ on: who === 'everyone' }" :aria-checked="who === 'everyone'" @click="who = 'everyone'">
+            <span class="pick-ic"><Icon name="users" :size="20" /></span><span class="dot pick-dot" />
             <strong>{{ t.__('Everyone', 'membuild-community') }}</strong><small>{{ t.__('All members of the community.', 'membuild-community') }}</small>
           </button>
-          <button type="button" role="radio" class="pick" :class="{ on: who === 'members' }" :aria-checked="who === 'members'" :disabled="!groups.length" @click="who = 'members'; form.group = form.group || groups[0]?.id || 0">
-            <span class="pick-ic"><Icon name="lock" :size="20" /></span><span class="dot" />
+          <button type="button" role="radio" class="pick pick-card" :class="{ on: who === 'members' }" :aria-checked="who === 'members'" :disabled="!groups.length" @click="who = 'members'; form.group = form.group || groups[0]?.id || 0">
+            <span class="pick-ic"><Icon name="lock" :size="20" /></span><span class="dot pick-dot" />
             <strong>{{ t.__('A membership', 'membuild-community') }}</strong><small>{{ groups.length ? t.__('Only members with it.', 'membuild-community') : t.__('Make a membership in Settings first.', 'membuild-community') }}</small>
           </button>
         </div>
@@ -538,16 +538,8 @@ textarea {
   align-items: flex-start;
   gap: 4px;
   padding: 16px;
-  border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--text);
   text-align: left;
-}
-
-.pick.on {
-  border: 2px solid var(--text);
-  padding: 15px;
 }
 
 .pick:disabled {
@@ -577,15 +569,6 @@ textarea {
   position: absolute;
   top: 14px;
   right: 14px;
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--border-strong);
-  border-radius: 50%;
-}
-
-.pick.on .dot {
-  border-color: var(--text);
-  background: radial-gradient(circle, var(--surface) 0 30%, var(--text) 32%);
 }
 
 .find {

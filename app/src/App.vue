@@ -82,6 +82,29 @@ router.afterEach(() => {
 })
 
 /*
+ * Calm page switching, like the Facebook app. The main area alone fades in (150ms, opacity only):
+ * the top bar, side menu and tab bar never move. A page that was open before in this visit keeps
+ * still (no cards rising in again: .page-again in styles.css). Animated on <main> itself rather
+ * than a <Transition>, which can't animate pages with several root elements (Settings, Places…)
+ * and would wait for the old page to fade out first.
+ */
+const mainEl = ref(null)
+const pageAgain = ref(false)
+const seenPages = new Set()
+const calm = window.matchMedia('(prefers-reduced-motion: reduce)')
+router.afterEach((to, from, failure) => {
+  if (failure) return
+  pageAgain.value = seenPages.has(to.path)
+  seenPages.add(to.path)
+  if (!from.matched.length || to.name === from.name || calm.matches) return
+  nextTick(() => mainEl.value?.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: 'ease-out' }))
+})
+// Pages kept in memory (the last five): coming back shows them at once, where you were, and
+// they refresh quietly. Only lists and sections; forms, editors, detail pages, Reels (its videos),
+// Messages (its open chat keeps listening), Search and Settings start fresh each time.
+const KEPT = ['FeedView', 'PlacesView', 'ClassroomView', 'EventsView', 'MembersView', 'LeaderboardView']
+
+/*
  * Facebook's desktop layout on wide screens: icons across the top (a label on
  * hover), and the same sections with their words down the left. Narrower
  * windows have no room for the column, so the top tabs keep their words there.
@@ -238,9 +261,9 @@ const isActive = (tab) =>
       </ThemeSlot>
     </aside>
 
-    <main id="mbcom-main" class="main" tabindex="-1" :class="{ flush: route.name === 'places', centred }">
+    <main id="mbcom-main" ref="mainEl" class="main" tabindex="-1" :class="{ flush: route.name === 'places', centred, 'page-again': pageAgain }">
       <RouterView v-slot="{ Component }">
-        <KeepAlive :include="['FeedView', 'PlacesView']">
+        <KeepAlive :include="KEPT" :max="5">
           <component :is="Component" />
         </KeepAlive>
       </RouterView>

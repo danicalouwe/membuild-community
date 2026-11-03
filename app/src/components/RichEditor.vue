@@ -136,7 +136,7 @@ function paste(e) {
       <button type="button" @mousedown.prevent @click="run('insertUnorderedList')">{{ t.__('List', 'membuild-community') }}</button>
       <button type="button" class="u" @mousedown.prevent @click="startLink">{{ t.__('Link', 'membuild-community') }}</button>
       <button v-if="pictures" type="button" @mousedown.prevent @click="remember(); pictureInput.click()">{{ uploading ? t.__('Adding picture…', 'membuild-community') : t.__('Picture', 'membuild-community') }}</button>
-      <input v-if="pictures" ref="pictureInput" class="sr-only" type="file" accept="image/*" @change="pickPicture" />
+      <input v-if="pictures" ref="pictureInput" class="sr-only" type="file" tabindex="-1" aria-hidden="true" accept="image/*" @change="pickPicture" />
     </div>
     <form v-if="linking" class="linkbox" @submit.prevent="addLink">
       <input ref="linkInput" v-model="linkUrl" type="text" inputmode="url" :placeholder="t.__('Paste the web address, e.g. example.com', 'membuild-community')" :aria-label="t.__('Web address', 'membuild-community')" @keydown.esc="linking = false" />
@@ -162,7 +162,7 @@ function paste(e) {
 
 <style scoped>
 .rich {
-  border: 1px solid var(--border-strong, #c9ced6);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--surface);
   overflow: hidden;
@@ -215,7 +215,7 @@ function paste(e) {
   min-width: 200px;
   height: 52px;
   padding: 0 14px;
-  border: 1px solid var(--border-strong, #c9ced6);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--text);

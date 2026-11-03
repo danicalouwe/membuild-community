@@ -247,7 +247,7 @@ async function remove() {
       <div class="move">
         <p>{{ t.__('The author is told where you moved it.', 'membuild-community') }}</p>
         <div class="move-list" role="radiogroup" :aria-label="t.__('Topic', 'membuild-community')">
-          <label v-for="x in [...topics.items, { id: 0, name: t.__('No topic', 'membuild-community'), color: 'var(--border-strong)' }]" :key="x.id" class="move-choice" :class="{ on: movingTopic === x.id }">
+          <label v-for="x in [...topics.items, { id: 0, name: t.__('No topic', 'membuild-community'), color: 'var(--border-strong)' }]" :key="x.id" class="move-choice pick-card" :class="{ on: movingTopic === x.id }">
             <input v-model="movingTopic" type="radio" name="move-topic" :value="x.id" class="sr-only" />
             <span class="topic-dot" :style="{ background: x.color }" />{{ x.name }}
           </label>
@@ -604,10 +604,8 @@ async function remove() {
   gap: 10px;
   min-height: 48px;
   padding: 0 14px;
-  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   font-size: var(--fs-lg);
-  cursor: pointer;
 }
 
 .move-choice .topic-dot {
@@ -616,8 +614,6 @@ async function remove() {
 }
 
 .move-choice.on {
-  border: 2px solid var(--accent);
-  background: var(--accent-soft);
   font-weight: 700;
 }
 

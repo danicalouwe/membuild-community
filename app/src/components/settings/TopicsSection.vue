@@ -138,8 +138,8 @@ const colorLabel = (i) => t.sprintf(/* translators: %d: colour number */ t.__('C
     <fieldset class="field">
       <legend class="label">{{ t.__('On Home', 'membuild-community') }}</legend>
       <div class="choices">
-        <label class="choice" :class="{ on: form.topics_on_home }"><input v-model="form.topics_on_home" type="radio" name="topics_on_home" :value="true" /><span class="mark" /><strong>{{ t.__('Show the topics above the posts', 'membuild-community') }}</strong><small>{{ t.__('All, then each topic as a filter. Latest and Popular move into a small Sort menu.', 'membuild-community') }}</small></label>
-        <label class="choice" :class="{ on: !form.topics_on_home }"><input v-model="form.topics_on_home" type="radio" name="topics_on_home" :value="false" /><span class="mark" /><strong>{{ t.__('Hide them', 'membuild-community') }}</strong><small>{{ t.__('Posts still keep their topic; Home shows Latest and Popular as now.', 'membuild-community') }}</small></label>
+        <label class="choice pick-card" :class="{ on: form.topics_on_home }"><input v-model="form.topics_on_home" type="radio" name="topics_on_home" :value="true" /><span class="mark pick-dot" /><strong>{{ t.__('Show the topics above the posts', 'membuild-community') }}</strong><small>{{ t.__('All, then each topic as a filter. Latest and Popular move into a small Sort menu.', 'membuild-community') }}</small></label>
+        <label class="choice pick-card" :class="{ on: !form.topics_on_home }"><input v-model="form.topics_on_home" type="radio" name="topics_on_home" :value="false" /><span class="mark pick-dot" /><strong>{{ t.__('Hide them', 'membuild-community') }}</strong><small>{{ t.__('Posts still keep their topic; Home shows Latest and Popular as now.', 'membuild-community') }}</small></label>
       </div>
     </fieldset>
 
@@ -153,7 +153,7 @@ const colorLabel = (i) => t.sprintf(/* translators: %d: colour number */ t.__('C
         <fieldset class="field">
           <legend class="label">{{ t.__('Color', 'membuild-community') }}</legend>
           <div class="tp-colors">
-            <label v-for="(c, i) in colors" :key="c" class="tp-swatch" :class="{ on: editing.color === c }" :style="{ background: c }">
+            <label v-for="(c, i) in colors" :key="c" class="tp-swatch swatch-pick" :class="{ on: editing.color === c }" :style="{ background: c }">
               <input v-model="editing.color" type="radio" name="topic-color" :value="c" :aria-label="colorLabel(i)" />
             </label>
           </div>
@@ -166,8 +166,8 @@ const colorLabel = (i) => t.sprintf(/* translators: %d: colour number */ t.__('C
         <fieldset class="field">
           <legend class="label">{{ t.__('Who can see it', 'membuild-community') }}</legend>
           <div class="choices">
-            <label class="choice" :class="{ on: !editing.members }"><input v-model="editing.members" type="radio" name="topic-see" :value="false" /><span class="mark" /><strong>{{ t.__('Everyone in the community', 'membuild-community') }}</strong></label>
-            <label class="choice" :class="{ on: editing.members }"><input v-model="editing.members" type="radio" name="topic-see" :value="true" :disabled="!groups.length" /><span class="mark" /><strong>{{ t.__('Only a membership', 'membuild-community') }}</strong><small>{{ groups.length ? t.__('Its posts are seen only by its members, and only they see the topic.', 'membuild-community') : t.__('Make a membership first, in Memberships.', 'membuild-community') }}</small></label>
+            <label class="choice pick-card" :class="{ on: !editing.members }"><input v-model="editing.members" type="radio" name="topic-see" :value="false" /><span class="mark pick-dot" /><strong>{{ t.__('Everyone in the community', 'membuild-community') }}</strong></label>
+            <label class="choice pick-card" :class="{ on: editing.members }"><input v-model="editing.members" type="radio" name="topic-see" :value="true" :disabled="!groups.length" /><span class="mark pick-dot" /><strong>{{ t.__('Only a membership', 'membuild-community') }}</strong><small>{{ groups.length ? t.__('Its posts are seen only by its members, and only they see the topic.', 'membuild-community') : t.__('Make a membership first, in Memberships.', 'membuild-community') }}</small></label>
           </div>
           <select v-if="editing.members" v-model="editing.group_id" class="tp-select" :aria-label="t.__('Which membership', 'membuild-community')">
             <option :value="0" disabled>{{ t.__('Choose a membership', 'membuild-community') }}</option>
@@ -177,8 +177,8 @@ const colorLabel = (i) => t.sprintf(/* translators: %d: colour number */ t.__('C
         <fieldset class="field">
           <legend class="label">{{ t.__('Who can post in it', 'membuild-community') }}</legend>
           <div class="choices">
-            <label class="choice" :class="{ on: !editing.staff_only }"><input v-model="editing.staff_only" type="radio" name="topic-post" :value="false" /><span class="mark" /><strong>{{ t.__('Everyone who can see it', 'membuild-community') }}</strong></label>
-            <label class="choice" :class="{ on: editing.staff_only }"><input v-model="editing.staff_only" type="radio" name="topic-post" :value="true" /><span class="mark" /><strong>{{ t.__('Only admins and moderators', 'membuild-community') }}</strong><small>{{ t.__('For announcements: members can read and comment.', 'membuild-community') }}</small></label>
+            <label class="choice pick-card" :class="{ on: !editing.staff_only }"><input v-model="editing.staff_only" type="radio" name="topic-post" :value="false" /><span class="mark pick-dot" /><strong>{{ t.__('Everyone who can see it', 'membuild-community') }}</strong></label>
+            <label class="choice pick-card" :class="{ on: editing.staff_only }"><input v-model="editing.staff_only" type="radio" name="topic-post" :value="true" /><span class="mark pick-dot" /><strong>{{ t.__('Only admins and moderators', 'membuild-community') }}</strong><small>{{ t.__('For announcements: members can read and comment.', 'membuild-community') }}</small></label>
           </div>
         </fieldset>
         <div v-if="editing.id && topics.items.length > 1" class="tp-order">
@@ -202,8 +202,8 @@ const colorLabel = (i) => t.sprintf(/* translators: %d: colour number */ t.__('C
       <div class="dlg">
         <p class="dlg-text">{{ keptText(deleting.topic.posts) }}</p>
         <div v-if="topics.items.length > 1 && deleting.topic.posts" class="choices">
-          <label class="choice" :class="{ on: !deleting.moving }"><input v-model="deleting.moving" type="radio" name="topic-del" :value="false" /><span class="mark" /><strong>{{ t.__('Keep the posts without a topic', 'membuild-community') }}</strong></label>
-          <label class="choice" :class="{ on: deleting.moving }"><input v-model="deleting.moving" type="radio" name="topic-del" :value="true" /><span class="mark" /><strong>{{ t.__('Move them to another topic', 'membuild-community') }}</strong></label>
+          <label class="choice pick-card" :class="{ on: !deleting.moving }"><input v-model="deleting.moving" type="radio" name="topic-del" :value="false" /><span class="mark pick-dot" /><strong>{{ t.__('Keep the posts without a topic', 'membuild-community') }}</strong></label>
+          <label class="choice pick-card" :class="{ on: deleting.moving }"><input v-model="deleting.moving" type="radio" name="topic-del" :value="true" /><span class="mark pick-dot" /><strong>{{ t.__('Move them to another topic', 'membuild-community') }}</strong></label>
         </div>
         <select v-if="deleting.moving && deleting.topic.posts" v-model="deleting.moveTo" class="tp-select" :aria-label="t.__('Move them to', 'membuild-community')">
           <option :value="0" disabled>{{ t.__('Choose a topic', 'membuild-community') }}</option>
@@ -308,11 +308,7 @@ const colorLabel = (i) => t.sprintf(/* translators: %d: colour number */ t.__('C
   cursor: pointer;
 }
 
-.tp-swatch.on {
-  box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--text);
-}
-
-.tp-swatch:focus-within {
+.tp-swatch:has(input:focus-visible) {
   outline: 3px solid var(--accent-text);
   outline-offset: 4px;
 }
@@ -408,10 +404,7 @@ const colorLabel = (i) => t.sprintf(/* translators: %d: colour number */ t.__('C
   align-items: start;
   gap: 4px 12px;
   padding: 16px 18px;
-  border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--surface);
-  cursor: pointer;
 }
 
 .dlg .choice input {
@@ -422,11 +415,7 @@ const colorLabel = (i) => t.sprintf(/* translators: %d: colour number */ t.__('C
 
 .dlg .choice .mark {
   grid-row: span 2;
-  width: 20px;
-  height: 20px;
   margin-top: 1px;
-  border: 2px solid var(--border-strong);
-  border-radius: 50%;
 }
 
 .dlg .choice strong {
@@ -437,19 +426,8 @@ const colorLabel = (i) => t.sprintf(/* translators: %d: colour number */ t.__('C
   grid-column: 2;
 }
 
-.dlg .choice.on {
-  border: 2px solid var(--accent);
-  padding: 15px 17px;
-  background: var(--accent-soft);
-}
-
 .dlg .choice.on small {
   color: var(--text);
-}
-
-.dlg .choice.on .mark {
-  border-color: var(--text);
-  background: radial-gradient(circle, var(--surface) 0 28%, var(--text) 31%);
 }
 
 .dlg .choice:has(input:focus-visible) {

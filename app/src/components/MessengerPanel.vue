@@ -279,7 +279,7 @@ function compose() {
 }
 
 .dot.quiet {
-  background: var(--surface-3, #d5d8dd);
+  background: var(--border-strong);
   color: var(--text-2);
 }
 

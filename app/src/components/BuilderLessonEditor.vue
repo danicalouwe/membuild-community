@@ -272,7 +272,7 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
       <p class="sub">{{ t.__('Optional. Members watch it at the top of the lesson.', 'membuild-community') }}</p>
       <div v-if="media && !pendingVideo" class="have-video">
         <LessonPlayer :media="media" />
-        <button class="btn btn-lg btn-ghost" type="button" @click="removeVideo"><Icon name="trash" :size="18" /> {{ t.__('Remove video', 'membuild-community') }}</button>
+        <button class="btn btn-ghost" type="button" @click="removeVideo"><Icon name="trash" :size="18" /> {{ t.__('Remove video', 'membuild-community') }}</button>
       </div>
       <div v-else-if="pendingVideo" class="pending">
         <Icon name="video" :size="20" />
@@ -281,13 +281,13 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
           <small v-if="pendingVideo.status === 'working'">{{ uploadingLabel(pendingVideo.progress) }} {{ t.__('You can keep writing.', 'membuild-community') }}</small>
           <small v-else-if="pendingVideo.status === 'error'" class="error-text">{{ pendingVideo.error }}</small>
         </span>
-        <button class="btn btn-lg btn-ghost" type="button" @click="removeVideo">{{ t.__('Cancel', 'membuild-community') }}</button>
+        <button class="btn btn-ghost" type="button" @click="removeVideo">{{ t.__('Cancel', 'membuild-community') }}</button>
       </div>
       <div v-else class="drop" @dragover.prevent @drop.prevent="dropVideo">
         <strong>{{ t.__('Drop a video file here', 'membuild-community') }}</strong>
         <div class="drop-btns">
-          <button class="btn btn-lg btn-ghost" type="button" @click="videoInput.click()">{{ t.__('Choose a video', 'membuild-community') }}</button>
-          <button class="btn btn-lg btn-ghost" type="button" @click="showLink = !showLink">{{ t.__('Paste a YouTube or Vimeo link', 'membuild-community') }}</button>
+          <button class="btn btn-ghost" type="button" @click="videoInput.click()">{{ t.__('Choose a video', 'membuild-community') }}</button>
+          <button class="btn btn-ghost" type="button" @click="showLink = !showLink">{{ t.__('Paste a YouTube or Vimeo link', 'membuild-community') }}</button>
         </div>
         <form v-if="showLink" class="link" @submit.prevent="addLink">
           <input v-model="link" type="url" placeholder="https://youtu.be/…" :aria-label="t.__('Video link', 'membuild-community')" />
@@ -317,10 +317,10 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
             <small v-else-if="r.item?.status === 'error'" class="error-text">{{ r.item.error }}</small>
             <small v-else>{{ kindName(extOf(r)) }}<template v-if="r.size"> · {{ fileSize(r.size) }}</template></small>
           </span>
-          <button class="btn btn-lg btn-ghost" type="button" @click="resources.splice(i, 1)">{{ t.__('Remove', 'membuild-community') }}</button>
+          <button class="btn btn-ghost" type="button" @click="resources.splice(i, 1)">{{ t.__('Remove', 'membuild-community') }}</button>
         </li>
       </ul>
-      <button class="btn btn-lg btn-ghost" type="button" @click="fileInput.click()"><Icon name="plus" :size="18" /> {{ t.__('Add a file', 'membuild-community') }}</button>
+      <button class="btn btn-ghost" type="button" @click="fileInput.click()"><Icon name="plus" :size="18" /> {{ t.__('Add a file', 'membuild-community') }}</button>
       <input ref="fileInput" class="sr-only" type="file" tabindex="-1" aria-hidden="true" multiple @change="pickFiles" />
     </section>
 
@@ -335,14 +335,14 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
         <button type="button" class="co-link" @click="emit('settings')">{{ t.__('Change it in Course settings', 'membuild-community') }}</button>
       </p>
       <template v-if="course.opens !== 'all'">
-      <label v-if="byStart" class="choice" :class="{ on: opens === 'now' }">
+      <label v-if="byStart" class="choice pick-card" :class="{ on: opens === 'now' }">
         <input v-model="opens" type="radio" value="now" />
         <span>
           <strong>{{ t.__('On the start day', 'membuild-community') }}</strong>
           <small>{{ startDayText }}</small>
         </span>
       </label>
-      <label v-if="byStart" class="choice" :class="{ on: opens === 'days' }">
+      <label v-if="byStart" class="choice pick-card" :class="{ on: opens === 'days' }">
         <input v-model="opens" type="radio" value="days" />
         <span>
           <strong>{{ t.__('Some days after the start', 'membuild-community') }}</strong>
@@ -355,14 +355,14 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
           <span v-if="opens === 'days'" class="example plain">{{ startExample[0] }}<strong>{{ longDate(plusDays(course.starts_on, dripDays)) }}</strong>{{ startExample[1] }}</span>
         </span>
       </label>
-      <label v-if="!byStart" class="choice" :class="{ on: opens === 'now' }">
+      <label v-if="!byStart" class="choice pick-card" :class="{ on: opens === 'now' }">
         <input v-model="opens" type="radio" value="now" />
         <span>
           <strong>{{ t.__('Right away', 'membuild-community') }}</strong>
           <small>{{ t.__('Members can open it as soon as they start the course.', 'membuild-community') }}</small>
         </span>
       </label>
-      <label v-if="!byStart" class="choice" :class="{ on: opens === 'days' }">
+      <label v-if="!byStart" class="choice pick-card" :class="{ on: opens === 'days' }">
         <input v-model="opens" type="radio" value="days" />
         <span>
           <strong>{{ t.__('Some days after they start the course', 'membuild-community') }}</strong>
@@ -378,7 +378,7 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
           </span>
         </span>
       </label>
-      <label class="choice" :class="{ on: opens === 'date' }">
+      <label class="choice pick-card" :class="{ on: opens === 'date' }">
         <input v-model="opens" type="radio" value="date" />
         <span>
           <strong>{{ t.__('On a date you pick', 'membuild-community') }}</strong>
@@ -391,7 +391,7 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
       </label>
       <div v-if="earlier" class="warn">
         <span><strong>{{ t.__('This lesson opens before the one above it.', 'membuild-community') }}</strong> {{ earlierLabel }}</span>
-        <button class="btn btn-lg" type="button" @click="useEarlier">{{ makeSame }}</button>
+        <button class="btn" type="button" @click="useEarlier">{{ makeSame }}</button>
       </div>
       </template>
     </section>
@@ -403,12 +403,12 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
       <button class="btn btn-lg btn-primary" :disabled="uploading" @click="done">{{ t.__('Done', 'membuild-community') }}</button>
     </footer>
 
-    <section class="danger">
-      <span>
-        <strong>{{ t.__('Danger zone', 'membuild-community') }}</strong>
-        <small>{{ t.__('Deleting removes this lesson, its files and its questions for everyone. It can’t be undone.', 'membuild-community') }}</small>
+    <section class="delete-row">
+      <span class="delete-row-text">
+        <strong class="delete-row-title">{{ t.__('Delete this lesson', 'membuild-community') }}</strong>
+        <small class="delete-row-line">{{ t.__('Removes the lesson, its files and its questions for everyone.', 'membuild-community') }}</small>
       </span>
-      <button class="btn btn-lg danger-btn" @click="asking = true">{{ t.__('Delete this lesson…', 'membuild-community') }}</button>
+      <button class="btn btn-quiet-danger" @click="asking = true">{{ t.__('Delete…', 'membuild-community') }}</button>
     </section>
 
     <ConfirmDialog v-if="asking" danger :title="deleteTitle" :confirm="t.__('Delete forever', 'membuild-community')" :cancel="t.__('Keep the lesson', 'membuild-community')" :busy="deleting" @confirm="remove" @close="asking = false">
@@ -489,7 +489,7 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
 .title {
   height: 60px;
   padding: 0 16px;
-  border: 1px solid var(--border-strong, #c9ced6);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--text);
@@ -521,7 +521,7 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
   align-items: center;
   gap: 12px;
   padding: 22px 16px;
-  border: 2px dashed var(--border-strong, #c9ced6);
+  border: 2px dashed var(--border-strong);
   border-radius: var(--radius);
   text-align: center;
   font-size: var(--fs-xl);
@@ -539,7 +539,7 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
   min-width: 280px;
   height: 52px;
   padding: 0 14px;
-  border: 1px solid var(--border-strong, #c9ced6);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--text);
@@ -624,14 +624,7 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
   gap: 14px;
   margin-top: 10px;
   padding: 14px 16px;
-  border: 1px solid var(--border);
   border-radius: var(--radius);
-  cursor: pointer;
-}
-
-.choice.on {
-  border: 2px solid var(--accent);
-  background: var(--accent-soft);
 }
 
 .choice input {
@@ -667,7 +660,7 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
   width: 84px;
   height: 52px;
   padding: 0 10px;
-  border: 1px solid var(--border-strong, #c9ced6);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--text);
@@ -679,7 +672,7 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
   display: block;
   margin-top: 12px;
   padding: 12px 14px;
-  border: 1px dashed var(--border-strong, #c9ced6);
+  border: 1px dashed var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--surface);
   font-size: var(--fs-lg);
@@ -776,39 +769,4 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
   transform: scaleX(-1);
 }
 
-.danger {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 14px;
-  margin-top: 10px;
-  padding: 16px 18px;
-  border: 1px solid var(--danger-line);
-  border-radius: var(--radius);
-  background: var(--danger-soft);
-}
-
-.danger span {
-  flex: 1;
-  min-width: 220px;
-}
-
-.danger strong {
-  display: block;
-  color: var(--danger-text);
-  font-size: var(--fs-xl);
-}
-
-.danger small {
-  display: block;
-  margin-top: 2px;
-  color: var(--danger-ink);
-  font-size: var(--fs-base);
-}
-
-.danger-btn {
-  border: 2px solid var(--danger-text);
-  background: var(--surface);
-  color: var(--danger-text);
-}
 </style>

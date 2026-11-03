@@ -105,7 +105,7 @@ onMounted(() => {
                 v-for="(key, i) in STORY_BACKGROUNDS"
                 :key="key"
                 type="button"
-                class="swatch"
+                class="swatch swatch-pick"
                 :class="{ on: background === key }"
                 :style="{ background: storyBg(key).background }"
                 role="radio"
@@ -267,10 +267,6 @@ onMounted(() => {
   height: 44px;
   border-radius: 50%;
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--shadow-color) 10%, transparent);
-}
-
-.swatch.on {
-  box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--text);
 }
 
 .note {

@@ -52,7 +52,7 @@ const heading = t.sprintf(/* translators: %s: the site's name */ t.__('Get the %
           </li>
         </ol>
 
-        <button class="btn btn-primary done" @click="emit('close')">{{ t.__('Got it', 'membuild-community') }}</button>
+        <button class="btn btn-lg btn-primary done" @click="emit('close')">{{ t.__('Got it', 'membuild-community') }}</button>
       </div>
     </div>
   </Teleport>
@@ -121,8 +121,6 @@ h2 {
 .done {
   width: 100%;
   margin-top: 18px;
-  padding: 11px;
-  border-radius: var(--radius-sm);
   font-weight: 700;
 }
 </style>

@@ -54,9 +54,9 @@ const goesThrough = (plugin) => t.sprintf(/* translators: %s: name of the SMTP p
     <fieldset class="field">
       <legend class="label">{{ t.__('How emails are sent', 'membuild-community') }}</legend>
       <div class="choices cols-3">
-        <label v-for="d in DELIVERY" :key="d.key" class="choice tile" :class="{ on: form.email.mode === d.key }">
+        <label v-for="d in DELIVERY" :key="d.key" class="choice tile pick-card" :class="{ on: form.email.mode === d.key }">
           <input v-model="form.email.mode" type="radio" name="delivery" :value="d.key" />
-          <span class="tile-ic"><Icon :name="d.icon" :size="18" /></span><span class="mark" />
+          <span class="tile-ic"><Icon :name="d.icon" :size="18" /></span><span class="mark pick-tick" />
           <strong>{{ d.label }}</strong>
           <small>{{ d.hint }}</small>
           <span v-if="d.tag" class="tag">{{ d.tag }}</span>
@@ -179,7 +179,7 @@ const goesThrough = (plugin) => t.sprintf(/* translators: %s: name of the SMTP p
 }
 
 .bad-box {
-  background: var(--danger-soft, #fdecec);
+  background: var(--danger-soft);
   color: var(--danger-text);
 }
 

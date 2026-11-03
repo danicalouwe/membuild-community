@@ -186,8 +186,8 @@ const closeLabel = (c) => t.sprintf(/* translators: %s: the chat's name or the p
 .compose {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background: var(--surface);
   border: 1px solid var(--border);

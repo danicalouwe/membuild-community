@@ -38,14 +38,14 @@ async function copyHook() {
     <h2>{{ t.__('Video', 'membuild-community') }}</h2>
     <p class="intro">{{ t.__('Where videos are kept.', 'membuild-community') }}</p>
     <div class="choices cols-2">
-      <label class="choice" :class="{ on: form.video.provider === 'local' }">
+      <label class="choice pick-card" :class="{ on: form.video.provider === 'local' }">
         <input v-model="form.video.provider" type="radio" name="video" value="local" />
-        <span class="mark" /><strong>{{ t.__('This site', 'membuild-community') }}</strong>
+        <span class="mark pick-dot" /><strong>{{ t.__('This site', 'membuild-community') }}</strong>
         <small>{{ t.__('Stored with your other uploads. Fine for small communities.', 'membuild-community') }}</small>
       </label>
-      <label class="choice" :class="{ on: form.video.provider === 'bunny' }">
+      <label class="choice pick-card" :class="{ on: form.video.provider === 'bunny' }">
         <input v-model="form.video.provider" type="radio" name="video" value="bunny" />
-        <span class="mark" /><strong>Bunny Stream<span class="tag">{{ t.__('Best for courses', 'membuild-community') }}</span></strong>
+        <span class="mark pick-dot" /><strong>Bunny Stream<span class="tag">{{ t.__('Best for courses', 'membuild-community') }}</span></strong>
         <small>{{ t.__('Videos play smoothly and your site stays fast. A few dollars a month.', 'membuild-community') }}</small>
       </label>
     </div>

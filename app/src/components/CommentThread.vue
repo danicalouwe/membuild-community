@@ -296,7 +296,7 @@ const viewReplies = (n) => t.sprintf(/* translators: %d: number of replies */ t.
     </div>
 
     <div v-if="loading && !items.length" class="loading">
-      <div v-for="n in 3" :key="n" class="sk-row">
+      <div v-for="n in 3" :key="n" class="sk-row sk-wait">
         <div class="skeleton" style="width: 36px; height: 36px; border-radius: 50%" />
         <div style="flex: 1">
           <div class="skeleton" style="width: 35%; height: 12px; margin-bottom: 8px" />

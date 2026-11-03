@@ -111,14 +111,14 @@ onBeforeUnmount(restoreDisplay)
           :key="hex"
           type="button"
           role="radio"
-          class="swatch"
+          class="swatch swatch-pick tap-44"
           :class="{ on: (form.accent || meta.accents[0]) === hex }"
           :style="{ background: hex }"
           :aria-checked="(form.accent || meta.accents[0]) === hex"
           :aria-label="hex"
           @click="form.accent = hex === meta.accents[0] ? '' : hex; hexDraft = null"
         />
-        <label class="swatch custom" :class="{ on: customAccent }" :style="customAccent ? { background: form.accent } : null" :title="t.__('Pick a custom color', 'membuild-community')">
+        <label class="swatch swatch-pick tap-44 custom" :class="{ on: customAccent }" :style="customAccent ? { background: form.accent } : null" :title="t.__('Pick a custom color', 'membuild-community')">
           <Icon :name="customAccent ? 'compose' : 'plus'" :size="15" />
           <input type="color" :value="form.accent || meta.accents[0]" :aria-label="t.__('Pick a custom color', 'membuild-community')" @input="form.accent = $event.target.value; hexDraft = null" />
         </label>

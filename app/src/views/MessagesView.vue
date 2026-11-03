@@ -239,7 +239,7 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
         <span class="badge"><Icon name="chat" :size="30" /></span>
         <h2>{{ t.__('Your messages', 'membuild-community') }}</h2>
         <p>{{ t.__('Chat one-on-one or start a small group.', 'membuild-community') }}</p>
-        <button class="btn btn-primary" @click="composing = true"><Icon name="plus" :size="16" /> {{ t.__('New message', 'membuild-community') }}</button>
+        <button class="btn btn-lg btn-primary" @click="composing = true"><Icon name="plus" :size="18" /> {{ t.__('New message', 'membuild-community') }}</button>
       </div>
     </section>
 
@@ -282,11 +282,12 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
   font-size: var(--fs-4xl);
 }
 
+/* The round + is a create button: 52px like the others (48 on phones, through --mb-tap). */
 .new {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background: var(--surface-2);
 }
@@ -421,7 +422,7 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
   height: 20px;
   padding: 0 6px;
   border-radius: var(--radius-pill);
-  background: var(--danger, #e02424);
+  background: var(--danger);
   color: var(--on-color);
   font-size: var(--fs-xs);
   font-weight: 800;
@@ -433,7 +434,7 @@ const unreadLabel = (n) => t.sprintf(/* translators: %d: number of unread messag
 }
 
 .dot.quiet {
-  background: var(--surface-3, #d5d8dd);
+  background: var(--border-strong);
   color: var(--text-2);
 }
 

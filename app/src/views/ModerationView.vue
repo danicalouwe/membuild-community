@@ -231,8 +231,8 @@ function personLine(p) {
     <p v-if="error" class="card state">{{ error }}</p>
 
     <!-- Loading -->
-    <div v-else-if="loading && !items.length && !people.length" class="card sk-card" aria-hidden="true">
-      <div v-for="n in 3" :key="n" class="sk"><span class="skeleton" /><span><span class="skeleton" /><span class="skeleton" /></span></div>
+    <div v-else-if="loading && !items.length && !people.length" class="card sk-card sk-wait" aria-hidden="true">
+      <div v-for="n in 3" :key="n" class="sk sk-wait"><span class="skeleton" /><span><span class="skeleton" /><span class="skeleton" /></span></div>
     </div>
 
     <!-- Muted & banned -->
@@ -338,9 +338,9 @@ function personLine(p) {
         <template v-if="canRestrict(takeDown.it)">
           <strong class="dlg-q">{{ t.sprintf(/* translators: %s: a first name */ t.__('Also stop %s from posting?', 'membuild-community'), first(takeDown.it.author)) }}</strong>
           <div class="cards">
-            <label class="pick" :class="{ on: takeDown.also === 'none' }"><input v-model="takeDown.also" type="radio" value="none" /><span class="dot" /><span><strong>{{ t.__('No, just take it down', 'membuild-community') }}</strong><small>{{ t.sprintf(t.__('%s can keep posting as normal.', 'membuild-community'), first(takeDown.it.author)) }}</small></span></label>
-            <label class="pick" :class="{ on: takeDown.also === 'mute7' }"><input v-model="takeDown.also" type="radio" value="mute7" /><span class="dot" /><span><strong>{{ t.__('Mute for 7 days', 'membuild-community') }}</strong><small>{{ t.sprintf(/* translators: 1: a first name, 2: a date */ t.__('%1$s can read and react, but can’t post, comment or send messages until %2$s.', 'membuild-community'), first(takeDown.it.author), day(inDays(7))) }}</small></span></label>
-            <label class="pick" :class="{ on: takeDown.also === 'ban' }"><input v-model="takeDown.also" type="radio" value="ban" /><span class="dot" /><span><strong>{{ t.__('Ban from the community', 'membuild-community') }}</strong><small>{{ t.sprintf(t.__('%s can’t open the community at all until you unban them.', 'membuild-community'), first(takeDown.it.author)) }}</small></span></label>
+            <label class="pick pick-card" :class="{ on: takeDown.also === 'none' }"><input v-model="takeDown.also" type="radio" value="none" /><span class="dot pick-dot" /><span><strong>{{ t.__('No, just take it down', 'membuild-community') }}</strong><small>{{ t.sprintf(t.__('%s can keep posting as normal.', 'membuild-community'), first(takeDown.it.author)) }}</small></span></label>
+            <label class="pick pick-card" :class="{ on: takeDown.also === 'mute7' }"><input v-model="takeDown.also" type="radio" value="mute7" /><span class="dot pick-dot" /><span><strong>{{ t.__('Mute for 7 days', 'membuild-community') }}</strong><small>{{ t.sprintf(/* translators: 1: a first name, 2: a date */ t.__('%1$s can read and react, but can’t post, comment or send messages until %2$s.', 'membuild-community'), first(takeDown.it.author), day(inDays(7))) }}</small></span></label>
+            <label class="pick pick-card" :class="{ on: takeDown.also === 'ban' }"><input v-model="takeDown.also" type="radio" value="ban" /><span class="dot pick-dot" /><span><strong>{{ t.__('Ban from the community', 'membuild-community') }}</strong><small>{{ t.sprintf(t.__('%s can’t open the community at all until you unban them.', 'membuild-community'), first(takeDown.it.author)) }}</small></span></label>
           </div>
         </template>
         <div class="dlg-act">
@@ -358,7 +358,7 @@ function personLine(p) {
       <div class="dlg">
         <p class="dlg-text">{{ t.__('Nothing they’ve already posted is removed. You can undo this any time in Muted & banned.', 'membuild-community') }}</p>
         <div class="cards">
-          <label v-for="m in MUTES" :key="m.key" class="pick" :class="{ on: muting.pick === m.key }"><input v-model="muting.pick" type="radio" :value="m.key" /><span class="dot" /><span><strong>{{ m.label }}</strong><small>{{ m.hint }}</small></span></label>
+          <label v-for="m in MUTES" :key="m.key" class="pick pick-card" :class="{ on: muting.pick === m.key }"><input v-model="muting.pick" type="radio" :value="m.key" /><span class="dot pick-dot" /><span><strong>{{ m.label }}</strong><small>{{ m.hint }}</small></span></label>
         </div>
         <div class="dlg-act">
           <button type="button" class="btn-grey" @click="muting = null">{{ t.__('Cancel', 'membuild-community') }}</button>
@@ -766,9 +766,7 @@ function personLine(p) {
   align-items: flex-start;
   gap: 14px;
   padding: 14px 18px;
-  border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
-  cursor: pointer;
 }
 
 .pick input {
@@ -776,28 +774,15 @@ function personLine(p) {
   opacity: 0;
 }
 
-.pick.on {
-  padding: 13px 17px;
-  border: 2px solid var(--accent);
-  background: var(--accent-soft);
-}
-
-.pick:focus-within {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 40%, transparent);
+.pick:has(input:focus-visible) {
+  outline: 3px solid var(--accent-text);
+  outline-offset: 2px;
 }
 
 .pick .dot {
-  flex: none;
   width: 22px;
   height: 22px;
   margin-top: 1px;
-  border: 2px solid var(--border-strong);
-  border-radius: 50%;
-}
-
-.pick.on .dot {
-  border-color: var(--text);
-  background: radial-gradient(circle, var(--surface) 0 28%, var(--text) 31%);
 }
 
 .pick > span:last-child {

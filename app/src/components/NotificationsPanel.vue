@@ -413,7 +413,7 @@ const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles
 
 .more {
   margin: 4px 12px 12px;
-  height: 38px;
+  height: 44px;
   border-radius: var(--radius-xs);
   background: var(--surface-2);
   font-weight: 650;

@@ -463,14 +463,14 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
       </ThemeSlot>
       <!-- Loading: a reel's shape in dark grey (video, name and caption, the buttons down the side). -->
       <section v-else-if="!list.loaded" class="reel" aria-busy="true">
-        <div class="box reel-sk" style="--ar: 9 / 16">
+        <div class="box reel-sk sk-wait" style="--ar: 9 / 16">
           <div class="sk-dark frame-sk" />
           <div class="sk-cap">
-            <div class="sk-row"><span class="sk-dark sk-face" /><span class="sk-dark" style="width: 120px; height: 14px" /></div>
+            <div class="sk-row sk-wait"><span class="sk-dark sk-face" /><span class="sk-dark" style="width: 120px; height: 14px" /></div>
             <span class="sk-dark" style="width: 78%; height: 12px" />
             <span class="sk-dark" style="width: 52%; height: 12px" />
           </div>
-          <div class="sk-rail"><span v-for="n in 4" :key="n" class="sk-dark" /></div>
+          <div class="sk-rail sk-wait"><span v-for="n in 4" :key="n" class="sk-dark" /></div>
         </div>
       </section>
     </div>

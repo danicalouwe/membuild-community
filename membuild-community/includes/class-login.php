@@ -289,11 +289,14 @@ class Login {
 	/* ---------- Sign-up ---------- */
 
 	private static function join_page() {
-		if ( is_user_logged_in() ) {
+		// Settings' live preview of the Join page: admins see it as visitors do, without logging
+		// out. The same pass as the login page's: people who manage the community, reading only.
+		$preview = isset( $_GET['preview'] ) && Helpers::can_manage() && 'GET' === Helpers::method(); // phpcs:ignore WordPress.Security.NonceVerification -- read-only
+		if ( is_user_logged_in() && ! $preview ) {
 			wp_safe_redirect( Portal::url() );
 			exit;
 		}
-		if ( ! self::registration_open() ) {
+		if ( ! $preview && ! self::registration_open() ) {
 			$elsewhere = (string) Settings::get( 'signup_url' );
 			wp_redirect( $elsewhere ? $elsewhere : self::url( 'login' ) ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- the admin's own sign-up link (e.g. a membership plugin's checkout), possibly on another site
 			exit;
@@ -302,7 +305,7 @@ class Login {
 		$values  = array( 'first' => '', 'last' => '', 'email' => '' );
 		$error   = '';
 		$code    = '';
-		$blocked = $min_age && isset( $_COOKIE[ self::AGE_COOKIE ] );
+		$blocked = ! $preview && $min_age && isset( $_COOKIE[ self::AGE_COOKIE ] );
 
 		if ( ! $blocked && 'POST' === Helpers::method() ) {
 			if ( ! isset( $_POST['_mbcom_join'] ) || ! wp_verify_nonce( sanitize_key( $_POST['_mbcom_join'] ), 'mbcom_join' ) ) {
@@ -789,6 +792,10 @@ class Login {
 		if ( isset( $pv['line'] ) ) {
 			$out['line'] = mb_substr( sanitize_text_field( (string) $pv['line'] ), 0, 200 );
 		}
+		if ( isset( $pv['headline'] ) ) {
+			// The Join page's big line, cleaned like the saved setting (Settings::sanitize).
+			$out['headline'] = mb_substr( sanitize_text_field( (string) $pv['headline'] ), 0, 80 );
+		}
 		if ( isset( $pv['photo'] ) ) {
 			// An image from the media library, or 0 for "Use my profile photo".
 			$out['photo'] = absint( $pv['photo'] ) ? (string) wp_get_attachment_image_url( absint( $pv['photo'] ), 'large' ) : '';
@@ -810,7 +817,7 @@ class Login {
 		$magic    = (bool) ( $pv['magic'] ?? Settings::get( 'login_magic' ) );
 		$tagline  = $host['line'];
 		// The Join page's big line: its last word on its own line, highlighted.
-		$headline = trim( (string) Settings::get( 'login_headline' ) );
+		$headline = trim( (string) ( $pv['headline'] ?? Settings::get( 'login_headline' ) ) );
 		$picture  = $host['photo'];
 		$join_label = Settings::get( 'signup_url' ) && ! get_option( 'users_can_register' ) ? trim( (string) Settings::get( 'signup_label' ) ) : '';
 		$logo     = Settings::get( 'logo' )['url'] ?? '';

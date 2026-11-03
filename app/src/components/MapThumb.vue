@@ -100,7 +100,7 @@ const tiles = computed(() => {
   border-radius: 50% 50% 50% 4px;
   transform: rotate(-45deg);
   background: var(--accent);
-  color: var(--accent-ink, #16181d);
+  color: var(--accent-ink);
   border: 2px solid var(--on-color);
   box-shadow: var(--shadow-sm);
 }

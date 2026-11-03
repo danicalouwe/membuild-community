@@ -2962,6 +2962,25 @@ foreach ( array( $ur_a, $ur_b, $ur_c ) as $ur_u ) {
 	wp_delete_user( $ur_u );
 }
 
+// Settings' Join preview: the headline you type shows before saving, cleaned like the saved setting,
+// and only for people who manage the community.
+$jp_pv  = new ReflectionMethod( '\\MemBuild\\Community\\Login', 'preview_values' );
+$jp_pv->setAccessible( true );
+$jp_get = $_GET;
+$_GET   = array( 'preview' => '1', 'pv' => array( 'headline' => '<b>Come</b> and learn with us ' . str_repeat( 'x', 100 ) ) );
+wp_set_current_user( $admin );
+$jp_out = $jp_pv->invoke( null );
+mbcom_check( 'Join preview: an admin’s typed headline comes through, tags stripped', 0 === strpos( $jp_out['headline'] ?? '', 'Come and learn with us' ) && false === strpos( $jp_out['headline'], '<' ) );
+mbcom_check( '…cut to 80 characters, like the saved setting', 80 === mb_strlen( $jp_out['headline'] ?? '' ) );
+wp_set_current_user( $ben );
+mbcom_check( '…a member gets no preview values at all', array() === $jp_pv->invoke( null ) );
+wp_set_current_user( 0 );
+mbcom_check( '…nor does a visitor', array() === $jp_pv->invoke( null ) );
+$_GET = $jp_get;
+wp_set_current_user( 0 );
+list( $jp_st, $jp_s ) = mbcom_call( $admin, 'GET', '/settings' );
+mbcom_check( 'Settings carries the Join preview address', 200 === $jp_st && false !== strpos( (string) ( $jp_s['join_preview_url'] ?? '' ), '/join?preview=1' ), wp_json_encode( $jp_s['join_preview_url'] ?? null ) );
+
 /* ---------------------------------------------------------------- */
 echo "\n{$GLOBALS['mbcom_passed']} passed, {$GLOBALS['mbcom_failed']} failed\n";
 if ( $GLOBALS['mbcom_failed'] ) {

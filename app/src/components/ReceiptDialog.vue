@@ -59,7 +59,7 @@ async function save() {
     </template>
 
     <p v-if="error" class="error-text" role="alert">{{ error }}</p>
-    <div v-else-if="!r" class="sk" aria-busy="true"><span /><span /><span /></div>
+    <div v-else-if="!r" class="sk sk-wait" aria-busy="true"><span /><span /><span /></div>
 
     <div v-else class="paper">
       <div class="head">

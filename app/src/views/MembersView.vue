@@ -1,5 +1,5 @@
 <script setup>
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onActivated, onBeforeUnmount, onDeactivated, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { canDock, openChat } from '../stores/chatDock.js'
 import { api } from '../api.js'
@@ -55,8 +55,12 @@ function watchEnd() {
   observer.unobserve(end.value)
   observer.observe(end.value)
 }
+let loadedMore = false // more pages came in: a quiet refresh would cut the list short
 function more() {
-  if (!loading.value && nextPage.value) load(false)
+  if (!loading.value && nextPage.value) {
+    loadedMore = true
+    load(false)
+  }
 }
 
 onMounted(() => {
@@ -64,9 +68,28 @@ onMounted(() => {
   load()
 })
 onBeforeUnmount(() => observer?.disconnect())
-watch(sort, () => load())
+// Kept in memory (App.vue): coming back shows the members at once. The first page is checked
+// quietly (no dimming); after more pages have loaded, the list stays as it is.
+let away = false
+onDeactivated(() => (away = true))
+onActivated(async () => {
+  if (!away || loading.value || loadedMore) return
+  const current = latest()
+  const onlineOnly = sort.value === 'online'
+  const res = await api.members({ sort: onlineOnly ? 'active' : sort.value, online: onlineOnly ? 1 : undefined, page: 1 }).catch(() => null)
+  if (!res || !current()) return
+  items.value = res.items
+  nextPage.value = res.next_page
+  total.value = res.total
+  online.value = res.online ?? online.value
+})
+watch(sort, () => {
+  loadedMore = false
+  load()
+})
 const router = useRouter()
-const covers = cfg.community.memberCovers !== false // Settings › Features › Members directory
+// Settings › Features › Members directory (computed: the page is kept, and the switch can change meanwhile)
+const covers = computed(() => cfg.community.memberCovers !== false)
 const openProfile = (m) => router.push(m.is_me ? { name: 'me' } : { name: 'member', params: { id: m.id } })
 // Message from the card: the chat opens docked on a computer, as its own page on a phone.
 const messaging = ref(0)
@@ -125,18 +148,18 @@ const roleLabel = (role) => (role === 'admin' ? t.__('Admin', 'membuild-communit
           <footer class="foot">
             <!-- Online now: the green dot on the photo says it. Earlier: "Active 2 h ago". -->
             <span v-if="!isOnline(m)" class="active">{{ activeLabel(m) }}</span>
-            <RouterLink v-if="m.is_me" :to="{ name: 'me', query: { edit: 1 } }" class="btn btn-lg btn-ghost" @click.stop>{{ t.__('Edit profile', 'membuild-community') }}</RouterLink>
-            <button v-else-if="m.can_message" class="btn btn-lg btn-ghost" :disabled="messaging === m.id" @click.stop="message(m)"><Icon name="messenger" :size="18" /> {{ t.__('Message', 'membuild-community') }}</button>
+            <RouterLink v-if="m.is_me" :to="{ name: 'me', query: { edit: 1 } }" class="btn btn-ghost" @click.stop>{{ t.__('Edit profile', 'membuild-community') }}</RouterLink>
+            <button v-else-if="m.can_message" class="btn btn-ghost" :disabled="messaging === m.id" @click.stop="message(m)"><Icon name="messenger" :size="18" /> {{ t.__('Message', 'membuild-community') }}</button>
           </footer>
         </article>
       </li>
       <!-- Loading (first page or the next): member cards in grey, the shape of what's coming. -->
       <template v-if="loading && (!refreshing || !items.length)">
         <li v-for="n in items.length ? 3 : 9" :key="`sk${n}`" aria-hidden="true">
-          <div class="card sk-person">
+          <div class="card sk-person sk-wait">
             <div v-if="covers" class="skeleton sk-cover" />
             <div class="skeleton sk-pic" />
-            <div class="sk-lines">
+            <div class="sk-lines sk-wait">
               <div class="skeleton" style="width: 55%; height: 16px" />
               <div class="skeleton" style="width: 35%; height: 12px" />
               <div class="skeleton sk-wide" style="width: 85%; height: 12px" />

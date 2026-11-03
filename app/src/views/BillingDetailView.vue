@@ -91,7 +91,7 @@ async function act(what) {
     <RouterLink :to="{ name: 'billing' }" class="back-link"><Icon name="chevronLeft" :size="18" /> {{ t.__('Billing', 'membuild-community') }}</RouterLink>
 
     <p v-if="error" class="error-text" role="alert">{{ error }}</p>
-    <div v-else-if="!s" class="card box sk" aria-busy="true"><span /><span /><span /><span /></div>
+    <div v-else-if="!s" class="card box sk sk-wait" aria-busy="true"><span /><span /><span /><span /></div>
 
     <template v-else>
       <div class="title">

@@ -65,8 +65,8 @@ function press() {
       <div class="pick-body">
         <h3>{{ t.__('See it as a member', 'membuild-community') }}</h3>
         <p class="lbl">{{ t.__('With', 'membuild-community') }}</p>
-        <label class="opt" :class="{ on: group === 0 }"><input v-model="group" type="radio" :value="0" /> {{ t.__('No membership', 'membuild-community') }}</label>
-        <label v-for="m in memberships" :key="m.id" class="opt" :class="{ on: group === m.id }"><input v-model="group" type="radio" :value="m.id" /> {{ m.name }}</label>
+        <label class="opt pick-card" :class="{ on: group === 0 }"><input v-model="group" type="radio" :value="0" /> {{ t.__('No membership', 'membuild-community') }}</label>
+        <label v-for="m in memberships" :key="m.id" class="opt pick-card" :class="{ on: group === m.id }"><input v-model="group" type="radio" :value="m.id" /> {{ m.name }}</label>
         <label class="lbl" for="mvt-level">{{ t.__('At', 'membuild-community') }}</label>
         <select id="mvt-level" v-model.number="level">
           <option v-for="n in levels" :key="n" :value="n">{{ levelLabel(n) }}</option>
@@ -116,10 +116,11 @@ function press() {
   box-shadow: var(--shadow-pop);
 }
 
+/* On (seeing it as a member): the main colour's tint, like every picked thing. */
 .mvt.on {
-  border-color: transparent;
-  background: var(--text);
-  color: var(--surface);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-text);
 }
 
 /* Two lines in the one button: who you are (small), then what it does. */
@@ -147,7 +148,7 @@ function press() {
 
 .on .txt small,
 .on .txt small b {
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* The picker opens above the button, right-aligned. */
@@ -183,21 +184,14 @@ function press() {
   gap: 10px;
   min-height: 44px;
   padding: 0 12px;
-  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   font-weight: 600;
-  cursor: pointer;
-}
-
-.opt.on {
-  border: 2px solid var(--accent);
-  background: var(--accent-soft);
 }
 
 .opt input {
   width: 18px;
   height: 18px;
-  accent-color: var(--text);
+  accent-color: var(--accent-text);
 }
 
 select {

@@ -600,7 +600,7 @@ const stepNo = computed(() => ({ choose: 1, check: 2, progress: 3, done: 4 })[sc
           <h3>{{ t.sprintf(t.__('What to bring from %s', 'membuild-community'), source.label) }}</h3>
           <label v-for="o in options" :key="o.key" class="im-tick">
             <input type="checkbox" :checked="bring.includes(o.key)" @change="toggle(o.key)" />
-            <span class="im-box-mark"><Icon name="check" :size="14" /></span>
+            <span class="im-box-mark tick-box"><Icon name="check" :size="14" /></span>
             <span class="im-words"><strong>{{ o.title }} <span class="im-count">· {{ o.count }}</span></strong><small>{{ o.text }}</small></span>
           </label>
         </div>
@@ -608,8 +608,8 @@ const stepNo = computed(() => ({ choose: 1, check: 2, progress: 3, done: 4 })[sc
           <h3>{{ t.sprintf(/* translators: 1: number, 2: "groups" or "spaces" */ t.__('The %1$s %2$s become topics', 'membuild-community'), n(source.groups), groupWord) }}</h3>
           <p class="im-p">{{ t.__('Each one becomes a topic of the same name, and its posts come over in it, so members can filter Home by it. Private ones become members-only topics: a membership is made with the same people, and only they see those posts.', 'membuild-community') }}</p>
           <div v-if="state.pro" class="choices">
-            <label class="choice" :class="{ on: groupsTo === 'topics' }"><input v-model="groupsTo" type="radio" value="topics" /><span class="mark" /><strong>{{ t.__('Topics', 'membuild-community') }}</strong></label>
-            <label class="choice" :class="{ on: groupsTo === 'spaces' }"><input v-model="groupsTo" type="radio" value="spaces" /><span class="mark" /><strong>{{ t.__('Spaces (Pro)', 'membuild-community') }}</strong><small>{{ t.__('Each with its own members, feed and settings.', 'membuild-community') }}</small></label>
+            <label class="choice pick-card" :class="{ on: groupsTo === 'topics' }"><input v-model="groupsTo" type="radio" value="topics" /><span class="mark pick-dot" /><strong>{{ t.__('Topics', 'membuild-community') }}</strong></label>
+            <label class="choice pick-card" :class="{ on: groupsTo === 'spaces' }"><input v-model="groupsTo" type="radio" value="spaces" /><span class="mark pick-dot" /><strong>{{ t.__('Spaces (Pro)', 'membuild-community') }}</strong><small>{{ t.__('Each with its own members, feed and settings.', 'membuild-community') }}</small></label>
           </div>
           <!-- Pro, while it's coming: one button that signs the owner up to hear when it launches. -->
           <div v-else class="im-pro">
@@ -795,8 +795,8 @@ const stepNo = computed(() => ({ choose: 1, check: 2, progress: 3, done: 4 })[sc
         <div class="im-box" role="radiogroup" :aria-label="t.__('Letting them know', 'membuild-community')">
           <h3>{{ t.__('Letting them know', 'membuild-community') }}</h3>
           <div class="choices im-choices">
-            <label class="choice" :class="{ on: !welcome }"><input v-model="welcome" type="radio" :value="false" /><span class="mark" /><strong>{{ t.__('Don’t email anyone yet', 'membuild-community') }}</strong><small>{{ t.__('They can log in any time with “Forgot password?”. You can email everyone from here later.', 'membuild-community') }}</small></label>
-            <label class="choice" :class="{ on: welcome }"><input v-model="welcome" type="radio" :value="true" /><span class="mark" /><strong>{{ t.__('Send each new member a welcome email', 'membuild-community') }}</strong><small>{{ t.__('From you, with a link to set their password. Sent slowly (about 200 an hour) so it doesn’t look like spam.', 'membuild-community') }}</small></label>
+            <label class="choice pick-card" :class="{ on: !welcome }"><input v-model="welcome" type="radio" :value="false" /><span class="mark pick-dot" /><strong>{{ t.__('Don’t email anyone yet', 'membuild-community') }}</strong><small>{{ t.__('They can log in any time with “Forgot password?”. You can email everyone from here later.', 'membuild-community') }}</small></label>
+            <label class="choice pick-card" :class="{ on: welcome }"><input v-model="welcome" type="radio" :value="true" /><span class="mark pick-dot" /><strong>{{ t.__('Send each new member a welcome email', 'membuild-community') }}</strong><small>{{ t.__('From you, with a link to set their password. Sent slowly (about 200 an hour) so it doesn’t look like spam.', 'membuild-community') }}</small></label>
           </div>
         </div>
         <p v-if="error" class="error-text" role="alert">{{ error }}</p>
@@ -1143,28 +1143,6 @@ const stepNo = computed(() => ({ choose: 1, check: 2, progress: 3, done: 4 })[sc
 .im-tick input {
   position: absolute;
   opacity: 0;
-}
-
-.im-box-mark {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  border: 2px solid var(--border-strong);
-  border-radius: var(--radius-xs);
-  color: transparent;
-}
-
-.im-tick input:checked + .im-box-mark {
-  border-color: var(--text);
-  background: var(--text);
-  color: var(--surface);
-}
-
-.im-tick input:focus-visible + .im-box-mark {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 
 .im-count {

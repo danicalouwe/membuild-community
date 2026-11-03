@@ -61,7 +61,7 @@ const ABOUT = [
 
       <section class="card box">
         <h2>{{ t.__('How often', 'membuild-community') }}</h2>
-        <label v-for="o in OFTEN" :key="o.key" class="choice" :class="{ on: prefs.frequency === o.key }">
+        <label v-for="o in OFTEN" :key="o.key" class="choice pick-card" :class="{ on: prefs.frequency === o.key }">
           <input type="radio" name="often" :value="o.key" :checked="prefs.frequency === o.key" @change="save({ frequency: o.key })" />
           <span><strong>{{ o.label }}</strong><small>{{ o.hint }}</small></span>
         </label>
@@ -114,21 +114,14 @@ h2 {
   align-items: flex-start;
   gap: 12px;
   padding: 16px 18px;
-  border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  cursor: pointer;
-}
-
-.choice.on {
-  border: 2px solid var(--accent);
-  background: var(--accent-soft);
 }
 
 .choice input {
   width: 22px;
   height: 22px;
   margin: 2px 0 0;
-  accent-color: var(--text);
+  accent-color: var(--accent-text);
 }
 
 .choice span,

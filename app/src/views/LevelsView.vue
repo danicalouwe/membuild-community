@@ -21,7 +21,7 @@ api.leaderboard('all').then((d) => (data.value = d)).catch(() => {})
       <LevelsCard :levels="data.levels" :progress="data.progress" stacked />
       <EarnPoints :rules="data.rules" class="earn-flat" />
     </template>
-    <div v-else class="sk-wrap" aria-hidden="true">
+    <div v-else class="sk-wrap sk-wait" aria-hidden="true">
       <div class="skeleton" style="height: 56px; width: 60%; border-radius: 28px" />
       <div v-for="n in 6" :key="n" class="skeleton" style="height: 44px; margin-top: 14px" />
     </div>

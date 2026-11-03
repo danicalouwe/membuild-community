@@ -47,14 +47,14 @@ async function keepOnRemove(keep) {
     <fieldset class="field">
       <legend class="label">{{ t.__('When the plugin is removed', 'membuild-community') }}</legend>
       <div class="choices cols-2">
-        <label class="choice" :class="{ on: !form.delete_data }">
+        <label class="choice pick-card" :class="{ on: !form.delete_data }">
           <input type="radio" name="delete_data" :checked="!form.delete_data" @change="keepOnRemove(true)" />
-          <span class="mark" /><strong>{{ t.__('Keep everything', 'membuild-community') }}</strong>
+          <span class="mark pick-dot" /><strong>{{ t.__('Keep everything', 'membuild-community') }}</strong>
           <small>{{ t.__('Your community stays in the database. Install the plugin again and it’s all back. (Safe)', 'membuild-community') }}</small>
         </label>
-        <label class="choice wipe" :class="{ on: form.delete_data }">
+        <label class="choice wipe pick-card" :class="{ on: form.delete_data }">
           <input type="radio" name="delete_data" :checked="form.delete_data" @click.prevent="!form.delete_data && keepOnRemove(false)" />
-          <span class="mark" /><strong>{{ t.__('Delete everything', 'membuild-community') }}</strong>
+          <span class="mark pick-dot" /><strong>{{ t.__('Delete everything', 'membuild-community') }}</strong>
           <small>{{ t.__('Posts, messages, courses, points and uploads are deleted for good.', 'membuild-community') }}</small>
         </label>
       </div>
@@ -64,9 +64,11 @@ async function keepOnRemove(keep) {
 </template>
 
 <style scoped>
+/* The one choice that destroys: red when picked (the moment of destroying), not the main colour. */
 .group .choice.wipe.on {
   border-color: var(--danger-strong);
   background: var(--danger-soft);
+  box-shadow: inset 0 0 0 1px var(--danger-strong);
 }
 
 .group .choice.wipe.on strong {
@@ -75,7 +77,7 @@ async function keepOnRemove(keep) {
 
 .group .choice.wipe.on .mark {
   border-color: var(--danger-strong);
-  background: radial-gradient(circle, var(--surface) 0 28%, var(--danger-strong) 31%);
+  background: radial-gradient(circle, var(--danger-strong) 0 30%, transparent 34%);
 }
 
 .group .danger-line {

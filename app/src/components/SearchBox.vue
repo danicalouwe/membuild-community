@@ -170,7 +170,7 @@ const noneLabel = computed(() => t.sprintf(/* translators: %s: the search text *
       <template v-else>
         <div class="list">
           <template v-if="loading && !groups">
-            <div v-for="n in 4" :key="n" class="sk"><span class="skeleton" /><span><span class="skeleton" /><span class="skeleton" /></span></div>
+            <div v-for="n in 4" :key="n" class="sk sk-wait"><span class="skeleton" /><span><span class="skeleton" /><span class="skeleton" /></span></div>
           </template>
           <p v-else-if="empty" class="note">{{ noneLabel }}</p>
           <section v-for="g in shown" :key="g.key">

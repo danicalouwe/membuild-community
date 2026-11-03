@@ -175,7 +175,7 @@ h2 {
 
 .faces > :deep(*) {
   position: absolute;
-  box-shadow: 0 0 0 2px var(--bg, #fff);
+  box-shadow: 0 0 0 2px var(--bg);
   border-radius: 50%;
 }
 

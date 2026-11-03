@@ -453,11 +453,11 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
                 <Icon v-else name="chevronLeft" :size="20" />
               </button>
               <div v-if="showBackgrounds && bgAllowed" class="swatches" role="radiogroup" :aria-label="t.__('Background', 'membuild-community')">
-                <button class="swatch none" :class="{ on: !background }" role="radio" :aria-checked="!background" :aria-label="t.__('No background', 'membuild-community')" @click="background = ''" />
+                <button class="swatch swatch-pick none" :class="{ on: !background }" role="radio" :aria-checked="!background" :aria-label="t.__('No background', 'membuild-community')" @click="background = ''" />
                 <button
                   v-for="(css, key) in BACKGROUNDS"
                   :key="key"
-                  class="swatch"
+                  class="swatch swatch-pick"
                   :class="{ on: background === key }"
                   :style="{ background: css }"
                   role="radio"
@@ -860,10 +860,6 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
 .swatch.none {
   background: var(--surface-2);
   box-shadow: inset 0 0 0 1px var(--border);
-}
-
-.swatch.on {
-  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent);
 }
 
 .emoji-wrap {

@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.16.2
+Stable tag: 1.16.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,16 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.16.3 =
+* Changed: one look for anything picked. Pills, tabs, switches and choice cards use a light tint of your main colour; ticks are main-colour boxes; colour circles all get the same ring.
+* Changed: buttons come in three heights: 52 for main, create and dialog buttons, 44 for buttons inside a card or row, 40 for filters.
+* Changed: deleting a membership, lesson or course is a quiet last row with a "Delete..." button. Red only shows in the box that asks you to confirm.
+* Changed: on phones, a Settings section keeps a back bar with its name at the top while you scroll. Memberships shows its title once, and the price choice and Main color circles fit on one line.
+* New: the Joining preview has a Log in | Join switch. Clicking into "Join page headline" shows the Join page, and your words appear as you type.
+* New: a Places search that finds nothing says so, with Clear search, and the list follows the search. Pending is a filter like Members and Places. The zoom buttons no longer sit under the search on narrow windows.
+* Changed: calmer page switching. Pages you've just visited come back instantly where you left them and refresh quietly; only the middle of the screen fades; cards rise in only the first time; loading shapes wait a moment and match the page.
+* Fixed: a dialog left open no longer stays on screen after going Back; small colour, spacing and label fixes.
 
 = 1.16.2 =
 * Changed: Import with more than one community plugin on the site shows one main button, on the one with the most members ("The biggest, so start here."). The others are listed under "Also on this site".

@@ -57,9 +57,9 @@ watch(
     <fieldset class="field">
       <legend class="label">{{ t.__('Which GIFs can show', 'membuild-community') }}</legend>
       <div class="choices cols-4">
-        <label v-for="r in RATINGS" :key="r.key" class="choice" :class="{ on: form.gifs.rating === r.key }">
+        <label v-for="r in RATINGS" :key="r.key" class="choice pick-card" :class="{ on: form.gifs.rating === r.key }">
           <input v-model="form.gifs.rating" type="radio" name="rating" :value="r.key" />
-          <span class="mark" /><strong>{{ r.label }}</strong><small>{{ r.hint }}</small>
+          <span class="mark pick-dot" /><strong>{{ r.label }}</strong><small>{{ r.hint }}</small>
         </label>
       </div>
       <small>{{ t.__('GIFs load from GIPHY. Nothing is copied to your site.', 'membuild-community') }}</small>

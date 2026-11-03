@@ -1,5 +1,5 @@
 <script setup>
-import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, onActivated, onBeforeUnmount, onDeactivated, onMounted, ref, watch } from 'vue'
 import { cfg } from '../config.js'
 import { eventList, loadMore, refresh } from '../stores/feed.js'
 import EventRow from '../components/EventRow.vue'
@@ -47,6 +47,16 @@ onMounted(() => {
   if (sentinel.value) observer.observe(sentinel.value)
 })
 onBeforeUnmount(() => observer?.disconnect())
+// Kept in memory (App.vue): coming back shows the list at once and refreshes it quietly, unless
+// you'd scrolled into later pages (then it stays as it is, so nothing moves under you).
+let away = false
+onDeactivated(() => {
+  away = true
+  creating.value = false // an unsaved new event doesn't wait for you, as before
+})
+onActivated(() => {
+  if (away && list.value.page <= 2) refresh(list.value)
+})
 </script>
 
 <template>
@@ -58,7 +68,7 @@ onBeforeUnmount(() => observer?.disconnect())
         <button class="filter-pill" role="tab" :aria-selected="when === 'upcoming'" :class="{ on: when === 'upcoming' }" @click="when = 'upcoming'">{{ t.__('Upcoming', 'membuild-community') }}</button>
         <button class="filter-pill" role="tab" :aria-selected="when === 'past'" :class="{ on: when === 'past' }" @click="when = 'past'">{{ t.__('Past', 'membuild-community') }}</button>
       </div>
-      <button v-if="owner" class="btn btn-primary new" @click="creating = true"><Icon name="plus" :size="16" /> {{ t.__('New event', 'membuild-community') }}</button>
+      <button v-if="owner" class="btn btn-lg btn-primary new" @click="creating = true"><Icon name="plus" :size="18" /> {{ t.__('New event', 'membuild-community') }}</button>
     </header>
 
     <section v-if="live.length && when === 'upcoming'" class="month">
@@ -71,8 +81,10 @@ onBeforeUnmount(() => observer?.disconnect())
       <template v-for="(p, i) in g.items" :key="p.id"><ThemeSlot name="events.row" :off="owner" :data="{ post: p, live: false }"><EventRow class="rise-in" :style="{ '--i': i }" :post="p" :owner="owner" @add-replay="addReplay" /></ThemeSlot></template>
     </section>
 
+    <!-- Loading: the month's name, then rows shaped like the real ones (photo, date, title, time, where, going). -->
     <div v-if="list.loading && !list.items.length" class="month">
-      <div v-for="n in 3" :key="n" class="card sk"><div class="skeleton" style="width: 208px; aspect-ratio: 16 / 9; border-radius: 10px" /><div style="flex: 1"><div class="skeleton" style="height: 12px; width: 30%; margin-bottom: 10px" /><div class="skeleton" style="height: 18px; width: 70%" /></div></div>
+      <div class="skeleton" style="height: 12px; width: 90px" />
+      <div v-for="n in 3" :key="n" class="card sk sk-wait"><div class="skeleton" style="width: 208px; aspect-ratio: 16 / 9; border-radius: 10px" /><div style="flex: 1"><div class="skeleton" style="height: 12px; width: 30%; margin-bottom: 10px" /><div class="skeleton" style="height: 18px; width: 70%; margin-bottom: 12px" /><div class="skeleton" style="height: 12px; width: 45%; margin-bottom: 8px" /><div class="skeleton" style="height: 12px; width: 25%; margin-bottom: 8px" /><div class="skeleton" style="height: 12px; width: 35%" /></div></div>
     </div>
     <ThemeSlot v-else-if="list.loaded && !list.items.length" name="app.empty-state" :data="{ page: 'events', icon: 'calendar', title: when === 'past' ? t.__('No past events yet.', 'membuild-community') : t.__('Nothing scheduled yet.', 'membuild-community'), text: t.__('Add a live call, a Q&A or a workshop. Members get a reminder the day before and an hour before.', 'membuild-community') }">
     <div class="empty-state card">

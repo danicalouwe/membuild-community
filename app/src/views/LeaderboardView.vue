@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onActivated, onBeforeUnmount, onDeactivated, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../api.js'
 import { cfg, levelLabel } from '../config.js'
@@ -133,10 +133,23 @@ const onScroll = () => {
     requestAnimationFrame(checkStuck)
   }
 }
-onMounted(() => {
-  // Capture: the page may scroll inside the app's frame rather than the window.
+// Kept in memory (App.vue): the scroll listeners run only while the page shows; coming back
+// refreshes the ranks quietly (no grey shapes).
+let away = false
+onActivated(async () => {
   document.addEventListener('scroll', onScroll, { passive: true, capture: true })
   window.addEventListener('resize', onScroll)
+  if (!away) return
+  const mine = ++asked
+  const res = await api.leaderboard(period.value).catch(() => null)
+  if (res && mine === asked) data.value = res
+})
+onDeactivated(() => {
+  away = true
+  document.removeEventListener('scroll', onScroll, { capture: true })
+  window.removeEventListener('resize', onScroll)
+})
+onMounted(() => {
   // The dock's buttons come and go (a chat minimised, closed): measure again.
   const dockEl = document.querySelector('[data-chat-dock]')
   if (dockEl) {
@@ -178,9 +191,12 @@ const writePost = () => router.push({ name: 'feed', query: { write: 1 } })
         </RouterLink>
       </div>
 
-      <!-- Loading: rows in grey. -->
+      <!-- Loading: the podium's three places, then rows in grey. -->
+      <div v-if="loading && !data" class="sk-podium sk-wait" aria-hidden="true">
+        <span v-for="n in 3" :key="n" class="skeleton" :class="{ first: n === 2 }" />
+      </div>
       <ol v-if="loading && !data" class="list" aria-hidden="true">
-        <li v-for="n in 8" :key="n" class="row sk"><span class="skeleton" style="width: 18px; height: 14px" /><span class="skeleton" style="width: 44px; height: 44px; border-radius: 50%" /><span class="skeleton" style="flex: 1; max-width: 200px; height: 16px" /><span class="skeleton" style="width: 40px; height: 16px; margin-left: auto" /></li>
+        <li v-for="n in 8" :key="n" class="row sk sk-wait"><span class="skeleton" style="width: 18px; height: 14px" /><span class="skeleton" style="width: 44px; height: 44px; border-radius: 50%" /><span class="skeleton" style="flex: 1; max-width: 200px; height: 16px" /><span class="skeleton" style="width: 40px; height: 16px; margin-left: auto" /></li>
       </ol>
 
       <!-- Nobody has points in this period yet. -->
@@ -414,6 +430,23 @@ h1 {
 }
 
 /* The podium: 2nd, 1st (raised), 3rd, each ringed in its medal colour. */
+.sk-podium {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: end;
+  gap: 12px;
+  margin: 20px 24px 16px;
+}
+
+.sk-podium .skeleton {
+  height: 150px;
+  border-radius: var(--radius-lg);
+}
+
+.sk-podium .skeleton.first {
+  height: 170px;
+}
+
 .podium {
   --gold: #f2c14e;
   --silver: #c3c9d2;
@@ -712,7 +745,8 @@ h1 {
     bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 10px);
   }
 
-  .podium {
+  .podium,
+  .sk-podium {
     gap: 8px;
     margin: 18px 16px 12px;
   }

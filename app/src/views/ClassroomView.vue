@@ -1,6 +1,6 @@
 <script setup>
 import { cfg } from '../config.js'
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onActivated, onDeactivated, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../api.js'
 import Avatar from '../components/Avatar.vue'
@@ -31,6 +31,20 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
+})
+// Kept in memory (App.vue): coming back shows the courses at once, then checks quietly for
+// changes (no grey shapes, nothing moves unless something changed).
+let away = false
+onDeactivated(() => {
+  away = true
+  naming.value = false // a half-typed new course name doesn't wait for you
+})
+onActivated(async () => {
+  if (!away) return // the first showing is onMounted's
+  const res = await api.courses().catch(() => null)
+  if (!res) return
+  courses.value = res.items
+  canManage.value = res.can_manage
 })
 
 // "See it as a member": owners check the Classroom without their tools and drafts.
@@ -107,7 +121,7 @@ const percentDone = (pct) => t.sprintf(/* translators: %d: percent of the course
 
 // The short pill on a locked cover, and what the card's foot says unlocks it.
 // Settings › Features › Classroom: members and posts on course cards.
-const cardActivity = cfg.community.courses?.activity !== false
+const cardActivity = computed(() => cfg.community.courses?.activity !== false) // kept page: follows Settings
 const lockPill = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: %d: level number */ t.__('Level %d+', 'membuild-community'), lock.level) : lock.membership?.name || lock.groups.join(', ') || t.__('Members only', 'membuild-community'))
 const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: %d: level number */ t.__('Reach Level %d', 'membuild-community'), lock.level) : lock.membership?.offer ? offerButton(lock.membership.offer) : lockLabel(lock))
 </script>
@@ -155,11 +169,14 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
     <h2 v-if="resume && filter === 'all' && !owner" class="section">{{ t.__('All courses', 'membuild-community') }}</h2>
     <div class="grid">
       <template v-if="loading">
-        <div v-for="n in 3" :key="n" class="card course">
+        <div v-for="n in 3" :key="n" class="card course sk-wait">
           <div class="skeleton cover-sk" />
           <div class="body">
             <div class="skeleton" style="height: 16px; width: 60%" />
             <div class="skeleton" style="height: 12px; width: 90%; margin-top: 10px" />
+            <div class="skeleton" style="height: 12px; width: 70%; margin-top: 6px" />
+            <div class="skeleton" style="height: 20px; width: 45%; margin-top: 12px" />
+            <div class="skeleton" style="height: 30px; width: 100%; margin-top: 18px" />
           </div>
         </div>
       </template>
@@ -207,7 +224,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
             <template v-if="owner">
               <span v-if="c.status === 'draft'" class="status-line"><i class="dot draft-dot" /> {{ t.__('Draft: only you can see it', 'membuild-community') }}</span>
               <span v-else class="status-line"><i class="dot" /> {{ t.__('Published', 'membuild-community') }}</span>
-              <span class="btn btn-lg btn-ghost edit" role="button" tabindex="0" @click.prevent.stop="editCourse(c)" @keydown.enter.prevent.stop="editCourse(c)"><Icon name="pencil" :size="18" /> {{ t.__('Edit', 'membuild-community') }}</span>
+              <span class="btn btn-ghost edit" role="button" tabindex="0" @click.prevent.stop="editCourse(c)" @keydown.enter.prevent.stop="editCourse(c)"><Icon name="pencil" :size="18" /> {{ t.__('Edit', 'membuild-community') }}</span>
             </template>
             <template v-else>
               <span class="foot-left">{{ !c.lock && stateOf(c) !== 'new' ? doneOf(c) : c.lessons_count ? lessonsLabel(c.lessons_count) : '' }}</span>
@@ -604,7 +621,6 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
 }
 
 .foot .edit {
-  height: 48px;
   padding: 0 20px;
   font-size: var(--fs-lg);
 }
@@ -813,7 +829,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
 .name-form input {
   height: 52px;
   padding: 0 16px;
-  border: 1px solid var(--border-strong, #c9ced6);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--text);

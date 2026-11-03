@@ -572,7 +572,7 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
     transition: top 0.25s ease;
   }
 
-  :global(.bars-hidden) .new-pill {
+  :global(.bars-hidden .new-pill) {
     top: calc(env(safe-area-inset-top) + 12px);
   }
 }

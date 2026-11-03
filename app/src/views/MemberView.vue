@@ -270,13 +270,13 @@ const dailyCap = (n) => t.sprintf(/* translators: %d: how many times a day this 
                 <p v-else-if="isMe" class="bio empty">{{ t.__('Add a short bio so people know who you are.', 'membuild-community') }}</p>
 
                 <div class="actions">
-                  <button v-if="member.is_me" class="btn btn-lg btn-ghost" @click="editProfile"><Icon name="pencil" :size="18" /> {{ t.__('Edit profile', 'membuild-community') }}</button>
-                  <button v-if="!member.is_me && member.can_message" class="btn btn-lg btn-primary msg" :disabled="messaging" @click="message"><Icon name="comment" :size="18" /> {{ t.__('Message', 'membuild-community') }}</button>
-                  <button v-if="cfg.community.canManage && !member.is_me && feature('classroom')" class="btn btn-lg btn-ghost" @click="showGroups = true"><Icon name="lock" :size="18" /> {{ t.__('Manage membership', 'membuild-community') }}</button>
-                  <button v-if="member.can_restrict && !member.restriction" class="btn btn-lg btn-ghost" @click="modChoice = 'mute7'; moderating = true"><Icon name="shield" :size="18" /> {{ t.__('Moderate', 'membuild-community') }}</button>
-                  <button v-else-if="member.can_restrict" class="btn btn-lg btn-ghost" :disabled="modBusy" @click="restrict('none')"><Icon name="shield" :size="18" /> {{ member.restriction.status === 'banned' ? t.__('Unban', 'membuild-community') : t.__('Unmute', 'membuild-community') }}</button>
+                  <button v-if="member.is_me" class="btn btn-ghost" @click="editProfile"><Icon name="pencil" :size="18" /> {{ t.__('Edit profile', 'membuild-community') }}</button>
+                  <button v-if="!member.is_me && member.can_message" class="btn btn-primary msg" :disabled="messaging" @click="message"><Icon name="comment" :size="18" /> {{ t.__('Message', 'membuild-community') }}</button>
+                  <button v-if="cfg.community.canManage && !member.is_me && feature('classroom')" class="btn btn-ghost" @click="showGroups = true"><Icon name="lock" :size="18" /> {{ t.__('Manage membership', 'membuild-community') }}</button>
+                  <button v-if="member.can_restrict && !member.restriction" class="btn btn-ghost" @click="modChoice = 'mute7'; moderating = true"><Icon name="shield" :size="18" /> {{ t.__('Moderate', 'membuild-community') }}</button>
+                  <button v-else-if="member.can_restrict" class="btn btn-ghost" :disabled="modBusy" @click="restrict('none')"><Icon name="shield" :size="18" /> {{ member.restriction.status === 'banned' ? t.__('Unban', 'membuild-community') : t.__('Unmute', 'membuild-community') }}</button>
                   <span v-if="!member.is_me && member.can_block" :ref="moreRoot" class="more-wrap">
-                    <button :ref="moreTrigger" class="btn btn-lg btn-ghost round" :aria-label="t.__('More options', 'membuild-community')" aria-haspopup="menu" :aria-expanded="moreMenu" @click="toggleMore"><Icon name="more" :size="20" /></button>
+                    <button :ref="moreTrigger" class="btn btn-ghost round" :aria-label="t.__('More options', 'membuild-community')" aria-haspopup="menu" :aria-expanded="moreMenu" @click="toggleMore"><Icon name="more" :size="20" /></button>
                     <span v-if="moreMenu" :ref="moreList" class="more-menu card" role="menu" @keydown="onMoreKey">
                       <button role="menuitem" @click="closeMore(); blocking = true">{{ t.__('Block', 'membuild-community') }}</button>
                       <button role="menuitem" @click="closeMore(); reporting = true">{{ t.__('Report profile', 'membuild-community') }}</button>
@@ -285,11 +285,11 @@ const dailyCap = (n) => t.sprintf(/* translators: %d: how many times a day this 
                 </div>
               </template>
             </div>
-            <div v-else-if="!error" class="who who-sk" aria-hidden="true">
+            <div v-else-if="!error" class="who who-sk sk-wait" aria-hidden="true">
               <div class="skeleton" style="width: 220px; height: 30px" />
               <div class="skeleton" style="width: 120px; height: 14px; margin-top: 12px" />
               <div class="skeleton" style="width: 320px; max-width: 100%; height: 14px; margin-top: 14px" />
-              <div class="who-sk-btns"><div class="skeleton" /><div class="skeleton" /></div>
+              <div class="who-sk-btns sk-wait"><div class="skeleton" /><div class="skeleton" /></div>
             </div>
           </div>
         </div>
@@ -423,10 +423,10 @@ const dailyCap = (n) => t.sprintf(/* translators: %d: how many times a day this 
       <template #header><h2 class="dlg-title">{{ t.sprintf(/* translators: %s: member's name */ t.__('Mute or ban %s', 'membuild-community'), member.name) }}</h2></template>
       <div class="dlg">
         <p class="small">{{ t.__('Nothing they’ve already posted is removed. You can undo this any time in Moderation › Muted & banned.', 'membuild-community') }}</p>
-        <label class="choice" :class="{ on: modChoice === 'mute1' }"><input v-model="modChoice" type="radio" value="mute1" /><span><strong>{{ t.__('Mute for 1 day', 'membuild-community') }}</strong><small>{{ t.__('Can read and react, but can’t post, comment or send messages until tomorrow.', 'membuild-community') }}</small></span></label>
-        <label class="choice" :class="{ on: modChoice === 'mute7' }"><input v-model="modChoice" type="radio" value="mute7" /><span><strong>{{ t.__('Mute for 7 days', 'membuild-community') }}</strong><small>{{ t.sprintf(/* translators: %s: a date */ t.__('The same, until %s.', 'membuild-community'), until7) }}</small></span></label>
-        <label class="choice" :class="{ on: modChoice === 'mute' }"><input v-model="modChoice" type="radio" value="mute" /><span><strong>{{ t.__('Mute until I unmute', 'membuild-community') }}</strong><small>{{ t.__('The same, with no end date.', 'membuild-community') }}</small></span></label>
-        <label class="choice" :class="{ on: modChoice === 'ban' }"><input v-model="modChoice" type="radio" value="ban" /><span><strong>{{ t.__('Ban from the community', 'membuild-community') }}</strong><small>{{ t.__('Can’t open the community at all.', 'membuild-community') }}</small></span></label>
+        <label class="choice pick-card" :class="{ on: modChoice === 'mute1' }"><input v-model="modChoice" type="radio" value="mute1" /><span><strong>{{ t.__('Mute for 1 day', 'membuild-community') }}</strong><small>{{ t.__('Can read and react, but can’t post, comment or send messages until tomorrow.', 'membuild-community') }}</small></span></label>
+        <label class="choice pick-card" :class="{ on: modChoice === 'mute7' }"><input v-model="modChoice" type="radio" value="mute7" /><span><strong>{{ t.__('Mute for 7 days', 'membuild-community') }}</strong><small>{{ t.sprintf(/* translators: %s: a date */ t.__('The same, until %s.', 'membuild-community'), until7) }}</small></span></label>
+        <label class="choice pick-card" :class="{ on: modChoice === 'mute' }"><input v-model="modChoice" type="radio" value="mute" /><span><strong>{{ t.__('Mute until I unmute', 'membuild-community') }}</strong><small>{{ t.__('The same, with no end date.', 'membuild-community') }}</small></span></label>
+        <label class="choice pick-card" :class="{ on: modChoice === 'ban' }"><input v-model="modChoice" type="radio" value="ban" /><span><strong>{{ t.__('Ban from the community', 'membuild-community') }}</strong><small>{{ t.__('Can’t open the community at all.', 'membuild-community') }}</small></span></label>
         <div class="dlg-actions">
           <button class="btn btn-lg btn-ghost" @click="moderating = false">{{ t.__('Cancel', 'membuild-community') }}</button>
           <button class="btn btn-lg red" :disabled="modBusy" @click="restrict(MOD_CHOICES[modChoice].status, MOD_CHOICES[modChoice].days)">{{ modButton }}</button>
@@ -548,7 +548,7 @@ h1 {
 }
 
 .actions .round {
-  width: 52px;
+  width: 44px;
   padding: 0;
   justify-content: center;
 }
@@ -951,21 +951,14 @@ h1 {
   align-items: flex-start;
   gap: 12px;
   padding: 14px 16px;
-  border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  cursor: pointer;
-}
-
-.choice.on {
-  border: 2px solid var(--accent);
-  background: var(--accent-soft);
 }
 
 .choice input {
   width: 22px;
   height: 22px;
   margin: 2px 0 0;
-  accent-color: var(--text);
+  accent-color: var(--accent-text);
 }
 
 .choice span {
@@ -1057,7 +1050,7 @@ h1 {
 
 .who-sk-btns .skeleton {
   width: 140px;
-  height: 52px;
+  height: 44px; /* the profile buttons are 44 */
   border-radius: var(--radius-pill);
 }
 </style>

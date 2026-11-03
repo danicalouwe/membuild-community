@@ -499,7 +499,7 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  border: 2px solid var(--border-strong, #c9ced6);
+  border: 2px solid var(--border-strong);
   font-size: var(--fs-base);
   font-weight: 700;
 }

@@ -296,6 +296,7 @@ class Settings {
 			'privacy_admin_url'   => admin_url( 'options-privacy.php' ),
 			'join_url'            => Login::url( 'join' ),
 			'login_url'           => Login::url( 'login', array( 'preview' => '1' ) ), // opens for admins too (see Login::login_page)
+			'join_preview_url'    => Login::url( 'join', array( 'preview' => '1' ) ), // the same for the Join page (Login::join_page)
 			'hosts'               => Login::host_choices(), // who can be the host on the login card: admins and moderators
 			'accents'    => self::ACCENTS,
 			'rules'      => self::rule_labels(),

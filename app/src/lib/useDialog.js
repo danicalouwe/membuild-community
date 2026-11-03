@@ -1,4 +1,4 @@
-import { nextTick, onBeforeUnmount, onMounted, toValue, watch } from 'vue'
+import { nextTick, onActivated, onBeforeUnmount, onDeactivated, onMounted, toValue, watch } from 'vue'
 import { focusables, pushLayer } from './layers.js'
 
 let locks = 0
@@ -58,6 +58,30 @@ export function useDialog(panel, { onClose, open = true } = {}) {
     watch(() => toValue(open), (on) => (on ? activate() : deactivate()), { immediate: true })
   })
   onBeforeUnmount(deactivate)
+
+  // On a page kept in memory (App.vue's KeepAlive), going to another page with the dialog open
+  // (the browser's Back, a link inside it): the page is put away, but a dialog moved to <body>
+  // stays on screen. Hide it with its page and let go of the scroll lock and focus; coming back
+  // shows it again, as you left it.
+  let hidden = null
+  let wasOpen = false
+  onDeactivated(() => {
+    if (!remove) return
+    wasOpen = true
+    deactivate()
+    let el = toValue(panel)
+    if (!el?.isConnected) return // drawn inside the page: put away with it
+    while (el.parentElement && el.parentElement !== document.body) el = el.parentElement
+    hidden = el
+    hidden.style.display = 'none'
+  })
+  onActivated(() => {
+    if (!wasOpen) return
+    wasOpen = false
+    if (hidden) hidden.style.display = ''
+    hidden = null
+    if (toValue(open)) activate()
+  })
 
   return { focusables: () => focusables(toValue(panel)) }
 }

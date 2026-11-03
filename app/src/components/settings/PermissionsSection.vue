@@ -89,8 +89,8 @@ const joined = (u) => (u.joined_at ? new Intl.DateTimeFormat(undefined, { month:
     <fieldset class="field">
       <legend class="label">{{ t.__('Who can write posts on Home?', 'membuild-community') }}</legend>
       <div class="choices cols-2">
-        <label class="choice" :class="{ on: form.posting === 'everyone' }"><input v-model="form.posting" type="radio" name="posting" value="everyone" /><span class="mark" /><strong>{{ t.__('All members', 'membuild-community') }}</strong></label>
-        <label class="choice" :class="{ on: form.posting === 'staff' }"><input v-model="form.posting" type="radio" name="posting" value="staff" /><span class="mark" /><strong>{{ t.__('Only admins and moderators', 'membuild-community') }}</strong></label>
+        <label class="choice pick-card" :class="{ on: form.posting === 'everyone' }"><input v-model="form.posting" type="radio" name="posting" value="everyone" /><span class="mark pick-dot" /><strong>{{ t.__('All members', 'membuild-community') }}</strong></label>
+        <label class="choice pick-card" :class="{ on: form.posting === 'staff' }"><input v-model="form.posting" type="radio" name="posting" value="staff" /><span class="mark pick-dot" /><strong>{{ t.__('Only admins and moderators', 'membuild-community') }}</strong></label>
       </div>
       <small>{{ t.__('Members can still comment and react.', 'membuild-community') }}</small>
     </fieldset>
@@ -100,8 +100,8 @@ const joined = (u) => (u.joined_at ? new Intl.DateTimeFormat(undefined, { month:
     <fieldset class="field" :disabled="!form.features.messages">
       <legend class="label">{{ t.__('Who can members send messages to?', 'membuild-community') }}</legend>
       <div class="choices cols-2">
-        <label class="choice" :class="{ on: form.messaging === 'everyone' }"><input v-model="form.messaging" type="radio" name="messaging" value="everyone" /><span class="mark" /><strong>{{ t.__('Anyone in the community', 'membuild-community') }}</strong></label>
-        <label class="choice" :class="{ on: form.messaging === 'staff' }"><input v-model="form.messaging" type="radio" name="messaging" value="staff" /><span class="mark" /><strong>{{ t.__('Only admins and moderators', 'membuild-community') }}</strong></label>
+        <label class="choice pick-card" :class="{ on: form.messaging === 'everyone' }"><input v-model="form.messaging" type="radio" name="messaging" value="everyone" /><span class="mark pick-dot" /><strong>{{ t.__('Anyone in the community', 'membuild-community') }}</strong></label>
+        <label class="choice pick-card" :class="{ on: form.messaging === 'staff' }"><input v-model="form.messaging" type="radio" name="messaging" value="staff" /><span class="mark pick-dot" /><strong>{{ t.__('Only admins and moderators', 'membuild-community') }}</strong></label>
       </div>
       <small>{{ t.__('Admins and moderators can always message anyone.', 'membuild-community') }}</small>
     </fieldset>
@@ -112,11 +112,11 @@ const joined = (u) => (u.joined_at ? new Intl.DateTimeFormat(undefined, { month:
         <p class="dlg-text">{{ t.__('Moderators review reports, take posts down and mute or ban members. Pick someone you trust.', 'membuild-community') }}</p>
         <label class="dlg-search"><Icon name="search" :size="18" /><input v-model="search" type="search" :placeholder="t.__('Type a name', 'membuild-community')" :aria-label="t.__('Search members', 'membuild-community')" autofocus /></label>
         <div v-if="found.length" class="people" role="radiogroup">
-          <label v-for="u in found" :key="u.id" class="person" :class="{ on: pick?.id === u.id }">
+          <label v-for="u in found" :key="u.id" class="person pick-card" :class="{ on: pick?.id === u.id }">
             <input v-model="pick" type="radio" name="mod" :value="u" />
             <Avatar :user="u" :size="40" />
             <span class="who"><strong>{{ u.name }}</strong><small>{{ [levelLabel(u.level || 1), joined(u) && t.sprintf(/* translators: %s: month and year */ t.__('joined %s', 'membuild-community'), joined(u))].filter(Boolean).join(' · ') }}</small></span>
-            <span class="dot" />
+            <span class="dot pick-dot" />
           </label>
         </div>
         <p v-else-if="search.trim()" class="dlg-text">{{ t.__('Nobody by that name yet.', 'membuild-community') }}</p>
@@ -210,32 +210,12 @@ const joined = (u) => (u.joined_at ? new Intl.DateTimeFormat(undefined, { month:
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  cursor: pointer;
 }
 
 .person input {
   position: absolute;
   opacity: 0;
-}
-
-.person.on {
-  border: 2px solid var(--accent);
-  padding: 9px 11px;
-  background: var(--accent-soft);
-}
-
-.dot {
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--border-strong);
-  border-radius: 50%;
-}
-
-.person.on .dot {
-  border-color: var(--text);
-  background: radial-gradient(circle, var(--surface) 0 28%, var(--text) 31%);
 }
 
 .dlg-act {

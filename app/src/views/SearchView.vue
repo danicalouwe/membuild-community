@@ -205,7 +205,7 @@ const searched = computed(() => {
 
         <!-- Loading: card shapes -->
         <section v-if="!groups" class="card group">
-          <div v-for="n in 4" :key="n" class="sk"><span class="skeleton" /><span><span class="skeleton" /><span class="skeleton" /></span></div>
+          <div v-for="n in 4" :key="n" class="sk sk-wait"><span class="skeleton" /><span><span class="skeleton" /><span class="skeleton" /></span></div>
         </section>
 
         <!-- Nothing found -->
@@ -230,7 +230,7 @@ const searched = computed(() => {
           <h2>{{ current.label }} · {{ count(current.key) }}</h2>
           <SearchResult v-for="item in items" :key="item.kind + item.id" :item="item" :words="words" message />
           <template v-if="loadingMore">
-            <div v-for="n in items.length ? 2 : 4" :key="`sk${n}`" class="sk"><span class="skeleton" /><span><span class="skeleton" /><span class="skeleton" /></span></div>
+            <div v-for="n in items.length ? 2 : 4" :key="`sk${n}`" class="sk sk-wait"><span class="skeleton" /><span><span class="skeleton" /><span class="skeleton" /></span></div>
           </template>
           <span v-if="nextPage" ref="moreSpot" class="more-spot" aria-hidden="true" />
         </section>

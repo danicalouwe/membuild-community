@@ -389,8 +389,8 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
   <!-- Loading: the course page's shape in grey. -->
   <div v-else-if="!course" class="lv lv-loading" aria-busy="true">
     <div class="skeleton" style="width: 110px; height: 18px; margin: 12px 0 18px" />
-    <div class="lv-sk">
-      <div class="card lv-sk-side"><div class="skeleton" style="aspect-ratio: 16 / 9; border-radius: 12px" /><div class="skeleton" style="width: 70%; height: 20px; margin-top: 16px" /><div v-for="n in 5" :key="n" class="skeleton" style="height: 14px; margin-top: 14px" :style="{ width: `${90 - n * 8}%` }" /></div>
+    <div class="lv-sk sk-wait">
+      <div class="card lv-sk-side sk-wait"><div class="skeleton" style="aspect-ratio: 16 / 9; border-radius: 12px" /><div class="skeleton" style="width: 70%; height: 20px; margin-top: 16px" /><div v-for="n in 5" :key="n" class="skeleton" style="height: 14px; margin-top: 14px" :style="{ width: `${90 - n * 8}%` }" /></div>
       <div><div class="skeleton" style="height: 52px; border-radius: 14px" /><div class="skeleton" style="height: 340px; margin-top: 16px; border-radius: 16px" /><div class="skeleton" style="width: 50%; height: 22px; margin-top: 20px" /><div class="skeleton" style="width: 80%; height: 14px; margin-top: 12px" /></div>
     </div>
   </div>
@@ -1097,7 +1097,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  border: 2px solid var(--border-strong, #c9ced6);
+  border: 2px solid var(--border-strong);
   color: var(--text-3);
 }
 
@@ -1354,7 +1354,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
     align-items: center;
     gap: 8px;
     width: 100%;
-    height: 48px;
+    height: 52px;
     padding: 0 14px;
     border: 1px solid var(--border);
     border-radius: var(--radius-md);

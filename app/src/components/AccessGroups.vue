@@ -222,7 +222,7 @@ const removeLabel = (name) => t.sprintf(/* translators: %s: a name */ t.__('Remo
           <Icon name="chevronDown" :size="20" class="chev" />
           <h3>{{ g.name }} <span>{{ membersOf(g.total) }}</span></h3>
         </button>
-        <button v-if="isOpen(g)" class="btn btn-lg btn-ghost" @click="renaming = { group: g, name: g.name }"><Icon name="pencil" :size="18" /> {{ t.__('Rename', 'membuild-community') }}</button>
+        <button v-if="isOpen(g)" class="btn btn-ghost" @click="renaming = { group: g, name: g.name }"><Icon name="pencil" :size="18" /> {{ t.__('Rename', 'membuild-community') }}</button>
       </header>
       <div v-show="isOpen(g)" :id="`ms-${g.id}`" class="one-body">
 
@@ -242,7 +242,7 @@ const removeLabel = (name) => t.sprintf(/* translators: %s: a name */ t.__('Remo
         <div class="part-body">
           <strong>{{ t.__('People you added', 'membuild-community') }}</strong>
           <p>{{ peopleOf(g.member_count) }}</p>
-          <button class="btn btn-lg btn-ghost" @click="openPeople(g)">{{ t.__('Add or remove people', 'membuild-community') }}</button>
+          <button class="btn btn-ghost" @click="openPeople(g)">{{ t.__('Add or remove people', 'membuild-community') }}</button>
         </div>
       </div>
 
@@ -273,7 +273,7 @@ const removeLabel = (name) => t.sprintf(/* translators: %s: a name */ t.__('Remo
               <input v-model="g.form.label" class="field label" maxlength="60" :aria-label="t.__('Button text', 'membuild-community')" @input="saveOffer(g)" />
               <input v-model="g.form.price" class="field price" maxlength="20" placeholder="$49" :aria-label="t.__('Price', 'membuild-community')" @input="saveOffer(g)" />
             </div>
-            <div class="periods" role="radiogroup" :aria-label="t.__('How often they pay', 'membuild-community')">
+            <div class="seg periods" role="radiogroup" :aria-label="t.__('How often they pay', 'membuild-community')">
               <button v-for="[key, label] in PERIODS" :key="key" role="radio" :aria-checked="g.form.period === key" :class="{ on: g.form.period === key }" @click="setPeriod(g, key)">{{ label }}</button>
             </div>
             <div v-if="shop" class="shop">
@@ -310,17 +310,17 @@ const removeLabel = (name) => t.sprintf(/* translators: %s: a name */ t.__('Remo
           </template>
           <template v-else>
             <p>{{ t.__('Invite only, so there’s no button. Members see “Ask an admin for access”.', 'membuild-community') }}</p>
-            <button class="btn btn-lg btn-ghost" @click="g.selling = true">{{ t.__('Add a Get access button', 'membuild-community') }}</button>
+            <button class="btn btn-ghost" @click="g.selling = true">{{ t.__('Add a Get access button', 'membuild-community') }}</button>
           </template>
         </div>
       </div>
 
-      <div class="danger">
-        <div>
-          <strong>{{ t.__('Delete this membership', 'membuild-community') }}</strong>
-          <p>{{ t.__('Its courses stay. Members lose the courses only this membership opened.', 'membuild-community') }}</p>
+      <div class="delete-row">
+        <div class="delete-row-text">
+          <strong class="delete-row-title">{{ t.__('Delete this membership', 'membuild-community') }}</strong>
+          <p class="delete-row-line">{{ t.__('Its courses stay. Members lose the courses only this membership opened.', 'membuild-community') }}</p>
         </div>
-        <button class="btn btn-lg red-line" @click="deleting = g">{{ t.__('Delete…', 'membuild-community') }}</button>
+        <button class="btn btn-quiet-danger" @click="deleting = g">{{ t.__('Delete…', 'membuild-community') }}</button>
       </div>
       </div>
     </section>
@@ -387,14 +387,14 @@ const removeLabel = (name) => t.sprintf(/* translators: %s: a name */ t.__('Remo
         <ul v-if="people.found.length" class="people">
           <li v-for="m in people.found" :key="m.id">
             <Avatar :user="m" :size="40" /> <span>{{ m.name }}</span>
-            <button class="btn btn-lg btn-primary" @click="addPerson(m)">{{ t.__('Add', 'membuild-community') }}</button>
+            <button class="btn btn-primary" @click="addPerson(m)">{{ t.__('Add', 'membuild-community') }}</button>
           </li>
         </ul>
         <p class="lbl">{{ peopleOf(people.members.length) }}</p>
         <ul v-if="people.members.length" class="people">
           <li v-for="m in people.members" :key="m.id">
             <Avatar :user="m" :size="40" /> <span>{{ m.name }}</span>
-            <button class="btn btn-lg btn-ghost" :aria-label="removeLabel(m.name)" @click="dropPerson(m)">{{ t.__('Remove', 'membuild-community') }}</button>
+            <button class="btn btn-ghost" :aria-label="removeLabel(m.name)" @click="dropPerson(m)">{{ t.__('Remove', 'membuild-community') }}</button>
           </li>
         </ul>
         <p v-else-if="!people.loading" class="help">{{ t.__('Nobody added yet. Search for a name above.', 'membuild-community') }}</p>
@@ -534,6 +534,7 @@ h2 {
   color: var(--text-2);
   font-size: var(--fs-base);
   font-weight: 400;
+  white-space: nowrap; /* "7 members" never splits across two lines */
 }
 
 .part {
@@ -576,7 +577,7 @@ h2 {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 38px;
+  min-height: 44px;
   padding: 0 8px 0 14px;
   border: 0;
   border-radius: var(--radius-pill);
@@ -684,7 +685,7 @@ h2 {
   margin-left: auto;
   padding: 4px 10px;
   border-radius: var(--radius-pill);
-  background: var(--ok-soft, #e5f4ea);
+  background: var(--ok-soft);
   color: var(--ok-text);
   font-size: var(--fs-sm);
   font-weight: 700;
@@ -696,7 +697,7 @@ h2 {
   margin-top: 12px;
   padding: 12px 14px;
   border-radius: var(--radius-md);
-  background: var(--warn-soft, #fff6e0);
+  background: var(--warn-soft);
   color: var(--text);
   font-size: var(--fs-md);
   line-height: 1.45;
@@ -748,28 +749,8 @@ h2 {
 }
 
 .periods {
-  display: inline-flex;
-  gap: 2px;
-  padding: 3px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-}
-
-.periods button {
-  min-height: 36px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: var(--radius-pill);
-  background: none;
-  color: var(--text-2);
-  font: inherit;
-  font-weight: 650;
-  cursor: pointer;
-}
-
-.periods button.on {
-  background: var(--text);
-  color: var(--surface);
+  align-self: flex-start;
+  max-width: 100%;
 }
 
 .sees {
@@ -792,32 +773,8 @@ h2 {
   font-weight: 700;
 }
 
-.danger {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+.delete-row {
   margin-top: 32px; /* well apart from the Get access button above */
-  padding: 16px 18px;
-  border: 1px solid var(--danger-line);
-  border-radius: var(--radius-md);
-  background: var(--danger-soft);
-}
-
-.danger strong {
-  color: var(--danger-text);
-}
-
-.danger p {
-  margin: 4px 0 0;
-  color: var(--danger-text);
-}
-
-.red-line {
-  flex: none;
-  border: 2px solid var(--danger-text);
-  background: var(--surface);
-  color: var(--danger-text);
 }
 
 .foot {
@@ -861,7 +818,7 @@ h2 {
 .ticks input {
   width: 24px;
   height: 24px;
-  accent-color: var(--text);
+  accent-color: var(--accent);
 }
 
 .people li {
@@ -903,6 +860,13 @@ h2 {
   margin-top: 12px;
 }
 
+/* Phones: Settings' top bar already names the section, so the page's own title steps aside. */
+@media (max-width: 767px) {
+  .ms-head h2 {
+    display: none;
+  }
+}
+
 @media (max-width: 600px) {
   .ms-head {
     flex-direction: column;
@@ -912,9 +876,18 @@ h2 {
     padding: 16px 14px;
   }
 
-  .danger {
-    flex-direction: column;
-    align-items: flex-start;
+  /* The price type: the whole card's width (under the tag icon too), three equal parts. */
+  .periods {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-self: stretch;
+    width: calc(100% + 48px);
+    max-width: none;
+    margin-left: -48px; /* the icon (34) and its gap (14) */
+  }
+
+  .periods button {
+    padding: 0 6px;
   }
 
   .offer .price {

@@ -267,7 +267,7 @@ const startOver = () =>
 }
 
 .step > small.ok {
-  color: var(--ok-text, #1f7a49);
+  color: var(--ok-text);
 }
 
 .or {

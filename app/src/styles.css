@@ -280,13 +280,16 @@ video {
   box-shadow: var(--shadow);
 }
 
+/* Buttons come in three heights only: 52 for a page's main and create buttons and a dialog's
+   buttons (.btn-lg; 48 on phones), 44 for a small button inside a card or row (.btn), and 40 for
+   filter pills and the header's circles. */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  height: 36px;
-  padding: 0 16px;
+  height: 44px;
+  padding: 0 18px;
   border-radius: var(--radius-pill);
   font-weight: 600;
   transition: transform 0.1s ease, opacity 0.15s ease;
@@ -331,11 +334,24 @@ video {
   cursor: default;
 }
 
+/* Loading shapes show only after 200ms of waiting, so a page that answers fast never flashes grey.
+   .skeleton waits by itself; a page's skeleton card or row (its frame) adds .sk-wait. */
 .skeleton {
   background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 50%, var(--surface-2) 75%);
   background-size: 200% 100%;
-  animation: shimmer 1.4s infinite linear;
+  animation: sk-wait 0.2s step-end, shimmer 1.4s 0.2s infinite linear;
   border-radius: var(--radius-xs);
+}
+
+.sk-wait {
+  animation: sk-wait 0.2s step-end;
+}
+
+@keyframes sk-wait {
+  from,
+  to {
+    opacity: 0;
+  }
 }
 
 @keyframes shimmer {
@@ -363,6 +379,12 @@ video {
 .rise-in {
   animation: rise-in 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   animation-delay: calc(min(var(--i, 0), 8) * 35ms);
+}
+
+/* Coming back to a page already opened in this visit (App.vue): it's simply there, nothing rises in again. */
+.page-again .page-in,
+.page-again .rise-in {
+  animation: none;
 }
 
 /* Cards you can click lift a little under the mouse and press in when tapped. */
@@ -804,6 +826,189 @@ h4 {
 .empty-state.dashed .empty-state-icon {
   background: var(--accent);
   color: var(--accent-ink);
+}
+
+/* ---------- Picked: one look for everything you choose ----------
+   Pills, tabs and segments: the main colour's tint with its text colour (.filter-pill.on, .seg).
+   Cards you pick one of: the tint, a 2px main-colour edge and a filled dot (.pick-card, .pick-dot),
+   or a filled tick on tile cards (.pick-tick). Ticks you turn on: a main-colour box (.tick-box).
+   Colours you pick: a white gap and a dark ring (.swatch-pick). Black fill is only for buttons
+   that do something; grey only for pointing at (hover) in menus. */
+
+/* A segmented choice: a grey bar of 44px parts (One-time / Per month / Per year, Auto / Light /
+   Dark). Markup: <div class="seg" role="radiogroup"><button role="radio" :class="{ on }">… */
+.seg {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+}
+
+.seg > button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--text-2);
+  font: inherit;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.seg > button:hover {
+  color: var(--text);
+}
+
+.seg > button.on {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.seg > button:focus-visible {
+  outline: 3px solid var(--accent-text);
+  outline-offset: -3px;
+}
+
+/* A card you pick one of (Online / In person, who can post, a reason). The page keeps its own
+   layout, padding and corner; this gives the edge, the fill and the picked look. The picked edge
+   is 2px (border + an inner ring), so nothing moves when it's picked. */
+.pick-card {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.pick-card.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+/* Its round mark: an empty ring, then a ring and a filled dot in the main colour's text shade. */
+.pick-dot,
+.pick-tick {
+  flex: none;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-strong);
+  border-radius: 50%;
+}
+
+.on .pick-dot {
+  border-color: var(--accent-text);
+  background: radial-gradient(circle, var(--accent-text) 0 30%, transparent 34%);
+}
+
+/* On tile cards: a filled circle with a tick. */
+.on .pick-tick {
+  border-color: var(--accent-text);
+  background: var(--accent-text);
+}
+
+.on .pick-tick::after {
+  content: '';
+  width: 4px;
+  height: 8px;
+  margin-top: -2px;
+  border: solid var(--surface);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* A tick box you turn on and off (Import's parts, the starter pages). Markup: a hidden checkbox
+   followed by <span class="tick-box"><Icon name="check" …/></span>. */
+.tick-box {
+  flex: none;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-xs);
+  color: transparent;
+}
+
+input:checked + .tick-box,
+.on > .tick-box {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+input:focus-visible + .tick-box {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
+/* A colour you pick (the main colour, a topic, a post or story background): a 2px gap in the
+   card's white, then a 2px dark ring. The page keeps the swatch's own size. */
+.swatch-pick.on {
+  outline: 2px solid var(--text);
+  outline-offset: 2px; /* the gap shows the card behind: white, or dark in dark mode */
+}
+
+/* The quiet last row of an editor that can delete what it edits (a membership, a lesson, a
+   course): calm until the moment of deleting, when the red confirm box asks first. */
+.delete-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.delete-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.delete-row-title {
+  color: var(--text);
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+
+.delete-row-line {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-md);
+  line-height: 1.45;
+}
+
+.btn.btn-quiet-danger {
+  flex: none;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--danger-text);
+}
+
+.btn.btn-quiet-danger:hover {
+  background: var(--danger-soft);
+}
+
+@media (max-width: 600px) {
+  .delete-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 /* A round icon button in a grey circle: 40px for a box's close ✕, .lg 44px for back and tools

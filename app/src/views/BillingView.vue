@@ -65,7 +65,7 @@ const paidWith = (s) => (s.card ? t.sprintf(/* translators: %s: a card or paymen
 
     <p v-if="error" class="error-text" role="alert">{{ error }}</p>
 
-    <div v-if="!loaded" class="card sub sk" aria-busy="true"><span /><span /><span /></div>
+    <div v-if="!loaded" class="card sub sk sk-wait" aria-busy="true"><span /><span /><span /></div>
 
     <section v-for="s in items" :key="s.id" class="card sub">
       <div class="top">

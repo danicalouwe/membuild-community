@@ -56,7 +56,7 @@ async function send() {
       <span class="ok">✓</span>
       <h3>{{ t.__('Thanks for letting us know', 'membuild-community') }}</h3>
       <p>{{ t.__('An admin or moderator will take a look.', 'membuild-community') }} {{ done.hidden ? t.__('This post is hidden until they do.', 'membuild-community') : '' }}</p>
-      <button class="btn btn-primary" @click="emit('close')">{{ t.__('Done', 'membuild-community') }}</button>
+      <button class="btn btn-lg btn-primary" @click="emit('close')">{{ t.__('Done', 'membuild-community') }}</button>
     </div>
 
     <form v-else class="body" @submit.prevent="send">
@@ -70,8 +70,8 @@ async function send() {
       <textarea v-if="reason" v-model="note" rows="2" maxlength="500" :placeholder="t.__('Anything else they should know? (optional)', 'membuild-community')" :aria-label="t.__('Note', 'membuild-community')" />
       <p v-if="error" class="error-text">{{ error }}</p>
       <footer class="foot">
-        <button type="button" class="btn" @click="emit('close')">{{ t.__('Cancel', 'membuild-community') }}</button>
-        <button type="submit" class="btn btn-primary" :disabled="!reason || sending">{{ sending ? t.__('Sending…', 'membuild-community') : t.__('Report', 'membuild-community') }}</button>
+        <button type="button" class="btn btn-lg" @click="emit('close')">{{ t.__('Cancel', 'membuild-community') }}</button>
+        <button type="submit" class="btn btn-lg btn-primary" :disabled="!reason || sending">{{ sending ? t.__('Sending…', 'membuild-community') : t.__('Report', 'membuild-community') }}</button>
       </footer>
     </form>
   </BaseDialog>
@@ -125,12 +125,6 @@ textarea {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-}
-
-.btn {
-  padding: 9px 16px;
-  border-radius: var(--radius-sm);
-  font-weight: 650;
 }
 
 .btn:not(.btn-primary) {

@@ -468,11 +468,11 @@ const counter = computed(() => `${form.value.description.length} / 160`)
             <span class="ltitle">{{ l.title }}</span>
             <span class="chip"><Icon name="clock" :size="14" /> {{ opensLabel(l) }}</span>
             <span v-if="l.files" class="chip"><Icon name="paperclip" :size="14" /> {{ filesLabel(l.files) }}</span>
-            <button v-if="!ordering" class="btn btn-lg btn-ghost edit" @click="editLesson(l.id)"><Icon name="pencil" :size="18" /> {{ t.__('Edit', 'membuild-community') }}</button>
+            <button v-if="!ordering" class="btn btn-ghost edit" @click="editLesson(l.id)"><Icon name="pencil" :size="18" /> {{ t.__('Edit', 'membuild-community') }}</button>
           </div>
           <p v-if="!m.lessons.length" class="cb-none">{{ t.__('No lessons in this section yet.', 'membuild-community') }}</p>
           <div v-if="!ordering" class="cb-add">
-            <button class="btn btn-lg btn-ghost" :disabled="busy" @click="ask('lesson', m)"><Icon name="plus" :size="18" /> {{ t.__('Add a lesson', 'membuild-community') }}</button>
+            <button class="btn btn-ghost" :disabled="busy" @click="ask('lesson', m)"><Icon name="plus" :size="18" /> {{ t.__('Add a lesson', 'membuild-community') }}</button>
           </div>
         </section>
 
@@ -526,11 +526,11 @@ const counter = computed(() => `${form.value.description.length} / 160`)
         <fieldset class="field">
           <legend>{{ t.__('Who can open this course?', 'membuild-community') }}</legend>
           <div class="pick-row three">
-            <label class="choice" :class="{ on: course.access === 'everyone' }">
+            <label class="choice pick-card" :class="{ on: course.access === 'everyone' }">
               <input type="radio" :checked="course.access === 'everyone'" @change="setAccess('everyone')" />
               <span><strong>{{ t.__('Everyone', 'membuild-community') }}</strong><small>{{ t.__('All members can open it.', 'membuild-community') }}</small></span>
             </label>
-            <label class="choice" :class="{ on: course.access === 'level' }">
+            <label class="choice pick-card" :class="{ on: course.access === 'level' }">
               <input type="radio" :checked="course.access === 'level'" @change="setAccess('level')" />
               <span>
                 <strong>{{ t.__('Active members', 'membuild-community') }}</strong><small>{{ t.__('They open it when they reach a level.', 'membuild-community') }}</small>
@@ -539,7 +539,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
                 </select>
               </span>
             </label>
-            <label class="choice" :class="{ on: course.access === 'groups' }">
+            <label class="choice pick-card" :class="{ on: course.access === 'groups' }">
               <input type="radio" :checked="course.access === 'groups'" @change="setAccess('groups')" />
               <span><strong>{{ t.__('Only some members', 'membuild-community') }}</strong><small>{{ t.__('People with a membership, like paid members.', 'membuild-community') }}</small></span>
             </label>
@@ -576,11 +576,11 @@ const counter = computed(() => `${form.value.description.length} / 160`)
         <fieldset v-if="course.access !== 'everyone'" class="field">
           <legend>{{ t.__('What do the others see?', 'membuild-community') }}</legend>
           <div class="pick-row">
-            <label class="choice" :class="{ on: !course.hide_locked }">
+            <label class="choice pick-card" :class="{ on: !course.hide_locked }">
               <input type="radio" :checked="!course.hide_locked" @change="saveCourse({ hide_locked: false })" />
               <span><strong>{{ t.__('The course, with a lock', 'membuild-community') }}</strong><small>{{ t.__('They can see what is inside. (Best)', 'membuild-community') }}</small></span>
             </label>
-            <label class="choice" :class="{ on: course.hide_locked }">
+            <label class="choice pick-card" :class="{ on: course.hide_locked }">
               <input type="radio" :checked="course.hide_locked" @change="saveCourse({ hide_locked: true })" />
               <span><strong>{{ t.__('Nothing', 'membuild-community') }}</strong><small>{{ t.__('The course is hidden from them.', 'membuild-community') }}</small></span>
             </label>
@@ -619,15 +619,15 @@ const counter = computed(() => `${form.value.description.length} / 160`)
             <p class="help-foot">{{ t.__('You can change this any time. Lessons people already finished stay open.', 'membuild-community') }}</p>
           </div>
           <div class="pick-row three">
-            <label class="choice mid" :class="{ on: course.opens === 'all' }">
+            <label class="choice mid pick-card" :class="{ on: course.opens === 'all' }">
               <input type="radio" name="cb-opens" :checked="course.opens === 'all'" @change="saveCourse({ opens: 'all' })" />
               <span><strong>{{ t.__('All at once', 'membuild-community') }}</strong><small>{{ t.__('Every lesson open.', 'membuild-community') }}</small></span>
             </label>
-            <label class="choice mid" :class="{ on: course.opens === 'join' }">
+            <label class="choice mid pick-card" :class="{ on: course.opens === 'join' }">
               <input type="radio" name="cb-opens" :checked="course.opens === 'join'" @change="saveCourse({ opens: 'join' })" />
               <span><strong>{{ t.__('From when they join', 'membuild-community') }}</strong><small>{{ t.__('Timed per member.', 'membuild-community') }}</small></span>
             </label>
-            <label class="choice mid" :class="{ on: course.opens === 'date' }">
+            <label class="choice mid pick-card" :class="{ on: course.opens === 'date' }">
               <input type="radio" name="cb-opens" :checked="course.opens === 'date'" @change="saveCourse({ opens: 'date' })" />
               <span><strong>{{ t.__('On a start date', 'membuild-community') }}</strong><small>{{ t.__('Everyone together.', 'membuild-community') }}</small></span>
             </label>
@@ -641,11 +641,11 @@ const counter = computed(() => `${form.value.description.length} / 160`)
         <fieldset class="field">
           <legend>{{ t.__('Can members skip ahead?', 'membuild-community') }}</legend>
           <div class="pick-row">
-            <label class="choice" :class="{ on: !course.in_order }">
+            <label class="choice pick-card" :class="{ on: !course.in_order }">
               <input type="radio" :checked="!course.in_order" @change="saveCourse({ in_order: false })" />
               <span><strong>{{ t.__('Yes, any order', 'membuild-community') }}</strong><small>{{ t.__('They can open any lesson.', 'membuild-community') }}</small></span>
             </label>
-            <label class="choice" :class="{ on: course.in_order }">
+            <label class="choice pick-card" :class="{ on: course.in_order }">
               <input type="radio" :checked="course.in_order" @change="saveCourse({ in_order: true })" />
               <span><strong>{{ t.__('No, one at a time', 'membuild-community') }}</strong><small>{{ t.__('Finish one to open the next.', 'membuild-community') }}</small></span>
             </label>
@@ -655,11 +655,11 @@ const counter = computed(() => `${form.value.description.length} / 160`)
         <fieldset class="field">
           <legend>{{ t.__('Can members ask questions under the lessons?', 'membuild-community') }}</legend>
           <div class="pick-row">
-            <label class="choice" :class="{ on: course.questions !== 'off' }">
+            <label class="choice pick-card" :class="{ on: course.questions !== 'off' }">
               <input type="radio" :checked="course.questions !== 'off'" @change="saveCourse({ questions: 'on' })" />
               <span><strong>{{ t.__('Yes', 'membuild-community') }}</strong><small>{{ t.__('They can ask and answer under each lesson.', 'membuild-community') }}</small></span>
             </label>
-            <label class="choice" :class="{ on: course.questions === 'off' }">
+            <label class="choice pick-card" :class="{ on: course.questions === 'off' }">
               <input type="radio" :checked="course.questions === 'off'" @change="saveCourse({ questions: 'off' })" />
               <span><strong>{{ t.__('No', 'membuild-community') }}</strong><small>{{ t.__('No questions in this course.', 'membuild-community') }}</small></span>
             </label>
@@ -672,11 +672,11 @@ const counter = computed(() => `${form.value.description.length} / 160`)
         <fieldset class="field">
           <legend>{{ t.__('Can members see it?', 'membuild-community') }}</legend>
           <div class="pick-row">
-            <label class="choice" :class="{ on: course.status !== 'published' }">
+            <label class="choice pick-card" :class="{ on: course.status !== 'published' }">
               <input type="radio" :checked="course.status !== 'published'" @change="setReady(false)" />
               <span><strong>{{ t.__('Not yet', 'membuild-community') }}</strong><small>{{ t.__('Only you can see it while you build it.', 'membuild-community') }}</small></span>
             </label>
-            <label class="choice" :class="{ on: course.status === 'published' }">
+            <label class="choice pick-card" :class="{ on: course.status === 'published' }">
               <input type="radio" :checked="course.status === 'published'" @change="setReady(true)" />
               <span><strong>{{ t.__('Yes, show it', 'membuild-community') }}</strong><small>{{ t.__('Members find it in the Classroom.', 'membuild-community') }}</small></span>
             </label>
@@ -686,12 +686,12 @@ const counter = computed(() => `${form.value.description.length} / 160`)
       <div class="cb-done">
         <button class="btn btn-lg btn-primary" @click="emit('exit')">{{ t.__('Done', 'membuild-community') }}</button>
       </div>
-      <section class="danger">
-        <span>
-          <strong>{{ t.__('Delete this course', 'membuild-community') }}</strong>
-          <small>{{ t.__('It removes the course and everything in it, for everyone. You can’t undo it.', 'membuild-community') }}</small>
+      <section class="delete-row">
+        <span class="delete-row-text">
+          <strong class="delete-row-title">{{ t.__('Delete this course', 'membuild-community') }}</strong>
+          <small class="delete-row-line">{{ t.__('It removes the course and everything in it, for everyone. You can’t undo it.', 'membuild-community') }}</small>
         </span>
-        <button class="btn btn-lg danger-btn" @click="deletingCourse = true">{{ t.__('Delete course…', 'membuild-community') }}</button>
+        <button class="btn btn-quiet-danger" @click="deletingCourse = true">{{ t.__('Delete…', 'membuild-community') }}</button>
       </section>
     </template>
 
@@ -738,8 +738,8 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 36px;
-  padding: 0 6px 0 14px;
+  min-height: 44px;
+  padding: 0 8px 0 14px;
   border-radius: var(--radius-pill);
   background: var(--surface-2);
   font-weight: 650;
@@ -762,7 +762,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
 }
 
 .ms-add {
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 10px;
   border: 0;
   background: none;
@@ -900,7 +900,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   align-items: center;
   justify-content: center;
   gap: 8px;
-  height: 48px;
+  height: 44px;
   border-radius: var(--radius-sm);
   font-size: var(--fs-xl);
   font-weight: 650;
@@ -1142,7 +1142,6 @@ const counter = computed(() => `${form.value.description.length} / 160`)
 
 .edit {
   flex: none;
-  height: 48px;
 }
 
 .cb-none {
@@ -1248,7 +1247,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
 .field select {
   min-height: 52px;
   padding: 12px 14px;
-  border: 1px solid var(--border-strong, #c9ced6);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--text);
@@ -1266,14 +1265,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   align-items: flex-start;
   gap: 14px;
   padding: 14px 16px;
-  border: 1px solid var(--border);
   border-radius: var(--radius);
-  cursor: pointer;
-}
-
-.choice.on {
-  border: 2px solid var(--accent);
-  background: var(--accent-soft);
 }
 
 /* Settings in four numbered groups; choices side by side, one column on phones. */
@@ -1554,40 +1546,6 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   text-align: center;
 }
 
-.danger {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 14px;
-  padding: 16px 18px;
-  border: 1px solid var(--danger-line);
-  border-radius: var(--radius);
-  background: var(--danger-soft);
-}
-
-.danger span {
-  flex: 1;
-  min-width: 220px;
-}
-
-.danger strong {
-  display: block;
-  color: var(--danger-text);
-  font-size: var(--fs-xl);
-}
-
-.danger small {
-  display: block;
-  margin-top: 2px;
-  color: var(--danger-ink);
-  font-size: var(--fs-base);
-}
-
-.danger-btn {
-  border: 2px solid var(--danger-text);
-  background: var(--surface);
-  color: var(--danger-text);
-}
 
 .name-form {
   display: flex;
@@ -1604,7 +1562,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
 .name-form input {
   height: 52px;
   padding: 0 16px;
-  border: 1px solid var(--border-strong, #c9ced6);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--text);

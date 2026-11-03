@@ -441,16 +441,21 @@ async function notNow(place) {
   await api.deletePlace(place.id)
   places.value = places.value.filter((p) => p.id !== place.id)
 }
+// The list under the map follows the search: the places in the picked city, or, while a search is
+// typed, the places whose name or address has it.
+const typed = computed(() => (city.value ? '' : query.value.trim().toLowerCase()))
 const shown = computed(() => {
-  const q = query.value.trim().toLowerCase()
-  let list = places.value.filter((p) => p.status === 'published' || p.mine || canEdit.value)
+  const q = typed.value
+  let list = inCity.value
   if (kind.value !== 'all') list = list.filter((p) => p.category === kind.value)
-  if (q) list = list.filter((p) => `${p.name} ${p.address} ${p.perk}`.toLowerCase().includes(q))
-  if (me.value) {
-    list = list.map((p) => ({ ...p, km: distanceKm(me.value, p) })).sort((a, b) => a.km - b.km)
-  }
+  if (q) list = list.filter((p) => `${p.name} ${p.address} ${p.perk || ''}`.toLowerCase().includes(q))
   return list
 })
+// The pins that match while a search is typed (the others fade); null: no search, all pins full.
+const matchIds = computed(() => (typed.value ? shown.value.map((p) => p.id) : null))
+// A search that finds no city, member or place.
+const noMatch = computed(() => !!results.value && !results.value.cities.length && !results.value.members.length && !results.value.places.length)
+const noneLabel = computed(() => t.sprintf(/* translators: %s: the search text */ t.__('Nothing matches “%s”.', 'membuild-community'), query.value.trim()))
 const kinds = computed(() => ['all', ...Object.keys(CATEGORY).filter((k) => places.value.some((p) => p.category === k))])
 
 // Opening a place from further down the list, then going back: the list is where you left it.
@@ -586,10 +591,10 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
       <button class="tog filter-pill" :class="{ on: view === 'places' && showMembers }" :aria-pressed="view === 'places' && showMembers" @click="toggle('members')"><Icon name="users" :size="18" /> {{ t.__('Members', 'membuild-community') }} <Icon v-if="view === 'places' && showMembers" name="check" :size="16" /></button>
       <button class="tog filter-pill" :class="{ on: view === 'places' && showPlaces }" :aria-pressed="view === 'places' && showPlaces" @click="toggle('places')"><Icon name="mapPin" :size="18" /> {{ t.__('Places', 'membuild-community') }} <Icon v-if="view === 'places' && showPlaces" name="check" :size="16" /></button>
       <!-- Pending only shows when something is waiting (and stays while you look at it, so you can switch back). -->
-      <button v-if="canEdit && (pendingCount || view === 'pending')" class="tog" :class="{ on: view === 'pending' }" :aria-pressed="view === 'pending'" @click="view = view === 'pending' ? 'places' : 'pending'; fitMap()">{{ t.__('Pending', 'membuild-community') }} <span v-if="pendingCount" class="count">{{ pendingCount }}</span></button>
+      <button v-if="canEdit && (pendingCount || view === 'pending')" class="tog filter-pill" :class="{ on: view === 'pending' }" :aria-pressed="view === 'pending'" @click="view = view === 'pending' ? 'places' : 'pending'; fitMap()">{{ t.__('Pending', 'membuild-community') }} <span v-if="pendingCount" class="count">{{ pendingCount }}</span></button>
     </div>
     <section class="map-pane" @pointerdown="moved = true" @wheel.passive="moved = true">
-      <PlacesMap ref="mapRef" :picked="placeCard?.place.id || null" :places="detail ? published : placesOn ? onMap : []" :selected="placeId" :me="me" :people="detail || !membersOn ? [] : peopleHere" :person="personId" @select="open" @person="onFace" @pan="scrolledAway" />
+      <PlacesMap ref="mapRef" :match="view === 'pending' ? null : matchIds" :picked="placeCard?.place.id || null" :places="detail ? published : placesOn ? onMap : []" :selected="placeId" :me="me" :people="detail || !membersOn ? [] : peopleHere" :person="personId" @select="open" @person="onFace" @pan="scrolledAway" />
 
 
     </section>
@@ -642,8 +647,8 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
               <span v-if="p.description" class="quote">“{{ p.description }}”</span>
             </span>
             <span class="pc-act">
-              <button class="btn btn-lg btn-primary" @click="approve(p)">{{ t.__('Approve', 'membuild-community') }}</button>
-              <button class="btn btn-lg btn-ghost" @click="notNow(p)">{{ t.__('Not now', 'membuild-community') }}</button>
+              <button class="btn btn-primary" @click="approve(p)">{{ t.__('Approve', 'membuild-community') }}</button>
+              <button class="btn btn-ghost" @click="notNow(p)">{{ t.__('Not now', 'membuild-community') }}</button>
             </span>
           </article>
           <article v-for="n in news" :key="`n${n.id}`" class="pc">
@@ -654,13 +659,20 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
               <span class="quote">“{{ n.text }}”</span>
             </span>
             <span class="pc-act">
-              <button class="btn btn-lg btn-primary" @click="approveNews(n)">{{ t.__('Approve', 'membuild-community') }}</button>
-              <button class="btn btn-lg btn-ghost" @click="notNowNews(n)">{{ t.__('Not now', 'membuild-community') }}</button>
+              <button class="btn btn-primary" @click="approveNews(n)">{{ t.__('Approve', 'membuild-community') }}</button>
+              <button class="btn btn-ghost" @click="notNowNews(n)">{{ t.__('Not now', 'membuild-community') }}</button>
             </span>
           </article>
           <p v-if="!pendingCount" class="empty-note">{{ t.__('Nothing waiting. Suggestions from members show up here.', 'membuild-community') }}</p>
         </div>
       </template>
+      <!-- A search that finds nothing: say so, with one way out. -->
+      <div v-else-if="noMatch" class="empty-state small nomatch">
+        <span class="empty-state-icon"><Icon name="search" :size="22" /></span>
+        <p class="empty-state-title">{{ noneLabel }}</p>
+        <p class="empty-state-text">{{ t.__('Try a city, or the name of a place.', 'membuild-community') }}</p>
+        <button class="btn btn-ghost" @click="clearSearch">{{ t.__('Clear search', 'membuild-community') }}</button>
+      </div>
       <template v-else>
         <!-- Nobody on the map yet: one invite instead of an empty Members heading. -->
         <div v-if="membersOn && noFaces" class="map-invite">
@@ -685,21 +697,21 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
               <small>{{ m.city.split(',')[0] }}</small>
             </button>
             <span v-if="peopleHere.length > moreFaces.n.value" :key="moreFaces.n.value" :ref="(el) => (moreFaces.spot.value = el)" class="more-spot" aria-hidden="true" />
-            <template v-if="peopleLoading"><span v-for="n in 8" :key="`sk${n}`" class="mface mface-sk" aria-hidden="true"><span class="skeleton" /><i class="skeleton" /><i class="skeleton" /></span></template>
+            <template v-if="peopleLoading"><span v-for="n in 8" :key="`sk${n}`" class="mface mface-sk sk-wait" aria-hidden="true"><span class="skeleton" /><i class="skeleton" /><i class="skeleton" /></span></template>
             <p v-else-if="!peopleHere.length" class="empty-note">{{ t.__('Nobody’s on the map here yet.', 'membuild-community') }}</p>
           </div>
         </template>
         <template v-if="placesOn">
         <header class="ph" :class="{ second: membersOn && !noFaces }">
-          <h2 v-if="city">{{ t.sprintf(/* translators: %s: a city */ t.__('In %s', 'membuild-community'), city) }} · {{ inCity.length }}</h2>
-          <h2 v-else>{{ t.__('Places', 'membuild-community') }}<template v-if="!loading"> · {{ inCity.length }}</template></h2>
+          <h2 v-if="city">{{ t.sprintf(/* translators: %s: a city */ t.__('In %s', 'membuild-community'), city) }} · {{ shown.length }}</h2>
+          <h2 v-else>{{ t.__('Places', 'membuild-community') }}<template v-if="!loading"> · {{ shown.length }}</template></h2>
           <button v-if="city" class="link" @click="clearSearch">{{ t.__('Show everywhere', 'membuild-community') }}</button>
           <button v-else class="link" @click="form = { place: null }"><Icon name="plus" :size="16" /> {{ canEdit ? t.__('Add a place', 'membuild-community') : t.__('Suggest a place', 'membuild-community') }}</button>
         </header>
         <div v-if="panelOpen" class="grid">
-          <template v-if="loading"><span v-for="n in 6" :key="n" class="pc pc-sk" aria-hidden="true"><span class="skeleton pc-cover" /><span class="pc-body"><i class="skeleton" style="width: 70%" /><i class="skeleton" style="width: 45%" /></span></span></template>
+          <template v-if="loading"><span v-for="n in 6" :key="n" class="pc pc-sk sk-wait" aria-hidden="true"><span class="skeleton pc-cover" /><span class="pc-body"><i class="skeleton" style="width: 70%" /><i class="skeleton" style="width: 45%" /></span></span></template>
           <!-- Photo (a small map when there's none), name, the city with a pin, What's new. -->
-          <template v-for="(p, i) in inCity.slice(0, morePlaces.n.value)" :key="p.id">
+          <template v-for="(p, i) in shown.slice(0, morePlaces.n.value)" :key="p.id">
           <ThemeSlot name="places.card" :data="{ place: p, category: CATEGORY[p.category], city: cityOf(p), open: () => flyToPlace(p) }">
           <button class="pc lift rise-in" :style="{ '--i': i % 24 }" :class="{ pending: p.status === 'pending', on: placeCard?.place.id === p.id }" @click="flyToPlace(p)">
             <span class="pc-cover"><img v-if="p.cover" :src="p.cover" alt="" loading="lazy" /><MapThumb v-else :lat="p.lat" :lng="p.lng" :color="CATEGORY[p.category]?.color" :emoji="CATEGORY[p.category]?.emoji" /></span>
@@ -713,8 +725,8 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
           </button>
           </ThemeSlot>
           </template>
-          <span v-if="inCity.length > morePlaces.n.value" :key="morePlaces.n.value" :ref="(el) => (morePlaces.spot.value = el)" class="more-spot" aria-hidden="true" />
-          <div v-if="!loading && !inCity.length" class="empty-note">
+          <span v-if="shown.length > morePlaces.n.value" :key="morePlaces.n.value" :ref="(el) => (morePlaces.spot.value = el)" class="more-spot" aria-hidden="true" />
+          <div v-if="!loading && !shown.length" class="empty-note">
             <template v-if="places.length">{{ t.__('No places here yet.', 'membuild-community') }}</template>
             <template v-else>{{ canEdit ? t.__('Add the spots where members meet, partners with a member perk, or venues for your events.', 'membuild-community') : t.__('Know a good spot for members? Suggest it.', 'membuild-community') }}</template>
           </div>
@@ -731,7 +743,7 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
       <div class="skeleton" style="width: 100%; height: 200px; border-radius: 14px" />
       <div class="skeleton" style="width: 70%; height: 26px; margin-top: 6px" />
       <div class="skeleton" style="width: 40%; height: 14px" />
-      <div class="sk-btns"><div class="skeleton" /><div class="skeleton" /></div>
+      <div class="sk-btns sk-wait"><div class="skeleton" /><div class="skeleton" /></div>
       <div v-for="n in 4" :key="n" class="skeleton" style="height: 14px" :style="{ width: `${92 - n * 9}%` }" />
     </aside>
     <aside v-if="detail" :key="detail.id" class="detail page-in">
@@ -799,8 +811,8 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
       </section>
 
       <div v-if="canEdit" class="staff">
-        <button v-if="detail.status === 'pending'" class="btn btn-lg btn-primary" @click="approve(detail)">{{ t.__('Approve', 'membuild-community') }}</button>
-        <button class="btn btn-lg btn-ghost" @click="form = { place: detail }"><Icon name="pencil" :size="18" /> {{ t.__('Edit', 'membuild-community') }}</button>
+        <button v-if="detail.status === 'pending'" class="btn btn-primary" @click="approve(detail)">{{ t.__('Approve', 'membuild-community') }}</button>
+        <button class="btn btn-ghost" @click="form = { place: detail }"><Icon name="pencil" :size="18" /> {{ t.__('Edit', 'membuild-community') }}</button>
         <button class="link danger" @click="remove(detail)">{{ t.__('Remove…', 'membuild-community') }}</button>
       </div>
       <div v-else-if="detail.mine && detail.status === 'pending'" class="staff">
@@ -1863,6 +1875,15 @@ button.pc:hover {
   }
 }
 
+/* Narrow computer windows: the search card (720px, centred) would sit over + and −, so they move
+   just under its right end (the card ends 76px down; 8px gap). */
+@media (min-width: 768px) and (max-width: 840px) {
+  .map-pane :deep(.leaflet-top.leaflet-right) {
+    top: 84px;
+    right: max(6px, calc(50% - 370px)); /* + Leaflet's own 10px: lined up with the card's right end */
+  }
+}
+
 @media (max-width: 1100px) {
   .grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1930,9 +1951,9 @@ button.pc:hover {
     display: none;
   }
 
-  /* Phones: smaller panel buttons, short words. */
+  /* Phones: panel buttons keep the 44px small-button height, with short words. */
   .ph .link {
-    height: 36px;
+    height: 44px;
     padding: 0 14px;
     font-size: var(--fs-md);
   }
@@ -1968,7 +1989,7 @@ button.pc:hover {
   }
 
   .map-invite .link {
-    height: 36px;
+    height: 44px;
     padding: 0 14px;
     font-size: var(--fs-md);
   }

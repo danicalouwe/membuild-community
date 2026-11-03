@@ -308,12 +308,12 @@ const title = p ? t.__('Edit place', 'membuild-community') : props.canEdit ? t._
       <section v-if="canEdit" class="card box">
         <h2>{{ t.__('Who can see it?', 'membuild-community') }}</h2>
         <div class="cards2" role="radiogroup">
-          <button type="button" role="radio" class="pick" :class="{ on: who === 'everyone' }" :aria-checked="who === 'everyone'" @click="who = 'everyone'">
-            <span class="pick-ic"><Icon name="users" :size="20" /></span><span class="dot" />
+          <button type="button" role="radio" class="pick pick-card" :class="{ on: who === 'everyone' }" :aria-checked="who === 'everyone'" @click="who = 'everyone'">
+            <span class="pick-ic"><Icon name="users" :size="20" /></span><span class="dot pick-dot" />
             <strong>{{ t.__('Everyone', 'membuild-community') }}</strong><small>{{ t.__('All members of the community.', 'membuild-community') }}</small>
           </button>
-          <button type="button" role="radio" class="pick" :class="{ on: who === 'members' }" :aria-checked="who === 'members'" :disabled="!groups.length" @click="who = 'members'; accessGroup = accessGroup || groups[0]?.id || 0">
-            <span class="pick-ic"><Icon name="lock" :size="20" /></span><span class="dot" />
+          <button type="button" role="radio" class="pick pick-card" :class="{ on: who === 'members' }" :aria-checked="who === 'members'" :disabled="!groups.length" @click="who = 'members'; accessGroup = accessGroup || groups[0]?.id || 0">
+            <span class="pick-ic"><Icon name="lock" :size="20" /></span><span class="dot pick-dot" />
             <strong>{{ t.__('A membership', 'membuild-community') }}</strong><small>{{ groups.length ? t.__('Only members with it.', 'membuild-community') : t.__('Make a membership in Settings first.', 'membuild-community') }}</small>
           </button>
         </div>
@@ -598,16 +598,8 @@ const title = p ? t.__('Edit place', 'membuild-community') : props.canEdit ? t._
   align-items: flex-start;
   gap: 4px;
   padding: 16px;
-  border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--text);
   text-align: left;
-}
-
-.pick.on {
-  border: 2px solid var(--text);
-  padding: 15px;
 }
 
 .pick:disabled {
@@ -637,15 +629,6 @@ const title = p ? t.__('Edit place', 'membuild-community') : props.canEdit ? t._
   position: absolute;
   top: 14px;
   right: 14px;
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--border-strong);
-  border-radius: 50%;
-}
-
-.pick.on .dot {
-  border-color: var(--text);
-  background: radial-gradient(circle, var(--surface) 0 30%, var(--text) 32%);
 }
 
 .access-note {

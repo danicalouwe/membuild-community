@@ -23,6 +23,7 @@ const props = defineProps({
   person: { type: Number, default: null }, // the member whose card is open
   picked: { type: Number, default: null }, // the place whose small card is open: on top, outlined
   pageScrolls: { type: Boolean, default: false }, // the page scrolls past the map: a plain wheel scrolls the page
+  match: { type: Array, default: null }, // while a search is typed: the ids of the places that match (the rest fade)
 })
 const emit = defineEmits(['select', 'move', 'person', 'pan'])
 let peopleLayer = null
@@ -46,7 +47,7 @@ const esc = (v) => String(v || '').replace(/[&<>"']/g, (ch) => `&#${ch.charCodeA
 const CLOSE = 13
 const PIN_SVG = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>'
 function pin(place) {
-  const cls = `${place.id === props.selected || place.id === props.picked ? ' on' : ''}${place.status === 'pending' ? ' pending' : ''}`
+  const cls = `${place.id === props.selected || place.id === props.picked ? ' on' : ''}${place.status === 'pending' ? ' pending' : ''}${props.match && place.id && !props.match.includes(place.id) ? ' dim' : ''}`
   const tag = place.news ? '<i class="mbcom-new">New</i>' : ''
   if (map && map.getZoom() >= CLOSE && place.name) {
     const img = place.cover ? `<img src="${esc(place.cover)}" alt="">` : `<span class="mbcom-box-noimg">${PIN_SVG}</span>`
@@ -155,6 +156,13 @@ function restyle() {
 }
 let pickedId = null
 watch(() => props.picked, restyle)
+// A search being typed: every pin's look (faded or not) follows it.
+watch(
+  () => props.match,
+  () => {
+    for (const place of props.places) markers.get(place.id)?.setIcon(pin(place))
+  },
+)
 
 // Never zoom out past the point where the world is shorter than the map (grey bands
 // above and below), and never pan past the poles: the way Google Maps behaves.
@@ -405,6 +413,12 @@ defineExpose({
   color: var(--text-2);
 }
 
+/* While a search is typed, the places that don't match fade. */
+.map :deep(.mbcom-pin.dim),
+.map :deep(.mbcom-box.dim) {
+  opacity: 0.3;
+}
+
 /* Dark mode: the light tiles, inverted, so the map doesn't glare. */
 @media (prefers-color-scheme: dark) {
   .map :deep(.leaflet-tile-pane) {
@@ -421,7 +435,7 @@ defineExpose({
   border-radius: 50% 50% 50% 6px;
   transform: rotate(-45deg);
   background: var(--accent);
-  color: var(--accent-ink, #16181d);
+  color: var(--accent-ink);
   border: 3px solid var(--on-color);
   box-shadow: 0 3px 10px color-mix(in srgb, var(--shadow-color) 30%, transparent);
   transition: transform 0.15s;
@@ -474,7 +488,7 @@ defineExpose({
   display: grid;
   place-items: center;
   background: var(--accent);
-  color: var(--accent-ink, #16181d);
+  color: var(--accent-ink);
 }
 
 .map :deep(.mbcom-box b) {

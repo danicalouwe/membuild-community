@@ -224,10 +224,10 @@ const people = (n) =>
 }
 
 .add {
-  height: 38px;
+  height: 44px;
   padding: 0 16px;
   background: var(--accent);
-  color: var(--accent-ink, #16181d);
+  color: var(--accent-ink);
   font-size: var(--fs-base);
   font-weight: 700;
 }

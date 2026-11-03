@@ -215,8 +215,8 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
     <!-- The host's own bar. -->
     <div v-if="host" class="host-bar card">
       <p><strong>{{ t.__('You’re hosting this event.', 'membuild-community') }}</strong> {{ t.__('Only you see this bar.', 'membuild-community') }}</p>
-      <button class="btn btn-lg btn-ghost" @click="dialog = { copy: false }"><Icon name="pencil" :size="18" /> {{ t.__('Edit event', 'membuild-community') }}</button>
-      <button class="btn btn-lg btn-ghost" @click="dialog = { copy: true }">{{ t.__('Duplicate', 'membuild-community') }}</button>
+      <button class="btn btn-ghost" @click="dialog = { copy: false }"><Icon name="pencil" :size="18" /> {{ t.__('Edit event', 'membuild-community') }}</button>
+      <button class="btn btn-ghost" @click="dialog = { copy: true }">{{ t.__('Duplicate', 'membuild-community') }}</button>
     </div>
 
     <div class="cols">
@@ -345,7 +345,7 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
   <!-- Loading: the page's shape, so nothing jumps when it arrives. -->
   <div v-else class="event ev-loading" aria-busy="true">
     <div class="skeleton" style="width: 90px; height: 18px; margin: 12px 0 18px" />
-    <div class="ev-sk-grid">
+    <div class="ev-sk-grid sk-wait">
       <div>
         <div class="skeleton" style="aspect-ratio: 16 / 9; border-radius: 16px" />
         <div class="skeleton" style="width: 60%; height: 30px; margin-top: 22px" />

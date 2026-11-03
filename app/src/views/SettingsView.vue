@@ -192,9 +192,10 @@ onBeforeUnmount(() => spy?.disconnect())
   </div>
 
   <div v-else class="settings" :class="{ 'one-section': openId }">
-    <!-- Phones, one section: ‹ Settings, then its name. -->
+    <!-- Phones, one section: one white bar that stays at the top, a round ‹ back to the list and
+         the section's name. -->
     <div v-if="openId" class="phone-head">
-      <button class="back" @click="router.push({ query: {} })"><Icon name="chevronLeft" :size="18" /> {{ t.__('Settings', 'membuild-community') }}</button>
+      <button class="back round-btn lg" :aria-label="t.__('Back to Settings', 'membuild-community')" @click="router.push({ query: {} })"><Icon name="chevronLeft" :size="22" /></button>
       <h1>{{ SECTIONS.find((s) => s.id === openId)?.label }}</h1>
     </div>
     <aside class="nav">
@@ -222,8 +223,8 @@ onBeforeUnmount(() => spy?.disconnect())
       <span v-else-if="notice && !dirty">{{ notice }}</span>
       <span v-else class="unsaved">{{ onPhone ? t.__('Unsaved changes', 'membuild-community') : t.__('You have unsaved changes', 'membuild-community') }}</span>
       <template v-if="dirty">
-        <button class="btn" :disabled="saving" @click="discard">{{ t.__('Discard', 'membuild-community') }}</button>
-        <button class="btn btn-primary" :disabled="saving || logoUpload?.status === 'working'" @click="save">{{ saving ? t.__('Saving…', 'membuild-community') : onPhone ? t.__('Save', 'membuild-community') : t.__('Save changes', 'membuild-community') }}</button>
+        <button class="btn btn-lg" :disabled="saving" @click="discard">{{ t.__('Discard', 'membuild-community') }}</button>
+        <button class="btn btn-lg btn-primary" :disabled="saving || logoUpload?.status === 'working'" @click="save">{{ saving ? t.__('Saving…', 'membuild-community') : onPhone ? t.__('Save', 'membuild-community') : t.__('Save changes', 'membuild-community') }}</button>
       </template>
     </div>
 </template>
@@ -338,7 +339,8 @@ onBeforeUnmount(() => spy?.disconnect())
   background: var(--surface);
 }
 
-/* Choice cards: a round mark, a title and a line under it. Picked: the main colour's soft fill. */
+/* Choice cards: a round mark, a title and a line under it. The edge, fill, picked look and mark
+   come from the shared .pick-card / .pick-dot / .pick-tick (styles.css); here only the layout. */
 .styled :deep(.choices) {
   display: grid;
   gap: 10px;
@@ -363,10 +365,7 @@ onBeforeUnmount(() => spy?.disconnect())
   align-items: start;
   gap: 4px 12px;
   padding: 16px 18px;
-  border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: var(--surface);
-  cursor: pointer;
 }
 
 .styled :deep(.choice input) {
@@ -377,11 +376,7 @@ onBeforeUnmount(() => spy?.disconnect())
 
 .styled :deep(.choice .mark) {
   grid-row: span 2;
-  width: 20px;
-  height: 20px;
   margin-top: 1px;
-  border: 2px solid var(--border-strong);
-  border-radius: 50%;
 }
 
 .styled :deep(.choice strong) {
@@ -402,17 +397,6 @@ onBeforeUnmount(() => spy?.disconnect())
 
 .styled :deep(.choice.on small) {
   color: var(--text); /* on the tinted, chosen tile the grey is too faint */
-}
-
-.styled :deep(.choice.on) {
-  border: 2px solid var(--accent);
-  padding: 15px 17px;
-  background: var(--accent-soft);
-}
-
-.styled :deep(.choice.on .mark) {
-  border-color: var(--text);
-  background: radial-gradient(circle, var(--surface) 0 28%, var(--text) 31%);
 }
 
 .styled :deep(.choice:has(input:focus-visible)) {
@@ -440,10 +424,6 @@ onBeforeUnmount(() => spy?.disconnect())
   padding: 16px;
 }
 
-.styled :deep(.choice.tile.on) {
-  padding: 15px;
-}
-
 .styled :deep(.tile-ic) {
   display: grid;
   place-items: center;
@@ -463,16 +443,6 @@ onBeforeUnmount(() => spy?.disconnect())
 .styled :deep(.choice.tile .tag) {
   align-self: flex-start;
   margin: 8px 0 0;
-}
-
-.styled :deep(.choice.tile.on) {
-  border-color: var(--text);
-  background: var(--surface);
-}
-
-.styled :deep(.choice.tile.on .mark) {
-  border-color: var(--text);
-  background: var(--text) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 12px no-repeat;
 }
 
 .styled :deep(.choice.on .tag) {
@@ -580,13 +550,15 @@ onBeforeUnmount(() => spy?.disconnect())
   }
 }
 
+/* Buttons in a settings card are the small 44px ones (the shared .btn height); the save bar's
+   two use .btn-lg. */
 .btn,
 .styled :deep(.btn) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 48px;
+  min-height: 44px;
   padding: 0 20px;
   border-radius: var(--radius-pill);
   background: var(--surface-2);
@@ -647,10 +619,6 @@ onBeforeUnmount(() => spy?.disconnect())
 /* The dark preset would vanish on the dark background without a hairline. */
 .styled :deep(.swatch:not(.custom)) {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--on-color) 14%, transparent);
-}
-
-.styled :deep(.swatch.on) {
-  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text);
 }
 
 .styled :deep(.swatch.custom) {
@@ -1122,24 +1090,41 @@ onBeforeUnmount(() => spy?.disconnect())
     display: none;
   }
 
-  .phone-head {
-    display: block;
-    padding: 0 16px 12px;
+  /* The section's first card sits right under the white bar: no grey band between them. */
+  .one-section {
+    row-gap: 0;
   }
 
-  .phone-head .back {
-    display: inline-flex;
+  /* One white bar under the app's top bar (50px on phones), like the lesson page's bar. When the
+     top bar slides away on scroll (.bars-hidden), it moves up to the top of the screen. */
+  .phone-head {
+    position: sticky;
+    top: calc(50px + env(safe-area-inset-top));
+    z-index: 9;
+    display: flex;
     align-items: center;
-    gap: 6px;
-    min-height: 52px;
-    color: var(--text);
-    font-size: var(--fs-xl);
-    font-weight: 700;
+    gap: 10px;
+    margin: -12px 0 0;
+    padding: 8px 16px 8px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+    transition: top 0.25s ease;
+  }
+
+  /* All of it in :global(): Vue drops the part after a lone :global(…). */
+  :global(.bars-hidden .phone-head) {
+    top: env(safe-area-inset-top);
   }
 
   .phone-head h1 {
+    min-width: 0;
     margin: 0;
-    font-size: var(--fs-7xl);
+    overflow: hidden;
+    font-size: var(--fs-xl);
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   /* The page's own title stands in for the section's. */
@@ -1207,6 +1192,17 @@ onBeforeUnmount(() => spy?.disconnect())
   .styled :deep(.choices.cols-2),
   .styled :deep(.choices.cols-3) {
     grid-template-columns: 1fr;
+  }
+
+  /* Main color: all nine circles on one line (down to 320 wide: the gap shrinks below 375), each
+     with a 44px tap area (.tap-44). Nine 30px circles and eight gaps fit the screen less 32px. */
+  .styled :deep(.swatches) {
+    gap: clamp(2px, calc((100vw - 304px) / 8), 8px);
+  }
+
+  .styled :deep(.swatch) {
+    width: 30px;
+    height: 30px;
   }
 
   .styled :deep(.choices.cols-4) {
