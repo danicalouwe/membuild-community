@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.17.0
+Stable tag: 1.17.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,11 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.17.1 =
+* Fixed: on sites that made their website pages before 1.17, the Compare table on Pricing was empty. It shows its rows again.
+* Fixed: a logo on its own coloured tile, like an app icon, no longer gets a white frame in the website header. Logos on white still get a small frame.
+* Changed: the plugin's update notes in WordPress show as a list, with New, Changed and Fixed in bold.
 
 = 1.17.0 =
 * New: four more website pages: Events (with a live upcoming-events block), Welcome, Blog with a single-post layout, and Page not found.

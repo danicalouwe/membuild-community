@@ -781,7 +781,8 @@ body.logged-in .mbs-out-only, body:not(.logged-in):not(.editor-styles-wrapper):n
 .mbs-logo img { display: block; height: 44px !important; width: auto !important; max-width: 220px; object-fit: contain; }
 .mbs-logo-small img { height: 38px !important; }
 .mbs-logo-wide img { height: 40px !important; max-width: 260px; } /* a logo with the name in it shows alone */
-.mbs-logo-boxed img { padding: 4px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 1px var(--mbs-line); } /* a logo on its own white or coloured box: a small tile, so it isn't pasted on */
+.mbs-logo-boxed img { padding: 4px; border-radius: 12px; background: #fff; box-shadow: 0 0 0 1px var(--mbs-line); } /* a logo on a white box: a small framed tile, so it isn't pasted on */
+.mbs-logo-tile img { border-radius: 12px; } /* a logo on its own coloured box, like an app icon: round corners, no frame */
 .mbs-footer .mbs-logo-boxed img { box-shadow: none; }
 .mbs-logo-mark { display: none; }
 .mbs-header-end { gap: 22px !important; }

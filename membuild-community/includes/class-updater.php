@@ -121,8 +121,31 @@ class Updater {
 			'last_updated'  => $latest['date'] ?? '',
 			'download_link' => $latest['zip'] ?? '',
 			'sections'      => array(
-				'changelog' => $latest ? wpautop( esc_html( $latest['notes'] ) ) . '<p><a href="' . esc_url( $latest['url'] ) . '">' . esc_html__( 'Release on GitHub', 'membuild-community' ) . '</a></p>' : '',
+				'changelog' => $latest ? self::notes_html( $latest ) . '<p><a href="' . esc_url( $latest['url'] ) . '">' . esc_html__( 'Release on GitHub', 'membuild-community' ) . '</a></p>' : '',
 			),
 		);
+	}
+
+	/**
+	 * The release notes as a list: "* New: …" lines become bullets that start with a bold
+	 * New, Changed or Fixed. Anything else stays a plain paragraph.
+	 */
+	private static function notes_html( array $latest ): string {
+		/* translators: %s: version number, e.g. 1.17.0 */
+		$html  = '<h3>' . esc_html( sprintf( __( 'What’s new in %s', 'membuild-community' ), $latest['version'] ) ) . '</h3>';
+		$items = array();
+		foreach ( preg_split( '/\R/', trim( $latest['notes'] ) ) as $line ) {
+			$line = trim( $line );
+			if ( '' === $line ) {
+				continue;
+			}
+			if ( ! preg_match( '/^[*-]\s+(.*)$/', $line, $m ) ) {
+				$html .= '<p>' . esc_html( $line ) . '</p>';
+				continue;
+			}
+			$item    = esc_html( $m[1] );
+			$items[] = '<li>' . preg_replace( '/^(New|Changed|Fixed):/', '<strong>$1:</strong>', $item ) . '</li>';
+		}
+		return $html . ( $items ? '<ul>' . implode( '', $items ) . '</ul>' : '' );
 	}
 }

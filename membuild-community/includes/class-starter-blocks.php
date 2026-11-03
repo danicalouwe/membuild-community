@@ -513,6 +513,9 @@ class Starter_Blocks {
 		return self::wrap( 'mbs-plans-wrap', '<div class="mbs-plans mbs-plans-' . $count . ( 1 === $count ? ' mbs-plans-one' : '' ) . ( $free ? '' : ' mbs-plans-paid' ) . '">' . $cards . '</div>' . $start . $trust, $attrs );
 	}
 
+	/** The Compare table's rows before 1.17, when they were the block's default (see compare_rows()). */
+	const OLD_COMPARE_ROWS = "The community, posts and chat | yes\nStart Here course | yes\nWeekly Q&A calls | yes\nEvery other course | no\nMonthly workshops + recordings | no\nMembers-only chats and events | no";
+
 	/** The Compare table's rows: [ label, [ 'free' | membership id, … ] ]. From the row list, else the old "words | yes" lines. */
 	private static function compare_rows( $attrs, array $columns ) {
 		$rows = array();
@@ -527,7 +530,10 @@ class Starter_Blocks {
 			}
 			return $rows;
 		}
-		foreach ( array_filter( array_map( 'trim', explode( "\n", (string) ( $attrs['rows'] ?? '' ) ) ) ) as $line ) {
+		// Pages made before 1.17 saved the block with no rows of its own: they used the block's default
+		// then, so they get those rows back instead of an empty table.
+		$lines = (string) ( $attrs['rows'] ?? '' ) ?: self::OLD_COMPARE_ROWS;
+		foreach ( array_filter( array_map( 'trim', explode( "\n", $lines ) ) ) as $line ) {
 			$bits   = array_map( 'trim', explode( '|', $line ) );
 			$free   = in_array( strtolower( $bits[1] ?? 'no' ), array( 'yes', 'y', '✓', 'true' ), true );
 			$rows[] = array( $bits[0], array_merge( $free ? array( 'free' ) : array(), $paid ) );

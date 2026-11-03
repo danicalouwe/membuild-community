@@ -268,31 +268,44 @@ class Starter_Site {
 		return ! empty( $meta['width'] ) && ! empty( $meta['height'] ) && $meta['width'] / $meta['height'] >= 2.5;
 	}
 
-	/** A logo on a white or coloured box (not see-through), worked out once per logo. */
-	private static function logo_is_boxed( $id ) {
-		$known = get_post_meta( $id, '_mbcom_logo_boxed', true );
-		if ( '' !== $known ) {
-			return '1' === $known;
+	/**
+	 * What the logo sits on, worked out once per logo: 'white' (a white or near-white box, which gets
+	 * a small framed tile so it isn't pasted on), 'tile' (its own coloured box, like an app icon: just
+	 * round corners) or '' (see-through).
+	 */
+	private static function logo_box( $id ) {
+		$known = get_post_meta( $id, '_mbcom_logo_box', true );
+		if ( in_array( $known, array( 'white', 'tile', 'none' ), true ) ) {
+			return 'none' === $known ? '' : $known;
 		}
-		$file  = get_attached_file( $id );
-		$type  = (string) get_post_mime_type( $id );
-		$boxed = 'image/jpeg' === $type;
-		if ( ! $boxed && 'image/png' === $type && $file && function_exists( 'imagecreatefrompng' ) && filesize( $file ) < 8 * MB_IN_BYTES ) {
-			$img = @imagecreatefrompng( $file ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- a broken file just counts as see-through
+		$file = get_attached_file( $id );
+		$type = (string) get_post_mime_type( $id );
+		$box  = 'image/jpeg' === $type ? 'white' : '';
+		$open = array( 'image/png' => 'imagecreatefrompng', 'image/jpeg' => 'imagecreatefromjpeg' )[ $type ] ?? '';
+		if ( $open && $file && function_exists( $open ) && filesize( $file ) < 8 * MB_IN_BYTES ) {
+			$img = @$open( $file ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- a broken file just counts as see-through
 			if ( $img ) {
+				imageistruecolor( $img ) || imagepalettetotruecolor( $img ); // so a colour reads the same way in every PNG
 				$w     = imagesx( $img ) - 1;
 				$h     = imagesy( $img ) - 1;
-				$boxed = true;
+				$box   = 'tile';
+				$light = 0;
 				foreach ( array( array( 0, 0 ), array( $w, 0 ), array( 0, $h ), array( $w, $h ) ) as list( $x, $y ) ) {
-					if ( ( ( imagecolorat( $img, $x, $y ) >> 24 ) & 0x7F ) > 64 ) {
-						$boxed = false; // a see-through corner
+					$c = imagecolorat( $img, $x, $y );
+					if ( ( ( $c >> 24 ) & 0x7F ) > 64 ) {
+						$box = ''; // a see-through corner
+						break;
 					}
+					$light += min( ( $c >> 16 ) & 0xFF, ( $c >> 8 ) & 0xFF, $c & 0xFF ) > 235 ? 1 : 0;
+				}
+				if ( 'tile' === $box && $light >= 3 ) {
+					$box = 'white';
 				}
 				imagedestroy( $img );
 			}
 		}
-		update_post_meta( $id, '_mbcom_logo_boxed', $boxed ? '1' : '0' );
-		return $boxed;
+		update_post_meta( $id, '_mbcom_logo_box', $box ?: 'none' );
+		return $box;
 	}
 
 	/**
@@ -309,8 +322,9 @@ class Starter_Site {
 		if ( self::logo_has_name() ) {
 			$extra[] = 'mbs-logo-wide';
 		}
-		if ( self::logo_is_boxed( $id ) ) {
-			$extra[] = 'mbs-logo-boxed';
+		$box = self::logo_box( $id );
+		if ( $box ) {
+			$extra[] = 'white' === $box ? 'mbs-logo-boxed' : 'mbs-logo-tile';
 		}
 		$html = preg_replace( '/class="([^"]*\bmbs-logo\b[^"]*)"/', 'class="$1 ' . implode( ' ', $extra ) . '"', $html, 1 );
 		if ( in_array( 'mbs-logo-wide', $extra, true ) ) {
