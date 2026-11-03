@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.16.3
+Stable tag: 1.17.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,18 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.17.0 =
+* New: four more website pages: Events (with a live upcoming-events block), Welcome, Blog with a single-post layout, and Page not found.
+* New: Coming soon. Before you open, visitors see one page with an email box while you and your team see the whole site. Pick an opening day, download the list as a CSV, and everyone on it gets one "We're open" email on the day. Every email has a one-click unsubscribe.
+* New: the website pages use your words, main colour, logo and name. Phones get a menu with Log in next to it; signed-in members see their face, and Join buttons say "Go to the community".
+* Changed: website links are worked out when someone looks, so moving from staging to live doesn't break them. Visitors who tap a course or event go to Join, then land on what they tapped.
+* Changed: sample reviews are marked placeholders, live numbers only show once the community is busy, and the money-back promise shows on Pricing, the FAQ and checkout. New Support email setting for Contact & help.
+* New: the Plans block has a "Show a free plan" switch and editable wording; sections have names and light locks in the block editor.
+* New: Settings › Video can protect Bunny video links, with a plain Turn off. A video that's too big or fails says so in plain words. New: a "No Bunny account yet?" sign-up link.
+* Changed: "Add to your phone" in the menu shows your app icon, and only on phones and tablets.
+* Changed: the course editor keeps its name, Published or Draft, Saved and tabs pinned at the top while you scroll. "See the course" opens in a new tab; the Done buttons are gone. On phones the tabs read Map, Lessons, Settings.
+* Changed: every on/off switch shares one style.
 
 = 1.16.3 =
 * Changed: one look for anything picked. Pills, tabs, switches and choice cards use a light tint of your main colour; ticks are main-colour boxes; colour circles all get the same ring.

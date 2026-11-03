@@ -1,16 +1,16 @@
 <!-- wp:group {"metadata":{"name":"Hero"},"align":"full","className":"mbs-sec mbs-hero","layout":{"type":"constrained","contentSize":"1188px"}} -->
-<div class="wp-block-group alignfull mbs-sec mbs-hero"><!-- wp:columns {"verticalAlignment":"center","className":"mbs-hero-cols"} -->
+<div class="wp-block-group alignfull mbs-sec mbs-hero"><!-- wp:columns {"verticalAlignment":"center","metadata":{"name":"Words and photo"},"className":"mbs-hero-cols"} -->
 <div class="wp-block-columns are-vertically-aligned-center mbs-hero-cols"><!-- wp:column {"width":"55%"} -->
 <div class="wp-block-column" style="flex-basis:55%"><!-- wp:paragraph {"className":"mbs-pill"} -->
 <p class="mbs-pill">About</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:heading {"level":1} -->
-<h1 class="wp-block-heading">Hi, I’m {{host_name}}. <mark class="mbs-hl">Welcome in.</mark></h1>
+<h1 class="wp-block-heading">Hi, I’m <mark class="mbs-live-host">{{host_name}}</mark>. <mark class="mbs-hl">Welcome in.</mark></h1>
 <!-- /wp:heading -->
 
 <!-- wp:paragraph {"className":"mbs-lead"} -->
-<p class="mbs-lead">I started {{site}} for people who want to build a membership without the jargon, the hype or doing it alone.</p>
+<p class="mbs-lead">I started {{site}} for {{who}}: a friendly place to learn, ask and get better together.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:buttons -->
@@ -25,17 +25,17 @@
 <!-- /wp:column -->
 
 <!-- wp:column {"width":"45%"} -->
-<div class="wp-block-column" style="flex-basis:45%"><!-- wp:group {"className":"mbs-portrait-wrap","layout":{"type":"default"}} -->
-<div class="wp-block-group mbs-portrait-wrap"><!-- wp:image {"className":"mbs-portrait"} -->
+<div class="wp-block-column" style="flex-basis:45%"><!-- wp:group {"metadata":{"name":"Photo"},"className":"mbs-portrait-wrap","layout":{"type":"default"}} -->
+<div class="wp-block-group mbs-portrait-wrap"><!-- wp:image {"metadata":{"name":"Your photo"},"className":"mbs-portrait"} -->
 <figure class="wp-block-image mbs-portrait"><img src="{{host_photo}}" alt="{{host_name}}"/></figure>
 <!-- /wp:image -->
 
 <!-- wp:paragraph {"className":"mbs-float mbs-float-a"} -->
-<p class="mbs-float mbs-float-a">💬 Replies most days</p>
+<p class="mbs-float mbs-float-a">Replies most days</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph {"className":"mbs-float mbs-float-b"} -->
-<p class="mbs-float mbs-float-b">👋 <strong>Host</strong> · Level {{host_level}}</p>
+<p class="mbs-float mbs-float-b"><strong>Host</strong> · here every week</p>
 <!-- /wp:paragraph --></div>
 <!-- /wp:group --></div>
 <!-- /wp:column --></div>
@@ -43,9 +43,10 @@
 <!-- /wp:group -->
 
 <!-- wp:group {"metadata":{"name":"My story"},"align":"full","className":"mbs-sec","layout":{"type":"constrained","contentSize":"1188px"},"anchor":"story"} -->
-<div class="wp-block-group alignfull mbs-sec" id="story"><!-- wp:columns {"className":"mbs-story"} -->
+<div class="wp-block-group alignfull mbs-sec" id="story"><!-- wp:columns {"metadata":{"name":"Story and quote"},"className":"mbs-story"} -->
 <div class="wp-block-columns mbs-story"><!-- wp:column -->
-<div class="wp-block-column"><!-- wp:paragraph {"className":"mbs-pill"} -->
+<div class="wp-block-column"><!-- wp:group {"metadata":{"name":"Story"},"layout":{"type":"flex","orientation":"vertical"}} -->
+<div class="wp-block-group"><!-- wp:paragraph {"className":"mbs-pill"} -->
 <p class="mbs-pill">My story</p>
 <!-- /wp:paragraph -->
 
@@ -54,31 +55,32 @@
 <!-- /wp:heading -->
 
 <!-- wp:paragraph -->
-<p>For years I helped people build memberships, and the same thing kept happening: they got stuck on the tech, picked a price out of thin air, and launched to silence.</p>
+<p>For years I watched people try to learn {{topic}} on their own. They got stuck, weren’t sure what to try next, and gave up too soon.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph -->
-<p>So I built the place I wish they’d had. Plain words. Real numbers from people a few steps ahead. A kind crowd that answers questions the same day.</p>
+<p>So I built the place I wish they’d had. Plain words. People a few steps ahead. A kind crowd that answers questions the same day.</p>
 <!-- /wp:paragraph --></div>
+<!-- /wp:group --></div>
 <!-- /wp:column -->
 
 <!-- wp:column -->
-<div class="wp-block-column"><!-- wp:group {"className":"mbs-card-dark mbs-quote-big","layout":{"type":"flex","orientation":"vertical"}} -->
+<div class="wp-block-column"><!-- wp:group {"metadata":{"name":"Quote"},"className":"mbs-card-dark mbs-quote-big","layout":{"type":"flex","orientation":"vertical"}} -->
 <div class="wp-block-group mbs-card-dark mbs-quote-big"><!-- wp:paragraph {"className":"mbs-quote-mark"} -->
 <p class="mbs-quote-mark">“</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph {"className":"mbs-quote-text"} -->
-<p class="mbs-quote-text">Nobody should have to figure out a membership alone. That’s the whole idea.</p>
+<p class="mbs-quote-text">Nobody should have to figure it out alone. That’s the whole idea.</p>
 <!-- /wp:paragraph -->
 
-<!-- wp:group {"className":"mbs-who","layout":{"type":"flex","justifyContent":"left","flexWrap":"nowrap"}} -->
+<!-- wp:group {"metadata":{"name":"Who said it"},"className":"mbs-who","layout":{"type":"flex","justifyContent":"left","flexWrap":"nowrap"}} -->
 <div class="wp-block-group mbs-who"><!-- wp:image {"className":"mbs-avatar mbs-avatar-ring"} -->
 <figure class="wp-block-image mbs-avatar mbs-avatar-ring"><img src="{{host_photo}}" alt=""/></figure>
 <!-- /wp:image -->
 
 <!-- wp:paragraph -->
-<p><strong>{{host_name}}, host</strong></p>
+<p><strong><mark class="mbs-live-host">{{host_name}}</mark>, host</strong></p>
 <!-- /wp:paragraph --></div>
 <!-- /wp:group --></div>
 <!-- /wp:group --></div>
@@ -86,10 +88,10 @@
 <!-- /wp:columns --></div>
 <!-- /wp:group -->
 
-<!-- wp:group {"metadata":{"name":"Numbers"},"align":"full","className":"mbs-sec mbs-sec-dark mbs-numbers-sec","layout":{"type":"constrained","contentSize":"1188px"}} -->
-<div class="wp-block-group alignfull mbs-sec mbs-sec-dark mbs-numbers-sec"><!-- wp:columns {"className":"mbs-numbers"} -->
+<!-- wp:group {"templateLock":"contentOnly","metadata":{"name":"Numbers"},"align":"full","className":"mbs-sec mbs-sec-dark mbs-numbers-sec","layout":{"type":"constrained","contentSize":"1188px"}} -->
+<div class="wp-block-group alignfull mbs-sec mbs-sec-dark mbs-numbers-sec"><!-- wp:columns {"metadata":{"name":"Numbers"},"className":"mbs-numbers"} -->
 <div class="wp-block-columns mbs-numbers"><!-- wp:column -->
-<div class="wp-block-column"><!-- wp:membuild-community/stat /-->
+<div class="wp-block-column"><!-- wp:membuild-community/stat {"fallback":"Friendly"} /-->
 
 <!-- wp:paragraph -->
 <p>members, here to help</p>
@@ -115,7 +117,7 @@
 <!-- /wp:column -->
 
 <!-- wp:column -->
-<div class="wp-block-column"><!-- wp:membuild-community/stat {"kind":"active","format":"~%s","min":3,"fallback":"Daily"} /-->
+<div class="wp-block-column"><!-- wp:membuild-community/stat {"kind":"active","format":"~%s","fallback":"Daily"} /-->
 
 <!-- wp:paragraph -->
 <p>members active each day</p>
@@ -133,9 +135,9 @@
 <h2 class="wp-block-heading has-text-align-center">Three house rules</h2>
 <!-- /wp:heading -->
 
-<!-- wp:columns -->
+<!-- wp:columns {"metadata":{"name":"Beliefs"}} -->
 <div class="wp-block-columns"><!-- wp:column -->
-<div class="wp-block-column"><!-- wp:group {"className":"mbs-card mbs-belief","layout":{"type":"flex","orientation":"vertical"}} -->
+<div class="wp-block-column"><!-- wp:group {"templateLock":"contentOnly","metadata":{"name":"Belief 1"},"className":"mbs-card mbs-belief","layout":{"type":"flex","orientation":"vertical"}} -->
 <div class="wp-block-group mbs-card mbs-belief"><!-- wp:paragraph {"className":"mbs-outline-num"} -->
 <p class="mbs-outline-num">01</p>
 <!-- /wp:paragraph -->
@@ -151,23 +153,23 @@
 <!-- /wp:column -->
 
 <!-- wp:column -->
-<div class="wp-block-column"><!-- wp:group {"className":"mbs-card mbs-belief","layout":{"type":"flex","orientation":"vertical"}} -->
+<div class="wp-block-column"><!-- wp:group {"templateLock":"contentOnly","metadata":{"name":"Belief 2"},"className":"mbs-card mbs-belief","layout":{"type":"flex","orientation":"vertical"}} -->
 <div class="wp-block-group mbs-card mbs-belief"><!-- wp:paragraph {"className":"mbs-outline-num"} -->
 <p class="mbs-outline-num">02</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:heading {"level":3} -->
-<h3 class="wp-block-heading">Real numbers</h3>
+<h3 class="wp-block-heading">Real experience</h3>
 <!-- /wp:heading -->
 
 <!-- wp:paragraph {"className":"mbs-muted"} -->
-<p class="mbs-muted">Members share what worked, with the numbers, so you can judge for yourself.</p>
+<p class="mbs-muted">Members share what worked for them, and what didn’t, so you can judge for yourself.</p>
 <!-- /wp:paragraph --></div>
 <!-- /wp:group --></div>
 <!-- /wp:column -->
 
 <!-- wp:column -->
-<div class="wp-block-column"><!-- wp:group {"className":"mbs-card mbs-belief","layout":{"type":"flex","orientation":"vertical"}} -->
+<div class="wp-block-column"><!-- wp:group {"templateLock":"contentOnly","metadata":{"name":"Belief 3"},"className":"mbs-card mbs-belief","layout":{"type":"flex","orientation":"vertical"}} -->
 <div class="wp-block-group mbs-card mbs-belief"><!-- wp:paragraph {"className":"mbs-outline-num"} -->
 <p class="mbs-outline-num">03</p>
 <!-- /wp:paragraph -->
@@ -185,7 +187,7 @@
 <!-- /wp:group -->
 
 <!-- wp:group {"metadata":{"name":"The team"},"align":"full","className":"mbs-sec","layout":{"type":"constrained","contentSize":"1188px"}} -->
-<div class="wp-block-group alignfull mbs-sec"><!-- wp:columns {"verticalAlignment":"center"} -->
+<div class="wp-block-group alignfull mbs-sec"><!-- wp:columns {"verticalAlignment":"center","metadata":{"name":"Words and team"}} -->
 <div class="wp-block-columns are-vertically-aligned-center"><!-- wp:column {"width":"40%"} -->
 <div class="wp-block-column" style="flex-basis:40%"><!-- wp:paragraph {"className":"mbs-pill"} -->
 <p class="mbs-pill">The team</p>
@@ -207,18 +209,18 @@
 <!-- /wp:group -->
 
 <!-- wp:group {"metadata":{"name":"The people you’ll meet"},"align":"full","className":"mbs-sec mbs-sec-tint","layout":{"type":"constrained","contentSize":"1188px"}} -->
-<div class="wp-block-group alignfull mbs-sec mbs-sec-tint"><!-- wp:columns {"verticalAlignment":"center"} -->
+<div class="wp-block-group alignfull mbs-sec mbs-sec-tint"><!-- wp:columns {"verticalAlignment":"center","metadata":{"name":"Words and faces"}} -->
 <div class="wp-block-columns are-vertically-aligned-center"><!-- wp:column {"width":"54%"} -->
 <div class="wp-block-column" style="flex-basis:54%"><!-- wp:paragraph {"className":"mbs-pill"} -->
 <p class="mbs-pill">The people you’ll meet</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:heading -->
-<h2 class="wp-block-heading">Teachers, coaches, makers</h2>
+<h2 class="wp-block-heading">People like you</h2>
 <!-- /wp:heading -->
 
 <!-- wp:paragraph {"className":"mbs-lead"} -->
-<p class="mbs-lead">Quilters, yoga teachers, chefs, golf coaches, developers. All building something people pay to belong to.</p>
+<p class="mbs-lead">For {{who}}. Beginners and old hands, side by side.</p>
 <!-- /wp:paragraph --></div>
 <!-- /wp:column -->
 
@@ -229,16 +231,16 @@
 <!-- /wp:group -->
 
 <!-- wp:group {"metadata":{"name":"Who it’s for"},"align":"full","className":"mbs-sec","layout":{"type":"constrained","contentSize":"1188px"}} -->
-<div class="wp-block-group alignfull mbs-sec"><!-- wp:columns -->
+<div class="wp-block-group alignfull mbs-sec"><!-- wp:columns {"metadata":{"name":"Two cards"}} -->
 <div class="wp-block-columns"><!-- wp:column -->
-<div class="wp-block-column"><!-- wp:group {"className":"mbs-card","layout":{"type":"flex","orientation":"vertical"}} -->
+<div class="wp-block-column"><!-- wp:group {"metadata":{"name":"For you if"},"className":"mbs-card","layout":{"type":"flex","orientation":"vertical"}} -->
 <div class="wp-block-group mbs-card"><!-- wp:heading {"level":3} -->
 <h3 class="wp-block-heading">It’s for you if…</h3>
 <!-- /wp:heading -->
 
 <!-- wp:list {"className":"mbs-ticks"} -->
 <ul class="wp-block-list mbs-ticks"><!-- wp:list-item -->
-<li>You’re choosing, launching or growing a membership</li>
+<li>You want to get better at {{topic}}</li>
 <!-- /wp:list-item -->
 
 <!-- wp:list-item -->
@@ -253,14 +255,14 @@
 <!-- /wp:column -->
 
 <!-- wp:column -->
-<div class="wp-block-column"><!-- wp:group {"className":"mbs-card mbs-card-dashed","layout":{"type":"flex","orientation":"vertical"}} -->
+<div class="wp-block-column"><!-- wp:group {"metadata":{"name":"Maybe not if"},"className":"mbs-card mbs-card-dashed","layout":{"type":"flex","orientation":"vertical"}} -->
 <div class="wp-block-group mbs-card mbs-card-dashed"><!-- wp:heading {"level":3} -->
 <h3 class="wp-block-heading">Maybe not if…</h3>
 <!-- /wp:heading -->
 
 <!-- wp:list {"className":"mbs-ticks mbs-ticks-no"} -->
 <ul class="wp-block-list mbs-ticks mbs-ticks-no"><!-- wp:list-item -->
-<li>You want a get-rich-quick plan</li>
+<li>You want overnight results</li>
 <!-- /wp:list-item -->
 
 <!-- wp:list-item -->

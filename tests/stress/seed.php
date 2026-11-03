@@ -31,6 +31,12 @@ $bulk = function ( $table, array $cols, callable $row, $count, $batch = 2000 ) u
 $words = explode( ' ', 'membership pricing churn launch course community retention onboarding funnel stripe webinar coaching cohort content calendar upsell trial annual monthly members engagement growth wordpress plugin skool circle kajabi email newsletter podcast workshop' );
 $text  = fn( $n ) => ucfirst( implode( ' ', array_map( fn() => $words[ mt_rand( 0, count( $words ) - 1 ) ], range( 1, $n ) ) ) ) . '.';
 
+// New ids are taken as MAX(id) + 1 onward, so after clean.php the counters go back to there
+// (MySQL moves AUTO_INCREMENT = 1 up to the lowest free id), or every row points at nobody.
+foreach ( array( $wpdb->users, Install::table( 'posts' ), Install::table( 'threads' ) ) as $table ) {
+	$wpdb->query( "ALTER TABLE {$table} AUTO_INCREMENT = 1" );
+}
+
 // Members.
 $first_user = (int) $wpdb->get_var( "SELECT MAX(ID) FROM {$wpdb->users}" ) + 1;
 $bulk(

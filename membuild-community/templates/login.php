@@ -73,6 +73,10 @@ $mbcom_kses = array( 'strong' => array(), 'b' => array(), 'a' => array( 'href' =
 	<meta name="referrer" content="no-referrer">
 	<title><?php echo esc_html( $mbcom_titles[ $view ] ); ?></title>
 	<?php if ( ! empty( $icons[192] ) ) : ?>
+		<?php $mbcom_tab = \MemBuild\Community\App::tab_icon(); ?>
+		<?php if ( $mbcom_tab ) : ?>
+			<link rel="icon" type="image/svg+xml" href="<?php echo esc_url( $mbcom_tab ); ?>">
+		<?php endif; ?>
 		<link rel="icon" type="image/png" sizes="32x32" href="<?php echo esc_url( $icons[32] ); ?>">
 		<link rel="icon" type="image/png" sizes="192x192" href="<?php echo esc_url( $icons[192] ); ?>">
 	<?php endif; ?>
@@ -147,10 +151,18 @@ $mbcom_kses = array( 'strong' => array(), 'b' => array(), 'a' => array( 'href' =
 				echo esc_html( sprintf( __( 'Log in to %s.', 'membuild-community' ), $name ) );
 				?>
 				</p>
-				<?php if ( $signup ) : ?>
+				<?php if ( $signup && empty( $data['site'] ) ) : ?>
 					<p class="small"><?php esc_html_e( 'New here?', 'membuild-community' ); ?> <a href="<?php echo esc_url( $signup ); ?>"><?php echo $join_label ? esc_html( $join_label ) : esc_html__( 'Join free', 'membuild-community' ); ?></a></p>
 				<?php endif; ?>
 			</div>
+			<?php if ( $signup && ! empty( $data['site'] ) ) : ?>
+				<?php // Opened from a link on the website: most people there don't have an account yet. ?>
+				<div class="site-first">
+					<p class="small"><?php esc_html_e( 'New here?', 'membuild-community' ); ?></p>
+					<a class="btn" href="<?php echo esc_url( $data['redirect'] ? add_query_arg( 'redirect_to', rawurlencode( $data['redirect'] ), $signup ) : $signup ); ?>"><?php echo $join_label ? esc_html( $join_label ) : esc_html__( 'Join free', 'membuild-community' ); ?> <?php echo $mbcom_arrow; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- a fixed icon ?></a>
+					<p class="or" aria-hidden="true"><span><?php esc_html_e( 'or log in', 'membuild-community' ); ?></span></p>
+				</div>
+			<?php endif; ?>
 			<?php if ( $data['error'] ) : ?>
 				<?php
 				echo $mbcom_alert( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped here
@@ -282,16 +294,32 @@ $mbcom_kses = array( 'strong' => array(), 'b' => array(), 'a' => array( 'href' =
 
 		<?php elseif ( 'join' === $view ) : ?>
 			<?php
+			// Joining from a course or an event on the website: say what opens straight after.
+			$mbcom_next = $data['next'] ?? null;
+			if ( $mbcom_next ) {
+				$headline = 'event' === $mbcom_next[0] ? __( 'Join free to save your seat', 'membuild-community' ) : __( 'Join free to start', 'membuild-community' );
+			}
 			$mbcom_words = preg_split( '/\s+/', $headline ? $headline : __( 'Join now.', 'membuild-community' ) );
 			$mbcom_last  = count( $mbcom_words ) > 1 ? array_pop( $mbcom_words ) : '';
 			echo $mbcom_h1( implode( ' ', $mbcom_words ), $mbcom_last ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped where built
 			?>
 			<p class="lead">
 			<?php
-			/* translators: %s: community name */
-			echo esc_html( sprintf( __( '%s is free to join. It takes a minute.', 'membuild-community' ), $name ) );
+			if ( $mbcom_next && 'event' === $mbcom_next[0] ) {
+				/* translators: 1: an event's title, 2: its day and time */
+				echo wp_kses( sprintf( __( '%1$s, %2$s your time. We’ll open it right after.', 'membuild-community' ), '<b>' . esc_html( $mbcom_next[1] ) . '</b>', '<time class="next-at" data-at="' . (int) $mbcom_next[2] . '">' . esc_html( wp_date( 'M j \a\t ' . get_option( 'time_format' ), $mbcom_next[2] ) ) . '</time>' ), array( 'b' => array(), 'time' => array( 'class' => true, 'data-at' => true ) ) );
+			} elseif ( $mbcom_next ) {
+				/* translators: %s: a course's title */
+				echo wp_kses( sprintf( __( 'After you join you’ll go straight to %s.', 'membuild-community' ), '<b>' . esc_html( $mbcom_next[1] ) . '</b>' ), array( 'b' => array() ) );
+			} else {
+				/* translators: %s: community name */
+				echo esc_html( sprintf( __( '%s is free to join. It takes a minute.', 'membuild-community' ), $name ) );
+			}
 			?>
 			</p>
+			<?php if ( $mbcom_next && 'event' === $mbcom_next[0] ) : ?>
+				<script>(function(t){if(!t||!window.Intl)return;var d=new Date(1e3*t.dataset.at),o=Intl.DateTimeFormat().resolvedOptions().locale;try{t.textContent=d.toLocaleDateString(o,{month:"short",day:"numeric"})+" "+d.toLocaleTimeString(o,{hour:"numeric",minute:"2-digit"})}catch(x){}})(document.querySelector(".next-at"))</script>
+			<?php endif; ?>
 			<?php if ( $host['line'] && $host['name'] ) : ?>
 				<p class="host-row">
 					<?php if ( $host['photo'] ) : ?><img src="<?php echo esc_url( $host['photo'] ); ?>" alt=""><?php else : ?><?php echo $mbcom_mark; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped where built ?><?php endif; ?>
@@ -302,7 +330,7 @@ $mbcom_kses = array( 'strong' => array(), 'b' => array(), 'a' => array( 'href' =
 			<?php if ( $data['error'] && 'mbcom_email_taken' !== $data['code'] ) : ?>
 				<?php echo $mbcom_alert( esc_html( $data['error'] ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped here ?>
 			<?php endif; ?>
-			<form method="post" action="<?php echo esc_url( Login::url( 'join' ) ); ?>">
+			<form method="post" action="<?php echo esc_url( Login::url( 'join', $data['redirect'] ? array( 'redirect_to' => $data['redirect'] ) : array() ) ); ?>">
 				<?php wp_nonce_field( 'mbcom_join', '_mbcom_join', false ); ?>
 				<label class="field">
 					<span class="label"><?php esc_html_e( 'First name', 'membuild-community' ); ?></span>

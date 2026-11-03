@@ -12,8 +12,8 @@
 <!-- /wp:paragraph --></div>
 <!-- /wp:group -->
 
-<!-- wp:group {"metadata":{"name":"Plans"},"align":"full","className":"mbs-sec mbs-plans-sec","layout":{"type":"constrained","contentSize":"1188px"}} -->
-<div class="wp-block-group alignfull mbs-sec mbs-plans-sec"><!-- wp:membuild-community/plans {"free":"The community and chat\nStart Here course\nWeekly Q\u0026A calls\nEvents and Places","paid":"Everything in Free\nEvery course\nMonthly workshops + recordings\nMembers-only chats and events","trust":true} /--></div>
+<!-- wp:group {"metadata":{"name":"Plans"},"align":"full","className":"mbs-sec mbs-plans-sec","layout":{"type":"constrained","contentSize":"1188px"},"anchor":"plans"} -->
+<div class="wp-block-group alignfull mbs-sec mbs-plans-sec" id="plans"><!-- wp:membuild-community/plans {"trust":true} /--></div>
 <!-- /wp:group -->
 
 <!-- wp:group {"metadata":{"name":"Compare"},"align":"full","className":"mbs-sec mbs-sec-tint","layout":{"type":"constrained","contentSize":"1188px"}} -->
@@ -25,33 +25,33 @@
 <h2 class="wp-block-heading has-text-align-center">What’s in each plan</h2>
 <!-- /wp:heading -->
 
-<!-- wp:membuild-community/compare /--></div>
+<!-- wp:membuild-community/compare {"items":[{"label":"The community and chat","in":["free","paid"]},{"label":"Start Here course","in":["free","paid"]},{"label":"Weekly Q\u0026A calls","in":["free","paid"]},{"label":"Every other course","in":["paid"]},{"label":"Monthly workshops + recordings","in":["paid"]}]} /--></div>
 <!-- /wp:group -->
 
 <!-- wp:group {"metadata":{"name":"Promises"},"align":"full","className":"mbs-sec","layout":{"type":"constrained","contentSize":"1188px"}} -->
-<div class="wp-block-group alignfull mbs-sec"><!-- wp:columns {"className":"mbs-quotes mbs-promise-cols"} -->
+<div class="wp-block-group alignfull mbs-sec"><!-- wp:columns {"metadata":{"name":"Review and promises"},"className":"mbs-quotes mbs-promise-cols"} -->
 <div class="wp-block-columns mbs-quotes mbs-promise-cols"><!-- wp:column {"width":"55%"} -->
-<div class="wp-block-column" style="flex-basis:55%"><!-- wp:group {"className":"mbs-card-dark mbs-quote-big","layout":{"type":"flex","orientation":"vertical"}} -->
+<div class="wp-block-column" style="flex-basis:55%"><!-- wp:group {"templateLock":"contentOnly","metadata":{"name":"Review 1"},"className":"mbs-card-dark mbs-quote-big","layout":{"type":"flex","orientation":"vertical"}} -->
 <div class="wp-block-group mbs-card-dark mbs-quote-big"><!-- wp:paragraph {"className":"mbs-quote-mark"} -->
 <p class="mbs-quote-mark">“</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph {"className":"mbs-quote-text"} -->
-<p class="mbs-quote-text">Upgrading paid for itself in the first month. The pricing workshop alone changed my numbers.</p>
+<p class="mbs-quote-text">Paste a real member’s words here.</p>
 <!-- /wp:paragraph -->
 
-<!-- wp:group {"className":"mbs-who","layout":{"type":"flex","justifyContent":"left","flexWrap":"nowrap"}} -->
-<div class="wp-block-group mbs-who"><!-- wp:image {"className":"mbs-avatar"} -->
-<figure class="wp-block-image mbs-avatar"><img src="{{avatar:Raj Patel}}" alt=""/></figure>
+<!-- wp:group {"metadata":{"name":"Who said it"},"className":"mbs-who","layout":{"type":"flex","justifyContent":"left","flexWrap":"nowrap"}} -->
+<div class="wp-block-group mbs-who"><!-- wp:image {"className":"mbs-avatar mbs-face-ph"} -->
+<figure class="wp-block-image mbs-avatar mbs-face-ph"><img src="{{face}}" alt=""/></figure>
 <!-- /wp:image -->
 
-<!-- wp:group {"layout":{"type":"flex","orientation":"vertical"}} -->
+<!-- wp:group {"metadata":{"name":"Name"},"layout":{"type":"flex","orientation":"vertical"}} -->
 <div class="wp-block-group"><!-- wp:paragraph {"className":"mbs-person-name"} -->
-<p class="mbs-person-name"><strong>Raj Patel</strong></p>
+<p class="mbs-person-name"><strong>Member’s name</strong></p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph {"className":"mbs-person-role"} -->
-<p class="mbs-person-role">Member · SaaS founder</p>
+<p class="mbs-person-role">What they do</p>
 <!-- /wp:paragraph --></div>
 <!-- /wp:group --></div>
 <!-- /wp:group --></div>
@@ -59,13 +59,13 @@
 <!-- /wp:column -->
 
 <!-- wp:column {"width":"45%"} -->
-<div class="wp-block-column" style="flex-basis:45%"><!-- wp:group {"className":"mbs-card-soft mbs-promises","layout":{"type":"flex","orientation":"vertical"}} -->
-<div class="wp-block-group mbs-card-soft mbs-promises"><!-- wp:group {"className":"mbs-promise","layout":{"type":"flex","justifyContent":"left","flexWrap":"nowrap"}} -->
+<div class="wp-block-column" style="flex-basis:45%"><!-- wp:group {"templateLock":"contentOnly","metadata":{"name":"Promises"},"className":"mbs-card-soft mbs-promises","layout":{"type":"flex","orientation":"vertical"}} -->
+<div class="wp-block-group mbs-card-soft mbs-promises"><!-- wp:group {"metadata":{"name":"Promise: Cancel in two clicks"},"className":"mbs-promise","layout":{"type":"flex","justifyContent":"left","flexWrap":"nowrap"}} -->
 <div class="wp-block-group mbs-promise"><!-- wp:image {"width":"24px","className":"mbs-icon"} -->
 <figure class="wp-block-image is-resized mbs-icon"><img src="{{icon:check}}" alt="" style="width:24px;height:auto"/></figure>
 <!-- /wp:image -->
 
-<!-- wp:group {"layout":{"type":"flex","orientation":"vertical"}} -->
+<!-- wp:group {"metadata":{"name":"Words"},"layout":{"type":"flex","orientation":"vertical"}} -->
 <div class="wp-block-group"><!-- wp:paragraph {"className":"mbs-promise-title"} -->
 <p class="mbs-promise-title"><strong>Cancel in two clicks</strong></p>
 <!-- /wp:paragraph -->
@@ -76,34 +76,34 @@
 <!-- /wp:group --></div>
 <!-- /wp:group -->
 
-<!-- wp:group {"className":"mbs-promise","layout":{"type":"flex","justifyContent":"left","flexWrap":"nowrap"}} -->
+<!-- wp:group {"metadata":{"name":"Promise: Keep it to the end"},"className":"mbs-promise","layout":{"type":"flex","justifyContent":"left","flexWrap":"nowrap"}} -->
 <div class="wp-block-group mbs-promise"><!-- wp:image {"width":"24px","className":"mbs-icon"} -->
 <figure class="wp-block-image is-resized mbs-icon"><img src="{{icon:spark}}" alt="" style="width:24px;height:auto"/></figure>
 <!-- /wp:image -->
 
-<!-- wp:group {"layout":{"type":"flex","orientation":"vertical"}} -->
+<!-- wp:group {"metadata":{"name":"Words"},"layout":{"type":"flex","orientation":"vertical"}} -->
 <div class="wp-block-group"><!-- wp:paragraph {"className":"mbs-promise-title"} -->
 <p class="mbs-promise-title"><strong>Keep it to the end</strong></p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph {"className":"mbs-muted"} -->
-<p class="mbs-muted">You keep everything until the end of the month you paid for.</p>
+<p class="mbs-muted">You keep everything until the end of the period you paid for.</p>
 <!-- /wp:paragraph --></div>
 <!-- /wp:group --></div>
 <!-- /wp:group -->
 
-<!-- wp:group {"className":"mbs-promise","layout":{"type":"flex","justifyContent":"left","flexWrap":"nowrap"}} -->
-<div class="wp-block-group mbs-promise"><!-- wp:image {"width":"24px","className":"mbs-icon"} -->
-<figure class="wp-block-image is-resized mbs-icon"><img src="{{icon:users}}" alt="" style="width:24px;height:auto"/></figure>
+<!-- wp:group {"metadata":{"name":"Promise: 14-day money-back"},"className":"mbs-promise mbs-refund","layout":{"type":"flex","justifyContent":"left","flexWrap":"nowrap"}} -->
+<div class="wp-block-group mbs-promise mbs-refund"><!-- wp:image {"width":"24px","className":"mbs-icon"} -->
+<figure class="wp-block-image is-resized mbs-icon"><img src="{{icon:refund}}" alt="" style="width:24px;height:auto"/></figure>
 <!-- /wp:image -->
 
-<!-- wp:group {"layout":{"type":"flex","orientation":"vertical"}} -->
+<!-- wp:group {"metadata":{"name":"Words"},"layout":{"type":"flex","orientation":"vertical"}} -->
 <div class="wp-block-group"><!-- wp:paragraph {"className":"mbs-promise-title"} -->
-<p class="mbs-promise-title"><strong>Change your mind any time</strong></p>
+<p class="mbs-promise-title"><strong>14-day money-back</strong></p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph {"className":"mbs-muted"} -->
-<p class="mbs-muted">Come back whenever you like. Your posts and progress wait for you.</p>
+<p class="mbs-muted">Not for you? Write to us within 14 days of your first payment for a full refund.</p>
 <!-- /wp:paragraph --></div>
 <!-- /wp:group --></div>
 <!-- /wp:group --></div>
@@ -113,7 +113,7 @@
 <!-- /wp:group -->
 
 <!-- wp:group {"metadata":{"name":"Questions"},"align":"full","className":"mbs-sec","layout":{"type":"constrained","contentSize":"1188px"}} -->
-<div class="wp-block-group alignfull mbs-sec"><!-- wp:columns {"className":"mbs-faq-cols"} -->
+<div class="wp-block-group alignfull mbs-sec"><!-- wp:columns {"metadata":{"name":"Words and questions"},"className":"mbs-faq-cols"} -->
 <div class="wp-block-columns mbs-faq-cols"><!-- wp:column {"width":"40%"} -->
 <div class="wp-block-column" style="flex-basis:40%"><!-- wp:paragraph {"className":"mbs-pill"} -->
 <p class="mbs-pill">Questions</p>
@@ -137,19 +137,25 @@
 <!-- wp:column {"width":"60%"} -->
 <div class="wp-block-column" style="flex-basis:60%"><!-- wp:details {"showContent":true,"className":"mbs-faq"} -->
 <details class="wp-block-details mbs-faq" open><summary>Can I cancel any time?</summary><!-- wp:paragraph -->
-<p>Yes. Open Billing in your menu and tap Cancel. You keep everything until the end of the month you paid for.</p>
+<p>Yes. Open Billing in your menu and tap Cancel. You keep everything until the end of the period you paid for.</p>
 <!-- /wp:paragraph --></details>
 <!-- /wp:details -->
 
-<!-- wp:details {"className":"mbs-faq"} -->
-<details class="wp-block-details mbs-faq"><summary>Do you offer refunds?</summary><!-- wp:paragraph -->
-<p>See Refunds &amp; cancelling for the details. If something went wrong, write to us and we’ll put it right.</p>
+<!-- wp:details {"className":"mbs-faq mbs-refund"} -->
+<details class="wp-block-details mbs-faq mbs-refund"><summary>Do you offer refunds?</summary><!-- wp:paragraph -->
+<p>Yes. Write to us within 14 days of your first payment and we’ll refund it, no questions. <a href="{{page:refunds}}">How refunds work →</a></p>
 <!-- /wp:paragraph --></details>
 <!-- /wp:details -->
 
 <!-- wp:details {"className":"mbs-faq"} -->
 <details class="wp-block-details mbs-faq"><summary>Can I pay yearly?</summary><!-- wp:paragraph -->
 <p>When a yearly price is set, you’ll see it at checkout, usually with two months free.</p>
+<!-- /wp:paragraph --></details>
+<!-- /wp:details -->
+
+<!-- wp:details {"className":"mbs-faq"} -->
+<details class="wp-block-details mbs-faq"><summary>What happens after I pay?</summary><!-- wp:paragraph -->
+<p>You get an email with your receipt and go straight into the community.</p>
 <!-- /wp:paragraph --></details>
 <!-- /wp:details -->
 

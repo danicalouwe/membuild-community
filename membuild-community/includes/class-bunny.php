@@ -440,6 +440,7 @@ class Bunny {
 			self::refresh( $row );
 			$meta = json_decode( (string) ( Media::get( (int) $row['id'] )['meta'] ?? '' ), true ) ?: $meta;
 		}
-		return array( 'type' => 'hls', 'status' => $meta['status'] ?? 'processing' );
+		// reason 'too_big': over the 2 GB limit, so it was taken off Bunny.
+		return array( 'type' => 'hls', 'status' => $meta['status'] ?? 'processing', 'reason' => $meta['reason'] ?? '' );
 	}
 }

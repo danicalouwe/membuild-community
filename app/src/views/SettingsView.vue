@@ -692,43 +692,10 @@ onBeforeUnmount(() => spy?.disconnect())
   gap: 2px;
 }
 
-.styled :deep(.switch) {
-  appearance: none;
-  flex: none;
-  position: relative;
-  width: 52px;
-  height: 30px;
-  border-radius: var(--radius-pill);
-  background: var(--border);
-  cursor: pointer;
-  transition: background 0.15s;
-}
 
-.styled :deep(.switch::after) {
-  content: '';
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--on-color);
-  box-shadow: var(--shadow-sm);
-  transition: transform 0.15s;
-}
 
-.styled :deep(.switch:checked) {
-  background: var(--accent);
-}
 
-.styled :deep(.switch:checked::after) {
-  transform: translateX(22px);
-}
 
-.styled :deep(.switch:focus-visible) {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
 
 .styled :deep(fieldset:disabled) {
   opacity: 0.5;
@@ -989,6 +956,7 @@ onBeforeUnmount(() => spy?.disconnect())
 }
 
 .styled :deep(select),
+.styled :deep(input[type='date']),
 .styled :deep(input[type='email']),
 .styled :deep(input[type='url']),
 .styled :deep(input[type='password']) {

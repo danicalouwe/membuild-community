@@ -1,5 +1,5 @@
 <script setup>
-import { isProcessing } from '../lib/stream.js'
+import { isProcessing, videoFailure } from '../lib/stream.js'
 import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api.js'
@@ -409,6 +409,10 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
             <span class="ring" aria-hidden="true" />
             <strong>{{ t.__('Getting your video ready', 'membuild-community') }}</strong>
             <span>{{ t.__('This usually takes under a minute. You can keep browsing; we’ll put it in Reels as soon as it’s ready.', 'membuild-community') }}</span>
+          </div>
+          <div v-else-if="videoFailure(post.media[0])" class="processing" role="status">
+            <strong>{{ videoFailure(post.media[0]).title }}</strong>
+            <span>{{ videoFailure(post.media[0]).text }}</span>
           </div>
           <div v-if="i === active && paused" class="center-icon"><Icon name="play" :size="56" /></div>
           <div v-if="i === active && buffering && !paused && !isProcessing(post.media[0])" class="spinner" role="status" :aria-label="t.__('Loading', 'membuild-community')" />

@@ -162,6 +162,8 @@ form { display: flex; flex-direction: column; gap: 18px; }
 .btn.grey { background: var(--grey); color: var(--text); box-shadow: none; }
 .or { display: flex; align-items: center; gap: 12px; margin: 0; color: var(--or, #646973); font-size: 14px; }
 .or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.site-first { display: grid; gap: 14px; margin: 4px 0 18px; } /* Log in opened from the website: Join comes first */
+.site-first .small { margin: 0; font-weight: 700; }
 .foot { margin: 0; padding-top: 14px; border-top: 1px solid var(--line); color: var(--text-2); font-size: 15px; text-align: center; }
 
 /* Join: what you get */

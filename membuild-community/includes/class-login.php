@@ -206,6 +206,35 @@ class Login {
 		return $requested ? wp_validate_redirect( $requested, Portal::url() ) : '';
 	}
 
+	/**
+	 * Joining from a course or an event on the website: what they'll open straight after.
+	 * [ 'course' | 'event', its title, the event's time (a timestamp) ] or null.
+	 */
+	private static function next_note( $url ) {
+		$base = Starter_Site::path( Portal::url() );
+		$path = $url ? Starter_Site::path( $url ) : null;
+		if ( null === $path || null === $base || ! preg_match( '#^' . preg_quote( untrailingslashit( $base ), '#' ) . '/(classroom|events)/(\d+)$#', $path, $m ) ) {
+			return null;
+		}
+		global $wpdb;
+		if ( 'classroom' === $m[1] ) {
+			$title = $wpdb->get_var( $wpdb->prepare( "SELECT title FROM %i WHERE id = %d AND status = 'published'", Install::table( 'courses' ), (int) $m[2] ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			return $title ? array( 'course', (string) $title, 0 ) : null;
+		}
+		list( $seen, $vals ) = Events::visible_sql();
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $seen is fixed SQL with placeholders; values are bound.
+		$e = $wpdb->get_row( $wpdb->prepare( "SELECT event_title, event_at FROM %i WHERE id = %d AND status = 'published' AND event_title <> '' AND {$seen}", array_merge( array( Install::table( 'posts' ), (int) $m[2] ), $vals ) ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		return $e ? array( 'event', (string) $e['event_title'], (int) strtotime( $e['event_at'] . ' UTC' ) ) : null;
+	}
+
+	/** Log in opened from a link on the website (not the community): "New here? Join free" comes first. */
+	private static function from_site() {
+		$ref  = wp_get_referer();
+		$path = $ref ? Starter_Site::path( $ref ) : null;
+		$base = untrailingslashit( (string) Starter_Site::path( Portal::url() ) );
+		return null !== $path && 0 !== strpos( $path . '/', $base . '/' );
+	}
+
 	private static function login_page() {
 		$redirect = self::redirect_target();
 		// Settings › "Open the login page": admins see it as visitors do, without logging out.
@@ -282,6 +311,7 @@ class Login {
 				'redirect' => $redirect,
 				'wrong'    => $wrong,
 				'live'     => self::live_note( self::preview_values()['live'] ?? null ),
+				'site'     => '' === $error && 'GET' === Helpers::method() && self::from_site(), // from the website: Join first
 			)
 		);
 	}
@@ -324,7 +354,7 @@ class Login {
 					$code    = $result->get_error_code();
 					$blocked = 'mbcom_too_young' === $code;
 				} else {
-					wp_safe_redirect( Portal::url() );
+					wp_safe_redirect( self::redirect_target() ?: Portal::url() ); // the course or event they tapped on the website
 					exit;
 				}
 			}
@@ -339,6 +369,8 @@ class Login {
 				'blocked' => $blocked,
 				'terms'   => (string) Settings::get( 'terms_url' ),
 				'privacy' => get_privacy_policy_url(),
+				'redirect' => self::redirect_target(),
+				'next'    => self::next_note( self::redirect_target() ),
 				'faces'   => self::faces_note(),
 				// What they get, in a line each: only what this community has switched on.
 				'gets'    => array_filter(
@@ -725,7 +757,7 @@ class Login {
 		}
 		return array(
 			'photos' => array_map( fn( $id ) => (string) get_user_meta( $id, 'mbcom_avatar_url', true ), $ids ),
-			'count'  => (int) count_users()['total_users'],
+			'count'  => Helpers::member_total(), // cached: count_users() is slow on big sites
 		);
 	}
 

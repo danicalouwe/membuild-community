@@ -106,6 +106,57 @@ class App {
 		return $out;
 	}
 
+	/**
+	 * The browser-tab icon with round corners, like an app icon: an SVG holding a small copy of the
+	 * image, so a square logo isn't a hard square in the tab. Home-screen icons stay square, because
+	 * phones round those themselves. Browsers that skip SVG icons use the PNG ones instead.
+	 * The community's logo by default; '' when there's no image on this site to make it from.
+	 */
+	public static function tab_icon( $url = null ) {
+		$url = $url ?? ( self::source()['url'] ?? '' );
+		$path = $url ? self::local_path( $url ) : null;
+		if ( ! $path ) {
+			return '';
+		}
+		$uploads = wp_upload_dir();
+		$file    = 'tab-' . substr( md5( $url ), 0, 10 ) . '.svg';
+		$dir     = trailingslashit( $uploads['basedir'] ) . 'mbcom-icons/';
+		if ( ! file_exists( $dir . $file ) ) {
+			$editor = wp_get_image_editor( $path );
+			if ( is_wp_error( $editor ) ) {
+				return '';
+			}
+			$editor->resize( 64, 64, true );
+			$tmp   = wp_tempnam( 'mbcom-tab.png' );
+			$saved = $editor->save( $tmp, 'image/png' );
+			if ( is_wp_error( $saved ) ) {
+				return '';
+			}
+			$png = base64_encode( (string) file_get_contents( $saved['path'] ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions, WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- a file we just made
+			wp_delete_file( $saved['path'] );
+			wp_delete_file( $tmp );
+			wp_mkdir_p( $dir );
+			$svg = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 64 64"><clipPath id="r"><rect width="64" height="64" rx="18"/></clipPath>'
+				. '<image width="64" height="64" clip-path="url(#r)" href="data:image/png;base64,' . $png . '" xlink:href="data:image/png;base64,' . $png . '"/></svg>';
+			file_put_contents( $dir . $file, $svg ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		}
+		return trailingslashit( $uploads['baseurl'] ) . 'mbcom-icons/' . $file;
+	}
+
+	/** The website's own pages: the WordPress Site Icon gets the same round tab icon. */
+	public static function round_site_icon( $tags ) {
+		$id  = (int) get_option( 'site_icon' );
+		$tab = $id ? self::tab_icon( (string) wp_get_attachment_url( $id ) ) : '';
+		if ( $tab ) {
+			array_unshift( $tags, '<link rel="icon" type="image/svg+xml" href="' . esc_url( $tab ) . '" />' );
+		}
+		return $tags;
+	}
+
+	public static function register_hooks() {
+		add_filter( 'site_icon_meta_tags', array( __CLASS__, 'round_site_icon' ) );
+	}
+
 	private static function local_path( $url ) {
 		$uploads = wp_upload_dir();
 		if ( ! str_starts_with( $url, $uploads['baseurl'] ) ) {

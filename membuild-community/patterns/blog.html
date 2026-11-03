@@ -1,0 +1,67 @@
+<!-- wp:group {"metadata":{"name":"Hero"},"align":"full","className":"mbs-sec mbs-hero mbs-hero-short","layout":{"type":"constrained","contentSize":"1188px"}} -->
+<div class="wp-block-group alignfull mbs-sec mbs-hero mbs-hero-short"><!-- wp:paragraph {"className":"mbs-pill"} -->
+<p class="mbs-pill">Blog</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:heading {"level":1} -->
+<h1 class="wp-block-heading">Ideas, wins and <mark class="mbs-hl">how-tos</mark></h1>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph {"className":"mbs-lead"} -->
+<p class="mbs-lead">Short, useful reads from the people of {{site}}.</p>
+<!-- /wp:paragraph --></div>
+<!-- /wp:group -->
+
+<!-- wp:group {"metadata":{"name":"Posts"},"align":"full","className":"mbs-sec mbs-sec-tight mbs-posts-sec","layout":{"type":"constrained","contentSize":"1188px"}} -->
+<div class="wp-block-group alignfull mbs-sec mbs-sec-tight mbs-posts-sec"><!-- wp:query {"queryId":1,"query":{"perPage":9,"pages":0,"offset":0,"postType":"post","order":"desc","orderBy":"date","author":"","search":"","exclude":[],"sticky":"","inherit":false,"taxQuery":null,"parents":[]},"className":"mbs-posts"} -->
+<div class="wp-block-query mbs-posts"><!-- wp:post-template {"layout":{"type":"grid","columnCount":3}} -->
+<!-- wp:group {"className":"mbs-post-card","layout":{"type":"default"}} -->
+<div class="wp-block-group mbs-post-card"><!-- wp:post-featured-image {"isLink":true,"aspectRatio":"16/9","className":"mbs-post-img"} /-->
+
+<!-- wp:group {"className":"mbs-post-text","layout":{"type":"flex","orientation":"vertical"}} -->
+<div class="wp-block-group mbs-post-text"><!-- wp:post-date {"metadata":{"bindings":{"datetime":{"source":"core/post-data","args":{"field":"date"}}}},"className":"mbs-post-date"} /-->
+
+<!-- wp:post-title {"isLink":true,"className":"mbs-post-title"} /-->
+
+<!-- wp:post-excerpt {"excerptLength":22,"className":"mbs-post-excerpt"} /--></div>
+<!-- /wp:group --></div>
+<!-- /wp:group -->
+<!-- /wp:post-template -->
+
+<!-- wp:query-pagination {"layout":{"type":"flex","justifyContent":"center"}} -->
+<!-- wp:query-pagination-previous /-->
+
+<!-- wp:query-pagination-numbers /-->
+
+<!-- wp:query-pagination-next /-->
+<!-- /wp:query-pagination -->
+
+<!-- wp:query-no-results -->
+<!-- wp:paragraph {"className":"mbs-empty"} -->
+<p class="mbs-empty">No posts yet. The first one is on its way.</p>
+<!-- /wp:paragraph -->
+<!-- /wp:query-no-results --></div>
+<!-- /wp:query --></div>
+<!-- /wp:group -->
+
+<!-- wp:group {"metadata":{"name":"Closing call to action"},"align":"full","className":"mbs-sec mbs-sec-dark mbs-glow mbs-closing","layout":{"type":"constrained","contentSize":"1188px"}} -->
+<div class="wp-block-group alignfull mbs-sec mbs-sec-dark mbs-glow mbs-closing"><!-- wp:membuild-community/faces {"count":7,"size":52,"label":false} /-->
+
+<!-- wp:heading {"style":{"typography":{"textAlign":"center"}}} -->
+<h2 class="wp-block-heading has-text-align-center">Like what you read?</h2>
+<!-- /wp:heading -->
+
+<!-- wp:paragraph {"className":"mbs-lead","style":{"typography":{"textAlign":"center"}}} -->
+<p class="has-text-align-center mbs-lead">Join free and talk it over with people who get it.</p>
+<!-- /wp:paragraph -->
+
+<!-- wp:buttons {"layout":{"type":"flex","justifyContent":"center"}} -->
+<div class="wp-block-buttons"><!-- wp:button -->
+<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="{{join}}">Join free →</a></div>
+<!-- /wp:button -->
+
+<!-- wp:button {"className":"mbs-btn-ghost"} -->
+<div class="wp-block-button mbs-btn-ghost"><a class="wp-block-button__link wp-element-button" href="{{page:pricing}}">See pricing</a></div>
+<!-- /wp:button --></div>
+<!-- /wp:buttons --></div>
+<!-- /wp:group -->

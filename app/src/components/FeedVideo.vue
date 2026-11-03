@@ -4,7 +4,7 @@ let playing = null
 </script>
 
 <script setup>
-import { isProcessing } from '../lib/stream.js'
+import { isProcessing, videoFailure } from '../lib/stream.js'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import Icon from './Icon.vue'
 import { t } from '../lib/i18n.js'
@@ -85,6 +85,7 @@ function toggleSound(e) {
       preload="metadata"
     />
     <span v-if="isProcessing(media)" class="processing">{{ t.__('Processing video…', 'membuild-community') }}</span>
+    <span v-else-if="videoFailure(media)" class="processing failed" role="status"><strong>{{ videoFailure(media).title }}</strong> {{ videoFailure(media).text }}</span>
     <button class="sound" :aria-label="muted ? t.__('Turn sound on', 'membuild-community') : t.__('Mute', 'membuild-community')" @click="toggleSound">
       <Icon :name="muted ? 'mute' : 'volume'" :size="18" />
     </button>
@@ -105,6 +106,19 @@ function toggleSound(e) {
   font-size: var(--fs-md);
   font-weight: 600;
   white-space: nowrap;
+}
+
+/* A video that won't play: two short lines, so it wraps inside the frame. */
+.processing.failed {
+  width: max-content;
+  max-width: calc(100% - 32px);
+  border-radius: var(--radius-md);
+  text-align: center;
+  white-space: normal;
+}
+
+.processing.failed strong {
+  display: block;
 }
 
 .feed-video {

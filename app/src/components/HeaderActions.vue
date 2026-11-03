@@ -35,6 +35,10 @@ const root = ref(null)
 const phone = window.matchMedia('(max-width: 767px)')
 const isPhone = ref(phone.matches)
 phone.addEventListener?.('change', (e) => (isPhone.value = e.matches))
+// The home-screen icon "Add to your phone" shows (initials on the main colour until one exists).
+const appIcon = cfg.app?.icon || ''
+// Phones and tablets (a touch screen with no mouse): the only places "Add to your phone" shows.
+const touchOnly = window.matchMedia('(hover: none) and (pointer: coarse)').matches
 
 /*
  * The account links, described once: the avatar menu on computers, and the
@@ -71,7 +75,8 @@ const you = computed(() => [
 ])
 const after = computed(() =>
   [
-    !pwa.standalone && { action: installApp, icon: 'download', label: t.__('Add to your phone', 'membuild-community') },
+    // Shows the app's own home-screen icon, so members see what they'll get.
+    !pwa.standalone && touchOnly && { action: installApp, app: true, label: t.__('Add to your phone', 'membuild-community'), note: t.__('Open it like an app on your phone', 'membuild-community') },
     // The site's own home page (the community may have taken it over).
     { href: cfg.siteUrl, icon: 'home', label: t.__('Main website', 'membuild-community') },
     { href: cfg.logoutUrl, icon: 'logout', label: t.__('Log out', 'membuild-community') },
@@ -225,7 +230,9 @@ const accountLabel = () => {
           </template>
           <hr />
           <component :is="i.action ? 'button' : i.to ? 'RouterLink' : 'a'" v-for="i in after" :key="i.label" v-bind="linkProps(i)" class="item" @click="i.action?.()">
-            <span class="ic"><Icon :name="i.icon" :size="18" /></span>
+            <img v-if="i.app && appIcon" class="app-ic" :src="appIcon" alt="" />
+            <span v-else-if="i.app" class="app-ic initials" aria-hidden="true">{{ cfg.app?.initials }}</span>
+            <span v-else class="ic"><Icon :name="i.icon" :size="18" /></span>
             <span v-if="i.note" class="text"><span>{{ i.label }}</span><small>{{ i.note }}</small></span>
             <template v-else>{{ i.label }}</template>
           </component>
@@ -303,7 +310,9 @@ const accountLabel = () => {
         </template>
         <hr />
         <component :is="i.action ? 'button' : i.to ? 'RouterLink' : 'a'" v-for="i in after" :key="i.label" v-bind="linkProps(i)" class="item" @click="i.action?.()">
-          <span class="ic"><Icon :name="i.icon" :size="18" /></span>
+          <img v-if="i.app && appIcon" class="app-ic" :src="appIcon" alt="" />
+          <span v-else-if="i.app" class="app-ic initials" aria-hidden="true">{{ cfg.app?.initials }}</span>
+          <span v-else class="ic"><Icon :name="i.icon" :size="18" /></span>
           <span v-if="i.note" class="text"><span>{{ i.label }}</span><small>{{ i.note }}</small></span>
           <template v-else>{{ i.label }}</template>
         </component>
@@ -507,6 +516,24 @@ hr {
 .who:hover,
 .item:hover {
   background: var(--surface-2);
+}
+
+/* "Add to your phone": the real home-screen icon, rounded the way phones show it. */
+.app-ic {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 22%;
+  object-fit: cover;
+}
+
+.app-ic.initials {
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 800;
+  font-size: var(--fs-sm);
 }
 
 .ic {

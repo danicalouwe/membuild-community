@@ -112,6 +112,7 @@ body.mbck-body {
 .mbck-already span { color: var(--text-2); }
 .mbck-already a { font-size: 15px; }
 .mbck-note { margin: 0; color: var(--text-2); font-size: 14px; line-height: 1.5; text-align: center; }
+.mbck-promise { margin: 12px 0 0; color: var(--text-2); font-size: 14px; font-weight: 700; text-align: center; } /* under Pay: Cancel any time · 14-day money-back */
 .mbck-band { display: none; }
 
 /* FluentCart's form, simplified: one column, our labels, no repeated order summary. */

@@ -154,6 +154,8 @@ class Portal {
 				// Admins' browsers draw the home-screen icon when there's no logo and the name or color changed.
 				'drawIcon'  => Helpers::can_manage() && App::needs_drawn_icon(),
 				'initials'  => Settings::initials(),
+				// The home-screen icon itself, shown on the menu's "Add to your phone" (empty until one exists).
+				'icon'      => App::icons()[180] ?? '',
 			),
 			'limits'   => array(
 				'reelSeconds' => 60,

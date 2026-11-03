@@ -60,7 +60,7 @@ onMounted(load)
 // while typing doesn't flip it back to invite only under the owner's hands.
 function withForm(g, old) {
   const o = g.offer || {}
-  return { ...g, form: old?.form || { label: o.label || t.__('Get access', 'membuild-community'), price: o.price || '', period: o.period || 'once', url: o.url || '' }, selling: old?.selling ?? !!g.offer }
+  return { ...g, form: old?.form || { label: o.label || t.__('Get access', 'membuild-community'), price: o.price || '', period: o.period || 'once', url: o.url || '', features: g.features || '' }, selling: old?.selling ?? !!g.offer }
 }
 function replace(group) {
   if (!group) return
@@ -170,6 +170,11 @@ async function setProduct(g, id) {
   if (!group) return
   const i = groups.value.findIndex((x) => x.id === group.id)
   if (i >= 0) groups.value[i] = withForm(group) // fresh fields: the product's link and price
+}
+// What it includes, a line each: the website's Plans and Compare blocks and checkout all read it.
+function saveFeatures(g) {
+  clearTimeout(saveTimers['f' + g.id])
+  saveTimers['f' + g.id] = setTimeout(() => update(g, { features: g.form.features }), 600)
 }
 function setPeriod(g, p) {
   g.form.period = p
@@ -307,6 +312,11 @@ const removeLabel = (name) => t.sprintf(/* translators: %s: a name */ t.__('Remo
               {{ t.__('Members see:', 'membuild-community') }}
               <span class="preview"><Icon name="lock" :size="15" /> {{ offerButton(g.form) }}</span>
             </p>
+            <label class="included">
+              <span>{{ t.__('What’s included (one per line)', 'membuild-community') }}</span>
+              <textarea v-model="g.form.features" class="field" rows="4" maxlength="700" :placeholder="t.__('Every course\nWeekly live Q&A\nThe members-only chat', 'membuild-community')" @input="saveFeatures(g)" />
+              <small>{{ t.__('Up to 8 short lines. Your website’s plans, the compare table and checkout all show this same list.', 'membuild-community') }}</small>
+            </label>
           </template>
           <template v-else>
             <p>{{ t.__('Invite only, so there’s no button. Members see “Ask an admin for access”.', 'membuild-community') }}</p>
@@ -730,6 +740,26 @@ h2 {
   margin: 8px 0 0;
   color: var(--text-2);
   font-size: var(--fs-md);
+}
+
+.included {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+  font-weight: 600;
+}
+
+.included textarea {
+  width: 100%;
+  resize: vertical;
+  font-weight: 400;
+}
+
+.included small {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 400;
 }
 
 .offer {

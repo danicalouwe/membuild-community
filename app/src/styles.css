@@ -592,6 +592,51 @@ h4 {
 /* ---------- Shared kit: one source of truth for the shapes every page repeats ----------
    A page uses these classes and keeps only what is truly its own (its layout, a one-off size). */
 
+/* On/off switch: <input type="checkbox" class="switch" role="switch">. One look everywhere. */
+.switch {
+  appearance: none;
+  flex: none;
+  position: relative;
+  width: 52px;
+  height: 30px;
+  margin: 0;
+  border-radius: var(--radius-pill);
+  background: var(--border-strong);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--on-color);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s;
+}
+
+.switch:checked {
+  background: var(--accent);
+}
+
+.switch:checked::after {
+  transform: translateX(22px);
+}
+
+.switch:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.switch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* A small icon button that keeps its look but gets a 44px tap area on phones (an invisible
    ring around it). Markup: add class="tap-44". A page that places the button itself keeps its
    own position; the ::after belongs to this class. */

@@ -242,6 +242,11 @@ function onDeleted(outline) {
 
 /* ---------- Course settings ---------- */
 const settingsStatus = ref('saved')
+// The open lesson's saving, sent up by the lesson editor, shown in the same spot as the settings'.
+const lessonStatus = ref('saved')
+// The course as members see it, in a new tab, so the editor stays open here.
+const courseHref = computed(() => router.resolve({ name: 'course', params: { courseId: props.course.id } }).href)
+const saveState = computed(() => (part.value === 'settings' ? settingsStatus.value : lessonStatus.value))
 const form = ref({})
 function fill() {
   const c = props.course
@@ -385,18 +390,31 @@ const counter = computed(() => `${form.value.description.length} / 160`)
 <template>
   <div class="cb">
     <RouterLink to="/classroom" class="cb-back"><Icon name="chevronLeft" :size="18" /> {{ t.__('Classroom', 'membuild-community') }}</RouterLink>
+    <!-- The name, labels and tabs stay pinned under the top bar while you scroll. -->
+    <div class="cb-top">
     <div class="cb-head">
-      <span class="cb-status" :class="{ live: course.status === 'published' }">{{ course.status === 'published' ? t.__('Published: members can see it', 'membuild-community') : t.__('Draft: only you can see it', 'membuild-community') }}</span>
       <h1>{{ course.title }}</h1>
+      <!-- Two labels you read (Published or Draft, then Saved), then the course in a new tab.
+           Everything saves as you type, so there's no Done to press. -->
+      <div class="cb-actions">
+        <span class="cb-status" :class="{ live: course.status === 'published' }">{{ course.status === 'published' ? t.__('Published', 'membuild-community') : t.__('Draft', 'membuild-community') }}</span>
+        <span v-if="part === 'settings' || (part === 'lessons' && lessonId)" class="saved" :class="saveState" role="status">
+          <template v-if="saveState === 'saving'"><span class="spin" /> {{ t.__('Saving…', 'membuild-community') }}</template>
+          <template v-else-if="saveState === 'error'"><Icon name="flag" :size="18" /> {{ t.__('Couldn’t save', 'membuild-community') }} <button v-if="part === 'settings'" class="retry" @click="retrySettings">{{ t.__('Try again', 'membuild-community') }}</button></template>
+          <template v-else><Icon name="check" :size="18" /> {{ t.__('Saved', 'membuild-community') }}</template>
+        </span>
+        <a class="btn btn-lg btn-ghost cb-exit" :href="courseHref" target="_blank" rel="noopener" :aria-label="t.__('See the course (opens in a new tab)', 'membuild-community')" :title="t.__('See the course in a new tab', 'membuild-community')"><Icon name="external" :size="20" /></a>
+      </div>
     </div>
 
     <nav class="cb-tabs" role="tablist" :aria-label="t.__('Course builder', 'membuild-community')">
-      <button role="tab" :aria-selected="part === 'map'" :class="{ on: part === 'map' }" @click="setPart('map')">{{ t.__('Course map', 'membuild-community') }}</button>
+      <button role="tab" :aria-selected="part === 'map'" :class="{ on: part === 'map' }" @click="setPart('map')"><span class="long">{{ t.__('Course map', 'membuild-community') }}</span><span class="short">{{ t.__('Map', 'membuild-community') }}</span></button>
       <button role="tab" :aria-selected="part === 'lessons'" :class="{ on: part === 'lessons' }" @click="part === 'lessons' && lessonId ? backToList() : setPart('lessons')">
         {{ t.__('Lessons', 'membuild-community') }} <span v-if="allLessons.length" class="n">{{ allLessons.length }}</span>
       </button>
-      <button role="tab" :aria-selected="part === 'settings'" :class="{ on: part === 'settings' }" @click="setPart('settings')">{{ t.__('Course settings', 'membuild-community') }}</button>
+      <button role="tab" :aria-selected="part === 'settings'" :class="{ on: part === 'settings' }" @click="setPart('settings')"><span class="long">{{ t.__('Course settings', 'membuild-community') }}</span><span class="short">{{ t.__('Settings', 'membuild-community') }}</span></button>
     </nav>
+    </div>
 
     <p v-if="error" class="cb-error" role="alert"><Icon name="flag" :size="18" /> {{ error }}</p>
 
@@ -406,7 +424,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
     <!-- Lessons -->
     <template v-else-if="part === 'lessons'">
       <template v-if="lessonId">
-        <BuilderLessonEditor v-if="lesson" ref="editor" :lesson="lesson" :course="course" @saved="onSaved" @deleted="onDeleted" @go="editLesson" @done="backToList" @settings="toOpens" />
+        <BuilderLessonEditor v-if="lesson" ref="editor" :lesson="lesson" :course="course" @saved="onSaved" @deleted="onDeleted" @go="editLesson" @status="(s) => (lessonStatus = s)" @settings="toOpens" />
         <p v-else-if="lessonError" class="cb-error">{{ lessonError }}</p>
         <div v-else class="card cb-loading"><div class="skeleton" style="height: 24px; width: 50%" /></div>
       </template>
@@ -477,22 +495,11 @@ const counter = computed(() => `${form.value.description.length} / 160`)
         </section>
 
         <button v-if="!ordering" class="btn btn-lg btn-ghost cb-addsection" :disabled="busy" @click="ask('section')"><Icon name="plus" :size="18" /> {{ t.__('Add a section', 'membuild-community') }}</button>
-        <!-- Leaving the builder; hidden while changing the order, which has its own Cancel and Done. -->
-        <div v-if="!ordering" class="cb-done">
-          <button class="btn btn-lg btn-primary" @click="emit('exit')">{{ t.__('Done', 'membuild-community') }}</button>
-        </div>
       </template>
     </template>
 
     <!-- Course settings -->
     <template v-else>
-      <div class="cb-savedrow">
-        <span class="saved" :class="settingsStatus">
-          <template v-if="settingsStatus === 'saving'">{{ t.__('Saving…', 'membuild-community') }}</template>
-          <template v-else-if="settingsStatus === 'error'"><Icon name="flag" :size="15" /> {{ t.__('Couldn’t save', 'membuild-community') }} <button class="retry" @click="retrySettings">{{ t.__('Try again', 'membuild-community') }}</button></template>
-          <template v-else><Icon name="check" :size="15" /> {{ t.__('All changes saved', 'membuild-community') }}</template>
-        </span>
-      </div>
       <!-- Four groups that read top to bottom, each heading a plain question (canvas: Course settings, simpler). -->
       <section class="card cb-settings cb-group">
         <div class="cb-ghead"><span class="cb-gnum">1</span><span><strong>{{ t.__('The basics', 'membuild-community') }}</strong><small>{{ t.__('What members see first.', 'membuild-community') }}</small></span></div>
@@ -674,18 +681,15 @@ const counter = computed(() => `${form.value.description.length} / 160`)
           <div class="pick-row">
             <label class="choice pick-card" :class="{ on: course.status !== 'published' }">
               <input type="radio" :checked="course.status !== 'published'" @change="setReady(false)" />
-              <span><strong>{{ t.__('Not yet', 'membuild-community') }}</strong><small>{{ t.__('Only you can see it while you build it.', 'membuild-community') }}</small></span>
+              <span><strong>{{ t.__('Draft', 'membuild-community') }}</strong></span>
             </label>
             <label class="choice pick-card" :class="{ on: course.status === 'published' }">
               <input type="radio" :checked="course.status === 'published'" @change="setReady(true)" />
-              <span><strong>{{ t.__('Yes, show it', 'membuild-community') }}</strong><small>{{ t.__('Members find it in the Classroom.', 'membuild-community') }}</small></span>
+              <span><strong>{{ t.__('Published', 'membuild-community') }}</strong></span>
             </label>
           </div>
         </fieldset>
       </section>
-      <div class="cb-done">
-        <button class="btn btn-lg btn-primary" @click="emit('exit')">{{ t.__('Done', 'membuild-community') }}</button>
-      </div>
       <section class="delete-row">
         <span class="delete-row-text">
           <strong class="delete-row-title">{{ t.__('Delete this course', 'membuild-community') }}</strong>
@@ -859,6 +863,19 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   color: var(--text-2);
 }
 
+.cb-top {
+  position: sticky;
+  top: calc(var(--header-h) + env(safe-area-inset-top));
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0 -16px;
+  padding: 10px 16px 12px;
+  background: var(--bg);
+  transition: top 0.25s ease;
+}
+
 .cb-head {
   display: flex;
   flex-wrap: wrap;
@@ -866,15 +883,22 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   gap: 8px 16px;
 }
 
+/* Published or Draft: a label, the same size as Saved beside it (publishing is in Course settings). */
 .cb-status {
-  flex: 1 1 100%;
-  align-self: flex-start;
-  font-size: var(--fs-base);
-  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  height: 52px;
+  padding: 0 24px;
+  border-radius: var(--radius-pill);
+  background: var(--warn-soft);
   color: var(--warn-text);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .cb-status.live {
+  background: var(--ok-soft);
   color: var(--ok-text);
 }
 
@@ -1160,26 +1184,46 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   align-self: flex-start;
 }
 
-.cb-done {
-  display: flex;
-  justify-content: flex-end;
+.cb-exit {
+  flex: none;
+  width: 52px;
+  padding: 0;
 }
 
-.cb-savedrow {
+.cb-actions {
   display: flex;
-  justify-content: flex-end;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
 
 .saved {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 12px;
+  height: 52px;
+  padding: 0 24px;
   border-radius: var(--radius-pill);
   background: var(--ok-soft);
   color: var(--ok-text);
-  font-size: var(--fs-base);
+  font-size: var(--fs-xl);
   font-weight: 700;
+  white-space: nowrap;
+}
+
+.spin {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .saved.saving {
@@ -1582,9 +1626,35 @@ const counter = computed(() => `${form.value.description.length} / 160`)
   margin-top: 10px;
 }
 
+/* Phones: the top bar slides away when scrolling down, so the pinned block moves up with it. */
+@media (max-width: 767px) {
+  /* All of it in :global(): Vue drops the part after a lone :global(…). */
+  :global(.bars-hidden .cb-top) {
+    top: env(safe-area-inset-top);
+  }
+}
+
+/* Phones: the tabs drop the word "Course", so all three fit on one line. */
+.cb-tabs .short {
+  display: none;
+}
+
 @media (max-width: 700px) {
+  .cb-tabs .long {
+    display: none;
+  }
+
+  .cb-tabs .short {
+    display: inline;
+  }
+
   .cb {
     padding: 10px 12px 40px;
+  }
+
+  .cb-top {
+    margin: 0 -12px;
+    padding: 8px 12px 10px;
   }
 
   .cb-head h1 {
@@ -1592,8 +1662,14 @@ const counter = computed(() => `${form.value.description.length} / 160`)
     font-size: var(--fs-6xl);
   }
 
-  .cb-head .btn {
+  /* One row on phones: the button takes the room, "Saved" stays short beside it. */
+  .cb-actions {
     width: 100%;
+    flex-wrap: nowrap;
+  }
+
+  .cb-actions {
+    justify-content: flex-end;
   }
 
   .cb-row {

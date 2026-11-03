@@ -22,7 +22,8 @@ $mbcom_step    = $mbcom_view['step'];
 $mbcom_group   = $mbcom_view['group'];
 $mbcom_link    = Fluent_Cart::link_of( $mbcom_group['id'] );
 $mbcom_product = Fluent_Cart::product( $mbcom_link );
-$mbcom_perks   = Fluent_Cart::perks( $mbcom_group['id'] );
+// What's included: the plan's own list from Memberships (the same lines as the Pricing page), else its courses.
+$mbcom_perks   = array_map( fn( $l ) => array( 'text' => $l ), MemBuild\Community\Starter_Site::features( $mbcom_group['id'] ) ) ?: Fluent_Cart::perks( $mbcom_group['id'] );
 $mbcom_name    = Settings::name();
 $mbcom_logo    = Settings::get( 'logo' )['url'] ?? '';
 $mbcom_c       = Color::tokens( Settings::get( 'accent' ) );
@@ -170,7 +171,12 @@ add_filter( 'show_admin_bar', '__return_false' );
 			<?php
 			// FluentCart's own checkout (it keeps doing the payment); restyled in checkout.css.
 			echo do_shortcode( '[fluent_cart_checkout]' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- FluentCart's own escaped markup.
+			// Under Pay: the same promises as the Pricing page (the money-back days follow Settings › Main website).
+			$mbcom_promise = array_filter( array( 'once' !== ( $mbcom_product['period'] ?? 'once' ) ? __( 'Cancel any time', 'membuild-community' ) : '', MemBuild\Community\Starter_Site::money_back() ) );
 			?>
+			<?php if ( $mbcom_promise ) : ?>
+				<p class="mbck-promise"><?php echo esc_html( implode( ' · ', $mbcom_promise ) ); ?></p>
+			<?php endif; ?>
 			<?php if ( ! $mbcom_user->exists() ) : ?>
 				<p class="mbck-note"><?php esc_html_e( 'New here? We make your account with this email and send you a link to choose a password.', 'membuild-community' ); ?></p>
 			<?php endif; ?>

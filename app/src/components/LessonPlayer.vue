@@ -1,5 +1,5 @@
 <script setup>
-import { isProcessing } from '../lib/stream.js'
+import { isProcessing, videoFailure } from '../lib/stream.js'
 import { computed } from 'vue'
 
 // Plays a lesson's video: an upload, or YouTube / Vimeo in the provider's own player.
@@ -28,6 +28,9 @@ const vertical = computed(() => props.media.embed?.vertical || (props.media.heig
     />
     <div v-else-if="isProcessing(media)" class="lesson-processing" :style="media.poster ? { backgroundImage: `url(${media.poster})` } : null">
       <span>{{ t.__('This video is still processing. Check back in a few minutes.', 'membuild-community') }}</span>
+    </div>
+    <div v-else-if="videoFailure(media)" class="lesson-processing" role="status">
+      <span><strong>{{ videoFailure(media).title }}</strong><br />{{ videoFailure(media).text }}</span>
     </div>
     <video v-else v-stream="media" :poster="media.poster || undefined" controls playsinline preload="metadata" @ended="$emit('ended')" />
   </div>

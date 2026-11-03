@@ -244,6 +244,7 @@ class Access {
 		return $g + array(
 			'role_names'   => array_values( array_map( fn( $r ) => translate_user_role( $names[ $r ] ?? $r ), $g['roles'] ) ),
 			'fluentcart'   => Fluent_Cart::active() ? Fluent_Cart::link_of( $g['id'] ) : 0, // the FluentCart product that sells it
+			'features'     => implode( "\n", Starter_Site::features( $g['id'] ) ), // what it includes, a line each: Pricing, Compare and checkout read it
 			'member_count' => count( $manual ), // "People you added"
 			'total'        => count( array_unique( array_merge( $manual, $by_role ) ) ), // everyone in it, by hand or by role
 			'courses'      => array_values(
@@ -338,6 +339,9 @@ class Access {
 		if ( isset( $req['course_ids'] ) ) {
 			self::set_courses( $id, $req['course_ids'] );
 		}
+		if ( isset( $req['features'] ) ) {
+			Starter_Site::set_features( $id, (string) $req['features'] );
+		}
 		if ( ! empty( $req['fluentcart'] ) && Fluent_Cart::active() ) {
 			Fluent_Cart::set_link( $id, (int) $req['fluentcart'] );
 		}
@@ -402,6 +406,7 @@ class Access {
 		$id = (int) $req['id'];
 		$wpdb->delete( Install::table( 'group_members' ), array( 'group_id' => $id ) );
 		$wpdb->delete( Install::table( 'groups' ), array( 'id' => $id ) );
+		Starter_Site::set_features( $id, '' );
 		Fluent_Cart::set_link( $id, 0 );
 		self::forget();
 		return array( 'deleted' => true );

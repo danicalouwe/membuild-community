@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) || exit;
 class Install {
 
 	/** Every table the plugin owns, without the "{prefix}mbcom_" part. */
-	const TABLES = array( 'posts', 'media', 'comments', 'reactions', 'stories', 'story_views', 'courses', 'groups', 'group_members', 'modules', 'lessons', 'lesson_progress', 'course_starts', 'points', 'member_stats', 'threads', 'thread_members', 'messages', 'notifications', 'reports', 'blocks', 'places', 'place_news', 'topics', 'import_map' );
+	const TABLES = array( 'posts', 'media', 'comments', 'reactions', 'stories', 'story_views', 'courses', 'groups', 'group_members', 'modules', 'lessons', 'lesson_progress', 'course_starts', 'points', 'member_stats', 'threads', 'thread_members', 'messages', 'notifications', 'reports', 'blocks', 'places', 'place_news', 'topics', 'import_map', 'waitlist' );
 
 	/** Data migrations: the version each one brings a site to => method. */
 	const STEPS = array(
@@ -210,6 +210,7 @@ class Install {
 		$places   = self::table( 'places' );
 		$topics   = self::table( 'topics' );
 		$imports  = self::table( 'import_map' );
+		$waitlist = self::table( 'waitlist' );
 
 		// dbDelta needs two spaces before PRIMARY KEY and one field per line.
 		dbDelta(
@@ -629,6 +630,18 @@ class Install {
 			PRIMARY KEY  (id),
 			KEY status_name (status, name),
 			KEY created_by (created_by)
+			) {$charset};
+
+			CREATE TABLE {$waitlist} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			email varchar(190) NOT NULL,
+			token char(32) NOT NULL,
+			created_at datetime NOT NULL,
+			emailed_at datetime NULL,
+			off_at datetime NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY email (email),
+			KEY token (token)
 			) {$charset};"
 		);
 	}

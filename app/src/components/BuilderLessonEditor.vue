@@ -20,7 +20,7 @@ const props = defineProps({
   lesson: { type: Object, required: true },
   course: { type: Object, required: true },
 })
-const emit = defineEmits(['saved', 'deleted', 'go', 'done', 'status', 'settings'])
+const emit = defineEmits(['saved', 'deleted', 'go', 'status', 'settings'])
 
 const title = ref('')
 const content = ref('')
@@ -153,9 +153,6 @@ onBeforeUnmount(() => {
 async function go(l) {
   if (await flush()) emit('go', l.id)
 }
-async function done() {
-  if (await flush()) emit('done')
-}
 
 /* ---------- Video and files ---------- */
 function pickVideo(e) {
@@ -256,13 +253,9 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
       <button class="btn btn-lg btn-primary" @click="save">{{ t.__('Try again', 'membuild-community') }}</button>
     </div>
 
+    <!-- Saving shows at the top of the builder, beside See the course (sent up as 'status'). -->
     <div class="where">
       <span>{{ whereLabel }}</span>
-      <span class="saved" :class="status" role="status">
-        <template v-if="status === 'saving'"><span class="spin" /> {{ t.__('Saving…', 'membuild-community') }}</template>
-        <template v-else-if="status === 'error'"><Icon name="flag" :size="15" /> {{ t.__('Couldn’t save', 'membuild-community') }}</template>
-        <template v-else><Icon name="check" :size="15" /> {{ t.__('All changes saved', 'membuild-community') }}</template>
-      </span>
     </div>
 
     <input v-model="title" class="title" maxlength="200" :aria-label="t.__('Lesson name', 'membuild-community')" :placeholder="t.__('Lesson name', 'membuild-community')" />
@@ -400,7 +393,6 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
       <button class="btn btn-lg btn-ghost" :disabled="!prev || uploading" @click="go(prev)"><Icon name="arrowRight" :size="18" class="flip" /> {{ t.__('Previous lesson', 'membuild-community') }}</button>
       <span class="grow" />
       <button class="btn btn-lg btn-ghost" :disabled="!next || uploading" @click="go(next)">{{ t.__('Next lesson', 'membuild-community') }} <Icon name="arrowRight" :size="18" /></button>
-      <button class="btn btn-lg btn-primary" :disabled="uploading" @click="done">{{ t.__('Done', 'membuild-community') }}</button>
     </footer>
 
     <section class="delete-row">
@@ -447,43 +439,6 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
   gap: 10px;
   font-size: var(--fs-lg);
   color: var(--text-2);
-}
-
-.saved {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border-radius: var(--radius-pill);
-  background: var(--ok-soft);
-  color: var(--ok-text);
-  font-size: var(--fs-base);
-  font-weight: 700;
-}
-
-.saved.saving {
-  background: var(--surface-2);
-  color: var(--text-2);
-}
-
-.saved.error {
-  background: var(--danger-soft);
-  color: var(--danger-text);
-}
-
-.spin {
-  width: 12px;
-  height: 12px;
-  border: 2px solid currentColor;
-  border-right-color: transparent;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 .title {

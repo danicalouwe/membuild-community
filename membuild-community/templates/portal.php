@@ -24,6 +24,10 @@ defined( 'ABSPATH' ) || exit;
 	<meta name="apple-mobile-web-app-title" content="<?php echo esc_attr( $config['siteName'] ); ?>">
 	<?php if ( ! empty( $icons[180] ) ) : ?>
 		<link rel="apple-touch-icon" href="<?php echo esc_url( $icons[180] ); ?>">
+		<?php $mbcom_tab = \MemBuild\Community\App::tab_icon(); ?>
+		<?php if ( $mbcom_tab ) : ?>
+			<link rel="icon" type="image/svg+xml" href="<?php echo esc_url( $mbcom_tab ); ?>">
+		<?php endif; ?>
 		<link rel="icon" type="image/png" sizes="32x32" href="<?php echo esc_url( $icons[32] ); ?>">
 		<link rel="icon" type="image/png" sizes="192x192" href="<?php echo esc_url( $icons[192] ); ?>">
 	<?php endif; ?>

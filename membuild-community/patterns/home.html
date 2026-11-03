@@ -1,14 +1,14 @@
 <!-- wp:group {"metadata":{"name":"Hero"},"align":"full","className":"mbs-sec mbs-hero","layout":{"type":"constrained","contentSize":"1188px"}} -->
-<div class="wp-block-group alignfull mbs-sec mbs-hero"><!-- wp:columns {"verticalAlignment":"center","className":"mbs-hero-cols"} -->
+<div class="wp-block-group alignfull mbs-sec mbs-hero"><!-- wp:columns {"verticalAlignment":"center","metadata":{"name":"Words and picture"},"className":"mbs-hero-cols"} -->
 <div class="wp-block-columns are-vertically-aligned-center mbs-hero-cols"><!-- wp:column {"width":"55%"} -->
-<div class="wp-block-column" style="flex-basis:55%"><!-- wp:membuild-community/stat {"kind":"active","format":"● %s members active today","pill":true,"min":3,"fallback":"A community for membership builders"} /-->
+<div class="wp-block-column" style="flex-basis:55%"><!-- wp:membuild-community/stat {"kind":"active","format":"● %s members active today","pill":true,"fallback":"A friendly, active community"} /-->
 
 <!-- wp:heading {"level":1} -->
-<h1 class="wp-block-heading">Build a membership people <mark class="mbs-hl">stay in.</mark></h1>
+<h1 class="wp-block-heading">{{hero_title}}</h1>
 <!-- /wp:heading -->
 
 <!-- wp:paragraph {"className":"mbs-lead"} -->
-<p class="mbs-lead">Courses, live calls and friendly people who’ve done it. For anyone choosing, launching or growing a membership business.</p>
+<p class="mbs-lead">{{gets}} For {{who}}.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:buttons -->
@@ -16,18 +16,22 @@
 <div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="{{join}}">Join free →</a></div>
 <!-- /wp:button -->
 
-<!-- wp:button {"className":"mbs-btn-light"} -->
-<div class="wp-block-button mbs-btn-light"><a class="wp-block-button__link wp-element-button" href="#inside">See what’s inside</a></div>
+<!-- wp:button {"className":"mbs-btn-light mbs-out-only"} -->
+<div class="wp-block-button mbs-btn-light mbs-out-only"><a class="wp-block-button__link wp-element-button" href="#inside">See what’s inside</a></div>
+<!-- /wp:button -->
+
+<!-- wp:button {"className":"mbs-btn-light mbs-in-only"} -->
+<div class="wp-block-button mbs-btn-light mbs-in-only"><a class="wp-block-button__link wp-element-button" href="{{events}}">See this week’s events</a></div>
 <!-- /wp:button --></div>
 <!-- /wp:buttons -->
 
-<!-- wp:membuild-community/faces {"note":"Free to join · Cancel any time"} /--></div>
+<!-- wp:membuild-community/faces {"note":"Free to join"} /--></div>
 <!-- /wp:column -->
 
 <!-- wp:column {"width":"45%"} -->
-<div class="wp-block-column" style="flex-basis:45%"><!-- wp:group {"className":"mbs-phone-wrap","layout":{"type":"default"}} -->
-<div class="wp-block-group mbs-phone-wrap"><!-- wp:image {"className":"mbs-phone"} -->
-<figure class="wp-block-image mbs-phone"><img src="{{phone_shot}}" alt="The community on a phone"/></figure>
+<div class="wp-block-column" style="flex-basis:45%"><!-- wp:group {"metadata":{"name":"Picture"},"className":"mbs-phone-wrap","layout":{"type":"default"}} -->
+<div class="wp-block-group mbs-phone-wrap"><!-- wp:image {"metadata":{"name":"Your picture"},"className":"mbs-picture"} -->
+<figure class="wp-block-image mbs-picture"><img src="{{picture}}" alt=""/></figure>
 <!-- /wp:image -->
 
 <!-- wp:membuild-community/moments /--></div>
@@ -36,10 +40,10 @@
 <!-- /wp:columns --></div>
 <!-- /wp:group -->
 
-<!-- wp:group {"metadata":{"name":"Numbers"},"align":"full","className":"mbs-sec mbs-sec-dark mbs-numbers-sec","layout":{"type":"constrained","contentSize":"1188px"}} -->
-<div class="wp-block-group alignfull mbs-sec mbs-sec-dark mbs-numbers-sec"><!-- wp:columns {"className":"mbs-numbers"} -->
+<!-- wp:group {"templateLock":"contentOnly","metadata":{"name":"Numbers"},"align":"full","className":"mbs-sec mbs-sec-dark mbs-numbers-sec","layout":{"type":"constrained","contentSize":"1188px"}} -->
+<div class="wp-block-group alignfull mbs-sec mbs-sec-dark mbs-numbers-sec"><!-- wp:columns {"metadata":{"name":"Numbers"},"className":"mbs-numbers"} -->
 <div class="wp-block-columns mbs-numbers"><!-- wp:column -->
-<div class="wp-block-column"><!-- wp:membuild-community/stat /-->
+<div class="wp-block-column"><!-- wp:membuild-community/stat {"fallback":"Friendly"} /-->
 
 <!-- wp:paragraph -->
 <p>members, here to help</p>
@@ -65,7 +69,7 @@
 <!-- /wp:column -->
 
 <!-- wp:column -->
-<div class="wp-block-column"><!-- wp:membuild-community/stat {"kind":"active","format":"~%s","min":3,"fallback":"Daily"} /-->
+<div class="wp-block-column"><!-- wp:membuild-community/stat {"kind":"active","format":"~%s","fallback":"Daily"} /-->
 
 <!-- wp:paragraph -->
 <p>members active each day</p>
@@ -87,9 +91,9 @@
 <p class="has-text-align-center mbs-lead mbs-narrow">No more scattered group chats, email threads and video links. It all lives here, on our own site.</p>
 <!-- /wp:paragraph -->
 
-<!-- wp:columns {"className":"mbs-gets"} -->
+<!-- wp:columns {"metadata":{"name":"Cards"},"className":"mbs-gets"} -->
 <div class="wp-block-columns mbs-gets"><!-- wp:column -->
-<div class="wp-block-column"><!-- wp:group {"className":"mbs-card mbs-get","layout":{"type":"flex","orientation":"vertical"}} -->
+<div class="wp-block-column"><!-- wp:group {"templateLock":"contentOnly","metadata":{"name":"Card: Posts \u0026 answers"},"className":"mbs-card mbs-get","layout":{"type":"flex","orientation":"vertical"}} -->
 <div class="wp-block-group mbs-card mbs-get"><!-- wp:image {"width":"24px","className":"mbs-icon"} -->
 <figure class="wp-block-image is-resized mbs-icon"><img src="{{icon:chat}}" alt="" style="width:24px;height:auto"/></figure>
 <!-- /wp:image -->
@@ -107,7 +111,7 @@
 <!-- /wp:column -->
 
 <!-- wp:column -->
-<div class="wp-block-column"><!-- wp:group {"className":"mbs-card mbs-get","layout":{"type":"flex","orientation":"vertical"}} -->
+<div class="wp-block-column"><!-- wp:group {"templateLock":"contentOnly","metadata":{"name":"Card: Courses"},"className":"mbs-card mbs-get","layout":{"type":"flex","orientation":"vertical"}} -->
 <div class="wp-block-group mbs-card mbs-get"><!-- wp:image {"width":"24px","className":"mbs-icon"} -->
 <figure class="wp-block-image is-resized mbs-icon"><img src="{{icon:cap}}" alt="" style="width:24px;height:auto"/></figure>
 <!-- /wp:image -->
@@ -117,7 +121,7 @@
 <!-- /wp:heading -->
 
 <!-- wp:paragraph {"className":"mbs-muted"} -->
-<p class="mbs-muted">Short, practical lessons on pricing, launching and keeping members.</p>
+<p class="mbs-muted">Short, practical lessons on {{topic}}, one step at a time.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:membuild-community/peek {"kind":"course"} /--></div>
@@ -125,7 +129,7 @@
 <!-- /wp:column -->
 
 <!-- wp:column -->
-<div class="wp-block-column"><!-- wp:group {"className":"mbs-card mbs-get","layout":{"type":"flex","orientation":"vertical"}} -->
+<div class="wp-block-column"><!-- wp:group {"templateLock":"contentOnly","metadata":{"name":"Card: Live calls"},"className":"mbs-card mbs-get","layout":{"type":"flex","orientation":"vertical"}} -->
 <div class="wp-block-group mbs-card mbs-get"><!-- wp:image {"width":"24px","className":"mbs-icon"} -->
 <figure class="wp-block-image is-resized mbs-icon"><img src="{{icon:cal}}" alt="" style="width:24px;height:auto"/></figure>
 <!-- /wp:image -->
@@ -135,7 +139,7 @@
 <!-- /wp:heading -->
 
 <!-- wp:paragraph {"className":"mbs-muted"} -->
-<p class="mbs-muted">A weekly Q&amp;A and monthly workshops, all on the calendar.</p>
+<p class="mbs-muted">Weekly Q&amp;A for everyone · monthly workshops for {{paid_name}}.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:membuild-community/peek {"kind":"event"} /--></div>
@@ -143,7 +147,7 @@
 <!-- /wp:column -->
 
 <!-- wp:column -->
-<div class="wp-block-column"><!-- wp:group {"className":"mbs-card mbs-get","layout":{"type":"flex","orientation":"vertical"}} -->
+<div class="wp-block-column"><!-- wp:group {"templateLock":"contentOnly","metadata":{"name":"Card: Chat \u0026 friends"},"className":"mbs-card mbs-get","layout":{"type":"flex","orientation":"vertical"}} -->
 <div class="wp-block-group mbs-card mbs-get"><!-- wp:image {"width":"24px","className":"mbs-icon"} -->
 <figure class="wp-block-image is-resized mbs-icon"><img src="{{icon:users}}" alt="" style="width:24px;height:auto"/></figure>
 <!-- /wp:image -->
@@ -153,7 +157,7 @@
 <!-- /wp:heading -->
 
 <!-- wp:paragraph {"className":"mbs-muted"} -->
-<p class="mbs-muted">Message anyone. Find people building the same kind of thing.</p>
+<p class="mbs-muted">Message anyone. Find people who love {{topic}} too.</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:membuild-community/peek {"kind":"people"} /--></div>
@@ -179,19 +183,19 @@
 <p class="has-text-align-center mbs-lead">If you can use Facebook, you can use this.</p>
 <!-- /wp:paragraph -->
 
-<!-- wp:columns {"className":"mbs-steps"} -->
+<!-- wp:columns {"metadata":{"name":"Steps"},"className":"mbs-steps"} -->
 <div class="wp-block-columns mbs-steps"><!-- wp:column -->
 <div class="wp-block-column"><!-- wp:paragraph {"className":"mbs-step-num","style":{"typography":{"textAlign":"center"}}} -->
 <p class="has-text-align-center mbs-step-num">1</p>
 <!-- /wp:paragraph -->
 
-<!-- wp:group {"layout":{"type":"flex","orientation":"vertical"}} -->
+<!-- wp:group {"metadata":{"name":"Step 1"},"layout":{"type":"flex","orientation":"vertical"}} -->
 <div class="wp-block-group"><!-- wp:heading {"level":3,"style":{"typography":{"textAlign":"center"}}} -->
 <h3 class="wp-block-heading has-text-align-center">Join free</h3>
 <!-- /wp:heading -->
 
-<!-- wp:paragraph {"className":"mbs-muted","style":{"typography":{"textAlign":"center"}}} -->
-<p class="has-text-align-center mbs-muted">Your name and email. That’s it.</p>
+<!-- wp:paragraph {"className":"mbs-muted mbs-join-asks","style":{"typography":{"textAlign":"center"}}} -->
+<p class="has-text-align-center mbs-muted mbs-join-asks">Your name, email and a password.</p>
 <!-- /wp:paragraph --></div>
 <!-- /wp:group --></div>
 <!-- /wp:column -->
@@ -201,13 +205,13 @@
 <p class="has-text-align-center mbs-step-num">2</p>
 <!-- /wp:paragraph -->
 
-<!-- wp:group {"layout":{"type":"flex","orientation":"vertical"}} -->
+<!-- wp:group {"metadata":{"name":"Step 2"},"layout":{"type":"flex","orientation":"vertical"}} -->
 <div class="wp-block-group"><!-- wp:heading {"level":3,"style":{"typography":{"textAlign":"center"}}} -->
 <h3 class="wp-block-heading has-text-align-center">Say hello</h3>
 <!-- /wp:heading -->
 
 <!-- wp:paragraph {"className":"mbs-muted","style":{"typography":{"textAlign":"center"}}} -->
-<p class="has-text-align-center mbs-muted">Post one line about what you’re building.</p>
+<p class="has-text-align-center mbs-muted">Post one line about you.</p>
 <!-- /wp:paragraph --></div>
 <!-- /wp:group --></div>
 <!-- /wp:column -->
@@ -217,7 +221,7 @@
 <p class="has-text-align-center mbs-step-num">3</p>
 <!-- /wp:paragraph -->
 
-<!-- wp:group {"layout":{"type":"flex","orientation":"vertical"}} -->
+<!-- wp:group {"metadata":{"name":"Step 3"},"layout":{"type":"flex","orientation":"vertical"}} -->
 <div class="wp-block-group"><!-- wp:heading {"level":3,"style":{"typography":{"textAlign":"center"}}} -->
 <h3 class="wp-block-heading has-text-align-center">Start Here</h3>
 <!-- /wp:heading -->
@@ -231,8 +235,8 @@
 <!-- /wp:group -->
 
 <!-- wp:group {"metadata":{"name":"Courses"},"align":"full","className":"mbs-sec","layout":{"type":"constrained","contentSize":"1188px"}} -->
-<div class="wp-block-group alignfull mbs-sec"><!-- wp:group {"className":"mbs-sec-head","layout":{"type":"flex","justifyContent":"space-between"}} -->
-<div class="wp-block-group mbs-sec-head"><!-- wp:group {"layout":{"type":"flex","orientation":"vertical"}} -->
+<div class="wp-block-group alignfull mbs-sec"><!-- wp:group {"metadata":{"name":"Heading"},"className":"mbs-sec-head","layout":{"type":"flex","justifyContent":"space-between"}} -->
+<div class="wp-block-group mbs-sec-head"><!-- wp:group {"metadata":{"name":"Words"},"layout":{"type":"flex","orientation":"vertical"}} -->
 <div class="wp-block-group"><!-- wp:paragraph {"className":"mbs-pill"} -->
 <p class="mbs-pill">Courses</p>
 <!-- /wp:paragraph -->
@@ -253,7 +257,7 @@
 <!-- /wp:group -->
 
 <!-- wp:group {"metadata":{"name":"Coming up"},"align":"full","className":"mbs-sec mbs-sec-tint","layout":{"type":"constrained","contentSize":"1188px"}} -->
-<div class="wp-block-group alignfull mbs-sec mbs-sec-tint"><!-- wp:columns {"verticalAlignment":"center"} -->
+<div class="wp-block-group alignfull mbs-sec mbs-sec-tint"><!-- wp:columns {"verticalAlignment":"center","metadata":{"name":"Words and events"}} -->
 <div class="wp-block-columns are-vertically-aligned-center"><!-- wp:column {"width":"42%"} -->
 <div class="wp-block-column" style="flex-basis:42%"><!-- wp:paragraph {"className":"mbs-pill"} -->
 <p class="mbs-pill">Coming up</p>
@@ -289,29 +293,29 @@
 <h2 class="wp-block-heading has-text-align-center">Real people, real progress</h2>
 <!-- /wp:heading -->
 
-<!-- wp:columns {"className":"mbs-quotes"} -->
+<!-- wp:columns {"metadata":{"name":"Reviews"},"className":"mbs-quotes"} -->
 <div class="wp-block-columns mbs-quotes"><!-- wp:column {"width":"56%"} -->
-<div class="wp-block-column" style="flex-basis:56%"><!-- wp:group {"className":"mbs-card-dark mbs-quote-big","layout":{"type":"flex","orientation":"vertical"}} -->
+<div class="wp-block-column" style="flex-basis:56%"><!-- wp:group {"templateLock":"contentOnly","metadata":{"name":"Review 1"},"className":"mbs-card-dark mbs-quote-big","layout":{"type":"flex","orientation":"vertical"}} -->
 <div class="wp-block-group mbs-card-dark mbs-quote-big"><!-- wp:paragraph {"className":"mbs-quote-mark"} -->
 <p class="mbs-quote-mark">“</p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph {"className":"mbs-quote-text"} -->
-<p class="mbs-quote-text">My first 10 members came from one thank-you card. Someone here told me to try it, and it worked.</p>
+<p class="mbs-quote-text">Paste a real member’s words here.</p>
 <!-- /wp:paragraph -->
 
-<!-- wp:group {"className":"mbs-who","layout":{"type":"flex","justifyContent":"left","flexWrap":"nowrap"}} -->
-<div class="wp-block-group mbs-who"><!-- wp:image {"className":"mbs-avatar"} -->
-<figure class="wp-block-image mbs-avatar"><img src="{{avatar:Grace Kim}}" alt=""/></figure>
+<!-- wp:group {"metadata":{"name":"Who said it"},"className":"mbs-who","layout":{"type":"flex","justifyContent":"left","flexWrap":"nowrap"}} -->
+<div class="wp-block-group mbs-who"><!-- wp:image {"className":"mbs-avatar mbs-face-ph"} -->
+<figure class="wp-block-image mbs-avatar mbs-face-ph"><img src="{{face}}" alt=""/></figure>
 <!-- /wp:image -->
 
-<!-- wp:group {"layout":{"type":"flex","orientation":"vertical"}} -->
+<!-- wp:group {"metadata":{"name":"Name"},"layout":{"type":"flex","orientation":"vertical"}} -->
 <div class="wp-block-group"><!-- wp:paragraph {"className":"mbs-person-name"} -->
-<p class="mbs-person-name"><strong>Grace Kim</strong></p>
+<p class="mbs-person-name"><strong>Member’s name</strong></p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph {"className":"mbs-person-role"} -->
-<p class="mbs-person-role">Quilting teacher</p>
+<p class="mbs-person-role">What they do</p>
 <!-- /wp:paragraph --></div>
 <!-- /wp:group --></div>
 <!-- /wp:group --></div>
@@ -319,45 +323,45 @@
 <!-- /wp:column -->
 
 <!-- wp:column {"width":"44%"} -->
-<div class="wp-block-column" style="flex-basis:44%"><!-- wp:group {"className":"mbs-card mbs-quote-card","layout":{"type":"flex","orientation":"vertical"}} -->
+<div class="wp-block-column" style="flex-basis:44%"><!-- wp:group {"templateLock":"contentOnly","metadata":{"name":"Review 2"},"className":"mbs-card mbs-quote-card","layout":{"type":"flex","orientation":"vertical"}} -->
 <div class="wp-block-group mbs-card mbs-quote-card"><!-- wp:paragraph {"className":"mbs-quote-small"} -->
-<p class="mbs-quote-small">“The month-3 check-in email cut my cancels. I learned it here.”</p>
+<p class="mbs-quote-small">“Paste a real member’s words here”</p>
 <!-- /wp:paragraph -->
 
-<!-- wp:group {"className":"mbs-who","layout":{"type":"flex","justifyContent":"left","flexWrap":"nowrap"}} -->
-<div class="wp-block-group mbs-who"><!-- wp:image {"className":"mbs-avatar"} -->
-<figure class="wp-block-image mbs-avatar"><img src="{{avatar:Raj Patel}}" alt=""/></figure>
+<!-- wp:group {"metadata":{"name":"Who said it"},"className":"mbs-who","layout":{"type":"flex","justifyContent":"left","flexWrap":"nowrap"}} -->
+<div class="wp-block-group mbs-who"><!-- wp:image {"className":"mbs-avatar mbs-face-ph"} -->
+<figure class="wp-block-image mbs-avatar mbs-face-ph"><img src="{{face}}" alt=""/></figure>
 <!-- /wp:image -->
 
-<!-- wp:group {"layout":{"type":"flex","orientation":"vertical"}} -->
+<!-- wp:group {"metadata":{"name":"Name"},"layout":{"type":"flex","orientation":"vertical"}} -->
 <div class="wp-block-group"><!-- wp:paragraph {"className":"mbs-person-name"} -->
-<p class="mbs-person-name"><strong>Raj Patel</strong></p>
+<p class="mbs-person-name"><strong>Member’s name</strong></p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph {"className":"mbs-person-role"} -->
-<p class="mbs-person-role">SaaS founder</p>
+<p class="mbs-person-role">What they do</p>
 <!-- /wp:paragraph --></div>
 <!-- /wp:group --></div>
 <!-- /wp:group --></div>
 <!-- /wp:group -->
 
-<!-- wp:group {"className":"mbs-card mbs-quote-card","layout":{"type":"flex","orientation":"vertical"}} -->
+<!-- wp:group {"templateLock":"contentOnly","metadata":{"name":"Review 3"},"className":"mbs-card mbs-quote-card","layout":{"type":"flex","orientation":"vertical"}} -->
 <div class="wp-block-group mbs-card mbs-quote-card"><!-- wp:paragraph {"className":"mbs-quote-small"} -->
-<p class="mbs-quote-small">“I’m not techy at all. Everything is big, clear and easy.”</p>
+<p class="mbs-quote-small">“Paste a real member’s words here”</p>
 <!-- /wp:paragraph -->
 
-<!-- wp:group {"className":"mbs-who","layout":{"type":"flex","justifyContent":"left","flexWrap":"nowrap"}} -->
-<div class="wp-block-group mbs-who"><!-- wp:image {"className":"mbs-avatar"} -->
-<figure class="wp-block-image mbs-avatar"><img src="{{avatar:Paul Henderson}}" alt=""/></figure>
+<!-- wp:group {"metadata":{"name":"Who said it"},"className":"mbs-who","layout":{"type":"flex","justifyContent":"left","flexWrap":"nowrap"}} -->
+<div class="wp-block-group mbs-who"><!-- wp:image {"className":"mbs-avatar mbs-face-ph"} -->
+<figure class="wp-block-image mbs-avatar mbs-face-ph"><img src="{{face}}" alt=""/></figure>
 <!-- /wp:image -->
 
-<!-- wp:group {"layout":{"type":"flex","orientation":"vertical"}} -->
+<!-- wp:group {"metadata":{"name":"Name"},"layout":{"type":"flex","orientation":"vertical"}} -->
 <div class="wp-block-group"><!-- wp:paragraph {"className":"mbs-person-name"} -->
-<p class="mbs-person-name"><strong>Paul Henderson</strong></p>
+<p class="mbs-person-name"><strong>Member’s name</strong></p>
 <!-- /wp:paragraph -->
 
 <!-- wp:paragraph {"className":"mbs-person-role"} -->
-<p class="mbs-person-role">Business coach</p>
+<p class="mbs-person-role">What they do</p>
 <!-- /wp:paragraph --></div>
 <!-- /wp:group --></div>
 <!-- /wp:group --></div>
@@ -375,15 +379,11 @@
 <h2 class="wp-block-heading has-text-align-center">Start free. Upgrade when it helps.</h2>
 <!-- /wp:heading -->
 
-<!-- wp:membuild-community/plans /-->
-
-<!-- wp:paragraph {"className":"mbs-muted","style":{"typography":{"textAlign":"center"}}} -->
-<p class="has-text-align-center mbs-muted">Cancel any time, in two clicks.</p>
-<!-- /wp:paragraph --></div>
+<!-- wp:membuild-community/plans {"trust":true} /--></div>
 <!-- /wp:group -->
 
 <!-- wp:group {"metadata":{"name":"Questions"},"align":"full","className":"mbs-sec","layout":{"type":"constrained","contentSize":"1188px"}} -->
-<div class="wp-block-group alignfull mbs-sec"><!-- wp:columns {"className":"mbs-faq-cols"} -->
+<div class="wp-block-group alignfull mbs-sec"><!-- wp:columns {"metadata":{"name":"Words and questions"},"className":"mbs-faq-cols"} -->
 <div class="wp-block-columns mbs-faq-cols"><!-- wp:column {"width":"40%"} -->
 <div class="wp-block-column" style="flex-basis:40%"><!-- wp:paragraph {"className":"mbs-pill"} -->
 <p class="mbs-pill">Questions</p>
@@ -413,7 +413,13 @@
 
 <!-- wp:details {"className":"mbs-faq"} -->
 <details class="wp-block-details mbs-faq"><summary>Can I cancel any time?</summary><!-- wp:paragraph -->
-<p>Yes. Open Billing in your menu and tap Cancel. You keep everything until the end of the month you paid for.</p>
+<p>Yes. Open Billing in your menu and tap Cancel. You keep everything until the end of the period you paid for.</p>
+<!-- /wp:paragraph --></details>
+<!-- /wp:details -->
+
+<!-- wp:details {"className":"mbs-faq mbs-refund"} -->
+<details class="wp-block-details mbs-faq mbs-refund"><summary>Do you offer refunds?</summary><!-- wp:paragraph -->
+<p>Yes. Write to us within 14 days of your first payment and we’ll refund it, no questions. <a href="{{page:refunds}}">How refunds work →</a></p>
 <!-- /wp:paragraph --></details>
 <!-- /wp:details -->
 
@@ -436,7 +442,7 @@
 <div class="wp-block-group alignfull mbs-sec mbs-sec-dark mbs-glow mbs-closing mbs-closing-big"><!-- wp:membuild-community/faces {"count":7,"size":52,"label":false} /-->
 
 <!-- wp:heading {"style":{"typography":{"textAlign":"center"}}} -->
-<h2 class="wp-block-heading has-text-align-center">Come build with us.</h2>
+<h2 class="wp-block-heading has-text-align-center">Come and join us.</h2>
 <!-- /wp:heading -->
 
 <!-- wp:paragraph {"className":"mbs-lead","style":{"typography":{"textAlign":"center"}}} -->

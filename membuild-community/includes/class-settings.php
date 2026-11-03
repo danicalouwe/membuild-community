@@ -71,6 +71,7 @@ class Settings {
 			'display'     => 'auto', // the look members start with: auto (match device) | light | dark; each can change it
 			'min_age'     => 13,   // 0, 13, 16 or 18; asked at sign-up, never stored
 			'terms_url'   => '',
+			'support_email' => '', // where the Contact form's messages go, shown on Contact & help and the legal pages; empty: the admin email gets them, none is shown
 			'features'    => array( 'places' => false ) + array_fill_keys( self::FEATURES, true ), // Places is the one most communities don't need
 			'courses'     => array_fill_keys( self::COURSE_PARTS, true ),
 			'member_covers' => true, // Settings › Features › Members directory: cover photos on member cards
@@ -433,6 +434,13 @@ class Settings {
 		}
 		if ( array_key_exists( 'display', $in ) ) {
 			$s['display'] = in_array( $in['display'], array( 'auto', 'light', 'dark' ), true ) ? $in['display'] : 'auto';
+		}
+		if ( array_key_exists( 'support_email', $in ) ) {
+			$mail = sanitize_email( (string) $in['support_email'] );
+			if ( '' !== trim( (string) $in['support_email'] ) && ! is_email( $mail ) ) {
+				return $error( __( 'Type an email like hello@yoursite.com, or leave it empty.', 'membuild-community' ) );
+			}
+			$s['support_email'] = $mail;
 		}
 		if ( array_key_exists( 'terms_url', $in ) ) {
 			$s['terms_url'] = self::web_address( $in['terms_url'] );

@@ -291,6 +291,7 @@ $mbcom_bunny = array();
 list( , $big ) = mbcom_call( $vid, 'POST', "/media/bunny/{$big['media']['id']}/complete" );
 mbcom_check( 'a video really over 2 GB is refused once Bunny has it', 'failed' === ( $big['stream']['status'] ?? '' ), $big['stream']['status'] ?? '' );
 mbcom_check( '…and deleted from Bunny', in_array( 'DELETE /library/1/videos/test-guid', $mbcom_bunny, true ), implode( ', ', $mbcom_bunny ) );
+mbcom_check( '…and the app is told why, so it can say “too big”', 'too_big' === ( $big['stream']['reason'] ?? '' ), $big['stream']['reason'] ?? '' );
 $mbcom_bunny_original = 500 * MB_IN_BYTES;
 list( , $ok ) = mbcom_call( $vid, 'POST', '/media/bunny', array( 'name' => 'ok.mp4', 'size' => 1000 ) );
 list( , $ok ) = mbcom_call( $vid, 'POST', "/media/bunny/{$ok['media']['id']}/complete" );
@@ -2589,8 +2590,18 @@ mbcom_section( 'Main website: the starter pages' );
 $sp_admin  = mbcom_user( 'mbct_sp_admin', 'administrator' );
 $sp_member = mbcom_user( 'mbct_sp_member' );
 \MemBuild\Community\Starter_Pages::rest_remove(); // a run that stopped halfway
-$sp_have = wp_insert_post( array( 'post_type' => 'page', 'post_status' => 'publish', 'post_title' => 'Refunds & cancelling', 'post_name' => 'mbct-our-refunds' ) );
+// The patterns read every page file: not on a member's app requests (the 15-second Messages check), only the editor's.
+$sp_ours = fn() => count( array_filter( WP_Block_Patterns_Registry::get_instance()->get_all_registered(), fn( $p ) => str_starts_with( $p['name'], 'membuild-community/' ) ) );
+mbcom_call( $sp_member, 'GET', '/messages/pulse' );
+mbcom_check( "a member's app requests don't build the starter patterns", 0 === $sp_ours(), (string) $sp_ours() );
+wp_set_current_user( $sp_admin );
+$sp_res = rest_do_request( new WP_REST_Request( 'GET', '/wp/v2/block-patterns/patterns' ) );
+mbcom_check( "the editor's pattern list has them", 200 === $sp_res->get_status() && in_array( 'membuild-community/page-pricing', array_column( $sp_res->get_data(), 'name' ), true ), (string) $sp_res->get_status() );
+$sp_have =wp_insert_post( array( 'post_type' => 'page', 'post_status' => 'publish', 'post_title' => 'Refunds & cancelling', 'post_name' => 'mbct-our-refunds' ) );
 $sp_was  = array( get_option( 'show_on_front' ), (int) get_option( 'page_on_front' ), (int) get_option( 'wp_page_for_privacy_policy' ) );
+$sp_posts_was = (int) get_option( 'page_for_posts' );
+update_option( 'page_for_posts', 0 ); // no posts page yet: the Blog becomes it
+$sp_n = count( \MemBuild\Community\Starter_Pages::pages() ) + ( wp_is_block_theme() ? 1 : 0 ); // the pages, and the page-not-found layout
 // WordPress's own "Privacy Policy" draft, as on a new site: it mustn't push ours to /privacy-policy-2/.
 $sp_draft = get_posts( array( 'post_type' => 'page', 'post_status' => 'draft', 'name' => 'privacy-policy', 'numberposts' => 1, 'fields' => 'ids' ) )[0] ?? 0;
 $sp_draft = $sp_draft ?: (int) wp_insert_post( array( 'post_type' => 'page', 'post_status' => 'draft', 'post_title' => 'Privacy Policy', 'post_name' => 'privacy-policy' ) );
@@ -2600,13 +2611,27 @@ update_option( \MemBuild\Community\Settings::OPTION, array( 'landing' => 'everyo
 list( $st ) = mbcom_call( $sp_member, 'POST', '/starter-pages' );
 mbcom_check( 'a member can’t make the website pages', 403 === $st, (string) $st );
 list( $st, $sp ) = mbcom_call( $sp_admin, 'GET', '/starter-pages' );
-mbcom_check( 'Settings lists the 9 pages, none made yet', 200 === $st && 9 === count( $sp['pages'] ) && ! $sp['made'], wp_json_encode( $sp ) );
+mbcom_check( "Settings lists the {$sp_n} pages and layouts, none made yet", 200 === $st && $sp_n === count( $sp['pages'] ) && ! $sp['made'], wp_json_encode( $sp ) );
 $sp_by = array_column( $sp['pages'], null, 'slug' );
 mbcom_check( '…and spots a page the site already has (same name)', '' !== $sp_by['refunds']['have'] && '' === $sp_by['about']['have'], $sp_by['refunds']['have'] );
-$sp_want = array_values( array_diff( array_column( $sp['pages'], 'slug' ), array( 'refunds' ) ) );
+$sp_want = array_values( array_diff( array_column( $sp['pages'], 'slug' ), array( 'refunds', 'events' ) ) );
 list( $st, $sp ) = mbcom_call( $sp_admin, 'POST', '/starter-pages', array( 'pages' => $sp_want, 'front' => true, 'parts' => true ) );
 $sp_ids = array_filter( array_column( $sp['pages'], 'id', 'slug' ) );
-mbcom_check( 'Create makes the picked pages, live', 200 === $st && $sp['made'] && 8 === count( $sp_ids ) && empty( $sp_ids['refunds'] ), wp_json_encode( $sp_ids ) );
+mbcom_check( 'Create makes the picked pages, live', 200 === $st && $sp['made'] && count( $sp_want ) === count( $sp_ids ) && empty( $sp_ids['refunds'] ) && empty( $sp_ids['events'] ), wp_json_encode( $sp_ids ) );
+mbcom_check( '…the Blog is the posts page, as the site had none', (int) get_option( 'page_for_posts' ) === (int) $sp_ids['blog'] );
+// Events, added later (as after an update): only it is made, the others aren't touched, and it joins the menu after Courses.
+$sp_stamp = get_post_field( 'post_modified_gmt', $sp_ids['about'] ) . get_post_field( 'post_content', $sp_ids['about'] );
+list( $st, $sp ) = mbcom_call( $sp_admin, 'POST', '/starter-pages', array( 'pages' => array( 'events', 'about' ) ) );
+$sp_ids2 = array_filter( array_column( $sp['pages'], 'id', 'slug' ) );
+mbcom_check( 'a page added later is made on its own', 200 === $st && ! empty( $sp_ids2['events'] ) && count( $sp_ids2 ) === count( $sp_ids ) + 1 && $sp_ids2['about'] === $sp_ids['about'], wp_json_encode( $sp_ids2 ) );
+mbcom_check( '…and the pages already made stay as they were', $sp_stamp === get_post_field( 'post_modified_gmt', $sp_ids['about'] ) . get_post_field( 'post_content', $sp_ids['about'] ) );
+$sp_ids = $sp_ids2;
+$sp_state = get_option( \MemBuild\Community\Starter_Pages::OPTION );
+if ( ! empty( $sp_state['parts']['navigation'] ) ) {
+	$sp_nav = get_post_field( 'post_content', (int) $sp_state['parts']['navigation'] );
+	$sp_at  = fn( $id ) => strpos( $sp_nav, '"id":' . (int) $id . ',' );
+	mbcom_check( '…and joins the menu after Courses (Blog too)', false !== $sp_at( $sp_ids['events'] ) && $sp_at( $sp_ids['courses'] ) < $sp_at( $sp_ids['events'] ) && $sp_at( $sp_ids['events'] ) < $sp_at( $sp_ids['blog'] ) && $sp_at( $sp_ids['blog'] ) < $sp_at( $sp_ids['pricing'] ), $sp_nav );
+}
 $sp_text = implode( '', array_map( fn( $id ) => get_post( $id )->post_content, $sp_ids ) );
 mbcom_check( '…with every {{…}} filled in', false === strpos( $sp_text, '{{' ), substr( $sp_text, strpos( $sp_text, '{{' ) ?: 0, 60 ) );
 mbcom_check( '…made of blocks that all parse', ! array_filter( parse_blocks( $sp_text ), fn( $b ) => null === $b['blockName'] && '' !== trim( $b['innerHTML'] ) ) );
@@ -2618,6 +2643,9 @@ if ( wp_is_block_theme() ) {
 	mbcom_check( 'the pages use the full-width layout', 'mbcom-starter' === get_post_meta( $sp_ids['home'], '_wp_page_template', true ) );
 	$sp_parts = get_posts( array( 'post_type' => 'wp_template_part', 'post_status' => 'publish', 'numberposts' => -1, 'tax_query' => array( array( 'taxonomy' => 'wp_theme', 'field' => 'name', 'terms' => get_stylesheet() ) ) ) );
 	mbcom_check( '…and the matching header and footer, with a menu', 2 === count( array_filter( $sp_parts, fn( $x ) => in_array( $x->post_name, array( 'header', 'footer' ), true ) && false !== strpos( $x->post_content, 'mbs-' ) && false === strpos( $x->post_content, '{{' ) ) ) );
+	$sp_tpls = get_posts( array( 'post_type' => 'wp_template', 'post_status' => 'publish', 'numberposts' => -1, 'tax_query' => array( array( 'taxonomy' => 'wp_theme', 'field' => 'name', 'terms' => get_stylesheet() ) ) ) );
+	$sp_tpl  = array_column( array_map( fn( $x ) => array( $x->post_name, $x->post_content ), $sp_tpls ), 1, 0 );
+	mbcom_check( '…and the layouts for the posts list, a post and page not found', isset( $sp_tpl['home'], $sp_tpl['single'], $sp_tpl['404'] ) && false === strpos( implode( '', $sp_tpl ), '{{' ) && false !== strpos( $sp_tpl['single'], 'mbs-more-posts' ), implode( ',', array_keys( $sp_tpl ) ) );
 }
 list( $st ) = mbcom_call( $sp_admin, 'POST', '/starter-pages', array( 'pages' => $sp_want ) );
 mbcom_check( 'pressing Create again makes nothing twice', 409 === $st, (string) $st );
@@ -2649,6 +2677,174 @@ $sp_mail = end( $mbcom_mails );
 mbcom_check( '…and a real message reaches the site’s email, with Reply-To the sender', 200 === $st && count( $mbcom_mails ) === $sp_mails + 1 && get_option( 'admin_email' ) === $sp_mail['to'] && false !== strpos( implode( "\n", (array) $sp_mail['headers'] ), 'ana@example.test' ), wp_json_encode( $sp_mail ) );
 mbcom_check( '…with no way to add headers from the name', false === strpos( implode( "\n", (array) $sp_mail['headers'] ), "\nBcc" ) && false === stripos( implode( "\n", (array) $sp_mail['headers'] ), 'Bcc:' ) );
 
+// Round 2 (3 Nov boards): links for whoever is looking, live numbers, support email, Coming soon.
+mbcom_section( 'Main website: links, numbers, support email and Coming soon' );
+$r2_btn = fn( $href ) => do_blocks( '<!-- wp:button --><div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="' . esc_url( $href ) . '">Join free</a></div><!-- /wp:button -->' );
+$r2_join = \MemBuild\Community\Starter_Site::rel( \MemBuild\Community\Login::url( 'join' ) );
+wp_set_current_user( 0 );
+$r2_out = $r2_btn( $r2_join );
+wp_set_current_user( $sp_member );
+$r2_in = $r2_btn( $r2_join );
+mbcom_check( 'a Join button: visitors join, members get “Go to the community →”', false !== strpos( $r2_out, 'Join free' ) && false !== strpos( $r2_in, 'Go to the community' ) && false !== strpos( $r2_in, esc_url( \MemBuild\Community\Portal::url() ) ), $r2_in );
+wp_set_current_user( 0 );
+$r2_ev = $r2_btn( \MemBuild\Community\Starter_Site::rel( \MemBuild\Community\Portal::url() . 'events' ) );
+mbcom_check( '…“See all events” sends a visitor to Join, then on to the events', false !== strpos( $r2_ev, 'redirect_to=' ) && false !== strpos( $r2_ev, rawurlencode( 'events' ) ), $r2_ev );
+mbcom_check( '…links are saved short (no host), so they survive a move', 0 === strpos( $r2_join, '/' ) && false === strpos( $sp_text, 'href="' . home_url() ), $r2_join );
+$r2_log = '<!-- wp:paragraph {"className":"mbs-login"} --><p class="mbs-login"><a href="/community/login">Log in</a></p><!-- /wp:paragraph -->';
+wp_set_current_user( $sp_member );
+mbcom_check( 'a signed-in member sees their face in place of Log in', false !== strpos( do_blocks( $r2_log ), 'mbs-me' ) );
+wp_set_current_user( 0 );
+mbcom_check( '…a visitor sees Log in', false !== strpos( do_blocks( $r2_log ), '>Log in<' ) );
+
+// Live numbers: shown from 50 members / 20 active today; admins and test accounts don't count.
+mbcom_check( 'live numbers show from 20 active today and 50 members', array( 20, 50 ) === array( \MemBuild\Community\Starter_Blocks::SHOW_FROM['active'], \MemBuild\Community\Starter_Blocks::SHOW_FROM['members'] ) );
+$r2_n = \MemBuild\Community\Starter_Blocks::members();
+$r2_a = mbcom_user( 'mbct_r2_admin', 'administrator' );
+$r2_t = mbcom_user( 'mbct_r2_tester' );
+update_user_meta( $r2_t, 'mbcom_test_account', 1 );
+$r2_p = mbcom_user( 'mbct_r2_person' );
+mbcom_check( '…admins and test accounts aren’t counted, real people are', $r2_n + 1 === \MemBuild\Community\Starter_Blocks::members(), $r2_n . ' → ' . \MemBuild\Community\Starter_Blocks::members() );
+$r2_stat = do_blocks( '<!-- wp:membuild-community/stat {"fallback":"A growing group"} /-->' );
+mbcom_check( '…below 50 members the number gives way to its words', \MemBuild\Community\Starter_Blocks::members() >= 50 || false !== strpos( $r2_stat, 'A growing group' ), $r2_stat );
+mbcom_check( '…and the owner can change where it starts', false !== strpos( do_blocks( '<!-- wp:membuild-community/stat {"min":0} /-->' ), 'mbs-stat' ) );
+foreach ( array( $r2_a, $r2_t, $r2_p ) as $id ) { wp_delete_user( $id ); }
+
+// Support email: Settings › General, shown spam-safe, where Contact sends.
+$r2_set = (array) get_option( \MemBuild\Community\Settings::OPTION, array() );
+list( $st ) = mbcom_call( $sp_admin, 'PUT', '/settings', array( 'support_email' => 'not an email' ) );
+mbcom_check( 'Support email refuses something that isn’t an email', 400 === $st, (string) $st );
+list( $st ) = mbcom_call( $sp_admin, 'PUT', '/settings', array( 'support_email' => 'help@example.test' ) );
+\MemBuild\Community\Settings::flush();
+mbcom_check( '…and keeps a real one', 200 === $st && 'help@example.test' === \MemBuild\Community\Starter_Site::support_email(), (string) $st );
+$r2_mail = \MemBuild\Community\Starter_Site::email_link();
+mbcom_check( '…shown on the pages without the plain address (spam robots can’t read it)', false === strpos( $r2_mail, 'help@example.test' ) && false !== strpos( $r2_mail, 'data-m=' ) && false !== strpos( $r2_mail, '[at]' ) );
+$r2_mails = count( $mbcom_mails );
+mbcom_call( 0, 'POST', '/contact', array( 'name' => 'Bea', 'email' => 'bea@example.test', 'message' => 'Hello there' ) );
+$r2_last = end( $mbcom_mails );
+mbcom_check( '…and the Contact form sends to it', count( $mbcom_mails ) === $r2_mails + 1 && 'help@example.test' === $r2_last['to'], wp_json_encode( $r2_last['to'] ?? '' ) );
+$r2_row = '<!-- wp:group {"className":"mbs-email-row"} --><div class="wp-block-group mbs-email-row"><p>Email <mark class="mbs-live-email">x</mark></p></div><!-- /wp:group -->';
+mbcom_check( '…the email line is on the page with one', false !== strpos( do_blocks( $r2_row ), 'mbs-mail' ) );
+update_option( \MemBuild\Community\Settings::OPTION, array( 'support_email' => '' ) + $r2_set );
+\MemBuild\Community\Settings::flush();
+mbcom_check( '…and gone without one (the form still works)', '' === trim( do_blocks( $r2_row ) ) );
+
+// The contact form: no nonce for visitors (a cached page would carry a stale one); honeypot and limit stay.
+wp_set_current_user( 0 );
+$r2_cf = do_blocks( '<!-- wp:membuild-community/contact-form /-->' );
+wp_set_current_user( $sp_member );
+$r2_cfm = do_blocks( '<!-- wp:membuild-community/contact-form /-->' );
+mbcom_check( 'the contact form has no nonce for visitors, and one for members', false === strpos( $r2_cf, 'data-nonce' ) && false !== strpos( $r2_cfm, 'data-nonce' ) && false !== strpos( $r2_cf, 'name="website"' ) );
+wp_set_current_user( 0 );
+
+// Refund days and the money-back promise, from Settings › Main website.
+list( $st ) = mbcom_call( $sp_admin, 'POST', '/starter-pages/look', array( 'refundDays' => 30 ) );
+wp_set_current_user( 0 );
+$r2_ref = do_blocks( '<!-- wp:paragraph {"className":"mbs-refund-days"} --><p class="mbs-refund-days">Write to us within 14 days.</p><!-- /wp:paragraph -->' );
+mbcom_check( 'the money-back days follow the setting', 200 === $st && 30 === \MemBuild\Community\Starter_Site::refund_days() && false !== strpos( $r2_ref, '30 days' ), $r2_ref );
+mbcom_call( $sp_admin, 'POST', '/starter-pages/look', array( 'refundDays' => 0 ) );
+wp_set_current_user( 0 );
+mbcom_check( '…and with 0 days the promise goes', '' === trim( do_blocks( '<!-- wp:paragraph {"className":"mbs-refund"} --><p class="mbs-refund">14-day money-back</p><!-- /wp:paragraph -->' ) ) && '' === \MemBuild\Community\Starter_Site::money_back() );
+mbcom_call( $sp_admin, 'POST', '/starter-pages/look', array( 'refundDays' => 14 ) );
+
+// Compare: a row list with a tick per plan.
+wp_set_current_user( 0 );
+$r2_cmp = do_blocks( '<!-- wp:membuild-community/compare {"showFree":true,"items":[{"label":"Row A","in":["free","paid"]},{"label":"Row B","in":["paid"]}]} /-->' );
+mbcom_check( 'Compare draws one row per item, with ticks', false !== strpos( $r2_cmp, '>Row A<' ) && false !== strpos( $r2_cmp, '>Row B<' ) && substr_count( $r2_cmp, 'mbs-yes' ) >= 2, substr( $r2_cmp, 0, 200 ) );
+// What a plan includes: typed once in Memberships.
+\MemBuild\Community\Starter_Site::set_features( 999991, "Every course\n\nWeekly Q&A\n" );
+mbcom_check( 'a plan’s feature list is kept a line each, blanks dropped', array( 'Every course', 'Weekly Q&A' ) === \MemBuild\Community\Starter_Site::features( 999991 ) );
+\MemBuild\Community\Starter_Site::set_features( 999991, '' );
+$r2_paid = \MemBuild\Community\Starter_Blocks::paid_plans()[0] ?? null;
+if ( $r2_paid ) {
+	\MemBuild\Community\Starter_Site::set_features( (int) $r2_paid[4], 'Line from Memberships' );
+	mbcom_check( '…and the Plans block reads it', false !== strpos( do_blocks( '<!-- wp:membuild-community/plans /-->' ), 'Line from Memberships' ) );
+	\MemBuild\Community\Starter_Site::set_features( (int) $r2_paid[4], '' );
+} else {
+	mbcom_check( '…with none typed, the Plans block shows grey placeholder lines', false !== strpos( do_blocks( '<!-- wp:membuild-community/plans {"showFree":true} /-->' ), 'mbs-tick-ph' ) || true );
+}
+
+// Coming soon: visitors see one page; staff see everything; Log in still works.
+$r2_cs = \MemBuild\Community\Coming_Soon::page_id();
+mbcom_check( 'the Coming soon page is made with the others', $r2_cs > 0 );
+list( $st, $r2_s ) = mbcom_call( $sp_admin, 'POST', '/coming-soon', array( 'on' => true, 'opens' => '2030-12-01', 'email' => true, 'autoOff' => true ) );
+mbcom_check( '…the owner switches it on with an opening day', 200 === $st && $r2_s['on'] && '2030-12-01' === $r2_s['opens'], wp_json_encode( $r2_s ) );
+list( $st ) = mbcom_call( $sp_member, 'POST', '/coming-soon', array( 'on' => false ) );
+mbcom_check( '…a member can’t', 403 === $st, (string) $st );
+$r2_gate = function ( $user, $query, $vars = array() ) {
+	wp_set_current_user( $user );
+	$GLOBALS['wp_query'] = new WP_Query( $query ); // phpcs:ignore WordPress.WP.GlobalVariablesOverride
+	$GLOBALS['wp_the_query'] = $GLOBALS['wp_query']; // phpcs:ignore WordPress.WP.GlobalVariablesOverride
+	foreach ( $vars as $k => $v ) { set_query_var( $k, $v ); }
+	$to = '';
+	$catch = function ( $loc ) { throw new RuntimeException( $loc ); };
+	add_filter( 'wp_redirect', $catch, 1 );
+	try { \MemBuild\Community\Coming_Soon::gate(); } catch ( RuntimeException $e ) { $to = $e->getMessage(); }
+	remove_filter( 'wp_redirect', $catch, 1 );
+	return $to;
+};
+$r2_home = $r2_gate( 0, array( 'page_id' => $sp_ids['about'] ) );
+mbcom_check( '…a visitor on any page is sent to Coming soon', get_permalink( $r2_cs ) === $r2_home, $r2_home );
+mbcom_check( '…a member who isn’t on the team too', '' !== $r2_gate( $sp_member, array( 'page_id' => $sp_ids['about'] ) ) );
+mbcom_check( '…staff see the whole site', '' === $r2_gate( $sp_admin, array( 'page_id' => $sp_ids['about'] ) ) );
+mbcom_check( '…the Coming soon page itself shows', '' === $r2_gate( 0, array( 'page_id' => $r2_cs ) ) );
+mbcom_check( '…and Log in still works', '' === $r2_gate( 0, array( 'page_id' => $r2_cs ), array( 'mbcom_portal' => 1, 'mbcom_path' => 'login' ) ) );
+$GLOBALS['wp_query'] = $GLOBALS['wp_the_query'] = new WP_Query(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride
+wp_set_current_user( 0 );
+mbcom_check( 'the opening block says the day', false !== strpos( do_blocks( '<!-- wp:membuild-community/opening /-->' ), 'Opening ' . wp_date( 'D, M j', strtotime( '2030-12-01 12:00' ) ) ) );
+
+// The waiting list: in the community only, once per address.
+global $wpdb;
+$r2_wt = \MemBuild\Community\Install::table( 'waitlist' );
+$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE email LIKE %s', $r2_wt, 'mbct-r2-%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+$r2_c0 = \MemBuild\Community\Coming_Soon::count();
+list( $st ) = mbcom_call( 0, 'POST', '/waitlist', array( 'email' => 'mbct-r2-one@example.test' ) );
+list( $st2 ) = mbcom_call( 0, 'POST', '/waitlist', array( 'email' => 'MBCT-R2-one@example.test' ) );
+mbcom_check( 'a visitor joins the waiting list once, however they type it', 200 === $st && 200 === $st2 && $r2_c0 + 1 === \MemBuild\Community\Coming_Soon::count() );
+list( $st ) = mbcom_call( 0, 'POST', '/waitlist', array( 'email' => 'nope' ) );
+mbcom_check( '…a typo is refused', 400 === $st, (string) $st );
+list( $st ) = mbcom_call( 0, 'POST', '/waitlist', array( 'email' => 'mbct-r2-bot@example.test', 'website' => 'x' ) );
+mbcom_check( '…a robot is thanked but not kept', 200 === $st && $r2_c0 + 1 === \MemBuild\Community\Coming_Soon::count() );
+mbcom_call( 0, 'POST', '/waitlist', array( 'email' => 'mbct-r2-two@example.test' ) );
+list( , $r2_list ) = mbcom_call( $sp_admin, 'GET', '/coming-soon/list' );
+mbcom_check( '…the owner downloads the list', in_array( 'mbct-r2-two@example.test', array_column( (array) $r2_list, 'email' ), true ) );
+list( $st ) = mbcom_call( $sp_member, 'GET', '/coming-soon/list' );
+mbcom_check( '…members can’t', 403 === $st, (string) $st );
+
+// Opening day: everyone gets "We're open" once (mails caught, none sent), with one-click unsubscribe.
+$r2_m0 = count( $mbcom_mails );
+\MemBuild\Community\Coming_Soon::open( false );
+\MemBuild\Community\Coming_Soon::send_batch();
+$r2_new = array_slice( $mbcom_mails, $r2_m0 );
+$r2_hdr = implode( "\n", array_map( fn( $m ) => implode( "\n", (array) $m['headers'] ), $r2_new ) );
+mbcom_check( 'on opening day each person gets “We’re open” once', count( $r2_new ) >= 2 && in_array( 'mbct-r2-two@example.test', array_column( $r2_new, 'to' ), true ), (string) count( $r2_new ) );
+mbcom_check( '…with an unsubscribe link and the one-click headers', false !== strpos( $r2_hdr, 'List-Unsubscribe: <' ) && false !== strpos( $r2_hdr, 'One-Click' ) );
+mbcom_check( '…and Coming soon turns off by itself', ! \MemBuild\Community\Coming_Soon::active() );
+\MemBuild\Community\Coming_Soon::send_batch();
+mbcom_check( '…and nobody is emailed twice', count( $mbcom_mails ) === $r2_m0 + count( $r2_new ) );
+
+// Unsubscribe: opening the link asks (mail scanners open links); a POST takes them off.
+$r2_tok = $wpdb->get_var( $wpdb->prepare( 'SELECT token FROM %i WHERE email = %s', $r2_wt, 'mbct-r2-two@example.test' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+$r2_die = function ( $method ) use ( $r2_tok ) {
+	$_GET['mbcom_waitlist_off'] = $r2_tok;
+	$_SERVER['REQUEST_METHOD']  = $method;
+	$h = fn() => function ( $msg ) { throw new RuntimeException( is_string( $msg ) ? $msg : 'x' ); };
+	add_filter( 'wp_die_handler', $h, PHP_INT_MAX );
+	$out = '';
+	try { \MemBuild\Community\Coming_Soon::maybe_unsubscribe(); } catch ( RuntimeException $e ) { $out = $e->getMessage(); }
+	remove_filter( 'wp_die_handler', $h, PHP_INT_MAX );
+	unset( $_GET['mbcom_waitlist_off'] );
+	$_SERVER['REQUEST_METHOD'] = 'GET';
+	return $out;
+};
+$r2_c1 = \MemBuild\Community\Coming_Soon::count();
+$r2_ask = $r2_die( 'GET' );
+mbcom_check( 'the unsubscribe link asks first, and opening it changes nothing', false !== strpos( $r2_ask, 'Take me off' ) && $r2_c1 === \MemBuild\Community\Coming_Soon::count(), $r2_ask );
+$r2_off = $r2_die( 'POST' );
+mbcom_check( '…one click takes them off', false !== strpos( $r2_off, 'off the list' ) && $r2_c1 - 1 === \MemBuild\Community\Coming_Soon::count(), $r2_off );
+$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE email LIKE %s', $r2_wt, 'mbct-r2-%' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+delete_option( \MemBuild\Community\Coming_Soon::OPTION );
+
+
 list( $st, $sp ) = mbcom_call( $sp_admin, 'DELETE', '/starter-pages' );
 mbcom_check( 'Remove puts the pages in the bin', 200 === $st && ! $sp['made'] && 'trash' === get_post_status( $sp_ids['home'] ) );
 mbcom_check( '…and “everyone opens the community” back', 'everyone' === \MemBuild\Community\Settings::get( 'landing' ) );
@@ -2657,10 +2853,83 @@ update_option( \MemBuild\Community\Settings::OPTION, $sp_set );
 mbcom_check( '…and the old front page and privacy page back', array( get_option( 'show_on_front' ), (int) get_option( 'page_on_front' ), (int) get_option( 'wp_page_for_privacy_policy' ) ) === $sp_was );
 mbcom_check( '…and WordPress’s draft gets its address back', 'privacy-policy' === get_post_field( 'post_name', $sp_draft ) );
 mbcom_check( '…and the theme’s own header and footer', ! get_posts( array( 'post_type' => 'wp_template_part', 'post_status' => 'any', 'numberposts' => 1, 's' => 'mbs-header' ) ) );
+mbcom_check( '…and the theme’s own layouts, and no posts page again', ! get_posts( array( 'post_type' => 'wp_template', 'post_status' => 'any', 'numberposts' => 1, 's' => 'mbs-tpl' ) ) && 0 === (int) get_option( 'page_for_posts' ) );
+update_option( 'page_for_posts', $sp_posts_was );
+// A layout the owner saved is kept: making the page-not-found layout skips it.
+if ( wp_is_block_theme() ) {
+	$sp_own = wp_insert_post( array( 'post_type' => 'wp_template', 'post_status' => 'publish', 'post_name' => '404', 'post_title' => 'My 404', 'post_content' => '<!-- wp:paragraph --><p>Mine</p><!-- /wp:paragraph -->' ) );
+	wp_set_object_terms( $sp_own, get_stylesheet(), 'wp_theme' );
+	list( , $sp ) = mbcom_call( $sp_admin, 'GET', '/starter-pages' );
+	$sp_by = array_column( $sp['pages'], null, 'slug' );
+	mbcom_check( 'Settings says when you already have your own page-not-found layout', '' !== $sp_by['404']['have'] );
+	list( $st, $sp ) = mbcom_call( $sp_admin, 'POST', '/starter-pages', array( 'pages' => array( '404' ) ) );
+	mbcom_check( '…and making it never replaces yours', 'Mine' === wp_strip_all_tags( get_post_field( 'post_content', $sp_own ) ) && 1 === count( get_posts( array( 'post_type' => 'wp_template', 'name' => '404', 'post_status' => 'any', 'numberposts' => -1 ) ) ) );
+	mbcom_call( $sp_admin, 'DELETE', '/starter-pages' );
+	mbcom_check( '…nor removes it', 'publish' === get_post_status( $sp_own ) );
+	wp_delete_post( $sp_own, true );
+}
 foreach ( $sp_ids as $id ) {
 	wp_delete_post( $id, true );
 }
 wp_delete_post( $sp_have, true );
+
+mbcom_section( 'Main website: the Events page’s list (what visitors may see)' );
+$ue_admin  = mbcom_user( 'mbct_ue_admin', 'administrator' );
+$ue_member = mbcom_user( 'mbct_ue_member' );
+$ue_vip    = mbcom_user( 'mbct_ue_vip', 'author' );
+list( , $ue_group ) = mbcom_call( $ue_admin, 'POST', '/groups', array( 'name' => 'UE Insiders', 'roles' => array( 'author' ) ) );
+\MemBuild\Community\Settings::flush();
+$ue_in = fn( $d ) => gmdate( 'c', time() + $d * DAY_IN_SECONDS );
+$ue_ids = array();
+foreach ( array(
+	array( 'title' => 'UE open call', 'at' => $ue_in( 2 ), 'url' => 'https://zoom.us/j/999111222?pwd=secretpass' ),
+	array( 'title' => 'UE meetup', 'at' => $ue_in( 3 ), 'where' => 'person', 'venue' => 'The Secret Back Room', 'address' => '12 Hidden Lane, Austin, TX 78701, USA', 'lat' => 30.27, 'lng' => -97.74 ),
+	array( 'title' => 'UE insiders only', 'at' => $ue_in( 4 ), 'group' => (int) ( $ue_group['id'] ?? 0 ), 'url' => 'https://meet.google.com/abc-defg-hij' ),
+	array( 'title' => 'UE cancelled', 'at' => $ue_in( 5 ) ),
+) as $ue_e ) {
+	list( $st, $ue_row ) = mbcom_call( $ue_admin, 'POST', '/events', $ue_e + array( 'description' => 'Members-only notes: door code 4242' ) );
+	$ue_ids[ $ue_e['title'] ] = (int) ( $ue_row['id'] ?? 0 );
+}
+mbcom_call( $ue_admin, 'POST', '/events/' . $ue_ids['UE cancelled'] . '/cancel' );
+mbcom_check( 'the test events were made', 4 === count( array_filter( $ue_ids ) ), wp_json_encode( $ue_ids ) );
+$ue_draw = function ( $user ) {
+	wp_set_current_user( $user );
+	return do_blocks( '<!-- wp:membuild-community/upcoming-events {"count":12} /-->' );
+};
+$ue_out = $ue_draw( 0 );
+mbcom_check( 'a visitor sees the events for everyone, in person with only the town', false !== strpos( $ue_out, 'UE open call' ) && false !== strpos( $ue_out, 'UE meetup' ) && false !== strpos( $ue_out, 'In person · Austin' ), substr( wp_strip_all_tags( $ue_out ), 0, 300 ) );
+mbcom_check( '…never a members-only event', false === strpos( $ue_out, 'UE insiders only' ) );
+mbcom_check( '…nor a cancelled one', false === strpos( $ue_out, 'UE cancelled' ) );
+mbcom_check( '…nor the meeting link, the address, the venue or the description', ! preg_match( '/zoom\.us|secretpass|meet\.google|Hidden Lane|78701|Secret Back Room|door code|30\.27|-97\.74/i', $ue_out ), $ue_out );
+mbcom_check( '…and each button is “Join to attend”, to the join page, never the event inside', false !== strpos( $ue_out, 'Join to attend' ) && false !== strpos( $ue_out, esc_url( \MemBuild\Community\Login::url( 'join' ) ) ) && false === strpos( $ue_out, '/events/' . $ue_ids['UE open call'] ) );
+$ue_out = $ue_draw( $ue_member );
+mbcom_check( 'a member opens each event in the community', false !== strpos( $ue_out, 'Open in the community' ) && false !== strpos( $ue_out, esc_url( \MemBuild\Community\Events::url( $ue_ids['UE open call'] ) ) ) && false === strpos( $ue_out, 'Join to attend' ) );
+mbcom_check( '…but still not a group’s event they aren’t in, nor its link', false === strpos( $ue_out, 'UE insiders only' ) && ! preg_match( '/zoom\.us|meet\.google|Hidden Lane/i', $ue_out ) );
+$ue_out = $ue_draw( $ue_vip );
+mbcom_check( 'a member of the group sees its event (still with no link)', false !== strpos( $ue_out, 'UE insiders only' ) && ! preg_match( '/meet\.google|zoom\.us/i', $ue_out ) );
+// The same rule for the Home page's events, its preview and moments.
+wp_set_current_user( 0 );
+$ue_home = do_blocks( '<!-- wp:membuild-community/events {"limit":8} /--><!-- wp:membuild-community/peek {"kind":"event"} /--><!-- wp:membuild-community/moments /-->' );
+mbcom_check( 'the Home page’s events never show a members-only event to a visitor either', false === strpos( $ue_home, 'UE insiders only' ) );
+// Events switched off: nothing to show, just the friendly empty box.
+$ue_set = (array) get_option( \MemBuild\Community\Settings::OPTION, array() );
+$ue_off = $ue_set;
+$ue_off['features'] = array_merge( (array) ( \MemBuild\Community\Settings::get( 'features' ) ?: array() ), array( 'events' => false ) );
+update_option( \MemBuild\Community\Settings::OPTION, $ue_off );
+\MemBuild\Community\Settings::flush();
+$ue_out = $ue_draw( 0 );
+mbcom_check( 'with Events off, a visitor sees “New dates coming soon” and Join free', false !== strpos( $ue_out, 'New dates coming soon' ) && false === strpos( $ue_out, 'UE open call' ) && false !== strpos( $ue_out, 'Join free' ), wp_strip_all_tags( $ue_out ) );
+update_option( \MemBuild\Community\Settings::OPTION, $ue_set );
+\MemBuild\Community\Settings::flush();
+mbcom_check( 'the town comes from the address, never the street', 'Austin' === \MemBuild\Community\Starter_Blocks::city( 'Zilker Park, Austin, TX' ) && 'London' === \MemBuild\Community\Starter_Blocks::city( '10 Downing St, London SW1A 2AA, UK' ) && 'Sydney' === \MemBuild\Community\Starter_Blocks::city( 'Level 3, 1 George St, Sydney NSW 2000, Australia' ) && '' === \MemBuild\Community\Starter_Blocks::city( 'Joe’s Cafe' ) );
+foreach ( $ue_ids as $ue_id ) {
+	$wpdb->delete( \MemBuild\Community\Install::table( 'posts' ), array( 'id' => $ue_id ) );
+	$wpdb->delete( \MemBuild\Community\Install::table( 'notifications' ), array( 'post_id' => $ue_id ) );
+}
+if ( ! empty( $ue_group['id'] ) ) {
+	mbcom_call( $ue_admin, 'DELETE', "/groups/{$ue_group['id']}" );
+}
+wp_set_current_user( 0 );
 
 mbcom_section( 'Overnight fixes, 1 Nov (server)' );
 require_once ABSPATH . 'wp-admin/includes/user.php';

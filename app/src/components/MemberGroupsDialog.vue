@@ -147,49 +147,11 @@ function line(g) {
   font-size: var(--fs-base);
 }
 
-.switch {
-  appearance: none;
-  flex: none;
-  position: relative;
-  width: 52px;
-  height: 30px;
-  margin: 0;
-  border-radius: var(--radius-pill);
-  background: var(--border-strong);
-  cursor: pointer;
-  transition: background 0.15s;
-}
 
-.switch::after {
-  content: '';
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--on-color);
-  box-shadow: var(--shadow-sm);
-  transition: transform 0.15s;
-}
 
-.switch:checked {
-  background: var(--accent);
-}
 
-.switch:checked::after {
-  transform: translateX(22px);
-}
 
-.switch:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
 
-.switch:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
 
 .foot {
   display: flex;
