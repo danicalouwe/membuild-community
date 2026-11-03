@@ -78,6 +78,9 @@ class Starter_Pages {
 		add_action( 'admin_init', array( __CLASS__, 'register_patterns' ) );
 		add_filter( 'rest_pre_dispatch', array( __CLASS__, 'patterns_for_editor' ), 10, 3 );
 		add_action( 'init', array( __CLASS__, 'register_template' ) );
+		// WordPress lists a plugin's templates by name, but its editor reads the first as item 0 (block-editor.php),
+		// so editing a starter page printed a warning above the editor. A plain numbered list fixes that.
+		add_filter( 'get_block_templates', 'array_values', 99 );
 		add_action( 'enqueue_block_assets', array( __CLASS__, 'enqueue_style' ) );
 		add_action( 'wp_head', array( __CLASS__, 'header_glass' ), 1 );
 		add_filter( 'render_block_context', array( __CLASS__, 'more_posts' ), 10, 3 );

@@ -347,7 +347,7 @@ async function remove() {
         <img :src="state.logo" alt="" class="sp-logo-img" />
         <span>
           <strong>{{ t.__('My logo already shows the name', 'membuild-community') }}</strong>
-          <small>{{ t.__('We guess from the logo’s shape; this switch fixes a wrong guess. A logo on a white or coloured box gets a small rounded tile so it doesn’t look pasted on.', 'membuild-community') }}</small>
+          <small>{{ t.__('We guess from the logo’s shape; this switch fixes a wrong guess. A logo on white gets a small rounded frame so it doesn’t look pasted on.', 'membuild-community') }}</small>
         </span>
         <input type="checkbox" class="switch" role="switch" :checked="logoShowsName" @change="logoName = $event.target.checked ? 'yes' : 'no'" />
       </label>

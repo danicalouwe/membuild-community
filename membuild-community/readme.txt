@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.17.1
+Stable tag: 1.17.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,10 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.17.2 =
+* Fixed: opening a website page in the block editor no longer shows a PHP warning above the editor for a moment.
+* Changed: the logo hint in Settings › Main website says which logos get a frame (logos on white).
 
 = 1.17.1 =
 * Fixed: on sites that made their website pages before 1.17, the Compare table on Pricing was empty. It shows its rows again.
