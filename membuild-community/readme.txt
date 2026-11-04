@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.18.0
+Stable tag: 1.18.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,9 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.18.1 =
+* Changed: the post menu says Unsave instead of Remove from saved, and grows to fit its longest item, so its choices stay on one line.
 
 = 1.18.0 =
 * New: polls. A post can ask a question with up to 6 choices. One tap votes, and nobody can see who voted how. The owner can switch Polls off in Settings › Features.

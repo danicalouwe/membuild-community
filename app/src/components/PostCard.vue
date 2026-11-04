@@ -227,7 +227,7 @@ async function remove() {
       <div v-if="!post.pending" :ref="menuRoot" class="menu-wrap">
         <button :ref="menuTrigger" class="icon-btn tap-44" :aria-label="t.__('Post options', 'membuild-community')" aria-haspopup="menu" :aria-expanded="menu" @click="toggleMenu"><Icon name="more" /></button>
         <div v-if="menu" :ref="menuList" class="menu" role="menu" @keydown="onMenuKey">
-          <button role="menuitem" class="plain" @click="toggleSaved()"><Icon name="bookmark" :size="18" /> {{ post.saved ? t.__('Remove from saved', 'membuild-community') : t.__('Save post', 'membuild-community') }}</button>
+          <button role="menuitem" class="plain" @click="toggleSaved()"><Icon name="bookmark" :size="18" /> {{ post.saved ? t.__('Unsave', 'membuild-community') : t.__('Save post', 'membuild-community') }}</button>
           <template v-if="canPin && inCourse">
             <button v-if="post.lesson && post.pin !== 'lesson'" role="menuitem" class="plain" @click="pinInCourse('lesson')"><Icon name="pin" :size="18" /> {{ t.__('Pin to lesson', 'membuild-community') }}</button>
             <button v-if="post.pin !== 'course'" role="menuitem" class="plain" @click="pinInCourse('course')"><Icon name="pin" :size="18" /> {{ t.__('Pin to course', 'membuild-community') }}</button>
@@ -513,7 +513,9 @@ async function remove() {
   right: 0;
   top: 100%;
   z-index: 5;
+  width: max-content;
   min-width: 180px;
+  max-width: calc(100vw - 32px);
   padding: 6px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -530,6 +532,7 @@ async function remove() {
   border-radius: var(--radius-xs);
   color: var(--danger);
   font-weight: 600;
+  text-align: left;
 }
 
 .menu button.plain {

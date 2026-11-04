@@ -271,7 +271,7 @@ function applyToPost(post, patch) {
   Object.assign(post, patch)
 }
 
-/** Save post / Remove from saved: shows at once, and goes back if the server refuses. */
+/** Save post / Unsave: shows at once, and goes back if the server refuses. */
 export async function setSaved(post, on) {
   applyToPost(post, { saved: on })
   try {
