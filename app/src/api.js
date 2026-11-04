@@ -112,6 +112,11 @@ export const api = {
   unreact: (id) => request(`/posts/${id}/reaction`, { method: 'DELETE' }),
   postReactions: (id, { type = '', page = 1 } = {}) => request(`/posts/${id}/reactions`, { params: { type, page } }),
   share: (id) => request(`/posts/${id}/share`, { method: 'POST' }),
+  saved: (params) => request('/saved', { params }),
+  savePost: (id) => request(`/posts/${id}/save`, { method: 'PUT' }),
+  unsavePost: (id) => request(`/posts/${id}/save`, { method: 'DELETE' }),
+  vote: (id, optionId) => request(`/posts/${id}/vote`, { method: 'PUT', body: { option_id: optionId } }),
+  closePoll: (id) => request(`/posts/${id}/poll/close`, { method: 'POST' }),
   embed: (url) => request('/media/embed', { method: 'POST', body: { url } }),
   // Access groups: who can open which course (admins).
   groups: () => request('/groups'),

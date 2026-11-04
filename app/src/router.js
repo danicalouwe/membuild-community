@@ -58,6 +58,7 @@ export const router = createRouter({
       component: () => import('./views/MemberView.vue'),
       props: (route) => ({ id: Number(route.params.id) }),
     },
+    { path: '/me/saved', name: 'saved', component: () => import('./views/SavedView.vue') },
     { path: '/me/emails', name: 'emails', component: () => import('./views/EmailsView.vue') },
     { path: '/me/edit', name: 'profile-edit', component: () => import('./views/EditProfileView.vue') },
     { path: '/me/privacy', name: 'privacy', component: () => import('./views/PrivacyView.vue') },

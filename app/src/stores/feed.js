@@ -26,6 +26,8 @@ export const lists = {
   latest: createList({ sort: 'latest', type: 'all' }),
   hot: createList({ sort: 'hot', type: 'all' }),
   reels: createList({ sort: 'latest', type: 'reel' }),
+  // The Saved posts page. Its posts are kept in the list when taken off, so Undo restores them in place.
+  saved: Object.assign(createList({}), { saved: true }),
 }
 
 /**
@@ -103,7 +105,9 @@ export function eventList(when) {
 }
 
 const fetchPage = (list, params) =>
-  list.events
+  list.saved
+    ? api.saved({ cursor: params.cursor })
+    : list.events
     ? api.events({ when: list.events, page: params.page })
     : list.place
     ? list.place.lesson
@@ -259,6 +263,40 @@ export async function setReaction(post, type) {
   } catch {
     updatePost(post.id, before)
   }
+}
+
+/** Keeps the post in hand right too, when it's open on its own outside any list (a shared link). */
+function applyToPost(post, patch) {
+  updatePost(post.id, patch)
+  Object.assign(post, patch)
+}
+
+/** Save post / Remove from saved: shows at once, and goes back if the server refuses. */
+export async function setSaved(post, on) {
+  applyToPost(post, { saved: on })
+  try {
+    await (on ? api.savePost(post.id) : api.unsavePost(post.id))
+  } catch (err) {
+    applyToPost(post, { saved: !on })
+    throw err
+  }
+}
+
+/** A vote: the tick shows at once; the totals come from the server's answer. */
+export async function setVote(post, optionId) {
+  const before = post.poll
+  applyToPost(post, { poll: { ...before, my_vote: optionId } })
+  try {
+    applyToPost(post, { poll: await api.vote(post.id, optionId) })
+  } catch (err) {
+    applyToPost(post, { poll: before })
+    throw err
+  }
+}
+
+/** Closes a poll for good. */
+export async function closePoll(post) {
+  applyToPost(post, { poll: await api.closePoll(post.id) })
 }
 
 /**

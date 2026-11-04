@@ -49,6 +49,7 @@ const touchOnly = window.matchMedia('(hover: none) and (pointer: coarse)').match
 const places = computed(() =>
   isPhone.value
     ? [
+        { to: '/me/saved', icon: 'bookmark', label: t.__('Saved posts', 'membuild-community') },
         { to: '/members', icon: 'users', label: t.__('Members', 'membuild-community') },
         feature('events') && { to: '/events', icon: 'calendar', label: t.__('Events', 'membuild-community') },
         feature('leaderboard') && { to: '/leaderboard', icon: 'trophy', label: t.__('Leaderboard', 'membuild-community') },

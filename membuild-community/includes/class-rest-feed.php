@@ -270,6 +270,28 @@ class Rest_Feed {
 		// A background only applies to short, text-only posts, as on Facebook.
 		$background = ( ! $media_ids && mb_strlen( $content ) <= 130 && in_array( $req['background'] ?? '', Helpers::BACKGROUNDS, true ) ) ? $req['background'] : null;
 
+		// A poll: the words are the question. Home only, with no pictures, link video or background.
+		$poll = null;
+		if ( ! empty( $req['poll'] ) ) {
+			if ( ! Settings::feature( 'polls' ) ) {
+				return new \WP_Error( 'mbcom_feature_off', __( 'Polls are turned off.', 'membuild-community' ), array( 'status' => 403 ) );
+			}
+			if ( 'reel' === $type || ! empty( $req['lesson_id'] ) || ! empty( $req['course_id'] ) ) {
+				return new \WP_Error( 'mbcom_poll_place', __( 'Polls can only be posted on Home.', 'membuild-community' ), array( 'status' => 400 ) );
+			}
+			if ( $media_ids ) {
+				return new \WP_Error( 'mbcom_poll_media', __( 'A poll can’t have photos.', 'membuild-community' ), array( 'status' => 400 ) );
+			}
+			if ( '' === $content ) {
+				return new \WP_Error( 'mbcom_poll_question', __( 'Write your question.', 'membuild-community' ), array( 'status' => 400 ) );
+			}
+			$poll = Polls::parse( $req['poll'] );
+			if ( is_wp_error( $poll ) ) {
+				return $poll;
+			}
+			$background = null;
+		}
+
 		$blocked = Moderation::guard( $user_id );
 		if ( $blocked ) {
 			return $blocked;
@@ -296,7 +318,7 @@ class Rest_Feed {
 		}
 		// A YouTube or Vimeo link in a text-only post becomes a playable video, like on Facebook,
 		// unless the author removed the preview. A post that is only the link drops the bare URL.
-		if ( 'post' === $type && ! $media_ids && empty( $req['no_embed'] ) ) {
+		if ( 'post' === $type && ! $media_ids && ! $poll && empty( $req['no_embed'] ) ) {
 			$link = Embeds::first_link( $content );
 			if ( $link ) {
 				$embed = Embeds::create( $user_id, $link );
@@ -339,6 +361,9 @@ class Rest_Feed {
 		);
 		$post_id = (int) $wpdb->insert_id;
 		$media   = Media::attach( $user_id, $post_id, $media_ids );
+		if ( $poll ) {
+			Polls::create( $post_id, $poll );
+		}
 
 		// Reels are videos uploaded to the community, or a YouTube Short shared from its link
 		// (played in YouTube's own player); other links belong in a normal post.
@@ -388,6 +413,15 @@ class Rest_Feed {
 			return new \WP_Error( 'mbcom_empty', __( 'Write something or delete the post instead.', 'membuild-community' ), array( 'status' => 400 ) );
 		}
 		$background = ( 'post' === $row['type'] && ! $has_media && mb_strlen( $content ) <= 130 && in_array( $req['background'] ?? '', Helpers::BACKGROUNDS, true ) ) ? $req['background'] : null;
+		if ( Polls::exists( (int) $row['id'] ) ) {
+			if ( '' === $content ) {
+				return new \WP_Error( 'mbcom_poll_question', __( 'Write your question.', 'membuild-community' ), array( 'status' => 400 ) );
+			}
+			if ( $content !== (string) $row['content'] && Polls::has_votes( (int) $row['id'] ) ) {
+				return new \WP_Error( 'mbcom_poll_locked', __( 'The question and choices can’t change after the first vote.', 'membuild-community' ), array( 'status' => 409 ) );
+			}
+			$background = null;
+		}
 
 		$topic_id = (int) $row['topic_id'];
 		if ( isset( $req['topic_id'] ) && ! (int) $row['course_id'] && ! $row['event_at'] ) {
@@ -440,6 +474,9 @@ class Rest_Feed {
 			return false;
 		}
 		$wpdb->update( $posts, $wipe ? array( 'status' => 'deleted', 'content' => '' ) : array( 'status' => 'deleted' ), array( 'id' => $post_id ) );
+		if ( $wipe ) {
+			Polls::wipe( $post_id );
+		}
 		/**
 		 * A post was deleted. Points it earned are taken back on this hook.
 		 *
@@ -667,11 +704,13 @@ class Rest_Feed {
 		}
 		$course = self::course_details( $rows );
 		$events = Events::details( array_filter( $rows, fn( $r ) => ! empty( $r['event_at'] ) ) );
+		$saved  = Saved_Posts::mine( $ids );
+		$polls  = Polls::details( $ids, array_combine( $ids, array_map( 'intval', wp_list_pluck( $rows, 'user_id' ) ) ) );
 
 		return array_map(
-			function ( $row ) use ( $users, $media, $mine, $summary, $me, $preview, $course, $events ) {
+			function ( $row ) use ( $users, $media, $mine, $summary, $me, $preview, $course, $events, $saved, $polls ) {
 				$id = (int) $row['id'];
-				return ( $course[ $id ] ?? array() ) + ( isset( $events[ $id ] ) ? array( 'event' => $events[ $id ] ) : array() ) + array(
+				return ( $course[ $id ] ?? array() ) + ( isset( $events[ $id ] ) ? array( 'event' => $events[ $id ] ) : array() ) + ( isset( $polls[ $id ] ) ? array( 'poll' => $polls[ $id ] ) : array() ) + array(
 					'id'              => $id,
 					'type'            => $row['type'],
 					'content'         => $row['content'],
@@ -690,6 +729,7 @@ class Rest_Feed {
 					'can_delete'      => (int) $row['user_id'] === $me || Helpers::can_moderate(),
 					'can_edit'        => (int) $row['user_id'] === $me,
 					'pinned'          => ! empty( $row['is_pinned'] ),
+					'saved'           => isset( $saved[ $id ] ),
 					'edited'          => ! empty( $row['edited_at'] ),
 					'preview_comment' => $preview[ $id ] ?? null,
 				);

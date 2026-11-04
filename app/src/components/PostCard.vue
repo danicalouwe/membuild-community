@@ -2,7 +2,7 @@
 import { computed, defineAsyncComponent, ref } from 'vue'
 import { askConfirm } from '../lib/confirm.js'
 import { api } from '../api.js'
-import { forgetTopicLists, justPosted, removePost, setCoursePin, setPinned, takePost, updatePost } from '../stores/feed.js'
+import { closePoll, forgetTopicLists, justPosted, removePost, setCoursePin, setPinned, setSaved, takePost, updatePost } from '../stores/feed.js'
 import { topics, topicsShown } from '../lib/topics.js'
 import { showToast } from '../lib/toast.js'
 import BaseDialog from './BaseDialog.vue'
@@ -13,6 +13,7 @@ import Icon from './Icon.vue'
 import RichText from './RichText.vue'
 import MediaGrid from './MediaGrid.vue'
 import PostActions from './PostActions.vue'
+import PollBlock from './PollBlock.vue'
 import CommentItem from './CommentItem.vue'
 import EventCard from './EventCard.vue'
 import CourseLinkCard from './CourseLinkCard.vue'
@@ -96,6 +97,28 @@ async function togglePin() {
   }
 }
 
+// Saving is private: the writer isn't told and no points move.
+async function toggleSaved(on = !props.post.saved) {
+  closeMenu()
+  try {
+    await setSaved(props.post, on)
+    if (on) showToast(t.__('Saved', 'membuild-community'), '', { action: { label: t.__('See saved posts', 'membuild-community'), to: { name: 'saved' } } })
+    else showToast(t.__('Removed from saved', 'membuild-community'), '', { action: { label: t.__('Undo', 'membuild-community'), run: () => toggleSaved(true) } })
+  } catch {
+    showToast(on ? t.__('Couldn’t save this post. Try again.', 'membuild-community') : t.__('Couldn’t remove this post from saved. Try again.', 'membuild-community'))
+  }
+}
+
+async function askClosePoll() {
+  closeMenu()
+  if (!(await askConfirm({ title: t.__('Close this poll?', 'membuild-community'), text: t.__('Members can’t vote after this. The results stay, and it can’t be opened again.', 'membuild-community'), cancel: t.__('Keep it open', 'membuild-community'), confirm: t.__('Close poll', 'membuild-community') }))) return
+  try {
+    await closePoll(props.post)
+  } catch (err) {
+    showToast(err.message)
+  }
+}
+
 function reported(res) {
   if (res.hidden) removePost(props.post.id) // hidden for review: it leaves the feed now
 }
@@ -127,7 +150,10 @@ const open = (focusComment = false) => {
 
 async function remove() {
   closeMenu()
-  if (!(await askConfirm({ title: t.__('Delete this post?', 'membuild-community'), text: t.__('It’s gone for everyone, with its comments and reactions. This can’t be undone.', 'membuild-community'), confirm: t.__('Delete post', 'membuild-community'), danger: true }))) return
+  const question = props.post.poll
+    ? { title: t.__('Delete this poll?', 'membuild-community'), text: t.__('It’s gone for everyone, with its votes, comments and reactions. This can’t be undone.', 'membuild-community'), confirm: t.__('Delete poll', 'membuild-community') }
+    : { title: t.__('Delete this post?', 'membuild-community'), text: t.__('It’s gone for everyone, with its comments and reactions. This can’t be undone.', 'membuild-community'), confirm: t.__('Delete post', 'membuild-community') }
+  if (!(await askConfirm({ ...question, danger: true }))) return
   const restore = takePost(props.post.id)
   try {
     await api.deletePost(props.post.id)
@@ -197,9 +223,11 @@ async function remove() {
       </div>
       </template>
       <span v-if="post.pinned" class="pin" :title="t.__('Pinned by an admin', 'membuild-community')"><Icon name="pin" :size="14" /> {{ pinLabel }}</span>
+      <span v-if="post.saved" class="saved-word" :title="t.__('Saved', 'membuild-community')" :aria-label="t.__('Saved', 'membuild-community')"><Icon name="bookmarkOn" :size="14" /><template v-if="!post.pinned">{{ t.__('Saved', 'membuild-community') }}</template></span>
       <div v-if="!post.pending" :ref="menuRoot" class="menu-wrap">
         <button :ref="menuTrigger" class="icon-btn tap-44" :aria-label="t.__('Post options', 'membuild-community')" aria-haspopup="menu" :aria-expanded="menu" @click="toggleMenu"><Icon name="more" /></button>
         <div v-if="menu" :ref="menuList" class="menu" role="menu" @keydown="onMenuKey">
+          <button role="menuitem" class="plain" @click="toggleSaved()"><Icon name="bookmark" :size="18" /> {{ post.saved ? t.__('Remove from saved', 'membuild-community') : t.__('Save post', 'membuild-community') }}</button>
           <template v-if="canPin && inCourse">
             <button v-if="post.lesson && post.pin !== 'lesson'" role="menuitem" class="plain" @click="pinInCourse('lesson')"><Icon name="pin" :size="18" /> {{ t.__('Pin to lesson', 'membuild-community') }}</button>
             <button v-if="post.pin !== 'course'" role="menuitem" class="plain" @click="pinInCourse('course')"><Icon name="pin" :size="18" /> {{ t.__('Pin to course', 'membuild-community') }}</button>
@@ -207,6 +235,7 @@ async function remove() {
           </template>
           <button v-else-if="canPin" role="menuitem" class="plain" @click="togglePin"><Icon name="pin" :size="18" /> {{ post.pinned ? t.__('Unpin post', 'membuild-community') : t.__('Pin to top', 'membuild-community') }}</button>
           <button v-if="canMoveTopic" role="menuitem" class="plain" @click="closeMenu(); movingTopic = post.topic?.id || 0"><Icon name="hash" :size="18" /> {{ t.__('Change topic', 'membuild-community') }}</button>
+          <button v-if="post.poll?.can_close" role="menuitem" class="plain" @click="askClosePoll"><Icon name="lock" :size="18" /> {{ t.__('Close poll', 'membuild-community') }}</button>
           <button v-if="post.can_edit" role="menuitem" class="plain" @click="closeMenu(); editing = true"><Icon name="compose" :size="18" /> {{ t.__('Edit post', 'membuild-community') }}</button>
           <button v-if="post.can_delete" role="menuitem" @click="remove"><Icon name="trash" :size="18" /> {{ t.__('Delete post', 'membuild-community') }}</button>
           <button v-if="!isMine" role="menuitem" class="plain" @click="closeMenu(); reporting = true"><Icon name="flag" :size="18" /> {{ t.__('Report post', 'membuild-community') }}</button>
@@ -230,6 +259,8 @@ async function remove() {
     <CourseLinkCard v-if="linkedCourse && !background" :course="linkedCourse" />
 
     <MediaGrid v-if="post.media.length && !post.event" class="media" :media="post.media" :reel-link="post.type === 'reel' ? { name: 'reels', query: { id: post.id } } : null" />
+
+    <PollBlock v-if="post.poll" :post="post" />
 
     <PostActions :post="post" @comment="open(true)" />
 
@@ -379,8 +410,21 @@ async function remove() {
   white-space: nowrap;
 }
 
-.pin + .menu-wrap {
+.pin + .menu-wrap,
+.saved-word + .menu-wrap,
+.pin + .saved-word {
   margin-left: 0;
+}
+
+.saved-word {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  font-size: var(--fs-sm);
+  font-weight: 650;
+  color: var(--accent-text);
+  white-space: nowrap;
 }
 
 .name {

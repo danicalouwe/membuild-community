@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) || exit;
 class Install {
 
 	/** Every table the plugin owns, without the "{prefix}mbcom_" part. */
-	const TABLES = array( 'posts', 'media', 'comments', 'reactions', 'stories', 'story_views', 'courses', 'groups', 'group_members', 'modules', 'lessons', 'lesson_progress', 'course_starts', 'points', 'member_stats', 'threads', 'thread_members', 'messages', 'notifications', 'reports', 'blocks', 'places', 'place_news', 'topics', 'import_map', 'waitlist' );
+	const TABLES = array( 'posts', 'media', 'comments', 'reactions', 'stories', 'story_views', 'courses', 'groups', 'group_members', 'modules', 'lessons', 'lesson_progress', 'course_starts', 'points', 'member_stats', 'threads', 'thread_members', 'messages', 'notifications', 'reports', 'blocks', 'places', 'place_news', 'topics', 'import_map', 'waitlist', 'saved_posts', 'polls', 'poll_options', 'poll_votes' );
 
 	/** Data migrations: the version each one brings a site to => method. */
 	const STEPS = array(
@@ -211,6 +211,10 @@ class Install {
 		$topics   = self::table( 'topics' );
 		$imports  = self::table( 'import_map' );
 		$waitlist = self::table( 'waitlist' );
+		$saved    = self::table( 'saved_posts' ); // a member's own private list
+		$polls    = self::table( 'polls' ); // the post's words are the question
+		$choices  = self::table( 'poll_options' );
+		$votes    = self::table( 'poll_votes' ); // one per member per poll; only totals ever leave the server
 
 		// dbDelta needs two spaces before PRIMARY KEY and one field per line.
 		dbDelta(
@@ -642,6 +646,44 @@ class Install {
 			PRIMARY KEY  (id),
 			UNIQUE KEY email (email),
 			KEY token (token)
+			) {$charset};
+
+			CREATE TABLE {$saved} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			user_id bigint(20) unsigned NOT NULL,
+			post_id bigint(20) unsigned NOT NULL,
+			created_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY user_post (user_id, post_id),
+			KEY post_id (post_id)
+			) {$charset};
+
+			CREATE TABLE {$polls} (
+			post_id bigint(20) unsigned NOT NULL,
+			closes_at datetime NULL,
+			closed_at datetime NULL,
+			created_at datetime NOT NULL,
+			PRIMARY KEY  (post_id)
+			) {$charset};
+
+			CREATE TABLE {$choices} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			post_id bigint(20) unsigned NOT NULL,
+			label varchar(255) NOT NULL,
+			position tinyint(3) unsigned NOT NULL DEFAULT 0,
+			PRIMARY KEY  (id),
+			KEY post_id (post_id)
+			) {$charset};
+
+			CREATE TABLE {$votes} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			post_id bigint(20) unsigned NOT NULL,
+			option_id bigint(20) unsigned NOT NULL,
+			user_id bigint(20) unsigned NOT NULL,
+			created_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY post_user (post_id, user_id),
+			KEY user_id (user_id)
 			) {$charset};"
 		);
 	}

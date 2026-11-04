@@ -82,7 +82,7 @@
 /* The panel's own header: product tile, name, version */
 .mb-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
 .mb-brand { display: flex; align-items: center; gap: 12px; }
-.mb-tile { display: inline-flex; align-items: center; justify-content: center; border-radius: 28%; background: var(--accent); color: #1b3a2f; font: 700 13px/1 var(--font-sans); letter-spacing: -0.04em; width: 32px; height: 32px; flex-shrink: 0; }
+.mb-tile { display: block; border-radius: 28%; width: 32px; height: 32px; flex-shrink: 0; }
 .mb-brand__name { font: 700 18px/26px var(--font-sans); letter-spacing: -0.015em; color: var(--ink); }
 
 /* Buttons */

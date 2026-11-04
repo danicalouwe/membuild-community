@@ -8,8 +8,10 @@ const route = useRoute()
 const router = useRouter()
 // "View post": the post opens on top of this page, like a notification does.
 function act() {
-  const { post } = toast.action || {}
+  const { post, to, run } = toast.action || {}
   hideToast()
+  run?.()
+  if (to) router.push(to)
   if (post) router.push({ path: route.path, query: { ...route.query, post, comment: undefined } })
 }
 </script>

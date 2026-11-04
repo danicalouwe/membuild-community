@@ -32,7 +32,7 @@ class Admin {
 
 	/**
 	 * The "Community" menu, last in the sidebar (after the final separator) with
-	 * the community's own colored icon. "Open community" and "Settings" go to the app.
+	 * the MemBuild logo. "Open community" and "Settings" go to the app.
 	 */
 	public static function menu() {
 		add_menu_page( __( 'Community', 'membuild-community' ), __( 'Community', 'membuild-community' ), self::CAP, 'membuild-community', array( __CLASS__, 'page_overview' ), 'none', 1000 );
@@ -128,10 +128,6 @@ class Admin {
 JS;
 	}
 
-	/**
-	 * Draws the menu icon in color: the community's logo, or its initials on its
-	 * accent color. Done in CSS because WordPress repaints SVG menu icons gray.
-	 */
 	/** "Settings" and "Open community ↗" in the WP submenu lead to the community itself, so they open a new tab. */
 	public static function menu_links() {
 		wp_add_inline_script(
@@ -141,21 +137,12 @@ JS;
 		);
 	}
 
+	/**
+	 * Always the MemBuild logo: it says which plugin this is, whatever the community's own logo
+	 * or color. Done in CSS because WordPress repaints menu icons gray.
+	 */
 	public static function menu_icon() {
-		$logo = Settings::get( 'logo' )['url'] ?? '';
-		if ( $logo ) {
-			$image = 'url("' . esc_url_raw( $logo ) . '")';
-		} else {
-			$accent = Settings::get( 'accent' ) ?: '#3b5bfd';
-			$ink    = Color::ink( $accent );
-			$svg    = sprintf(
-				'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" rx="10" fill="%1$s"/><text x="20" y="26.5" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif" font-size="17" font-weight="800" fill="%2$s">%3$s</text></svg>',
-				esc_attr( $accent ),
-				esc_attr( $ink ),
-				esc_html( Settings::initials() )
-			);
-			$image = 'url("data:image/svg+xml,' . rawurlencode( $svg ) . '")';
-		}
+		$image = 'url("' . esc_url_raw( MEMBUILD_COMMUNITY_URL . 'assets/admin/menu-icon.png' ) . '")';
 		wp_add_inline_style(
 			'admin-menu',
 			"#adminmenu #toplevel_page_membuild-community .wp-menu-image{background:{$image} center/20px 20px no-repeat;border-radius:5px}"
@@ -218,7 +205,8 @@ JS;
 		$ext = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3H3v10h10v-3M9 3h4v4M13 3L7 9"/></svg>';
 		echo '<div class="wrap mbcom-admin ' . esc_attr( $current ?: 'overview' ) . '"><div class="mb-panel">';
 		printf(
-			'<div class="mb-head"><div class="mb-brand"><span class="mb-tile" aria-hidden="true">MB</span><span class="mb-brand__name">%s</span></div><div>%s</div></div>',
+			'<div class="mb-head"><div class="mb-brand"><img class="mb-tile" src="%s" alt="" width="32" height="32"><span class="mb-brand__name">%s</span></div><div>%s</div></div>',
+			esc_url( MEMBUILD_COMMUNITY_URL . 'assets/admin/menu-icon.png' ),
 			esc_html__( 'MemBuild Community', 'membuild-community' ),
 			self::version_badge() // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped there
 		);

@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.17.3
+Stable tag: 1.18.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,11 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.18.0 =
+* New: polls. A post can ask a question with up to 6 choices. One tap votes, and nobody can see who voted how. The owner can switch Polls off in Settings › Features.
+* New: saved posts. Members save a post from its ⋯ menu and find it again on their private Saved page.
+* Changed: the plugin's menu icon and the tile on its dashboard pages always show the MemBuild logo, even when the community has its own.
 
 = 1.17.3 =
 * Fixed: the login and community pages (and the home page, on sites with a Site Icon) no longer stop with a critical error after adding a logo, an app icon or a Site Icon.

@@ -3251,6 +3251,190 @@ list( $jp_st, $jp_s ) = mbcom_call( $admin, 'GET', '/settings' );
 mbcom_check( 'Settings carries the Join preview address', 200 === $jp_st && false !== strpos( (string) ( $jp_s['join_preview_url'] ?? '' ), '/join?preview=1' ), wp_json_encode( $jp_s['join_preview_url'] ?? null ) );
 
 /* ---------------------------------------------------------------- */
+mbcom_section( 'Saved posts' );
+
+global $wpdb;
+$sv_writer = mbcom_user( 'mbct_sv_writer' );
+$sv_reader = mbcom_user( 'mbct_sv_reader' );
+$sv_tbl    = \MemBuild\Community\Install::table( 'saved_posts' );
+$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE user_id IN (%d, %d)', $sv_tbl, $sv_writer, $sv_reader ) );
+$sv_post = function ( $words ) use ( $wpdb, $sv_writer ) {
+	$now = \MemBuild\Community\Helpers::now();
+	$wpdb->insert( \MemBuild\Community\Install::table( 'posts' ), array( 'user_id' => $sv_writer, 'type' => 'post', 'content' => $words, 'created_at' => $now, 'updated_at' => $now ) );
+	return (int) $wpdb->insert_id;
+};
+$sv_a = $sv_post( 'Keep this one' );
+$sv_b = $sv_post( 'And this one' );
+
+$sv_bell = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE user_id = %d', \MemBuild\Community\Install::table( 'notifications' ), $sv_writer ) );
+list( $s ) = mbcom_call( $sv_reader, 'PUT', "/posts/{$sv_a}/save" );
+mbcom_check( 'a member saves a post', 200 === $s );
+list( $s ) = mbcom_call( $sv_reader, 'PUT', "/posts/{$sv_a}/save" );
+mbcom_check( 'saving twice is fine', 200 === $s && 1 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE user_id = %d', $sv_tbl, $sv_reader ) ) );
+mbcom_check( 'the writer isn’t told', $sv_bell === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE user_id = %d', \MemBuild\Community\Install::table( 'notifications' ), $sv_writer ) ) );
+mbcom_call( $sv_reader, 'PUT', "/posts/{$sv_b}/save" );
+list( , $p ) = mbcom_call( $sv_reader, 'GET', "/posts/{$sv_a}" );
+mbcom_check( 'the post says it’s saved, for the one who saved it', true === $p['saved'] );
+list( , $p ) = mbcom_call( $sv_writer, 'GET', "/posts/{$sv_a}" );
+mbcom_check( 'and not for anyone else', false === $p['saved'] );
+list( , $l ) = mbcom_call( $sv_reader, 'GET', '/saved' );
+mbcom_check( 'the list shows newest saved first', array( $sv_b, $sv_a ) === wp_list_pluck( $l['items'], 'id' ) );
+list( , $l ) = mbcom_call( $sv_writer, 'GET', '/saved' );
+mbcom_check( 'the list is private', ! $l['items'] );
+
+$sv_ids = array();
+for ( $i = 0; $i < 21; $i++ ) {
+	$sv_ids[] = $sv_post( "Page filler {$i}" );
+	$wpdb->insert( $sv_tbl, array( 'user_id' => $sv_writer, 'post_id' => end( $sv_ids ), 'created_at' => \MemBuild\Community\Helpers::now() ) );
+}
+list( , $l1 ) = mbcom_call( $sv_writer, 'GET', '/saved' );
+list( , $l2 ) = mbcom_call( $sv_writer, 'GET', '/saved', array( 'cursor' => $l1['next_cursor'] ) );
+mbcom_check( 'the list pages', 20 === count( $l1['items'] ) && 1 === count( $l2['items'] ) && null === $l2['next_cursor'] && $sv_ids[0] === $l2['items'][0]['id'] );
+
+list( $s ) = mbcom_call( $sv_writer, 'DELETE', "/posts/{$sv_a}" );
+list( , $l ) = mbcom_call( $sv_reader, 'GET', '/saved' );
+$sv_gone = wp_list_filter( $l['items'], array( 'id' => $sv_a ) );
+$sv_gone = reset( $sv_gone );
+mbcom_check( 'a deleted post stays as a quiet row, with nothing from the post', 'deleted' === ( $sv_gone['gone'] ?? '' ) && ! isset( $sv_gone['content'] ) && ! isset( $sv_gone['author'] ) && ! isset( $sv_gone['media'] ) );
+list( $s ) = mbcom_call( $sv_reader, 'PUT', "/posts/{$sv_a}/save" );
+mbcom_check( 'a deleted post can’t be saved', 404 === $s );
+$wpdb->update( \MemBuild\Community\Install::table( 'posts' ), array( 'status' => 'review' ), array( 'id' => $sv_b ) );
+list( , $l ) = mbcom_call( $sv_reader, 'GET', '/saved' );
+$sv_lock = wp_list_filter( $l['items'], array( 'id' => $sv_b ) );
+$sv_lock = reset( $sv_lock );
+mbcom_check( 'a post they can’t open now says so, with nothing from the post', 'locked' === ( $sv_lock['gone'] ?? '' ) && ! isset( $sv_lock['content'] ) );
+$wpdb->update( \MemBuild\Community\Install::table( 'posts' ), array( 'status' => 'published' ), array( 'id' => $sv_b ) );
+list( , $l ) = mbcom_call( $sv_reader, 'GET', '/saved' );
+$sv_back = wp_list_filter( $l['items'], array( 'id' => $sv_b ) );
+mbcom_check( 'if they get it back, so does the list', 'And this one' === ( reset( $sv_back )['content'] ?? '' ) );
+list( $s ) = mbcom_call( $sv_reader, 'DELETE', "/posts/{$sv_a}/save" );
+list( , $l ) = mbcom_call( $sv_reader, 'GET', '/saved' );
+mbcom_check( 'a gone post can be removed from the list', 200 === $s && array( $sv_b ) === wp_list_pluck( $l['items'], 'id' ) );
+
+/* ---------------------------------------------------------------- */
+mbcom_section( 'Polls' );
+
+$pl_admin  = (int) get_users( array( 'role' => 'administrator', 'number' => 1, 'fields' => 'ID' ) )[0];
+$pl_writer = mbcom_user( 'mbct_pl_writer' );
+$pl_a      = mbcom_user( 'mbct_pl_a' );
+$pl_b      = mbcom_user( 'mbct_pl_b' );
+$pl_muted  = mbcom_user( 'mbct_pl_muted' );
+foreach ( array( $pl_writer, $pl_a, $pl_b, $pl_muted ) as $u ) {
+	$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE user_id = %d', \MemBuild\Community\Install::table( 'poll_votes' ), $u ) );
+	delete_user_meta( $u, 'mbcom_restriction' );
+}
+wp_cache_flush();
+$pl_create = function ( $body ) use ( $pl_writer ) {
+	// Each check is its own post, without running into the "too many posts" limit.
+	global $wpdb;
+	$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE 'mbcom\_rl\_post\_%'" );
+	return mbcom_call( $pl_writer, 'POST', '/posts', $body );
+};
+$pl_ok = array( 'content' => 'Which day suits you?', 'poll' => array( 'options' => array( 'Monday', ' Friday ', '' ), 'closes' => '1w' ) );
+
+list( $s, $pl ) = $pl_create( $pl_ok );
+mbcom_check( 'a member who can post makes a poll', 201 === $s && 2 === count( $pl['poll']['options'] ?? array() ) && 'Friday' === ( $pl['poll']['options'][1]['label'] ?? '' ) );
+mbcom_check( 'a poll closes when asked', isset( $pl['poll']['closes_at'] ) && abs( strtotime( $pl['poll']['closes_at'] ) - time() - WEEK_IN_SECONDS ) < 60 && false === $pl['poll']['closed'] );
+$pl_id = (int) ( $pl['id'] ?? 0 );
+$pl_m  = (int) ( $pl['poll']['options'][0]['id'] ?? 0 );
+$pl_f  = (int) ( $pl['poll']['options'][1]['id'] ?? 0 );
+list( , $x ) = mbcom_call( $pl_a, 'GET', "/posts/{$pl_id}" );
+mbcom_check( 'a poll with no votes shows no shares', 0 === $x['poll']['total_votes'] && null === $x['poll']['options'][0]['percent'] && false === $x['poll']['locked'] );
+mbcom_check( 'a post without a poll has no poll field', ! isset( mbcom_call( $pl_a, 'GET', "/posts/{$sv_b}" )[1]['poll'] ) );
+
+foreach ( array(
+	array( 'one choice', array( 'content' => 'Q', 'poll' => array( 'options' => array( 'Only' ) ) ), 'mbcom_poll_few' ),
+	array( 'the same choice twice', array( 'content' => 'Q', 'poll' => array( 'options' => array( 'Yes', 'yes' ) ) ), 'mbcom_poll_same' ),
+	array( 'seven choices', array( 'content' => 'Q', 'poll' => array( 'options' => array( 'a', 'b', 'c', 'd', 'e', 'f', 'g' ) ) ), 'mbcom_poll_many' ),
+	array( 'no question', array( 'content' => ' ', 'poll' => array( 'options' => array( 'a', 'b' ) ) ), 'mbcom_poll_question' ),
+	array( 'photos', array( 'content' => 'Q', 'media_ids' => array( 1 ), 'poll' => array( 'options' => array( 'a', 'b' ) ) ), 'mbcom_poll_media' ),
+	array( 'a course', array( 'content' => 'Q', 'course_id' => 1, 'poll' => array( 'options' => array( 'a', 'b' ) ) ), 'mbcom_poll_place' ),
+) as $case ) {
+	list( $s, $x ) = $pl_create( $case[1] );
+	mbcom_check( "a poll is refused with {$case[0]}", 400 === $s && $case[2] === ( $x['code'] ?? '' ), wp_json_encode( $x ) );
+}
+list( $s, $x ) = $pl_create( array( 'content' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'background' => 'sunset', 'poll' => array( 'options' => array( 'a', 'b' ), 'closes' => 'none' ) ) );
+mbcom_check( 'a poll gets no link video, no background and can have no end date', 201 === $s && ! $x['media'] && null === $x['background'] && null === $x['poll']['closes_at'] );
+
+list( $s, $x ) = mbcom_call( $pl_writer, 'PUT', "/posts/{$pl_id}", array( 'content' => 'Which day suits you best?' ) );
+mbcom_check( 'the question can change before the first vote', 200 === $s && 'Which day suits you best?' === $x['content'] );
+
+list( $s, $x ) = mbcom_call( $pl_a, 'PUT', "/posts/{$pl_id}/vote", array( 'option_id' => $pl_m ) );
+mbcom_check( 'a vote shows the shares', 200 === $s && 1 === $x['total_votes'] && $pl_m === $x['my_vote'] && 100 === $x['options'][0]['percent'] && 0 === $x['options'][1]['percent'] );
+mbcom_check( 'no one is ever named', false === strpos( wp_json_encode( $x ), 'user' ) );
+list( , $x ) = mbcom_call( $pl_b, 'GET', "/posts/{$pl_id}" );
+mbcom_check( 'before voting, a member sees the total but no shares', 1 === $x['poll']['total_votes'] && null === $x['poll']['options'][0]['percent'] && null === $x['poll']['my_vote'] );
+list( , $x ) = mbcom_call( $pl_admin, 'GET', "/posts/{$pl_id}" );
+mbcom_check( 'nor does the owner see who voted', null === $x['poll']['options'][0]['percent'] && false === strpos( wp_json_encode( $x['poll'] ), 'mbct_pl_a' ) );
+mbcom_call( $pl_b, 'PUT', "/posts/{$pl_id}/vote", array( 'option_id' => $pl_f ) );
+list( $s, $x ) = mbcom_call( $pl_a, 'PUT', "/posts/{$pl_id}/vote", array( 'option_id' => $pl_f ) );
+mbcom_check( 'changing a vote moves it, not adds it', 200 === $s && 2 === $x['total_votes'] && $pl_f === $x['my_vote'] && 100 === $x['options'][1]['percent'] );
+list( $s ) = mbcom_call( $pl_a, 'PUT', "/posts/{$pl_id}/vote", array( 'option_id' => 999999 ) );
+mbcom_check( 'a choice from elsewhere is refused', 400 === $s );
+list( $s, $x ) = mbcom_call( $pl_writer, 'PUT', "/posts/{$pl_id}", array( 'content' => 'A different question' ) );
+mbcom_check( 'the question locks after the first vote', 409 === $s && 'mbcom_poll_locked' === $x['code'] );
+list( $s ) = mbcom_call( $pl_writer, 'PUT', "/posts/{$pl_id}", array( 'content' => 'Which day suits you best?', 'feeling' => 'happy' ) );
+mbcom_check( 'and the rest of the post still saves', 200 === $s );
+
+mbcom_call( $pl_admin, 'POST', "/members/{$pl_muted}/restriction", array( 'status' => 'muted', 'days' => 1 ) );
+list( $s ) = mbcom_call( $pl_muted, 'PUT', "/posts/{$pl_id}/vote", array( 'option_id' => $pl_m ) );
+list( , $x ) = mbcom_call( $pl_muted, 'GET', "/posts/{$pl_id}" );
+mbcom_check( 'a muted member can’t vote but sees the results', 403 === $s && false === $x['poll']['can_vote'] && 100 === $x['poll']['options'][1]['percent'] );
+delete_user_meta( $pl_muted, 'mbcom_restriction' );
+
+mbcom_call( $pl_admin, 'PUT', '/settings', array( 'features' => array( 'polls' => false ) ) );
+list( $s ) = $pl_create( $pl_ok );
+list( $s2 ) = mbcom_call( $pl_muted, 'PUT', "/posts/{$pl_id}/vote", array( 'option_id' => $pl_m ) );
+mbcom_check( 'with Polls off no new polls, but old ones still work', 403 === $s && 200 === $s2 );
+mbcom_call( $pl_admin, 'PUT', '/settings', array( 'features' => array( 'polls' => true ) ) );
+
+list( $s ) = mbcom_call( $pl_a, 'POST', "/posts/{$pl_id}/poll/close" );
+mbcom_check( 'another member can’t close it', 403 === $s );
+list( $s, $x ) = mbcom_call( $pl_writer, 'POST', "/posts/{$pl_id}/poll/close" );
+mbcom_check( 'the writer closes it', 200 === $s && true === $x['closed'] && false === $x['can_close'] && false === $x['can_vote'] );
+list( $s, $x ) = mbcom_call( $pl_a, 'PUT', "/posts/{$pl_id}/vote", array( 'option_id' => $pl_m ) );
+mbcom_check( 'no votes after that', 409 === $s );
+list( , $x ) = mbcom_call( $pl_b, 'GET', "/posts/{$pl_id}" );
+mbcom_check( 'the results stay', true === $x['poll']['closed'] && 3 === $x['poll']['total_votes'] );
+
+list( , $pl2 ) = $pl_create( $pl_ok );
+list( $s, $x ) = mbcom_call( $pl_admin, 'POST', "/posts/{$pl2['id']}/poll/close" );
+mbcom_check( 'a moderator or the owner can close one too', 200 === $s && true === $x['closed'] );
+list( , $pl3 ) = $pl_create( $pl_ok );
+$wpdb->update( \MemBuild\Community\Install::table( 'polls' ), array( 'closes_at' => gmdate( 'Y-m-d H:i:s', time() - 60 ) ), array( 'post_id' => $pl3['id'] ) );
+list( , $x ) = mbcom_call( $pl_a, 'GET', "/posts/{$pl3['id']}" );
+list( $s ) = mbcom_call( $pl_a, 'PUT', "/posts/{$pl3['id']}/vote", array( 'option_id' => $pl3['poll']['options'][0]['id'] ) );
+mbcom_check( 'a poll past its end date is closed', true === $x['poll']['closed'] && 0 === $x['poll']['options'][0]['percent'] && 409 === $s );
+
+list( , $pl4 ) = $pl_create( $pl_ok );
+\MemBuild\Community\Rest_Feed::remove_post( $pl4['id'], true );
+mbcom_check( 'erasing a post wipes its choices', 0 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE post_id = %d AND label <> ''", \MemBuild\Community\Install::table( 'poll_options' ), $pl4['id'] ) ) );
+
+$pl_gone = get_userdata( $pl_b )->user_email;
+$pl_data = \MemBuild\Community\Privacy::export( $pl_gone, 1 )['data'];
+mbcom_check( 'a member’s data export has their votes', (bool) wp_list_filter( $pl_data, array( 'group_id' => 'mbcom-poll-votes' ) ) );
+do {
+	$pl_done = \MemBuild\Community\Privacy::erase( $pl_gone, 1 )['done'];
+} while ( ! $pl_done );
+list( , $x ) = mbcom_call( $pl_a, 'GET', "/posts/{$pl_id}" );
+mbcom_check( 'erasing a member removes their vote from the total', 2 === $x['poll']['total_votes'] );
+
+/* ---------------------------------------------------------------- */
+mbcom_section( 'The Community menu icon' );
+
+$mi_saved = get_option( 'mbcom_settings', array() );
+update_option( 'mbcom_settings', array_merge( is_array( $mi_saved ) ? $mi_saved : array(), array( 'logo' => array( 'id' => 0, 'url' => 'https://example.test/their-logo.png' ) ) ) );
+\MemBuild\Community\Settings::flush();
+wp_styles()->add( 'admin-menu', false );
+wp_styles()->add_data( 'admin-menu', 'after', array() );
+\MemBuild\Community\Admin::menu_icon();
+$mi_css = implode( '', (array) wp_styles()->get_data( 'admin-menu', 'after' ) );
+mbcom_check( 'it stays the MemBuild logo when the community has its own', false !== strpos( $mi_css, 'assets/admin/menu-icon.png' ) && false === strpos( $mi_css, 'their-logo' ), $mi_css );
+mbcom_check( 'the file is in the plugin', file_exists( MEMBUILD_COMMUNITY_DIR . 'assets/admin/menu-icon.png' ) );
+update_option( 'mbcom_settings', $mi_saved );
+\MemBuild\Community\Settings::flush();
+
+/* ---------------------------------------------------------------- */
 echo "\n{$GLOBALS['mbcom_passed']} passed, {$GLOBALS['mbcom_failed']} failed\n";
 if ( $GLOBALS['mbcom_failed'] ) {
 	exit( 1 );

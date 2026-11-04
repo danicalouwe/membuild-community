@@ -10,6 +10,7 @@ import CourseLinkCard from './CourseLinkCard.vue'
 import { useCourseLink } from '../lib/courseCards.js'
 import MediaGrid from './MediaGrid.vue'
 import PostActions from './PostActions.vue'
+import PollBlock from './PollBlock.vue'
 import CommentThread from './CommentThread.vue'
 import { t } from '../lib/i18n.js'
 
@@ -49,6 +50,7 @@ watch(() => route.path, () => emit('close'))
       <RichText v-if="shownText" class="text" :text="shownText" :strong="linkedCourse?.title" />
       <CourseLinkCard v-if="linkedCourse" :course="linkedCourse" @click="emit('close')" />
       <MediaGrid v-if="post.media.length" class="media" :media="post.media" />
+      <PollBlock v-if="post.poll" :post="post" roomy />
       <PostActions :post="post" class="actions" @comment="thread?.focus()" />
 
       <div class="comments">

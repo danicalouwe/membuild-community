@@ -87,6 +87,32 @@ class Privacy {
 			}
 		}
 
+		if ( 1 === (int) $page ) {
+			foreach ( $wpdb->get_results( $wpdb->prepare( 'SELECT v.id, v.created_at, o.label, p.content FROM %i v LEFT JOIN %i o ON o.id = v.option_id LEFT JOIN %i p ON p.id = v.post_id WHERE v.user_id = %d', Install::table( 'poll_votes' ), Install::table( 'poll_options' ), Install::table( 'posts' ), $id ), ARRAY_A ) as $v ) {
+				$items[] = array(
+					'group_id'    => 'mbcom-poll-votes',
+					'group_label' => __( 'Community poll votes', 'membuild-community' ),
+					'item_id'     => 'mbcom-poll-vote-' . $v['id'],
+					'data'        => array(
+						array( 'name' => __( 'Question', 'membuild-community' ), 'value' => (string) $v['content'] ),
+						array( 'name' => __( 'Your vote', 'membuild-community' ), 'value' => (string) $v['label'] ),
+						array( 'name' => __( 'Voted', 'membuild-community' ), 'value' => (string) $v['created_at'] ),
+					),
+				);
+			}
+			foreach ( $wpdb->get_results( $wpdb->prepare( 'SELECT s.id, s.created_at, p.content FROM %i s LEFT JOIN %i p ON p.id = s.post_id WHERE s.user_id = %d', Install::table( 'saved_posts' ), Install::table( 'posts' ), $id ), ARRAY_A ) as $s ) {
+				$items[] = array(
+					'group_id'    => 'mbcom-saved-posts',
+					'group_label' => __( 'Community saved posts', 'membuild-community' ),
+					'item_id'     => 'mbcom-saved-' . $s['id'],
+					'data'        => array(
+						array( 'name' => __( 'Post', 'membuild-community' ), 'value' => (string) $s['content'] ),
+						array( 'name' => __( 'Saved', 'membuild-community' ), 'value' => (string) $s['created_at'] ),
+					),
+				);
+			}
+		}
+
 		// Posts and comments, a batch per page.
 		$offset   = ( (int) $page - 1 ) * self::BATCH;
 		$posts    = $wpdb->get_results( $wpdb->prepare( "SELECT id, type, content, created_at FROM %i WHERE user_id = %d AND status <> 'deleted' ORDER BY id LIMIT %d OFFSET %d", Install::table( 'posts' ), $id, self::BATCH, $offset ), ARRAY_A );
@@ -165,7 +191,7 @@ class Privacy {
 		// Last pass: messages (text removed, the conversation's shape kept for the other people), stories, reactions and the rest.
 		$removed += (int) $wpdb->query( $wpdb->prepare( "UPDATE %i SET content = NULL, media = NULL, story = NULL, status = 'unsent' WHERE user_id = %d AND status <> 'unsent'", Install::table( 'messages' ), $id ) );
 		$removed += (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE user_id = %d', Install::table( 'stories' ), $id ) );
-		foreach ( array( 'reactions', 'story_views', 'notifications', 'lesson_progress', 'course_starts', 'points', 'member_stats', 'group_members', 'place_news' ) as $table ) {
+		foreach ( array( 'reactions', 'saved_posts', 'poll_votes', 'story_views', 'notifications', 'lesson_progress', 'course_starts', 'points', 'member_stats', 'group_members', 'place_news' ) as $table ) {
 			$removed += (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE user_id = %d', Install::table( $table ), $id ) );
 		}
 		$removed += (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE reporter_id = %d', Install::table( 'reports' ), $id ) );
@@ -189,7 +215,7 @@ class Privacy {
 		}
 		$text = '<p class="privacy-policy-tutorial">' . esc_html__( 'Suggested text for the community. Edit it to match how you run your community.', 'membuild-community' ) . '</p>'
 			. '<p><strong class="privacy-policy-tutorial">' . esc_html__( 'Suggested text:', 'membuild-community' ) . '</strong> '
-			. esc_html__( 'When you take part in our community we store what you share there: your profile, posts, comments, reactions, stories, messages, course progress and points. Messages are private between the people in a chat and are stored encrypted. They are not shown to site admins in the community, and message text is never included in emails; the site’s owner holds the encryption key, so someone with full access to the site’s server and database could read them. If you report a post or comment, moderators see your report and note. You can ask us for a copy of your data or ask us to erase it.', 'membuild-community' )
+			. esc_html__( 'When you take part in our community we store what you share there: your profile, posts, comments, reactions, poll votes, saved posts, stories, messages, course progress and points. Messages are private between the people in a chat and are stored encrypted. They are not shown to site admins in the community, and message text is never included in emails; the site’s owner holds the encryption key, so someone with full access to the site’s server and database could read them. If you report a post or comment, moderators see your report and note. You can ask us for a copy of your data or ask us to erase it.', 'membuild-community' )
 			. '</p><p>' . esc_html__( 'If a member posts a YouTube or Vimeo link, the site fetches the video’s public details from that service and the video plays in their player. If email notifications are on, your email address and the notification are sent through the site’s email service. If Bunny Stream is turned on, videos you upload are stored with Bunny.net. Members without their own profile photo are shown with their Gravatar, which sends a hashed form of their email address to Gravatar.com.', 'membuild-community' ) . '</p>';
 		wp_add_privacy_policy_content( __( 'MemBuild - Community', 'membuild-community' ), wp_kses_post( $text ) );
 	}

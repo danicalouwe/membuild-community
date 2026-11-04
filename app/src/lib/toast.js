@@ -5,7 +5,8 @@ import { celebrating } from './popups.js'
  * One short message at the bottom of the screen ("Nice work! Lesson done."),
  * gone after a few seconds. A new one replaces the old. It can carry an icon
  * ('megaphone') and one action, like "View post" ({ label, post }), which opens
- * that post on top of the page; a message with an action stays a little longer.
+ * that post on top of the page; { label, to } goes to a page and { label, run } calls
+ * a function. A message with an action stays a little longer.
  */
 export const toast = reactive({ message: '', emoji: '', icon: '', action: null, id: 0 })
 

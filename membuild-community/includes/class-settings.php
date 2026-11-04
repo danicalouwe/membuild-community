@@ -21,7 +21,7 @@ class Settings {
 
 	const OPTION = 'mbcom_settings';
 
-	const FEATURES = array( 'reels', 'stories', 'classroom', 'leaderboard', 'messages', 'search', 'places', 'events', 'online' ); // online: "Show who's online", needs messages
+	const FEATURES = array( 'reels', 'stories', 'polls', 'classroom', 'leaderboard', 'messages', 'search', 'places', 'events', 'online' ); // online: "Show who's online", needs messages
 
 	/**
 	 * Settings › Features › Courses: the parts of a course an owner can turn off. The

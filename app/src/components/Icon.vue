@@ -23,6 +23,9 @@ const paths = {
   comment: 'M20 15a2 2 0 0 1-2 2H8l-4 4V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2z',
   share: 'M14 5l7 7-7 7M21 12H10a7 7 0 0 0-7 7v1',
   plus: 'M12 5v14M5 12h14',
+  bookmark: 'M6 3h12v18l-6-4.2L6 21z',
+  bookmarkOn: 'M6 3h12v18l-6-4.2L6 21z', // the same shape, solid: this post is saved
+  poll: 'M6 20V11M12 20V4M18 20v-6',
   image: 'M4 4h16v16H4zM8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM20 15l-5-5L4 20',
   video: 'M3 6h12v12H3zM15 10l6-3v10l-6-3',
   close: 'M6 6l12 12M18 6 6 18',
@@ -92,7 +95,7 @@ const paths = {
   reels: 'M3 3h18v18H3zM3 8h18M8 3l3 5M14 3l3 5M10 12v6l5-3z',
 }
 // Logos drawn as solid shapes rather than lines.
-const FILLED = new Set(['wordpress'])
+const FILLED = new Set(['wordpress', 'bookmarkOn'])
 </script>
 
 <template>

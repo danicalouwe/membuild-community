@@ -187,6 +187,8 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
           <span class="sort-title">{{ t.__('Sort posts', 'membuild-community') }}</span>
           <button role="menuitemradio" :aria-checked="sort === 'latest'" :class="{ on: sort === 'latest' }" @click="setSort('latest')">{{ t.__('Latest', 'membuild-community') }}<Icon v-if="sort === 'latest'" name="check" :size="18" /></button>
           <button role="menuitemradio" :aria-checked="sort === 'hot'" :class="{ on: sort === 'hot' }" @click="setSort('hot')">{{ t.__('Popular', 'membuild-community') }}<Icon v-if="sort === 'hot'" name="check" :size="18" /></button>
+          <span class="sort-line" role="separator" />
+          <RouterLink class="sort-link" role="menuitem" :to="{ name: 'saved' }" @click="sortOpen = false"><Icon name="bookmark" :size="18" />{{ t.__('Saved posts', 'membuild-community') }}</RouterLink>
         </span>
       </span>
     </div>
@@ -198,6 +200,7 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
     <div v-else-if="!topicsShown" class="sort" role="tablist" :aria-label="t.__('Sort posts', 'membuild-community')">
       <button class="filter-pill" role="tab" :aria-selected="sort === 'latest'" :class="{ on: sort === 'latest' }" @click="sort = 'latest'">{{ t.__('Latest', 'membuild-community') }}</button>
       <button class="filter-pill" role="tab" :aria-selected="sort === 'hot'" :class="{ on: sort === 'hot' }" @click="sort = 'hot'"><Icon name="flame" :size="15" /> {{ t.__('Popular', 'membuild-community') }}</button>
+      <RouterLink class="filter-pill" :to="{ name: 'saved' }"><Icon name="bookmark" :size="15" /> {{ t.__('Saved', 'membuild-community') }}</RouterLink>
     </div>
 
     <template v-for="post in list.pinned" :key="`pin-${post.id}`">
@@ -425,8 +428,28 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
 }
 
 .sort-menu button:hover,
-.sort-menu button.on {
+.sort-menu button.on,
+.sort-link:hover {
   background: var(--surface-2);
+}
+
+.sort-line {
+  height: 1px;
+  margin: 6px 10px;
+  background: var(--border);
+}
+
+.sort-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  text-decoration: none;
 }
 
 .topic-card {

@@ -2,7 +2,7 @@
 import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { askConfirm } from '../lib/confirm.js'
 import { api } from '../api.js'
-import { cfg } from '../config.js'
+import { cfg, feature } from '../config.js'
 import CourseLinkCard from './CourseLinkCard.vue'
 import { showToast } from '../lib/toast.js'
 import { forgetTopicLists, insertPost, markPosted, removePost, replacePost, updatePost } from '../stores/feed.js'
@@ -17,6 +17,7 @@ import AttachmentPreview from './AttachmentPreview.vue'
 import ReactionPicker from './ReactionPicker.vue'
 const GifPicker = defineAsyncComponent(() => import('./GifPicker.vue'))
 import FeedEmbed from './FeedEmbed.vue'
+import PollEditor from './PollEditor.vue'
 import { t } from '../lib/i18n.js'
 import { useDialog } from '../lib/useDialog.js'
 
@@ -42,6 +43,26 @@ const attachments = ref(props.draft?.attachments || [])
 const background = ref(source?.background || '')
 const feeling = ref(source?.feeling || '')
 const saving = ref(false)
+// A poll: the words are its question. Home only, with no photos, link video or background.
+const pollOn = ref(!!props.draft?.poll)
+const poll = ref(props.draft?.poll || { options: ['', ''], closes: '1w' })
+const pollsHere = computed(() => !props.edit && !props.place && !props.draft?.share && feature('polls'))
+const filledChoices = computed(() => poll.value.options.map((o) => o.trim()).filter(Boolean))
+const sameChoices = computed(() => new Set(filledChoices.value.map((o) => o.toLowerCase())).size < filledChoices.value.length)
+const noPhotos = () => t.__('A poll can’t have photos.', 'membuild-community')
+function addPoll() {
+  error.value = ''
+  if (pollOn.value) return
+  if (attachments.value.length) return (error.value = noPhotos())
+  pollOn.value = true
+  link.value = null
+  showBackgrounds.value = false
+}
+async function removePoll() {
+  if (filledChoices.value.length && !(await askConfirm({ title: t.__('Remove this poll?', 'membuild-community'), text: t.__('The choices you typed will be lost. Your words stay.', 'membuild-community'), cancel: t.__('Keep the poll', 'membuild-community'), confirm: t.__('Remove poll', 'membuild-community'), danger: true }))) return
+  pollOn.value = false
+  poll.value = { options: ['', ''], closes: '1w' }
+}
 // When editing, the post's photos and videos stay as they are.
 const keptMedia = props.edit?.media.length || 0
 
@@ -51,7 +72,7 @@ const link = ref(null) // { url, media, loading }
 const dismissed = ref('') // the link whose preview the author closed
 let linkTimer = null
 watch(text, (value) => {
-  if (props.edit || attachments.value.length) return
+  if (props.edit || attachments.value.length || pollOn.value) return
   const url = value.match(VIDEO_LINK)?.[0] || ''
   if (url === (link.value?.url || '')) return
   clearTimeout(linkTimer)
@@ -95,9 +116,13 @@ const BACKGROUND_NAMES = {
   candy: t._x('candy', 'post background', 'membuild-community'),
   lime: t._x('lime', 'post background', 'membuild-community'),
 }
-const placeholder = props.place
-  ? t.__('Ask a question, share a win or add a tip…', 'membuild-community')
-  : t.sprintf(/* translators: %s: the person's first name */ t.__("What's on your mind, %s?", 'membuild-community'), firstName)
+const placeholder = computed(() =>
+  pollOn.value || props.edit?.poll
+    ? t.__('Ask your question…', 'membuild-community')
+    : props.place
+    ? t.__('Ask a question, share a win or add a tip…', 'membuild-community')
+    : t.sprintf(/* translators: %s: the person's first name */ t.__("What's on your mind, %s?", 'membuild-community'), firstName),
+)
 // Inside a lesson the button says “Ask a question”, so the box and its button say the same.
 const asking = !props.edit && !!props.place?.lesson
 const dialogTitle = props.edit ? t.__('Edit post', 'membuild-community') : asking ? t.__('Ask a question', 'membuild-community') : t.__('Create post', 'membuild-community')
@@ -120,11 +145,13 @@ const whoParts = computed(() => {
 })
 const hasVideo = computed(() => attachments.value.some((a) => a.kind === 'video'))
 const failed = computed(() => attachments.value.some((a) => a.status === 'error'))
-const canPost = computed(
-  () => (text.value.trim() || share || attachments.value.length || keptMedia || feeling.value) && !failed.value && !saving.value && !link.value?.loading,
+const canPost = computed(() =>
+  pollOn.value
+    ? text.value.trim() && filledChoices.value.length >= 2 && !sameChoices.value
+    : (text.value.trim() || share || attachments.value.length || keptMedia || feeling.value) && !failed.value && !saving.value && !link.value?.loading,
 )
 // Backgrounds only fit short, text-only posts.
-const bgAllowed = computed(() => !share && !attachments.value.length && !keptMedia && !link.value && text.value.length <= BACKGROUND_MAX)
+const bgAllowed = computed(() => !pollOn.value && !props.edit?.poll && !share && !attachments.value.length && !keptMedia && !link.value && text.value.length <= BACKGROUND_MAX)
 const activeBg = computed(() => (bgAllowed.value && background.value ? BACKGROUNDS[background.value] : null))
 const feelingList = computed(() =>
   Object.entries(FEELINGS).filter(([, f]) => f.label.includes(feelingQuery.value.trim().toLowerCase())),
@@ -163,11 +190,12 @@ function toggleTopicPicker(e) {
 const dirty = computed(() =>
   props.edit
     ? text.value !== source.text || feeling.value !== source.feeling || background.value !== source.background || topicId.value !== (props.edit.topic?.id || 0)
-    : !!(text.value.trim() || attachments.value.length || feeling.value),
+    : !!(text.value.trim() || attachments.value.length || feeling.value || (pollOn.value && filledChoices.value.length)),
 )
 
 function addFiles(files) {
   if (props.edit) return
+  if (pollOn.value) return (error.value = noPhotos())
   error.value = ''
   for (const file of files) {
     if (!/^(image|video)\//.test(file.type)) continue
@@ -239,7 +267,8 @@ async function close() {
 async function submit() {
   if (!canPost.value) return
   if (props.edit) return saveEdit()
-  const embed = !attachments.value.length && link.value?.media ? link.value.media : null
+  const pollSent = pollOn.value ? { options: filledChoices.value, closes: poll.value.closes } : null
+  const embed = !pollSent && !attachments.value.length && link.value?.media ? link.value.media : null
   // A post that is just the link shows the video alone, without the bare URL.
   const words = embed && text.value.trim() === link.value.url ? '' : text.value.trim()
   const content = share ? `${words} ${share.url}`.trim() : words
@@ -269,6 +298,8 @@ async function submit() {
     top_reactions: [],
     can_delete: false,
     preview_comment: null,
+    // How the poll will look, until the server answers; no one can vote on it yet.
+    ...(pollSent ? { poll: { options: pollSent.options.map((label, i) => ({ id: `local-${i}`, label, percent: null })), total_votes: 0, my_vote: null, closes_at: null, closed: false, closed_at: null, can_vote: true, can_close: false, locked: false } } : {}),
   })
   emit('posted')
   emit('close')
@@ -285,6 +316,7 @@ async function submit() {
       course_id: place?.course.id,
       lesson_id: place?.lesson?.id,
       topic_id: !place && topicId.value ? topicId.value : undefined,
+      poll: pollSent || undefined,
     })
     replacePost(key, saved)
     const inTopic = saved.topic && topics.items.find((x) => x.id === saved.topic.id)
@@ -314,7 +346,7 @@ async function submit() {
     // Reopen with everything restored, so nothing the member wrote is lost.
     window.dispatchEvent(
       new CustomEvent('mbcom:reopen-composer', {
-        detail: { text: share ? words : content, share, attachments: items, background: chosenBg, feeling: chosenFeeling, error: err.message, place, topic: topicId.value },
+        detail: { text: share ? words : content, share, attachments: items, background: chosenBg, feeling: chosenFeeling, error: err.message, place, topic: topicId.value, poll: pollOn.value ? poll.value : null },
       }),
     )
   }
@@ -435,12 +467,13 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
                 :class="{ big: activeBg }"
                 :rows="activeBg ? 3 : share ? 2 : 4"
                 :placeholder="placeholder"
+                :disabled="!!edit?.poll?.locked"
                 :aria-label="t.__('What\'s on your mind', 'membuild-community')"
               />
             </div>
             <CourseLinkCard v-if="share" class="share-card" :course="share.course" still />
 
-            <div class="tools">
+            <div v-if="!edit?.poll?.locked" class="tools">
               <button
                 v-if="bgAllowed"
                 class="aa"
@@ -489,21 +522,29 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
               </button>
             </div>
 
+            <PollEditor v-if="pollOn" :poll="poll" :same-choices="sameChoices" @remove="removePoll" />
+            <section v-if="edit?.poll" class="poll-locked">
+              <strong><Icon name="poll" :size="18" /> {{ t.__('Poll', 'membuild-community') }}</strong>
+              <span v-for="o in edit.poll.options" :key="o.id" class="poll-locked-choice">{{ o.label }}</span>
+              <p v-if="edit.poll.locked">{{ t.__('The question and choices can’t change after the first vote.', 'membuild-community') }}</p>
+            </section>
+
             <p v-if="keptMedia" class="kept">{{ keptMedia === 1 ? t.__('The photo or video stays as it is.', 'membuild-community') : keptLabel(keptMedia) }}</p>
             <p v-if="error" class="error">{{ error }}</p>
 
-            <div class="add-box">
+            <div v-if="!edit?.poll" class="add-box">
               <span>{{ t.__('Add to your post', 'membuild-community') }}</span>
               <div class="add-icons">
-                <button v-if="!edit" class="add-icon" :aria-label="t.__('Photo or video', 'membuild-community')" :title="t.__('Photo/video', 'membuild-community')" @click="fileInput.click()">
+                <button v-if="!edit" class="add-icon" :class="{ dim: pollOn }" :aria-label="t.__('Photo or video', 'membuild-community')" :title="t.__('Photo/video', 'membuild-community')" @click="pollOn ? (error = noPhotos()) : fileInput.click()">
                   <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="16" height="14" rx="2.5" fill="#2f9e5b" opacity=".55" /><rect x="2.5" y="6" width="16" height="15" rx="2.5" fill="#45bd62" /><circle cx="8" cy="11" r="1.8" fill="#fff" /><path d="M4.5 19l4.5-4.5 3 3 2.5-2.5 3 3.5" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round" /></svg>
                 </button>
-                <button v-if="!edit && giphyOn()" class="add-icon gif" :aria-label="t.__('GIF', 'membuild-community')" :title="t.__('GIF', 'membuild-community')" @click="showGifs = true">
+                <button v-if="!edit && giphyOn()" class="add-icon gif" :class="{ dim: pollOn }" :aria-label="t.__('GIF', 'membuild-community')" :title="t.__('GIF', 'membuild-community')" @click="pollOn ? (error = noPhotos()) : (showGifs = true)">
                   <span class="gif-badge" aria-hidden="true"><b>GIF</b></span>
                 </button>
                 <button class="add-icon" :class="{ on: feeling }" :aria-label="t.__('Feeling or activity', 'membuild-community')" :title="t.__('Feeling/activity', 'membuild-community')" @click="view = 'feeling'">
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9.5" stroke="#f7932f" stroke-width="2" /><path d="M8 14c1 1.6 2.4 2.4 4 2.4s3-.8 4-2.4" stroke="#f7932f" stroke-width="2" stroke-linecap="round" /><circle cx="9" cy="9.6" r="1.3" fill="#f7932f" /><circle cx="15" cy="9.6" r="1.3" fill="#f7932f" /></svg>
                 </button>
+                <button v-if="pollsHere" class="add-icon poll-icon" :class="{ on: pollOn }" :aria-label="t.__('Poll', 'membuild-community')" :title="t.__('Poll', 'membuild-community')" :aria-pressed="pollOn" @click="addPoll"><Icon name="poll" :size="26" /></button>
               </div>
             </div>
             <input ref="fileInput" class="sr-only" type="file" tabindex="-1" aria-hidden="true" accept="image/*,video/*" multiple @change="pickFiles" />
@@ -802,6 +843,10 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
   padding: 24px;
 }
 
+.write textarea:disabled {
+  color: var(--text-3);
+}
+
 .write.bg textarea {
   min-height: 0;
   color: var(--on-color);
@@ -943,6 +988,43 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
 .add-icon:hover,
 .add-icon.on {
   background: var(--surface-2);
+}
+
+.add-icon.dim {
+  opacity: 0.35;
+}
+
+.poll-icon {
+  color: var(--info-text);
+}
+
+.poll-locked {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+
+.poll-locked strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+}
+
+.poll-locked-choice {
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+.poll-locked p {
+  margin: 0;
+  font-size: var(--fs-md);
 }
 
 .foot {

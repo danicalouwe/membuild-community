@@ -7,6 +7,7 @@ const FEATURES = [
   { key: 'messages', label: t.__('Messages', 'membuild-community'), hint: t.__('Private chats between members.', 'membuild-community') },
   { key: 'online', sub: 'messages', label: t.__('Show who’s online', 'membuild-community'), hint: t.__('A green dot on members who are here right now. Members can hide theirs.', 'membuild-community') },
   { key: 'stories', label: t.__('Stories', 'membuild-community'), hint: t.__('Photos and words that disappear after a day.', 'membuild-community') },
+  { key: 'polls', label: t.__('Polls', 'membuild-community'), hint: t.__('A question with choices that members can add to a post.', 'membuild-community') },
   { key: 'reels', label: t.__('Reels', 'membuild-community'), hint: t.__('Short upright videos, in their own tab.', 'membuild-community') },
   { key: 'leaderboard', label: t.__('Leaderboard', 'membuild-community'), hint: t.__('A list of the most active members. Points still count when it’s off.', 'membuild-community') },
   { key: 'events', label: t.__('Events', 'membuild-community'), hint: t.__('A calendar of live calls and meetups. Members can say they’re going.', 'membuild-community') },

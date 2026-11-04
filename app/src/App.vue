@@ -50,7 +50,7 @@ const onProfile = computed(() => ['member', 'me', 'profile-edit', 'privacy', 'bi
 const inLesson = computed(() => inCourse.value && !!route.params.lessonId && !route.query.tab)
 // Single-column pages sit at the exact centre of the window, as on Facebook: the right side
 // reserves the same width as the left column. Grids and maps use the full width beside it.
-const centred = computed(() => ['feed', 'notifications'].includes(route.name))
+const centred = computed(() => ['feed', 'notifications', 'saved'].includes(route.name))
 // Tabs follow the features switched on in settings (the lists update after a save).
 const shown = computed(() => tabs.filter((tab) => !tab.feature || feature(tab.feature)))
 const desktopTabs = computed(() => shown.value.filter((tab) => tab.name !== 'me' && !tab.mobileOnly))
@@ -201,9 +201,9 @@ const tabLabel = (tab) =>
 
 const homeLabel = t.sprintf(/* translators: %s: the site's name */ t.__('%s home', 'membuild-community'), cfg.siteName)
 
-// A course page belongs to the Classroom tab.
+// A course page belongs to the Classroom tab, and Saved posts to Home.
 const isActive = (tab) =>
-  route.name === tab.name || (tab.name === 'classroom' && route.name === 'course') || (tab.name === 'members' && route.name === 'member') || (tab.name === 'events' && route.name === 'event')
+  route.name === tab.name || (tab.name === 'feed' && route.name === 'saved') || (tab.name === 'classroom' && route.name === 'course') || (tab.name === 'members' && route.name === 'member') || (tab.name === 'events' && route.name === 'event')
 </script>
 
 <template>
