@@ -127,6 +127,7 @@ class App {
 				return '';
 			}
 			$editor->resize( 64, 64, true );
+			require_once ABSPATH . 'wp-admin/includes/file.php'; // wp_tempnam() isn't loaded on public pages, and this runs on them
 			$tmp   = wp_tempnam( 'mbcom-tab.png' );
 			$saved = $editor->save( $tmp, 'image/png' );
 			if ( is_wp_error( $saved ) ) {

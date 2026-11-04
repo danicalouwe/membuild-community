@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.17.2
+Stable tag: 1.17.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,9 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.17.3 =
+* Fixed: the login and community pages (and the home page, on sites with a Site Icon) no longer stop with a critical error after adding a logo, an app icon or a Site Icon.
 
 = 1.17.2 =
 * Fixed: opening a website page in the block editor no longer shows a PHP warning above the editor for a moment.
