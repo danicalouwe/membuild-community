@@ -26,8 +26,19 @@ export class ApiError extends Error {
 export function noAnswerError() {
   return new ApiError(t.__('No answer from the server. Check your connection and try again.', 'membuild-community'), 0, 'no_answer')
 }
-const plainFailure = (e) => {
-  throw e?.name === 'TimeoutError' || e instanceof TypeError ? noAnswerError() : e
+const plainFailure = (signal) => (e) => {
+  throw signal?.timedOut || e?.name === 'TimeoutError' || e instanceof TypeError ? noAnswerError() : e
+}
+
+// A signal that gives up after this long. Older iPhones (before iOS 16) have no AbortSignal.timeout.
+export function timeLimit(ms) {
+  if (AbortSignal.timeout) return AbortSignal.timeout(ms)
+  const limit = new AbortController()
+  setTimeout(() => {
+    limit.signal.timedOut = true
+    limit.abort()
+  }, ms)
+  return limit.signal
 }
 
 async function send(path, { method = 'GET', params, body, raw, signal } = {}) {
@@ -41,7 +52,7 @@ async function send(path, { method = 'GET', params, body, raw, signal } = {}) {
     payload = JSON.stringify(body)
   }
 
-  const res = await fetch(url(path, params), { method, headers, body: payload, signal, credentials: 'same-origin' }).catch(plainFailure)
+  const res = await fetch(url(path, params), { method, headers, body: payload, signal, credentials: 'same-origin' }).catch(plainFailure(signal))
   // The server sends a fresh nonce with every response, so a tab left open
   // for days keeps a valid one as long as it keeps talking to the server.
   const fresh = res.headers.get('X-WP-Nonce')
@@ -50,21 +61,22 @@ async function send(path, { method = 'GET', params, body, raw, signal } = {}) {
   const data = await res.json().catch((e) => {
     if (e?.name === 'AbortError' || e?.name === 'TimeoutError') throw e
     return null
-  }).catch(plainFailure)
+  }).catch(plainFailure(signal))
   return { res, data }
 }
 
 // One shared refresh, so a burst of expired requests asks for a nonce once.
 let refreshing = null
 function refreshNonce() {
+  const signal = timeLimit(15000) // a stalled connection never fails on its own, and others wait on this
   refreshing ??= fetch(cfg.ajaxUrl, {
     method: 'POST',
     credentials: 'same-origin',
     body: new URLSearchParams({ action: 'mbcom_nonce' }),
-    signal: AbortSignal.timeout?.(15000), // a stalled connection never fails on its own, and others wait on this
+    signal,
   })
     .then((r) => r.json())
-    .catch(plainFailure)
+    .catch(plainFailure(signal))
     .then((json) => {
       if (!json?.success || !json.data?.nonce) throw new Error('nonce')
       cfg.nonce = json.data.nonce

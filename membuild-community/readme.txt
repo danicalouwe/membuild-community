@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.18.3
+Stable tag: 1.18.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,16 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.18.4 =
+* Fixed: words and photos that came back to the message box after a failed send are still there if you leave the chat and return.
+* Fixed: if a host refuses the database change from 1.18.3, messages still send and a resend isn't saved twice. The site owner sees it under Problems, the plugin tries again every hour, and the entry goes away once it works.
+* Fixed: on iPhones before iOS 16, a stalled connection now ends with a plain message instead of waiting forever.
+* Changed: a message stops waiting at the first photo that fails, and the words and other photos go back in the box.
+* Fixed: a photo added to words that came back in the box is no longer dropped when you send.
+* Fixed: when a photo-only message fails after you leave its chat, the message no longer says your words are back.
+* Fixed: a resend at the same moment as the first send no longer says a photo is unavailable.
+* Fixed: the Problems list keeps track of the right entry when it's full, and Delete everything also removes the list.
 
 = 1.18.3 =
 * Fixed: a message sent twice because the answer got lost, even with photos or at the same moment, is saved only once.

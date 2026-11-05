@@ -56,7 +56,7 @@ function mbcom_uninstall_site() {
 		wp_delete_file( $mbcom_key );
 	}
 
-	foreach ( array( 'mbcom_settings', 'mbcom_db_version', 'mbcom_files_migration', 'mbcom_key', 'mbcom_key_check', 'mbcom_key_saved', 'mbcom_search_index', 'mbcom_lessons_opened_at', 'mbcom_coming_soon', 'mbcom_plan_features' ) as $mbcom_option ) {
+	foreach ( array( 'mbcom_settings', 'mbcom_db_version', 'mbcom_message_key_refused', 'mbcom_problems', 'mbcom_files_migration', 'mbcom_key', 'mbcom_key_check', 'mbcom_key_saved', 'mbcom_search_index', 'mbcom_lessons_opened_at', 'mbcom_coming_soon', 'mbcom_plan_features' ) as $mbcom_option ) {
 		delete_option( $mbcom_option );
 	}
 	$wpdb->query(

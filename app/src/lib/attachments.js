@@ -1,5 +1,5 @@
 import { reactive } from 'vue'
-import { request } from '../api.js'
+import { request, timeLimit } from '../api.js'
 import { cfg } from '../config.js'
 import { prepareImage } from './image.js'
 import { uploadBlob } from './upload.js'
@@ -158,7 +158,7 @@ export function startGif(gif) {
     },
     release: () => {},
   })
-  item.promise = request('/media/gif', { method: 'POST', signal: AbortSignal.timeout?.(30000), body: { id: gif.id, url: gif.pick.url, mp4: gif.pick.mp4, still: gif.pick.still, width: gif.pick.width, height: gif.pick.height, title: gif.title } })
+  item.promise = request('/media/gif', { method: 'POST', signal: timeLimit(30000), body: { id: gif.id, url: gif.pick.url, mp4: gif.pick.mp4, still: gif.pick.still, width: gif.pick.width, height: gif.pick.height, title: gif.title } })
     .then((media) => {
       item.media = media
       item.previewUrl = media.url

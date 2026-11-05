@@ -36,6 +36,7 @@ class Install {
 	);
 
 	/** Hourly maintenance (the name is kept from 0.1 so existing schedules carry on). */
+	const KEY_REFUSED = 'mbcom_message_key_refused'; // option: its Problems entry; transient: wait before trying again
 	const CRON_HOOK = 'mbcom_cleanup_stories';
 
 	public static function activate() {
@@ -62,17 +63,70 @@ class Install {
 	public static function maybe_upgrade() {
 		$from = (int) get_option( 'mbcom_db_version', 0 );
 		if ( $from >= (int) MEMBUILD_COMMUNITY_DB_VERSION ) {
+			if ( get_option( self::KEY_REFUSED ) && ! get_transient( self::KEY_REFUSED ) ) {
+				set_transient( self::KEY_REFUSED, 1, HOUR_IN_SECONDS ); // set first: adding it can take a while on a big table, and other requests shouldn't start too
+				self::add_message_key(); // the database refused it before: try again, once an hour
+			}
 			return;
 		}
+		self::clear_duplicate_keys();
 		self::create_tables();
 		foreach ( self::STEPS as $version => $method ) {
 			if ( $from > 0 && $from < $version ) {
 				self::$method();
 			}
 		}
+		self::check_message_key();
 		update_option( 'mbcom_db_version', MEMBUILD_COMMUNITY_DB_VERSION );
 		// Updates can change the community's address rules too; refresh them once, after init.
 		add_action( 'init', fn() => flush_rewrite_rules( false ), 99 );
+	}
+
+	/* ---------- The messages table's resend key ---------- */
+
+	private static function has_message_key() {
+		global $wpdb;
+		$quiet = $wpdb->suppress_errors();
+		$found = $wpdb->get_var( $wpdb->prepare( 'SHOW INDEX FROM %i WHERE Key_name = %s', self::table( 'messages' ), 'client_key' ) );
+		$wpdb->suppress_errors( $quiet );
+		return (bool) $found;
+	}
+
+	/** Without the unique key, two copies of one send can share a key, and then the key can't be added. The messages stay. */
+	private static function clear_duplicate_keys() {
+		global $wpdb;
+		if ( self::has_message_key() ) {
+			return;
+		}
+		$table = self::table( 'messages' );
+		$quiet = $wpdb->suppress_errors(); // no column yet, on sites from before it
+		$twins = $wpdb->get_results( $wpdb->prepare( 'SELECT user_id, thread_id, client_key, MIN(id) AS keep_id FROM %i WHERE client_key IS NOT NULL GROUP BY user_id, thread_id, client_key HAVING COUNT(*) > 1 LIMIT 200', $table ) );
+		foreach ( $twins as $twin ) {
+			$wpdb->query( $wpdb->prepare( 'UPDATE %i SET client_key = NULL WHERE user_id = %d AND thread_id = %d AND client_key = %s AND id <> %d', $table, $twin->user_id, $twin->thread_id, $twin->client_key, $twin->keep_id ) );
+		}
+		$wpdb->suppress_errors( $quiet );
+	}
+
+	private static function add_message_key() {
+		self::clear_duplicate_keys();
+		self::create_tables();
+		self::check_message_key();
+	}
+
+	/** A host can refuse a table change without any error reaching us. Messages work without the key, so nothing else waits for it. */
+	private static function check_message_key() {
+		if ( self::has_message_key() ) {
+			$refused = get_option( self::KEY_REFUSED );
+			if ( $refused ) {
+				Problems::forget( $refused );
+				delete_option( self::KEY_REFUSED );
+				delete_transient( self::KEY_REFUSED );
+			}
+			return;
+		}
+		set_transient( self::KEY_REFUSED, 1, HOUR_IN_SECONDS );
+		// Recorded on every try, so the entry stays fresh, and comes back if the list was cleared while it's still true.
+		update_option( self::KEY_REFUSED, Problems::record( 'php', 'includes/class-install.php', 0, 'The database refused a change to the messages table. Messages still send, but one resent after a lost answer can show twice. It tries again every hour.', '', 'wp-admin' ) );
 	}
 
 	public static function table( $name ) {

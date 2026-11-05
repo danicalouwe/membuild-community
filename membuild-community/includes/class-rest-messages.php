@@ -519,6 +519,14 @@ class Rest_Messages {
 		// Photos are claimed only once the message will be sent, so a refused message leaves them free.
 		$unusable = self::unusable_images( $user_id, $media_ids );
 		if ( $unusable ) {
+			// A copy of this send that's saving right now took the photos a moment ago: its message is the answer.
+			for ( $try = 0; $client_key && $try < 3; $try++ ) {
+				usleep( 300000 );
+				$row = self::sent_with_key( $thread_id, $user_id, $client_key );
+				if ( $row ) {
+					return self::format_messages( array( $row ) )[0];
+				}
+			}
 			return new \WP_Error( 'mbcom_photo_gone', __( 'A photo in this message is no longer available. Please add it again.', 'membuild-community' ), array( 'status' => 410, 'media_ids' => $unusable ) );
 		}
 		$media = self::claim_images( $user_id, $media_ids, $thread_id );
@@ -551,6 +559,7 @@ class Rest_Messages {
 				return self::format_messages( array( $row ) )[0];
 			}
 			$saved = $wpdb->insert( $table, $values ); // the key's column may be missing, if adding it failed: the message matters more
+			$no_key_column = (bool) $saved;
 		}
 		if ( ! $saved ) {
 			// The photos go back to being free, so Try again can use them.
@@ -560,6 +569,9 @@ class Rest_Messages {
 			return new \WP_Error( 'mbcom_not_saved', __( 'Your message could not be saved. Please try again.', 'membuild-community' ), array( 'status' => 500 ) );
 		}
 		$id = (int) $wpdb->insert_id;
+		if ( ! empty( $no_key_column ) ) {
+			set_transient( self::key_transient( $thread_id, $user_id, $client_key ), $id, HOUR_IN_SECONDS );
+		}
 		$wpdb->update( Install::table( 'threads' ), array( 'last_message_id' => $id, 'last_message_at' => $now ), array( 'id' => $thread_id ) );
 		// Sending counts as reading, and re-opens the chat for anyone who had left a direct chat.
 		$wpdb->update( Install::table( 'thread_members' ), array( 'last_read_id' => $id ), array( 'thread_id' => $thread_id, 'user_id' => $user_id ) );
@@ -585,7 +597,16 @@ class Rest_Messages {
 		$quiet = $wpdb->suppress_errors(); // the column may be missing, if adding it failed
 		$row   = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE user_id = %d AND thread_id = %d AND client_key = %s', Install::table( 'messages' ), $user_id, $thread_id, $key ), ARRAY_A );
 		$wpdb->suppress_errors( $quiet );
+		if ( ! $row ) { // saved while the column was missing, even if it's been added since
+			$id  = (int) get_transient( self::key_transient( $thread_id, $user_id, $key ) );
+			$row = $id ? $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d AND user_id = %d AND thread_id = %d', Install::table( 'messages' ), $id, $user_id, $thread_id ), ARRAY_A ) : null;
+		}
 		return $row;
+	}
+
+	/** Where a key is remembered for an hour while the messages table has no place for it. */
+	private static function key_transient( $thread_id, $user_id, $key ) {
+		return 'mbcom_msgkey_' . md5( $user_id . '|' . $thread_id . '|' . $key );
 	}
 
 	/** Photos that can't go in this message, so it never goes out quietly without one. */

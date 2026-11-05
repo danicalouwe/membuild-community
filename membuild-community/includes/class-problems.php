@@ -148,11 +148,11 @@ class Problems {
 			foreach ( array( 'php', 'js' ) as $k ) { // each kind is sure of half …
 				$keep += array_slice( array_filter( $all, fn( $p ) => ( 'js' === $p['kind'] ? 'js' : 'php' ) === $k ), 0, (int) ( self::LIMIT / 2 ), true );
 			}
-			foreach ( $all as $sig => $p ) { // … and the newest of the rest fill what's left
+			foreach ( $all as $other => $p ) { // … and the newest of the rest fill what's left
 				if ( count( $keep ) >= self::LIMIT ) {
 					break;
 				}
-				$keep += array( $sig => $p );
+				$keep += array( $other => $p );
 			}
 			uasort( $keep, fn( $a, $b ) => $b['last'] <=> $a['last'] );
 			$all = $keep;
@@ -182,6 +182,13 @@ class Problems {
 
 	public static function clear() {
 		delete_option( self::OPTION );
+	}
+
+	/** Takes one entry away, when what it reported has healed. */
+	public static function forget( $sig ) {
+		$all = self::raw();
+		unset( $all[ $sig ] );
+		update_option( self::OPTION, $all, false );
 	}
 
 	/** What the weekly report carries: the newest signatures, counts and versions. No stack, no where. */
