@@ -4,7 +4,7 @@
  * Description:       A simple, free community for WordPress: feed, reels, courses and gamification.
  * Plugin URI:        https://github.com/danicalouwe/membuild-community
  * Update URI:        https://github.com/danicalouwe/membuild-community
- * Version:           1.18.7
+ * Version:           1.18.8
  * Requires at least: 6.4
  * Requires PHP:      8.1
  * Author:            MemBuild
@@ -31,7 +31,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'MEMBUILD_COMMUNITY_VERSION', '1.18.7' );
+define( 'MEMBUILD_COMMUNITY_VERSION', '1.18.8' );
 define( 'MEMBUILD_COMMUNITY_DB_VERSION', '43' ); // 43: tries again if the database refused the resend key; 42: a message keeps its resend key; 41: saved posts and polls; 40: the Coming soon page's waiting list; 39: how a course opens (all at once, from when they join, on a start date) and its start date; 38: points and level rows of deleted accounts removed; 37: a course's lesson order (any order, or one after another); 36: import_map (what each import brought, for Import again and Undo); 35: topics (posts.topic_id and the topics table); 34: a place's phone keeps its country; 33: who can see a place, and its hours by day; 32: a place remembers its time zone; 31: in-person events (place, address, time zone, repeats) and What's new at places
 define( 'MEMBUILD_COMMUNITY_FILE', __FILE__ );
 define( 'MEMBUILD_COMMUNITY_DIR', plugin_dir_path( __FILE__ ) );

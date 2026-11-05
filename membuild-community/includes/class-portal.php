@@ -142,10 +142,13 @@ class Portal {
 		return $found->post_name !== $first && 0 !== strpos( trailingslashit( (string) get_permalink( $found ) ), home_url( '/' . $first . '/' ) );
 	}
 
-	/** Where a request path belongs now, or '' when it isn't under a past address. */
+	/** Where a request path belongs now, or '' when it isn't under a past address or another spelling of this one. */
 	public static function current_address_for( $request, $query = '' ) {
 		$parts = explode( '/', trim( $request, '/' ), 2 );
-		if ( ! in_array( sanitize_title( rawurldecode( $parts[0] ) ), (array) get_option( self::OLD_ADDRESSES, array() ), true ) ) {
+		$first = sanitize_title( rawurldecode( $parts[0] ) );
+		// A typed /社区 arrives with capitals in its code (%E7), and the address is stored with small ones.
+		$respelled = Settings::slug() === $first && $parts[0] !== $first;
+		if ( ! $respelled && ! in_array( $first, (array) get_option( self::OLD_ADDRESSES, array() ), true ) ) {
 			return '';
 		}
 		return self::url() . ( $parts[1] ?? '' ) . ( '' !== $query ? '?' . $query : '' );

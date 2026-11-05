@@ -437,6 +437,15 @@ class Media {
 		};
 		add_filter( 'rest_attachment_query', $hide );
 		add_filter( 'ajax_query_attachments_args', $hide );
+		// The Media Library's list view, the same as its grid.
+		add_action(
+			'pre_get_posts',
+			function ( $query ) use ( $hide ) {
+				if ( is_admin() && $query->is_main_query() && 'upload.php' === ( $GLOBALS['pagenow'] ?? '' ) ) {
+					$query->set( 'meta_query', $hide( array( 'meta_query' => $query->get( 'meta_query' ) ?: array() ) )['meta_query'] ); // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- as above
+				}
+			}
+		);
 		// On the website they don't exist: no page, search result or feed, for any way of asking.
 		add_filter(
 			'posts_results',
@@ -472,7 +481,12 @@ class Media {
 			global $wpdb;
 			return $wpdb->prepare( "{$wpdb->comments}.comment_post_ID NOT IN (SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = %s)", self::PRIVATE_META ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- core table names
 		};
-		add_filter( 'comment_feed_where', fn( $where ) => $where . ' AND ' . $not_on_private() );
+		// In feeds, so does a reply elsewhere to one of those: every feed format links to the comment it answers.
+		$not_replying = function () {
+			global $wpdb;
+			return $wpdb->prepare( "{$wpdb->comments}.comment_parent NOT IN (SELECT answered.comment_ID FROM {$wpdb->comments} answered INNER JOIN {$wpdb->postmeta} marked ON marked.post_id = answered.comment_post_ID WHERE marked.meta_key = %s)", self::PRIVATE_META ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- core table names
+		};
+		add_filter( 'comment_feed_where', fn( $where ) => $where . ' AND ' . $not_on_private() . ' AND ' . $not_replying() );
 		add_filter(
 			'comments_clauses',
 			function ( $clauses ) use ( $not_on_private ) {

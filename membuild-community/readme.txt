@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.18.7
+Stable tag: 1.18.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,11 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.18.8 =
+* Fixed (security): comment feeds no longer name a private upload or print its file address through a reply to an old comment on that upload. Those replies are left out of feeds.
+* Fixed: a community address in another alphabet, such as /社区, now opens when someone types it.
+* Fixed: the Media Library's list view no longer shows private community uploads, the same as its grid.
 
 = 1.18.7 =
 * Fixed: on a site installed in a subfolder, visitors who joined from "See all events", "Open the Classroom" or "See the courses" no longer land on a page that doesn't exist.
