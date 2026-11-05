@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.18.4
+Stable tag: 1.18.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,9 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.18.5 =
+* Fixed: errors from a visitor's browser extensions are no longer reported as problems with the plugin.
 
 = 1.18.4 =
 * Fixed: words and photos that came back to the message box after a failed send are still there if you leave the chat and return.

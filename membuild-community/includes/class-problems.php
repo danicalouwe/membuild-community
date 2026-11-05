@@ -221,6 +221,9 @@ class Problems {
 		if ( '' === $message ) {
 			return new \WP_Error( 'mbcom_bad_report', __( 'Nothing to report.', 'membuild-community' ), array( 'status' => 400 ) );
 		}
+		if ( self::from_extension( $message, (string) ( $in['source'] ?? '' ), (string) ( $in['stack'] ?? '' ) ) ) {
+			return array( 'ok' => true ); // nothing for the site owner to do, so nothing to tell them
+		}
 		// The built file's hash changes every release; the plugin version says which build it was.
 		$source = preg_replace( '/-[A-Za-z0-9_-]{8}\.js$/', '.js', basename( (string) ( $in['source'] ?? '' ) ) );
 		$source = mb_substr( sanitize_text_field( $source ), 0, 80 );
@@ -228,6 +231,30 @@ class Problems {
 		$route  = mb_substr( sanitize_text_field( (string) ( $in['route'] ?? '' ) ), 0, 80 );
 		self::record( 'js', $source ?: 'app', (int) ( $in['line'] ?? 0 ), $message, $stack, $route );
 		return array( 'ok' => true );
+	}
+
+	/**
+	 * A browser extension's own error, caught because it ran on the page: every place in its stack is in an
+	 * extension. An error that also passes through the plugin's code stays reported, so a real one is never lost.
+	 */
+	public static function from_extension( $message, $source, $stack ) {
+		// The app cuts a stack at 2,000 characters, so our code could be in the part that's gone.
+		if ( strlen( $stack ) >= 1990 ) {
+			return false;
+		}
+		$extension = '#^(chrome|moz|safari|safari-web|ms-browser)-extension://#i';
+		$places    = array();
+		foreach ( explode( "\n", $stack ) as $line ) {
+			// "at f (https://…)" in Chrome, "f@https://…" in Firefox and Safari. Anything else is the message.
+			if ( preg_match( '#^\s*at\s.*?([a-z-]+://[^\s)]+)#i', $line, $m ) || preg_match( '#^[^@]*@(?:blob:)?([a-z-]+://\S+)#i', $line, $m ) ) {
+				$places[] = $m[1];
+			}
+		}
+		if ( $places ) {
+			return count( preg_grep( $extension, $places ) ) === count( $places );
+		}
+		return (bool) preg_match( $extension, trim( $source ) )
+			|| (bool) preg_match( '/\b(?:runtime\.(?:sendMessage|connect)\b|Extension context invalidated|Receiving end does not exist)/i', $message );
 	}
 
 	/* ---------- wp-admin ---------- */
