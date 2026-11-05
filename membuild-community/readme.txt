@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.18.6
+Stable tag: 1.18.7
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,11 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.18.7 =
+* Fixed: on a site installed in a subfolder, visitors who joined from "See all events", "Open the Classroom" or "See the courses" no longer land on a page that doesn't exist.
+* Fixed: on a site installed in a subfolder, logging in from a saved community link now returns to that page.
+* Fixed: when sign-ups are closed, a website button that goes to Log in still takes the person on to the events or courses afterward.
 
 = 1.18.6 =
 * Fixed (security): logged-out visitors can no longer find a private upload's address, name or title through WordPress's attachment links, feeds, search, embed previews, media API or comments. If your server doesn't block the protected files folder, which is common on nginx and OpenLiteSpeed, please add the rule that Site Health shows you.

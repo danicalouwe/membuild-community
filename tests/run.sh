@@ -6,15 +6,12 @@ cd "$(dirname "$0")/.."
 # The theme contract: text sizes and corners must come from the tokens (no Docker needed).
 node tests/check-styles.mjs || exit 1
 # The file is copied into the container (it's too long to pass on the command line).
-# This project's tests container, not another wp-env's: the one whose compose file names this folder.
-container=""
-for c in $(docker ps --format '{{.Names}}' | grep -- '-tests-cli-1$'); do
-  dir="$(docker inspect "$c" --format '{{index .Config.Labels "com.docker.compose.project.working_dir"}}' 2>/dev/null)"
-  # The path may be folded over two lines in the YAML, so match the plugin mount, which is one token.
-  if grep -qF "/membuild-community:/var/www/html/wp-content/plugins/membuild-community" "$dir/docker-compose.yml" 2>/dev/null; then container="$c"; break; fi
-done
-if [ -z "$container" ]; then
-  echo "The wp-env tests site isn't running. Start it with ./node_modules/.bin/wp-env start" >&2
+# This folder's own tests container: wp-env names its containers after this folder's install path,
+# so a site started from another checkout or project is never picked.
+env_id="$(basename "$(./node_modules/.bin/wp-env install-path 2>/dev/null | grep -m1 '/\.wp-env/')")"
+container="$env_id-tests-cli-1"
+if ! docker ps --format '{{.Names}}' | grep -qxF -- "$container"; then
+  echo "This folder's wp-env tests site isn't running. Start it with ./node_modules/.bin/wp-env start" >&2
   exit 1
 fi
 docker cp tests/integration.php "$container:/tmp/mbcom-integration.php" >/dev/null
@@ -24,9 +21,11 @@ status="${PIPESTATUS[0]}"
 bash tests/address-check.sh "$container" || status=1
 # Private uploads can't be found by a logged-out visitor, whichever way they ask.
 bash tests/private-files-check.sh "$container" || status=1
-# The login pages in a real Chrome, on the local site (port 8891), when it's up and built.
+# The login pages in a real Chrome, on the local site (port 8891), when it's up, built and this folder's own.
 if [ ! -f tests/login/login-check.cjs ]; then
   :
+elif ! docker port "$env_id-wordpress-1" 80 2>/dev/null | grep -q ':8891$'; then
+  echo "Login check skipped: it only runs on port 8891, and that site isn't this folder's."
 elif curl -s -o /dev/null --max-time 5 http://localhost:8891/community/login; then
   node tests/login/login-check.cjs || status=1
 else

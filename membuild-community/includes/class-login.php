@@ -328,7 +328,8 @@ class Login {
 		}
 		if ( ! $preview && ! self::registration_open() ) {
 			$elsewhere = (string) Settings::get( 'signup_url' );
-			wp_redirect( $elsewhere ? $elsewhere : self::url( 'login' ) ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- the admin's own sign-up link (e.g. a membership plugin's checkout), possibly on another site
+			$next      = self::redirect_target(); // the course or event they tapped on the website, kept for Log in
+			wp_redirect( $elsewhere ? $elsewhere : self::url( 'login', $next ? array( 'redirect_to' => $next ) : array() ) ); // phpcs:ignore WordPress.Security.SafeRedirect.wp_redirect_wp_redirect -- the admin's own sign-up link (e.g. a membership plugin's checkout), possibly on another site
 			exit;
 		}
 		$min_age = (int) Settings::get( 'min_age' );

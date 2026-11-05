@@ -3555,6 +3555,24 @@ mbcom_check( 'saved website buttons still know a signed-in member: no Log in, an
 wp_set_current_user( 0 );
 mbcom_check( '…and a visitor\'s See all events still joins first', false !== strpos( $ca_button->invoke( null, $ca_a( 'events' ) ), 'redirect_to' ) );
 mbcom_check( '…and other links are left alone', $ca_a( 'x' ) === $ca_button->invoke( null, $ca_a( 'x' ) ) );
+// On a WordPress site in a subfolder, the page after Join has the folder in its address once.
+$sf_home = fn( $url ) => preg_replace( '#^(https?://[^/]+)#', '$1/mbct-sub', $url );
+add_filter( 'home_url', $sf_home );
+foreach ( array( 'events', 'classroom' ) as $sf_page ) {
+	$sf_to   = \MemBuild\Community\Portal::url() . $sf_page;
+	$sf_html = $ca_button->invoke( null, '<a class="x" href="' . wp_parse_url( $sf_to, PHP_URL_PATH ) . '">Words</a>' );
+	$sf_got  = preg_match( '/redirect_to=([^"&]+)/', html_entity_decode( $sf_html ), $sf_m ) ? rawurldecode( $sf_m[1] ) : '';
+	mbcom_check( "on a subfolder site, a visitor's $sf_page button joins, then opens $sf_page", $sf_to . '/' === $sf_got, $sf_html );
+}
+$sf_uri = $_SERVER['REQUEST_URI'] ?? null;
+$_SERVER['REQUEST_URI'] = '/mbct-sub/mbct-second/events?x=1';
+mbcom_check( 'on a subfolder site, logging in returns to the page asked for', home_url( '/mbct-second/events?x=1' ) === \MemBuild\Community\Portal::requested_url(), \MemBuild\Community\Portal::requested_url() );
+if ( null === $sf_uri ) {
+	unset( $_SERVER['REQUEST_URI'] );
+} else {
+	$_SERVER['REQUEST_URI'] = $sf_uri;
+}
+remove_filter( 'home_url', $sf_home );
 mbcom_check( 'removing the plugin with its data removes the list', false !== strpos( (string) file_get_contents( MEMBUILD_COMMUNITY_DIR . 'uninstall.php' ), "'mbcom_old_addresses'" ) );
 mbcom_call( $admin, 'PUT', '/settings', array( 'slug' => $ca_home ) );
 delete_option( 'mbcom_old_addresses' );

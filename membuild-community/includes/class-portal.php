@@ -151,6 +151,14 @@ class Portal {
 		return self::url() . ( $parts[1] ?? '' ) . ( '' !== $query ? '?' . $query : '' );
 	}
 
+	/** The address being asked for. The request already holds any folder WordPress sits in, so it joins the domain, not home_url(). */
+	public static function requested_url() {
+		if ( ! isset( $_SERVER['REQUEST_URI'] ) ) {
+			return self::url();
+		}
+		return preg_replace( '#^(https?://[^/?\#]+).*$#', '$1', home_url() ) . esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) );
+	}
+
 	public static function query_vars( $vars ) {
 		$vars[] = 'mbcom_portal';
 		$vars[] = 'mbcom_path';
@@ -173,8 +181,7 @@ class Portal {
 		}
 
 		if ( ! is_user_logged_in() ) {
-			$mbcom_request = isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '/' . Settings::slug();
-			wp_safe_redirect( wp_login_url( home_url( $mbcom_request ) ) );
+			wp_safe_redirect( wp_login_url( self::requested_url() ) );
 			exit;
 		}
 

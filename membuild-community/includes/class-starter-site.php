@@ -225,7 +225,7 @@ class Starter_Site {
 			return $in ? '' : $html; // the phone menu's Log in, for people already in
 		}
 		if ( ! $in && null !== $path && in_array( $path, array( self::community_path( 'events' ), self::community_path( 'classroom' ) ), true ) ) {
-			return self::relabel( $html, self::join_then( home_url( $path . '/' ) ) ); // "See all events": join first, then the events
+			return self::relabel( $html, self::join_then( Portal::url() . basename( $path ) . '/' ) ); // "See all events": join first, then the events
 		}
 		return $html;
 	}
