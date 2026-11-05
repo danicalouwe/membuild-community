@@ -22,6 +22,14 @@ export class ApiError extends Error {
   }
 }
 
+// No answer at all: the browser's own words ("Failed to fetch", "signal timed out") mean nothing to a member.
+export function noAnswerError() {
+  return new ApiError(t.__('No answer from the server. Check your connection and try again.', 'membuild-community'), 0, 'no_answer')
+}
+const plainFailure = (e) => {
+  throw e?.name === 'TimeoutError' || e instanceof TypeError ? noAnswerError() : e
+}
+
 async function send(path, { method = 'GET', params, body, raw, signal } = {}) {
   const headers = { 'X-WP-Nonce': cfg.nonce }
   let payload
@@ -33,12 +41,16 @@ async function send(path, { method = 'GET', params, body, raw, signal } = {}) {
     payload = JSON.stringify(body)
   }
 
-  const res = await fetch(url(path, params), { method, headers, body: payload, signal, credentials: 'same-origin' })
+  const res = await fetch(url(path, params), { method, headers, body: payload, signal, credentials: 'same-origin' }).catch(plainFailure)
   // The server sends a fresh nonce with every response, so a tab left open
   // for days keeps a valid one as long as it keeps talking to the server.
   const fresh = res.headers.get('X-WP-Nonce')
   if (fresh) cfg.nonce = fresh
-  const data = await res.json().catch(() => null)
+  // An answer that isn't JSON counts as empty, but a stall while reading it is still a stall.
+  const data = await res.json().catch((e) => {
+    if (e?.name === 'AbortError' || e?.name === 'TimeoutError') throw e
+    return null
+  }).catch(plainFailure)
   return { res, data }
 }
 
@@ -52,6 +64,7 @@ function refreshNonce() {
     signal: AbortSignal.timeout?.(15000), // a stalled connection never fails on its own, and others wait on this
   })
     .then((r) => r.json())
+    .catch(plainFailure)
     .then((json) => {
       if (!json?.success || !json.data?.nonce) throw new Error('nonce')
       cfg.nonce = json.data.nonce
@@ -68,6 +81,7 @@ function failure(res, data) {
   const generic = /* translators: %d: HTTP status code, e.g. 500 */ t.__('Something went wrong (error %d). Please try again.', 'membuild-community')
   const err = new ApiError(data?.message || t.sprintf(generic, res.status), res.status, data?.code)
   if (data?.data?.details) err.details = data.data.details // the raw cause, for a "details" link
+  if (data?.data?.media_ids) err.mediaIds = data.data.media_ids // which photos can't be used
   return err
 }
 
@@ -80,7 +94,7 @@ export async function request(path, options = {}) {
       await refreshNonce()
       ;({ res, data } = await send(path, options))
     } catch (e) {
-      if (e?.name === 'AbortError' || e?.name === 'TimeoutError' || e instanceof TypeError) throw e // not an expired session
+      if (e?.name === 'AbortError' || e?.code === 'no_answer') throw e // not an expired session
     }
     if (expired(res, data)) {
       throw new ApiError(t.__('Your session expired. Reload the page to continue.', 'membuild-community'), res.status, data.code)

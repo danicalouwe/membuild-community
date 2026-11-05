@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.18.2
+Stable tag: 1.18.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,15 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.18.3 =
+* Fixed: a message sent twice because the answer got lost, even with photos or at the same moment, is saved only once.
+* Fixed: a message with photos still uploading goes to the chat it was written in, even if you switch chats meanwhile.
+* Changed: if a message fails after you leave its chat, your words and photos are back in the box for that chat.
+* Changed: a photo that can no longer be used stops the message and only that photo is marked, so words never go out without it.
+* Fixed: a stalled connection ends with a plain message instead of waiting forever. Photos take turns on a slow connection so they don't run each other out of time.
+* Fixed: a quick second tap on the like button in a chat no longer sends two likes.
+* Fixed: after reporting a post that gets hidden for review, the thank-you stays on screen until you close it.
 
 = 1.18.2 =
 * Changed: a message that can't be sent says Not sent right away, with Try again, instead of staying on Sending. If a photo failed, the words and the other photos go back in the message box. Trying again won't send a message twice in normal use.

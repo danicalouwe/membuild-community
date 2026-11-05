@@ -119,8 +119,14 @@ async function askClosePoll() {
   }
 }
 
+// Hidden for review: it leaves the feed once the dialog closes, so the thank-you message can be read.
+let hideAfterReport = false
 function reported(res) {
-  if (res.hidden) removePost(props.post.id) // hidden for review: it leaves the feed now
+  hideAfterReport = res.hidden
+}
+function closeReport() {
+  reporting.value = false
+  if (hideAfterReport) removePost(props.post.id)
 }
 const feeling = computed(() => FEELINGS[props.post.feeling] || null)
 /**
@@ -272,7 +278,7 @@ async function remove() {
       </div>
     </div>
 
-    <ReportDialog v-if="reporting" type="post" :reel="post.type === 'reel'" :id="post.id" @close="reporting = false" @reported="reported" />
+    <ReportDialog v-if="reporting" type="post" :reel="post.type === 'reel'" :id="post.id" @close="closeReport" @reported="reported" />
     <CreatePostDialog v-if="editing" :edit="post" @close="editing = false" />
     <BaseDialog v-if="movingTopic !== null" :title="t.__('Change topic', 'membuild-community')" :width="440" @close="movingTopic = null">
       <div class="move">

@@ -558,9 +558,11 @@ class Install {
 			status varchar(10) NOT NULL DEFAULT 'sent',
 			reactions_count int(10) unsigned NOT NULL DEFAULT 0,
 			created_at datetime NOT NULL,
+			client_key varchar(40) NULL,
 			PRIMARY KEY  (id),
 			KEY thread_id (thread_id, id),
-			KEY user_created (user_id, created_at)
+			KEY user_created (user_id, created_at),
+			UNIQUE KEY client_key (user_id, thread_id, client_key)
 			) {$charset};
 
 			CREATE TABLE {$notes} (

@@ -7,7 +7,7 @@ import GifMedia from './GifMedia.vue'
 import { gifBox } from '../lib/gifBox.js'
 import { api } from '../api.js'
 import { cfg } from '../config.js'
-import { messages, watchChat, pulseNow, takeShareDraft } from '../stores/messages.js'
+import { keepUnsent, messages, watchChat, pulseNow, takeShareDraft, takeUnsent } from '../stores/messages.js'
 import { startAttachment, startGif } from '../lib/attachments.js'
 import { giphyOn } from '../lib/giphy.js'
 import { emojiFor } from '../lib/reactions.js'
@@ -180,6 +180,7 @@ function nearBottom() {
 
 async function load() {
   error.value = ''
+  loadedThread = null
   chat.value = null
   items.value = []
   typing.value = []
@@ -194,6 +195,8 @@ async function load() {
     emit('loaded', c)
     items.value = history.items
     hasMore.value = history.has_more
+    loadedThread = props.threadId
+    restoreUnsent()
     scrollToBottom()
     pinToBottom()
     markRead()
@@ -208,6 +211,20 @@ async function load() {
     if (alive && current()) error.value = err.message
   }
 }
+
+// Words and photos of messages that failed after this chat was closed. They go back oldest first.
+let loadedThread = null
+function restoreUnsent() {
+  if (!alive || loadedThread !== props.threadId) return
+  let tooMany = false
+  for (const kept of takeUnsent(props.threadId).reverse()) {
+    // It may have saved after all, with only the answer lost.
+    if (items.value.some((m) => m.client_key === kept.key)) kept.pics.forEach((p) => p.release())
+    else tooMany = returnToBox(kept) || tooMany
+  }
+  if (tooMany) showToast(TOO_MANY_PHOTOS())
+}
+watch(() => messages.unsentVersion, restoreUnsent)
 
 async function loadOlder() {
   if (!hasMore.value || loadingOlder.value) return
@@ -239,11 +256,14 @@ function onPulse(thread) {
   if (fresh.length) {
     // One of mine arriving while its send is still in flight replaces the pending bubble,
     // so a slow send (a busy host, mail going out in the same request) never shows it twice.
-    // The same for a "Not sent" bubble with no photos: it saved, and only the answer was lost.
+    // The same for a "Not sent" bubble: it saved, and only the answer was lost.
     for (const m of fresh) {
       if (!m.mine) continue
-      const i = items.value.findIndex((p) => (p.pending || (p.canRetry && !p.media.length)) && (p.content || null) === (m.content || null) && p.media.length === (m.media || []).length)
-      if (i >= 0) items.value.splice(i, 1)
+      const i = m.client_key ? items.value.findIndex((p) => p.outgoing?.key === m.client_key) : -1
+      if (i >= 0) {
+        items.value[i].outgoing.pics.forEach((p) => p.release())
+        items.value.splice(i, 1)
+      }
     }
     items.value.push(...fresh)
     if (stick) scrollToBottom(true)
@@ -266,9 +286,16 @@ function markRead() {
   }, 300)
 }
 
-watch(() => props.threadId, load, { immediate: true })
+// "Not sent" bubbles live only in this view, so leaving keeps their words for when the chat opens again.
+function keepFailed() {
+  for (const m of items.value) if (m.failed && m.outgoing) keepUnsent(m.outgoing.thread, m.outgoing)
+}
+
+watch(() => props.threadId, () => (keepFailed(), load()))
+load()
 onBeforeUnmount(() => {
   alive = false
+  keepFailed()
   clearTimeout(readTimer)
   stopWatching?.()
   stopWatching = null
@@ -323,8 +350,9 @@ async function send() {
     created_at: new Date().toISOString(),
     pending: true,
     // The key lets the server recognise a resend of a message it already saved.
-    outgoing: { content, pics, reply, key: `${Date.now()}-${Math.random().toString(36).slice(2)}` },
+    outgoing: { thread: props.threadId, content, pics, reply, key: returned?.content === content ? returned.key : `${Date.now()}-${Math.random().toString(36).slice(2)}` },
   })
+  returned = null
   items.value.push(temp)
   scrollToBottom(true)
   if (typing) nextTick(() => input.value?.focus({ preventScroll: true })) // still typing: the keyboard stays
@@ -332,16 +360,17 @@ async function send() {
 }
 
 async function deliver(temp) {
-  const { content, pics, reply, key } = temp.outgoing
+  const { thread, content, pics, reply, key } = temp.outgoing
   try {
     await Promise.all(pics.map((p) => p.promise))
     if (pics.some((p) => p.status !== 'done')) throw new Error(t.__('A photo failed to upload.', 'membuild-community'))
     const saved = await api.sendMessage(
-      props.threadId,
+      thread, // the chat it was written in, even if another is open by now
       { content, media_ids: pics.map((p) => p.media.id), reply_to_id: reply?.id, client_key: key },
       AbortSignal.timeout?.(30000), // a stalled connection never fails on its own
     )
     if (!saved?.id) throw new TypeError('no answer') // not JSON, such as a PHP notice printed before it
+    if (chatClosed(temp)) return pics.forEach((p) => p.release())
     // The pulse may have delivered it already; keep exactly one copy.
     const i = items.value.indexOf(temp)
     if (items.value.some((m) => m.id === saved.id)) {
@@ -354,28 +383,51 @@ async function deliver(temp) {
     pics.forEach((p) => p.release()) // the saved photos show now, not the local previews
     pulseNow()
   } catch (err) {
+    if (err.code === 'mbcom_photo_gone') pics.filter((p) => err.mediaIds?.includes(p.media?.id)).forEach((p) => (p.status = 'error'))
     if (pics.some((p) => p.status === 'error')) return backToComposer(temp, err)
-    // fetch only throws a TypeError when it never got an answer.
-    const noAnswer = err instanceof TypeError || err.name === 'TimeoutError'
+    const noAnswer = err.code === 'no_answer' || err instanceof TypeError
+    if (chatClosed(temp)) return keepForLater(temp.outgoing, noAnswer ? t.__('Not sent. Check your connection.', 'membuild-community') : notSent(err.message))
     temp.pending = false
     temp.failed = noAnswer ? t.__('Not sent. Check your connection.', 'membuild-community') : notSent(err.message)
     temp.canRetry = noAnswer || err.status >= 500 || err.status === 429
   }
 }
 
+// The member has moved on to another chat or page while this was sending.
+const chatClosed = (temp) => !alive || props.threadId !== temp.outgoing.thread
+
+function keepForLater(outgoing, why) {
+  keepUnsent(outgoing.thread, outgoing)
+  showToast(`${why} ${t.__('Your words are back in the box for that chat.', 'membuild-community')}`)
+}
+
+let returned = null
+const MAX_PHOTOS = 10
+const TOO_MANY_PHOTOS = () => t.__('A message holds up to 10 photos, so the newest were left out.', 'membuild-community')
+
+// Words and photos back in the composer, ahead of whatever has been added since.
+function returnToBox({ content, pics, reply, key }) {
+  // Sent again unchanged, it keeps its key, so the server still knows it if the first try saved after all.
+  returned = draft.value.trim() ? null : { content: (content || '').trim(), key }
+  draft.value = [content, draft.value].filter(Boolean).join('\n')
+  const back = [...pics, ...photos.value]
+  back.slice(MAX_PHOTOS).forEach((p) => p.cancel())
+  photos.value = back.slice(0, MAX_PHOTOS)
+  replyTo.value ??= reply
+  return back.length > MAX_PHOTOS
+}
+
 // A photo that failed to upload can't be resent: the words and the other photos go back in the composer,
 // so only that photo has to be picked again.
 function backToComposer(temp, err) {
-  const { content, pics, reply } = temp.outgoing
+  const { pics } = temp.outgoing
   const i = items.value.indexOf(temp)
   if (i >= 0) items.value.splice(i, 1)
-  draft.value = [content, draft.value].filter(Boolean).join('\n')
   pics.filter((p) => p.status === 'error').forEach((p) => p.release())
-  const back = [...pics.filter((p) => p.status !== 'error'), ...photos.value]
-  back.slice(10).forEach((p) => p.cancel())
-  photos.value = back.slice(0, 10)
-  replyTo.value ??= reply
-  showToast(err.message)
+  const left = { ...temp.outgoing, pics: pics.filter((p) => p.status !== 'error') }
+  if (chatClosed(temp)) return keepForLater(left, err.message)
+  const tooMany = returnToBox(left)
+  showToast(tooMany ? `${err.message} ${TOO_MANY_PHOTOS()}` : err.message)
 }
 
 function tryAgain(temp) {
@@ -400,6 +452,15 @@ function sendPressed() {
   holdSendTimer = setTimeout(() => (holdSend.value = false), 1000)
 }
 onBeforeUnmount(() => clearTimeout(holdSendTimer))
+
+// A double tap on the like button sends one like. A second like a moment later still goes.
+let lastLike = 0
+function sendLike() {
+  if (Date.now() - lastLike < 1000) return
+  lastLike = Date.now()
+  draft.value = '👍'
+  send()
+}
 
 // Phones, like Messenger: the return key starts a new line, and Send sends.
 const touch = window.matchMedia('(pointer: coarse)')
@@ -755,7 +816,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
         </div>
         <!-- Pressing Send keeps the typing where it was, so the phone's keyboard stays up for the next message. -->
         <button v-if="draft.trim() || photos.length || holdSend" type="submit" class="icon send" :aria-label="t.__('Send', 'membuild-community')" @pointerdown.prevent><Icon name="send" :size="22" /></button>
-        <button v-else type="button" class="icon send like" :aria-label="t.__('Send a like', 'membuild-community')" @pointerdown.prevent @click="draft = '👍'; send()">👍</button>
+        <button v-else type="button" class="icon send like" :aria-label="t.__('Send a like', 'membuild-community')" @pointerdown.prevent @click="sendLike">👍</button>
       </div>
     </form>
   </section>

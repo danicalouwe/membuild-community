@@ -158,7 +158,7 @@ export function startGif(gif) {
     },
     release: () => {},
   })
-  item.promise = request('/media/gif', { method: 'POST', body: { id: gif.id, url: gif.pick.url, mp4: gif.pick.mp4, still: gif.pick.still, width: gif.pick.width, height: gif.pick.height, title: gif.title } })
+  item.promise = request('/media/gif', { method: 'POST', signal: AbortSignal.timeout?.(30000), body: { id: gif.id, url: gif.pick.url, mp4: gif.pick.mp4, still: gif.pick.still, width: gif.pick.width, height: gif.pick.height, title: gif.title } })
     .then((media) => {
       item.media = media
       item.previewUrl = media.url

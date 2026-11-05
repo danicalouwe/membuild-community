@@ -245,21 +245,14 @@ class Rest_Messages {
 			return new \WP_Error( 'mbcom_messaging_staff', __( 'You can message admins and moderators here.', 'membuild-community' ), array( 'status' => 403 ) );
 		}
 		// A resend of a message that saved but lost its answer gets that message back, not a second copy.
-		$key     = preg_replace( '/[^a-z0-9-]/', '', (string) ( $req['client_key'] ?? '' ) );
-		$sent_as = $key ? 'mbcom_sent_' . md5( get_current_user_id() . '|' . $thread['id'] . '|' . $key ) : '';
-		$sent    = $sent_as ? (int) get_transient( $sent_as ) : 0;
-		if ( $sent ) {
-			$row = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d AND user_id = %d', Install::table( 'messages' ), $sent, get_current_user_id() ), ARRAY_A );
-			if ( $row ) {
-				return rest_ensure_response( self::format_messages( array( $row ) )[0] );
-			}
+		$key = substr( preg_replace( '/[^a-z0-9-]/', '', (string) ( $req['client_key'] ?? '' ) ), 0, 40 );
+		$row = self::sent_with_key( (int) $thread['id'], get_current_user_id(), $key );
+		if ( $row ) {
+			return rest_ensure_response( self::format_messages( array( $row ) )[0] );
 		}
-		$message = self::post_message( (int) $thread['id'], get_current_user_id(), (string) ( $req['content'] ?? '' ), (array) ( $req['media_ids'] ?? array() ), (int) ( $req['reply_to_id'] ?? 0 ) );
+		$message = self::post_message( (int) $thread['id'], get_current_user_id(), (string) ( $req['content'] ?? '' ), (array) ( $req['media_ids'] ?? array() ), (int) ( $req['reply_to_id'] ?? 0 ), null, $key );
 		if ( is_wp_error( $message ) ) {
 			return $message;
-		}
-		if ( $sent_as ) {
-			set_transient( $sent_as, (int) $message['id'], HOUR_IN_SECONDS );
 		}
 		$response = rest_ensure_response( $message );
 		$response->set_status( 201 );
@@ -505,7 +498,7 @@ class Rest_Messages {
 	/* ---------- Internals ---------- */
 
 	/** @return array|\WP_Error the formatted message */
-	private static function post_message( $thread_id, $user_id, $content, array $media_ids, $reply_to = 0, $story = null ) {
+	private static function post_message( $thread_id, $user_id, $content, array $media_ids, $reply_to = 0, $story = null, $client_key = '' ) {
 		global $wpdb;
 		$content = Helpers::clean_text( $content, 4000 );
 		$table   = Install::table( 'messages' );
@@ -524,6 +517,10 @@ class Rest_Messages {
 			return $paused;
 		}
 		// Photos are claimed only once the message will be sent, so a refused message leaves them free.
+		$unusable = self::unusable_images( $user_id, $media_ids );
+		if ( $unusable ) {
+			return new \WP_Error( 'mbcom_photo_gone', __( 'A photo in this message is no longer available. Please add it again.', 'membuild-community' ), array( 'status' => 410, 'media_ids' => $unusable ) );
+		}
 		$media = self::claim_images( $user_id, $media_ids, $thread_id );
 		if ( '' === $content && ! $media ) {
 			return new \WP_Error( 'mbcom_empty', __( 'Write a message first.', 'membuild-community' ), array( 'status' => 400 ) );
@@ -531,20 +528,37 @@ class Rest_Messages {
 		if ( $reply_to && ! $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE id = %d AND thread_id = %d', $table, $reply_to, $thread_id ) ) ) {
 			$reply_to = 0;
 		}
-		$now = Helpers::now();
-		$wpdb->insert(
-			$table,
-			array(
-				'thread_id'   => $thread_id,
-				'user_id'     => $user_id,
-				// Encrypted at rest (see Vault), tied to this chat.
-				'content'     => '' === $content ? null : Vault::seal( $content, self::context( $thread_id ) ),
-				'media'       => $media ? wp_json_encode( $media ) : null,
-				'story'       => $story ? Vault::seal( wp_json_encode( $story ), self::context( $thread_id ) ) : null,
-				'reply_to_id' => $reply_to ?: null,
-				'created_at'  => $now,
-			)
+		$now    = Helpers::now();
+		$values = array(
+			'thread_id'   => $thread_id,
+			'user_id'     => $user_id,
+			// Encrypted at rest (see Vault), tied to this chat.
+			'content'     => '' === $content ? null : Vault::seal( $content, self::context( $thread_id ) ),
+			'media'       => $media ? wp_json_encode( $media ) : null,
+			'story'       => $story ? Vault::seal( wp_json_encode( $story ), self::context( $thread_id ) ) : null,
+			'reply_to_id' => $reply_to ?: null,
+			'created_at'  => $now,
 		);
+		// Two copies of one send at the same moment: the unique key lets one in, and the other gets that message.
+		$quiet = $client_key ? $wpdb->suppress_errors() : null;
+		$saved = $wpdb->insert( $table, $client_key ? $values + array( 'client_key' => $client_key ) : $values );
+		if ( $client_key ) {
+			$wpdb->suppress_errors( $quiet );
+		}
+		if ( ! $saved && $client_key ) {
+			$row = self::sent_with_key( $thread_id, $user_id, $client_key );
+			if ( $row ) {
+				return self::format_messages( array( $row ) )[0];
+			}
+			$saved = $wpdb->insert( $table, $values ); // the key's column may be missing, if adding it failed: the message matters more
+		}
+		if ( ! $saved ) {
+			// The photos go back to being free, so Try again can use them.
+			foreach ( $media as $m ) {
+				$wpdb->update( Install::table( 'media' ), array( 'post_id' => null ), array( 'id' => (int) $m['id'] ) );
+			}
+			return new \WP_Error( 'mbcom_not_saved', __( 'Your message could not be saved. Please try again.', 'membuild-community' ), array( 'status' => 500 ) );
+		}
 		$id = (int) $wpdb->insert_id;
 		$wpdb->update( Install::table( 'threads' ), array( 'last_message_id' => $id, 'last_message_at' => $now ), array( 'id' => $thread_id ) );
 		// Sending counts as reading, and re-opens the chat for anyone who had left a direct chat.
@@ -562,13 +576,38 @@ class Rest_Messages {
 		return self::format_messages( array( $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id ), ARRAY_A ) ) )[0];
 	}
 
+	/** The message this member already sent with this key, if any. */
+	private static function sent_with_key( $thread_id, $user_id, $key ) {
+		global $wpdb;
+		if ( ! $key ) {
+			return null;
+		}
+		$quiet = $wpdb->suppress_errors(); // the column may be missing, if adding it failed
+		$row   = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE user_id = %d AND thread_id = %d AND client_key = %s', Install::table( 'messages' ), $user_id, $thread_id, $key ), ARRAY_A );
+		$wpdb->suppress_errors( $quiet );
+		return $row;
+	}
+
+	/** Photos that can't go in this message, so it never goes out quietly without one. */
+	private static function unusable_images( $user_id, array $media_ids ) {
+		return array_values(
+			array_filter(
+				array_slice( array_map( 'intval', $media_ids ), 0, 10 ),
+				function ( $mid ) use ( $user_id ) {
+					$row = Media::get( $mid );
+					return ! $row || (int) $row['user_id'] !== (int) $user_id || null !== $row['post_id'] || 'image' !== $row['kind'];
+				}
+			)
+		);
+	}
+
 	/** Photos the sender uploaded and hasn't used elsewhere, moved into the protected folder for this chat. */
 	private static function claim_images( $user_id, array $media_ids, $thread_id ) {
 		global $wpdb;
 		$out = array();
 		foreach ( array_slice( array_map( 'intval', $media_ids ), 0, 10 ) as $mid ) {
 			$row = Media::get( $mid );
-			if ( $row && (int) $row['user_id'] === (int) $user_id && null === $row['post_id'] && 'image' === $row['kind'] ) {
+			if ( $row ) {
 				$wpdb->update( Install::table( 'media' ), array( 'post_id' => 0 ), array( 'id' => $mid ) );
 				$out[] = array_filter( array( 'id' => $mid, 'url' => Files::protect( $mid, 'message', $thread_id ), 'width' => (int) $row['width'], 'height' => (int) $row['height'], 'mp4' => Giphy::mp4( $row ) ) );
 			}
@@ -838,6 +877,7 @@ class Rest_Messages {
 						'thread_id'   => (int) $m['thread_id'],
 						'user_id'     => (int) $m['user_id'],
 						'mine'        => (int) $m['user_id'] === $me,
+						'client_key'  => (int) $m['user_id'] === $me ? ( $m['client_key'] ?? null ) : null,
 						'content'     => self::plaintext( $m['content'], (int) $m['thread_id'] ),
 						'media'       => $m['media'] ? json_decode( $m['media'], true ) : array(),
 						'story'       => $story ? json_decode( $story, true ) : null,
