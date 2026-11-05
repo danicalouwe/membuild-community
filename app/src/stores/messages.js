@@ -10,7 +10,7 @@ import { api } from '../api.js'
  * scroll resets that), and never while the tab is hidden. Works on any host;
  * no websockets needed.
  */
-export const messages = reactive({ unread: 0, inboxVersion: 0, notifications: 0, reports: 0, newPosts: 0 })
+export const messages = reactive({ blocksChanged: 0, unread: 0, inboxVersion: 0, notifications: 0, reports: 0, newPosts: 0 })
 
 // "Send in a message" (a comment's Share) leaves text here; the next chat that opens starts with it.
 let shareDraft = ''

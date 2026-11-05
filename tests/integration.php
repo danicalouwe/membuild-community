@@ -163,6 +163,12 @@ mbcom_check( 'the other person can read it', 200 === $s && 'Hi Ben' === end( $hi
 list( $s ) = mbcom_call( $cy, 'GET', "/messages/threads/{$tid}/messages" );
 mbcom_check( "outsiders can't read the chat", in_array( $s, array( 403, 404 ), true ), (string) $s );
 $hi = end( $hist['items'] );
+$send_key = 'k' . wp_rand();
+list( $s, $first ) = mbcom_call( $ana, 'POST', "/messages/threads/{$tid}/messages", array( 'content' => 'Sent once', 'client_key' => $send_key ) );
+list( $s2, $again ) = mbcom_call( $ana, 'POST', "/messages/threads/{$tid}/messages", array( 'content' => 'Sent once', 'client_key' => $send_key ) );
+mbcom_check( 'a resend of a saved message gets it back, not a second copy', 201 === $s && 200 === $s2 && $first['id'] === $again['id'], "{$s} {$s2}" );
+list( , $other ) = mbcom_call( $ana, 'POST', "/messages/threads/{$tid}/messages", array( 'content' => 'Sent once', 'client_key' => $send_key . '-2' ) );
+mbcom_check( '…while a new message with the same words is sent', $other['id'] !== $first['id'] );
 list( $s, $r ) = mbcom_call( $ben, 'PUT', "/messages/{$hi['id']}/reaction", array( 'type' => '🥳' ) );
 mbcom_check( 'any one emoji can react to a message, like Messenger’s “+”', 200 === $s && '🥳' === $r['my_reaction'], wp_json_encode( $r['my_reaction'] ?? $r ) );
 list( , $r ) = mbcom_call( $ben, 'PUT', "/messages/{$hi['id']}/reaction", array( 'type' => '👩🏽‍💻' ) );
@@ -642,6 +648,10 @@ $blocker = mbcom_user( 'mbct_blocker' );
 $pest    = mbcom_user( 'mbct_pest' );
 $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->prefix}mbcom_blocks WHERE user_id IN (%d, %d)", $blocker, $pest ) );
 list( , $pest_post ) = mbcom_call( $pest, 'POST', '/posts', array( 'content' => 'Hello from the pest' ) );
+list( , $block_chat ) = mbcom_call( $blocker, 'POST', '/messages/threads', array( 'user_ids' => array( $pest ) ) );
+mbcom_call( $blocker, 'POST', "/messages/threads/{$block_chat['id']}/messages", array( 'content' => 'Before the block' ) );
+list( , $c ) = mbcom_call( $blocker, 'GET', "/messages/threads/{$block_chat['id']}" );
+mbcom_check( 'a chat isn’t marked blocked before a block', false === $c['blocked_by_me'] );
 list( $s ) = mbcom_call( $blocker, 'PUT', "/members/{$pest}/block" );
 mbcom_check( 'a member can block another member', 200 === $s, (string) $s );
 $fresh_blocks = new ReflectionProperty( '\MemBuild\Community\Blocks', 'hidden' );
@@ -660,12 +670,24 @@ mbcom_check( '…but the blocker can, to unblock them', 200 === $s && true === $
 $fresh_blocks->setValue( null, array() );
 list( $s ) = mbcom_call( $pest, 'POST', '/messages/threads', array( 'user_ids' => array( $blocker ) ) );
 mbcom_check( 'neither can start a chat with the other', 403 === $s, (string) $s );
+$fresh_blocks->setValue( null, array() );
+list( , $c ) = mbcom_call( $blocker, 'GET', "/messages/threads/{$block_chat['id']}" );
+mbcom_check( 'the chat tells the person who blocked', true === $c['blocked_by_me'] );
+list( $s, $hist ) = mbcom_call( $blocker, 'GET', "/messages/threads/{$block_chat['id']}/messages" );
+mbcom_check( '…and they can still read the old messages', 200 === $s && count( $hist['items'] ) >= 1 );
+list( $s ) = mbcom_call( $blocker, 'POST', "/messages/threads/{$block_chat['id']}/messages", array( 'content' => 'After the block' ) );
+mbcom_check( '…but not send a new one', 403 === $s, (string) $s );
+$fresh_blocks->setValue( null, array() );
+list( , $c ) = mbcom_call( $pest, 'GET', "/messages/threads/{$block_chat['id']}" );
+mbcom_check( 'the person blocked isn’t told', false === $c['blocked_by_me'] );
 list( $s ) = mbcom_call( $blocker, 'PUT', "/members/{$admin}/block" );
 mbcom_check( 'admins and moderators can’t be blocked', 403 === $s, (string) $s );
 mbcom_call( $blocker, 'DELETE', "/members/{$pest}/block" );
 $fresh_blocks->setValue( null, array() );
 list( $s ) = mbcom_call( $blocker, 'GET', "/posts/{$pest_post['id']}" );
 mbcom_check( 'unblocking brings everything back', 200 === $s, (string) $s );
+list( , $c ) = mbcom_call( $blocker, 'GET', "/messages/threads/{$block_chat['id']}" );
+mbcom_check( '…and the chat is open again', false === $c['blocked_by_me'] );
 mbcom_call( $pest, 'DELETE', "/posts/{$pest_post['id']}" );
 
 // Open reports left by earlier runs of these tests (the test site only) would push this one past the pages checked.

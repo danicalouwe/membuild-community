@@ -226,6 +226,7 @@ class Rest_Messages {
 	}
 
 	public static function send( \WP_REST_Request $req ) {
+		global $wpdb;
 		$blocked = Moderation::guard();
 		if ( $blocked ) {
 			return $blocked;
@@ -243,9 +244,22 @@ class Rest_Messages {
 		if ( 'direct' === $thread['type'] && ! Settings::can_message( get_current_user_id(), $others ) ) {
 			return new \WP_Error( 'mbcom_messaging_staff', __( 'You can message admins and moderators here.', 'membuild-community' ), array( 'status' => 403 ) );
 		}
+		// A resend of a message that saved but lost its answer gets that message back, not a second copy.
+		$key     = preg_replace( '/[^a-z0-9-]/', '', (string) ( $req['client_key'] ?? '' ) );
+		$sent_as = $key ? 'mbcom_sent_' . md5( get_current_user_id() . '|' . $thread['id'] . '|' . $key ) : '';
+		$sent    = $sent_as ? (int) get_transient( $sent_as ) : 0;
+		if ( $sent ) {
+			$row = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d AND user_id = %d', Install::table( 'messages' ), $sent, get_current_user_id() ), ARRAY_A );
+			if ( $row ) {
+				return rest_ensure_response( self::format_messages( array( $row ) )[0] );
+			}
+		}
 		$message = self::post_message( (int) $thread['id'], get_current_user_id(), (string) ( $req['content'] ?? '' ), (array) ( $req['media_ids'] ?? array() ), (int) ( $req['reply_to_id'] ?? 0 ) );
 		if ( is_wp_error( $message ) ) {
 			return $message;
+		}
+		if ( $sent_as ) {
+			set_transient( $sent_as, (int) $message['id'], HOUR_IN_SECONDS );
 		}
 		$response = rest_ensure_response( $message );
 		$response->set_status( 201 );
@@ -670,6 +684,9 @@ class Rest_Messages {
 		);
 		$out            = self::format_threads( array( $row ) )[0];
 		$out['members'] = array_map( fn( $m ) => $m['user'] + array( 'last_read_id' => $m['last_read_id'], 'left' => $m['left'] ), self::members( $thread_id ) );
+		// One-on-one only: the person who blocked sees why they can't write. The person blocked isn't told.
+		$other                = array_values( array_diff( array_column( $out['members'], 'id' ), array( get_current_user_id() ) ) );
+		$out['blocked_by_me'] = 'direct' === $row['type'] && $other && Blocks::i_blocked( $other[0] ) && Blocks::hides( $other[0] ); // staff can't be kept out by a block
 		return $out;
 	}
 

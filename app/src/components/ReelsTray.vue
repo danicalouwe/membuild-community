@@ -19,6 +19,7 @@ const canLeft = ref(false)
 const canRight = ref(false)
 const menu = ref(null) // { reel, top, left }
 const reporting = ref(null) // reel id
+const hideAfter = ref(false) // reported and now hidden for review: it leaves the tray when the dialog closes
 const copied = ref(false)
 let previewing = null
 
@@ -70,6 +71,12 @@ async function copyLink(reel) {
     prompt(t.__('Copy this link', 'membuild-community'), url)
     menu.value = null
   }
+}
+
+function closeReport() {
+  if (hideAfter.value) takePost(reporting.value)
+  hideAfter.value = false
+  reporting.value = null
 }
 
 async function remove(reel) {
@@ -142,7 +149,7 @@ const reelBy = (name) => t.sprintf(/* translators: %s: the name of the person wh
       <button v-if="canLeft" class="arrow left" :aria-label="t.__('Previous reels', 'membuild-community')" @click="page(-1)"><Icon name="chevronLeft" :size="26" /></button>
       <button v-if="canRight" class="arrow right" :aria-label="t.__('More reels', 'membuild-community')" @click="page(1)"><Icon name="chevronRight" :size="26" /></button>
     </div>
-    <ReportDialog v-if="reporting" type="post" :id="reporting" @close="reporting = null" />
+    <ReportDialog v-if="reporting" type="post" reel :id="reporting" @reported="hideAfter = $event?.hidden" @close="closeReport" />
   </section>
 </template>
 

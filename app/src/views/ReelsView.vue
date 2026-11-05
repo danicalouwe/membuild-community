@@ -181,13 +181,22 @@ function onKey(e) {
   else if (e.key === 'm') muted.value = !muted.value
 }
 
-async function share() {
-  const url = location.href
+async function share(post) {
+  // Names this reel, even the first one, whose address has no ?id yet.
+  const url = `${location.origin}${cfg.basePath}/reels?id=${post.id}`
+  if (navigator.share) {
+    try {
+      await navigator.share({ url })
+      return
+    } catch (err) {
+      if (err.name === 'AbortError') return // dismissed
+    }
+  }
   try {
-    if (navigator.share) await navigator.share({ url })
-    else await navigator.clipboard.writeText(url)
+    await navigator.clipboard.writeText(url)
+    showToast(t.__('Link copied.', 'membuild-community'))
   } catch {
-    /* dismissed */
+    prompt(t.__('Copy this link', 'membuild-community'), url) // no clipboard here, as on a plain http site
   }
 }
 
@@ -371,7 +380,7 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
               <button class="rail-btn tap-44" :aria-label="t.__('Comments', 'membuild-community')" @click="commentsFor = post">
                 <span class="ic"><Icon name="comment" :size="23" /></span><span>{{ compactNumber(post.comments_count) }}</span>
               </button>
-              <button class="rail-btn tap-44" :aria-label="t._x('Share', 'verb', 'membuild-community')" @click="share"><span class="ic"><Icon name="share" :size="23" /></span></button>
+              <button class="rail-btn tap-44" :aria-label="t._x('Share', 'verb', 'membuild-community')" @click="share(post)"><span class="ic"><Icon name="share" :size="23" /></span></button>
               <div class="more-wrap">
                   <button class="rail-btn tap-44" :aria-label="t.__('More', 'membuild-community')" aria-haspopup="menu" :aria-expanded="moreOpen && i === active" @click.stop="moreOpen = !moreOpen"><span class="ic"><Icon name="more" :size="23" /></span></button>
                   <div v-if="moreOpen && i === active" class="more-menu" role="menu" @click.stop>
@@ -440,7 +449,7 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
               <span class="ic"><Icon name="comment" :size="27" /></span>
               <span>{{ compactNumber(post.comments_count) }}</span>
             </button>
-            <button class="rail-btn tap-44" :aria-label="t._x('Share', 'verb', 'membuild-community')" @click="share">
+            <button class="rail-btn tap-44" :aria-label="t._x('Share', 'verb', 'membuild-community')" @click="share(post)">
               <span class="ic"><Icon name="share" :size="26" /></span>
               <span>{{ t._x('Share', 'verb', 'membuild-community') }}</span>
             </button>
@@ -504,7 +513,7 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
     </Transition>
 
     <ReelCreator v-if="composer" :file="composer.file" @close="closeComposer" @posted="posted" />
-    <ReportDialog v-if="reporting" type="post" :id="reporting.id" @close="reporting = null" @reported="reported" />
+    <ReportDialog v-if="reporting" type="post" reel :id="reporting.id" @close="reporting = null" @reported="reported" />
   </div>
 </template>
 

@@ -10,6 +10,7 @@ import { t } from '../lib/i18n.js'
 const props = defineProps({
   type: { type: String, required: true }, // post | comment | member
   id: { type: Number, required: true },
+  reel: Boolean, // a post that's a reel: it's reported as a post, and called a reel
 })
 const emit = defineEmits(['close', 'reported'])
 
@@ -18,16 +19,19 @@ const reasons = cfg.community.reportReasons || { spam: t.__('Spam', 'membuild-co
 // Whole sentences per type, so each language can word them its own way.
 const TITLES = {
   post: t.__('Report post', 'membuild-community'),
+  reel: t.__('Report reel', 'membuild-community'),
   comment: t.__('Report comment', 'membuild-community'),
   member: t.__('Report profile', 'membuild-community'),
 }
 const INTROS = {
   post: t.__('Why are you reporting this post? Only admins and moderators will see your report.', 'membuild-community'),
+  reel: t.__('Why are you reporting this reel? Only admins and moderators will see your report.', 'membuild-community'),
   comment: t.__('Why are you reporting this comment? Only admins and moderators will see your report.', 'membuild-community'),
   member: t.__('Why are you reporting this person? Only admins and moderators will see your report.', 'membuild-community'),
 }
-const title = () => TITLES[props.type] || TITLES.post
-const intro = () => INTROS[props.type] || INTROS.post
+const kind = props.reel ? 'reel' : props.type
+const title = () => TITLES[kind] || TITLES.post
+const intro = () => INTROS[kind] || INTROS.post
 const reason = ref('')
 const note = ref('')
 const sending = ref(false)
@@ -55,7 +59,7 @@ async function send() {
     <div v-if="done" class="body thanks">
       <span class="ok">✓</span>
       <h3>{{ t.__('Thanks for letting us know', 'membuild-community') }}</h3>
-      <p>{{ t.__('An admin or moderator will take a look.', 'membuild-community') }} {{ done.hidden ? t.__('This post is hidden until they do.', 'membuild-community') : '' }}</p>
+      <p>{{ t.__('An admin or moderator will take a look.', 'membuild-community') }} {{ done.hidden ? (reel ? t.__('This reel is hidden until they do.', 'membuild-community') : t.__('This post is hidden until they do.', 'membuild-community')) : '' }}</p>
       <button class="btn btn-lg btn-primary" @click="emit('close')">{{ t.__('Done', 'membuild-community') }}</button>
     </div>
 

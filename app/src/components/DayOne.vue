@@ -70,7 +70,7 @@ const doneLine = computed(() =>
   <section v-if="owner || member" class="day-one card" :aria-label="owner ? t.__('Finish setting up', 'membuild-community') : t.__('Welcome', 'membuild-community')">
     <header>
       <h2>{{ owner ? t.__('Finish setting up', 'membuild-community') : t.sprintf(t.__('Welcome, %s!', 'membuild-community'), first) }}</h2>
-      <button v-if="member" type="button" class="hide" @click="hide">{{ t.__('Hide', 'membuild-community') }}</button>
+      <button v-if="member" type="button" class="hide tap-44" @click="hide">{{ t.__('Hide', 'membuild-community') }}</button>
     </header>
     <p class="sub">{{ doneLine }}</p>
     <div class="bar" role="progressbar" :aria-valuenow="count" aria-valuemin="0" :aria-valuemax="steps.length"><i :style="{ width: `${(count / steps.length) * 100}%` }" /></div>

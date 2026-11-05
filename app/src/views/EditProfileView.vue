@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { api } from '../api.js'
+import { messages } from '../stores/messages.js'
 import { cfg, feature } from '../config.js'
 import Avatar from '../components/Avatar.vue'
 import BaseDialog from '../components/BaseDialog.vue'
@@ -76,6 +77,7 @@ api.blocks().then((res) => (blocked.value = res.items)).catch(() => {})
 async function unblock(person) {
   try {
     await api.unblock(person.id)
+    messages.blocksChanged++
     blocked.value = blocked.value.filter((p) => p.id !== person.id)
   } catch (e) {
     error.value = e.message

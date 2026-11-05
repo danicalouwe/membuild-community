@@ -151,7 +151,7 @@ const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles
   <div class="panel" :class="{ page }">
     <header class="head" role="none">
       <h2>{{ t.__('Alerts', 'membuild-community') }}</h2>
-      <button v-if="unread || items.some((n) => !n.read)" class="link" @click="readAll">{{ t.__('Mark all as read', 'membuild-community') }}</button>
+      <button v-if="unread || items.some((n) => !n.read)" class="link tap-44" @click="readAll">{{ t.__('Mark all as read', 'membuild-community') }}</button>
     </header>
     <div class="filters" role="tablist">
       <button class="filter-pill" role="tab" :aria-selected="filter === 'all'" :class="{ on: filter === 'all' }" @click="filter = 'all'">{{ t.__('All', 'membuild-community') }}</button>

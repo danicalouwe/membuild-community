@@ -3,6 +3,7 @@ import { startAttachment } from '../lib/attachments.js'
 import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api.js'
+import { messages } from '../stores/messages.js'
 import { cfg, feature, levelLabel } from '../config.js'
 import { me, refreshStats } from '../stores/me.js'
 import { loadMore, memberList } from '../stores/feed.js'
@@ -137,6 +138,7 @@ async function setBlocked(on) {
   try {
     await (on ? api.block(member.value.id) : api.unblock(member.value.id))
     member.value.blocked = on
+    messages.blocksChanged++
     member.value.can_message = !on && member.value.can_message
     if (!on) load()
   } catch (err) {
@@ -221,7 +223,7 @@ const livesIn = computed(() => around(t.__('Lives in %s', 'membuild-community'))
 const bothTaking = computed(() => around(t.__('You’re both taking %s', 'membuild-community')))
 
 const streakLabel = (days) => t.sprintf(/* translators: %d: number of days in a row the member visited */ t._n('%d-day streak', '%d-day streak', days, 'membuild-community'), days)
-const bestStreak = (days) => t.sprintf(/* translators: %d: the member's longest streak, in days */ t.__('Best: %d days', 'membuild-community'), days)
+const bestStreak = (days) => t.sprintf(/* translators: %d: the member's longest streak, in days */ t._n('Best: %d day', 'Best: %d days', days, 'membuild-community'), days)
 const rankLabel = (rank) => t.sprintf(/* translators: %d: the member's position on the leaderboard */ t._x('#%d', 'leaderboard rank', 'membuild-community'), rank)
 const dailyCap = (n) => t.sprintf(/* translators: %d: how many times a day this action earns points */ t.__('up to %d× a day', 'membuild-community'), n)
 </script>
@@ -321,7 +323,7 @@ const dailyCap = (n) => t.sprintf(/* translators: %d: how many times a day this 
             <ul class="about">
               <li v-if="member.location"><Icon name="mapPin" :size="20" /> <span>{{ livesIn[0] }}<b>{{ member.location }}</b>{{ livesIn[1] }}</span></li>
               <li><Icon name="calendar" :size="20" /> <span>{{ joinedText }}</span></li>
-              <li v-if="!member.location && isMe" class="add"><Icon name="mapPin" :size="20" /> <span>{{ t.__('Add where you live', 'membuild-community') }} <button class="link" @click="editProfile">{{ t.__('Add', 'membuild-community') }}</button></span></li>
+              <li v-if="!member.location && isMe" class="add"><Icon name="mapPin" :size="20" /> <span>{{ t.__('Add where you live', 'membuild-community') }} <button class="link tap-44" @click="editProfile">{{ t.__('Add', 'membuild-community') }}</button></span></li>
               <li v-if="member.shared_course"><Icon name="cap" :size="20" /> <span>{{ bothTaking[0] }}<b>{{ member.shared_course }}</b>{{ bothTaking[1] }}</span></li>
             </ul>
           </section>
@@ -993,6 +995,12 @@ h1 {
   .cover {
     height: 180px;
     border-radius: 0;
+  }
+
+  /* Beside the wide Message button the ⋯ sits at the right edge, so its menu opens back over the page. */
+  .msg + .more-wrap .more-menu {
+    right: 0;
+    left: auto;
   }
 
   .head {

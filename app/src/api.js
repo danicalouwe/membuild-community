@@ -49,6 +49,7 @@ function refreshNonce() {
     method: 'POST',
     credentials: 'same-origin',
     body: new URLSearchParams({ action: 'mbcom_nonce' }),
+    signal: AbortSignal.timeout?.(15000), // a stalled connection never fails on its own, and others wait on this
   })
     .then((r) => r.json())
     .then((json) => {
@@ -79,7 +80,7 @@ export async function request(path, options = {}) {
       await refreshNonce()
       ;({ res, data } = await send(path, options))
     } catch (e) {
-      if (e?.name === 'AbortError') throw e
+      if (e?.name === 'AbortError' || e?.name === 'TimeoutError' || e instanceof TypeError) throw e // not an expired session
     }
     if (expired(res, data)) {
       throw new ApiError(t.__('Your session expired. Reload the page to continue.', 'membuild-community'), res.status, data.code)
@@ -205,7 +206,7 @@ export const api = {
   leaveChat: (id) => request(`/messages/threads/${id}/leave`, { method: 'POST' }),
   muteChat: (id, on) => request(`/messages/threads/${id}/mute`, { method: on ? 'PUT' : 'DELETE' }),
   chatMessages: (id, before) => request(`/messages/threads/${id}/messages`, { params: { before } }),
-  sendMessage: (id, body) => request(`/messages/threads/${id}/messages`, { method: 'POST', body }),
+  sendMessage: (id, body, signal) => request(`/messages/threads/${id}/messages`, { method: 'POST', body, signal }),
   markRead: (id, messageId) => request(`/messages/threads/${id}/read`, { method: 'POST', body: { message_id: messageId } }),
   typing: (id) => request(`/messages/threads/${id}/typing`, { method: 'POST' }),
   unsend: (id) => request(`/messages/${id}`, { method: 'DELETE' }),

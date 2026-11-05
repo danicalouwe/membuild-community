@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.18.1
+Stable tag: 1.18.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,18 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.18.2 =
+* Changed: a message that can't be sent says Not sent right away, with Try again, instead of staying on Sending. If a photo failed, the words and the other photos go back in the message box. Trying again won't send a message twice in normal use.
+* Changed: in a chat with someone you blocked, the old messages stay readable and a note replaces the message box.
+* Changed: the message box stops at 4,000 characters with a small note, so a long message is no longer cut off when it's sent.
+* Changed: reporting a reel says Report reel, and a reel hidden for review leaves the Home tray.
+* Fixed: on phones, a double tap on Send no longer also sends a like.
+* Fixed: on phones, the Block and Report menu on a profile stays on screen.
+* Fixed: Share on a reel names the reel it was tapped on, and says Link copied where only copying is possible.
+* Fixed: the profile streak says Best: 1 day, not 1 days.
+* Fixed: on phones, Add on your profile, Hide on the welcome list and Mark all as read are easier to tap.
+* Fixed: a long link with no spaces wraps in the message box instead of pushing the chat off the screen.
 
 = 1.18.1 =
 * Changed: the post menu says Unsave instead of Remove from saved, and grows to fit its longest item, so its choices stay on one line.

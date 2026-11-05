@@ -238,7 +238,7 @@ async function remove() {
           <button v-if="post.poll?.can_close" role="menuitem" class="plain" @click="askClosePoll"><Icon name="lock" :size="18" /> {{ t.__('Close poll', 'membuild-community') }}</button>
           <button v-if="post.can_edit" role="menuitem" class="plain" @click="closeMenu(); editing = true"><Icon name="compose" :size="18" /> {{ t.__('Edit post', 'membuild-community') }}</button>
           <button v-if="post.can_delete" role="menuitem" @click="remove"><Icon name="trash" :size="18" /> {{ t.__('Delete post', 'membuild-community') }}</button>
-          <button v-if="!isMine" role="menuitem" class="plain" @click="closeMenu(); reporting = true"><Icon name="flag" :size="18" /> {{ t.__('Report post', 'membuild-community') }}</button>
+          <button v-if="!isMine" role="menuitem" class="plain" @click="closeMenu(); reporting = true"><Icon name="flag" :size="18" /> {{ post.type === 'reel' ? t.__('Report reel', 'membuild-community') : t.__('Report post', 'membuild-community') }}</button>
         </div>
       </div>
     </header>
@@ -272,7 +272,7 @@ async function remove() {
       </div>
     </div>
 
-    <ReportDialog v-if="reporting" type="post" :id="post.id" @close="reporting = false" @reported="reported" />
+    <ReportDialog v-if="reporting" type="post" :reel="post.type === 'reel'" :id="post.id" @close="reporting = false" @reported="reported" />
     <CreatePostDialog v-if="editing" :edit="post" @close="editing = false" />
     <BaseDialog v-if="movingTopic !== null" :title="t.__('Change topic', 'membuild-community')" :width="440" @close="movingTopic = null">
       <div class="move">

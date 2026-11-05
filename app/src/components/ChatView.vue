@@ -2,7 +2,7 @@
 import { activeLabel, isOnline } from '../lib/online.js'
 import { askConfirm } from '../lib/confirm.js'
 import { showToast } from '../lib/toast.js'
-import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import GifMedia from './GifMedia.vue'
 import { gifBox } from '../lib/gifBox.js'
 import { api } from '../api.js'
@@ -44,7 +44,6 @@ const props = defineProps({
 const emit = defineEmits(['back', 'left', 'read', 'loaded', 'minimize', 'close', 'expand', 'muted', 'renamed'])
 
 const chat = ref(null)
-const blockedNotice = ref(false) // shown after blocking from this chat
 const items = ref([])
 const hasMore = ref(false)
 const loadingOlder = ref(false)
@@ -240,9 +239,10 @@ function onPulse(thread) {
   if (fresh.length) {
     // One of mine arriving while its send is still in flight replaces the pending bubble,
     // so a slow send (a busy host, mail going out in the same request) never shows it twice.
+    // The same for a "Not sent" bubble with no photos: it saved, and only the answer was lost.
     for (const m of fresh) {
       if (!m.mine) continue
-      const i = items.value.findIndex((p) => p.pending && (p.content || null) === (m.content || null) && p.media.length === (m.media || []).length)
+      const i = items.value.findIndex((p) => (p.pending || (p.canRetry && !p.media.length)) && (p.content || null) === (m.content || null) && p.media.length === (m.media || []).length)
       if (i >= 0) items.value.splice(i, 1)
     }
     items.value.push(...fresh)
@@ -297,18 +297,22 @@ function addGif(gif) {
   nextTick(() => input.value?.focus())
 }
 
+const MAX_MESSAGE = 4000 // the server keeps this many characters
+
 async function send() {
   const typing = document.activeElement === input.value
   const content = draft.value.trim()
   const pics = photos.value
   if ((!content && !pics.length) || pics.some((p) => p.status === 'error')) return
+  if (content.length > MAX_MESSAGE) return // words returned from a failed send can go past the box's limit; the note says so
   const reply = replyTo.value
   draft.value = ''
   photos.value = []
   replyTo.value = null
   showEmoji.value = false
 
-  const temp = {
+  // Reactive, so "Not sent" shows as soon as the send fails, even offline when nothing else redraws.
+  const temp = reactive({
     id: `tmp-${++tempId}`,
     user_id: cfg.user.id,
     mine: true,
@@ -318,19 +322,26 @@ async function send() {
     reactions: [],
     created_at: new Date().toISOString(),
     pending: true,
-  }
+    // The key lets the server recognise a resend of a message it already saved.
+    outgoing: { content, pics, reply, key: `${Date.now()}-${Math.random().toString(36).slice(2)}` },
+  })
   items.value.push(temp)
   scrollToBottom(true)
   if (typing) nextTick(() => input.value?.focus({ preventScroll: true })) // still typing: the keyboard stays
+  deliver(temp)
+}
 
+async function deliver(temp) {
+  const { content, pics, reply, key } = temp.outgoing
   try {
     await Promise.all(pics.map((p) => p.promise))
     if (pics.some((p) => p.status !== 'done')) throw new Error(t.__('A photo failed to upload.', 'membuild-community'))
-    const saved = await api.sendMessage(props.threadId, {
-      content,
-      media_ids: pics.map((p) => p.media.id),
-      reply_to_id: reply?.id,
-    })
+    const saved = await api.sendMessage(
+      props.threadId,
+      { content, media_ids: pics.map((p) => p.media.id), reply_to_id: reply?.id, client_key: key },
+      AbortSignal.timeout?.(30000), // a stalled connection never fails on its own
+    )
+    if (!saved?.id) throw new TypeError('no answer') // not JSON, such as a PHP notice printed before it
     // The pulse may have delivered it already; keep exactly one copy.
     const i = items.value.indexOf(temp)
     if (items.value.some((m) => m.id === saved.id)) {
@@ -343,10 +354,52 @@ async function send() {
     pics.forEach((p) => p.release()) // the saved photos show now, not the local previews
     pulseNow()
   } catch (err) {
+    if (pics.some((p) => p.status === 'error')) return backToComposer(temp, err)
+    // fetch only throws a TypeError when it never got an answer.
+    const noAnswer = err instanceof TypeError || err.name === 'TimeoutError'
     temp.pending = false
-    temp.failed = err.message
+    temp.failed = noAnswer ? t.__('Not sent. Check your connection.', 'membuild-community') : notSent(err.message)
+    temp.canRetry = noAnswer || err.status >= 500 || err.status === 429
   }
 }
+
+// A photo that failed to upload can't be resent: the words and the other photos go back in the composer,
+// so only that photo has to be picked again.
+function backToComposer(temp, err) {
+  const { content, pics, reply } = temp.outgoing
+  const i = items.value.indexOf(temp)
+  if (i >= 0) items.value.splice(i, 1)
+  draft.value = [content, draft.value].filter(Boolean).join('\n')
+  pics.filter((p) => p.status === 'error').forEach((p) => p.release())
+  const back = [...pics.filter((p) => p.status !== 'error'), ...photos.value]
+  back.slice(10).forEach((p) => p.cancel())
+  photos.value = back.slice(0, 10)
+  replyTo.value ??= reply
+  showToast(err.message)
+}
+
+function tryAgain(temp) {
+  temp.failed = null
+  temp.canRetry = false
+  temp.pending = true
+  // It goes out now, so it moves to the end, where the other person will see it too.
+  temp.created_at = new Date().toISOString()
+  items.value.splice(items.value.indexOf(temp), 1)
+  items.value.push(temp)
+  scrollToBottom(true)
+  deliver(temp)
+}
+
+// Send stays in place for a moment after it's pressed, so a double tap can't land on the like button.
+const holdSend = ref(false)
+let holdSendTimer
+function sendPressed() {
+  send()
+  holdSend.value = true
+  clearTimeout(holdSendTimer)
+  holdSendTimer = setTimeout(() => (holdSend.value = false), 1000)
+}
+onBeforeUnmount(() => clearTimeout(holdSendTimer))
 
 // Phones, like Messenger: the return key starts a new line, and Send sends.
 const touch = window.matchMedia('(pointer: coarse)')
@@ -360,7 +413,7 @@ function onKey(e) {
 }
 
 function insertEmoji(e) {
-  draft.value += e
+  if (draft.value.length + e.length <= MAX_MESSAGE) draft.value += e
   nextTick(() => input.value?.focus())
 }
 
@@ -447,6 +500,13 @@ async function saveName() {
   }
 }
 
+// Blocked or unblocked from their profile while this chat is open (the chat box on computers).
+watch(() => messages.blocksChanged, async () => {
+  const id = props.threadId
+  const c = await api.chat(id).catch(() => null)
+  if (c && alive && id === props.threadId) chat.value = c
+})
+
 // Blocking from a one-on-one chat, as in Messenger: the chat stays readable, but nobody can add to it.
 async function blockOther() {
   closeHeaderMenu()
@@ -454,7 +514,7 @@ async function blockOther() {
   if (!person || !(await askConfirm({ title: t.sprintf(/* translators: %s: member's name */ t.__('Block %s?', 'membuild-community'), person.name), text: t.__('You won’t see each other’s posts, comments or stories, and you can’t message each other. They aren’t told.', 'membuild-community'), confirm: t.__('Block', 'membuild-community'), danger: true }))) return
   try {
     await api.block(person.id)
-    blockedNotice.value = true
+    chat.value = { ...chat.value, blocked_by_me: true }
   } catch (err) {
     showToast(err.message)
   }
@@ -520,7 +580,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
             <template v-else-if="others[0]">
               <RouterLink role="menuitem" :to="{ name: 'member', params: { id: others[0].id } }" @click="closeHeaderMenu"><Icon name="user" :size="20" /> {{ t.__('View profile', 'membuild-community') }}</RouterLink>
               <button role="menuitem" @click="toggleMute"><Icon :name="chat.muted ? 'bell' : 'bellOff'" :size="20" /> {{ chat.muted ? t.__('Unmute this chat', 'membuild-community') : t.__('Mute this chat', 'membuild-community') }}</button>
-              <hr class="sep" /><button role="menuitem" class="danger" @click="blockOther"><Icon name="block" :size="20" /> {{ t.__('Block', 'membuild-community') }}</button>
+              <hr v-if="!chat.blocked_by_me" class="sep" /><button v-if="!chat.blocked_by_me" role="menuitem" class="danger" @click="blockOther"><Icon name="block" :size="20" /> {{ t.__('Block', 'membuild-community') }}</button>
             </template>
           </div>
         </div>
@@ -571,7 +631,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
             <template v-else>
               <RouterLink role="menuitem" :to="{ name: 'member', params: { id: others[0].id } }" @click="closeHeaderMenu"><Icon name="user" :size="20" /> {{ t.__('View profile', 'membuild-community') }}</RouterLink>
               <button role="menuitem" @click="toggleMute"><Icon :name="chat.muted ? 'bell' : 'bellOff'" :size="20" /> {{ chat.muted ? t.__('Unmute this chat', 'membuild-community') : t.__('Mute this chat', 'membuild-community') }}</button>
-              <hr class="sep" /><button role="menuitem" class="danger" @click="blockOther"><Icon name="block" :size="20" /> {{ t.__('Block', 'membuild-community') }}</button>
+              <hr v-if="!chat.blocked_by_me" class="sep" /><button v-if="!chat.blocked_by_me" role="menuitem" class="danger" @click="blockOther"><Icon name="block" :size="20" /> {{ t.__('Block', 'membuild-community') }}</button>
             </template>
           </div>
         </div>
@@ -639,7 +699,10 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
                 <ReactionPicker v-if="menuFor === row.m.id && reactAt" :anchor="reactAt.rect" :side="reactAt.side" :current="row.m.my_reaction" @pick="(type) => react(row.m, type)" @close="closeReactions" />
               </div>
 
-              <span v-if="row.m.failed" class="failed">{{ notSent(row.m.failed) }}</span>
+              <span v-if="row.m.failed" class="failed">
+                {{ row.m.failed }}
+                <button v-if="row.m.canRetry" type="button" class="try-again tap-44" @click="tryAgain(row.m)">{{ t.__('Try again', 'membuild-community') }}</button>
+              </span>
               <span v-else-if="row.m.pending" class="status">{{ t.__('Sending…', 'membuild-community') }}</span>
               <span v-else-if="row.m.id === seenBy.id && seenBy.users.length" class="seen">
                 <template v-if="isGroup">
@@ -660,8 +723,8 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 
     <p v-if="chat && cfg.community.restriction" class="composer muted-note">{{ t.__("You're muted, so you can't send messages right now.", 'membuild-community') }}</p>
     <p v-else-if="chat && gone" class="composer muted-note">{{ t.__('This member has left the community, so you can’t reply.', 'membuild-community') }}</p>
-    <p v-else-if="chat && blockedNotice" class="composer muted-note">{{ t.__('You blocked this person. Unblock them from their profile to message again.', 'membuild-community') }}</p>
-    <form v-else-if="chat" class="composer" @submit.prevent="send">
+    <p v-else-if="chat?.blocked_by_me" class="composer muted-note">{{ t.__('You blocked this person. Unblock them from their profile to message again.', 'membuild-community') }}</p>
+    <form v-else-if="chat" class="composer" @submit.prevent="sendPressed">
       <div v-if="replyTo" class="replying">
         <div>
           <strong>{{ replyTo.mine ? t.__('Replying to yourself', 'membuild-community') : replyingTo(userById[replyTo.user_id]?.name) }}</strong>
@@ -676,6 +739,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
           <button type="button" :aria-label="t.__('Remove photo', 'membuild-community')" @click="p.cancel(); photos.splice(i, 1)"><Icon name="close" :size="12" /></button>
         </span>
       </div>
+      <p v-if="draft.length >= MAX_MESSAGE" class="limit-note" role="status">{{ t.sprintf(/* translators: %s: the number of characters, e.g. 4,000 */ t.__('You’ve reached the limit of %s characters.', 'membuild-community'), MAX_MESSAGE.toLocaleString()) }}</p>
       <div class="bar">
         <button type="button" class="icon tool" :aria-label="t.__('Add photo', 'membuild-community')" @click="photoInput.click()"><Icon name="image" :size="22" /></button>
         <input ref="photoInput" class="sr-only" type="file" tabindex="-1" aria-hidden="true" accept="image/*" multiple @change="pickPhotos" />
@@ -683,14 +747,14 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
         <!-- Computers: a small box above the message bar (like Facebook); phones: the sheet. -->
         <GifPicker v-if="showGifs" :pop="popGifs" @pick="addGif" @close="showGifs = false" />
         <div class="field">
-          <textarea ref="input" v-auto-grow v-model="draft" rows="1" :placeholder="t.__('Aa', 'membuild-community')" :aria-label="t.__('Write a message', 'membuild-community')" @input="onInput" @keydown="onKey" />
+          <textarea ref="input" v-auto-grow v-model="draft" rows="1" :maxlength="MAX_MESSAGE" :placeholder="t.__('Aa', 'membuild-community')" :aria-label="t.__('Write a message', 'membuild-community')" @input="onInput" @keydown="onKey" />
           <div class="emoji-wrap">
             <button type="button" class="icon" :aria-label="t.__('Emoji', 'membuild-community')" :aria-expanded="showEmoji" @click="toggleEmoji">😊</button>
             <ReactionPicker v-if="showEmoji && emojiBtn" mode="emoji" side="center" :anchor="emojiBtn.getBoundingClientRect()" :ignore="emojiBtn" @pick="insertEmoji" @close="showEmoji = false" />
           </div>
         </div>
         <!-- Pressing Send keeps the typing where it was, so the phone's keyboard stays up for the next message. -->
-        <button v-if="draft.trim() || photos.length" type="submit" class="icon send" :aria-label="t.__('Send', 'membuild-community')" @pointerdown.prevent><Icon name="send" :size="22" /></button>
+        <button v-if="draft.trim() || photos.length || holdSend" type="submit" class="icon send" :aria-label="t.__('Send', 'membuild-community')" @pointerdown.prevent><Icon name="send" :size="22" /></button>
         <button v-else type="button" class="icon send like" :aria-label="t.__('Send a like', 'membuild-community')" @pointerdown.prevent @click="draft = '👍'; send()">👍</button>
       </div>
     </form>
@@ -1367,6 +1431,17 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
   color: var(--danger);
 }
 
+.try-again {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .seen {
   display: flex;
   gap: 2px;
@@ -1440,6 +1515,13 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
   color: var(--text-3);
 }
 
+.limit-note {
+  margin: 0;
+  padding: 0 4px 6px;
+  font-size: var(--fs-2xs);
+  color: var(--text-3);
+}
+
 .pending-photos {
   display: flex;
   gap: 6px;
@@ -1500,6 +1582,8 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 
 .field textarea {
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere; /* a long link wraps instead of pushing the page sideways */
   border: 0;
   resize: none;
   background: transparent;
