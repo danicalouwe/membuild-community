@@ -437,22 +437,64 @@ class Media {
 		};
 		add_filter( 'rest_attachment_query', $hide );
 		add_filter( 'ajax_query_attachments_args', $hide );
-		add_action(
-			'template_redirect',
-			function () {
-				if ( is_attachment() && get_post_meta( get_queried_object_id(), self::PRIVATE_META, true ) ) {
-					global $wp_query;
-					$wp_query->set_404();
-					status_header( 404 );
+		// On the website they don't exist: no page, search result or feed, for any way of asking.
+		add_filter(
+			'posts_results',
+			function ( $posts, $query ) {
+				if ( is_admin() || ! $query->is_main_query() ) {
+					return $posts;
 				}
+				return array_values( array_filter( $posts, fn( $post ) => 'attachment' !== $post->post_type || ! get_post_meta( $post->ID, self::PRIVATE_META, true ) ) );
+			},
+			10,
+			2
+		);
+		// WordPress sends /?attachment_id=123 on to the file's address even after "not found".
+		add_filter(
+			'redirect_canonical',
+			function ( $to ) {
+				foreach ( array( 'p', 'page_id', 'attachment_id' ) as $var ) {
+					$id = (int) get_query_var( $var );
+					if ( $id && get_post_meta( $id, self::PRIVATE_META, true ) ) {
+						return false;
+					}
+				}
+				return $to;
 			}
 		);
-		// Asking for one by ID (/wp/v2/media/123) answers "not found", except to admins.
+		// And the embed preview other sites ask for hands out the image's address.
+		add_filter( 'oembed_request_post_id', fn( $id ) => $id && get_post_meta( $id, self::PRIVATE_META, true ) ? 0 : $id );
+		// Nobody can comment on one (the reply would name it), and any comments already there stay out of sight.
+		$open = fn( $open, $id ) => $open && ! get_post_meta( (int) $id, self::PRIVATE_META, true );
+		add_filter( 'comments_open', $open, 10, 2 );
+		add_filter( 'pings_open', $open, 10, 2 );
+		$not_on_private = function () {
+			global $wpdb;
+			return $wpdb->prepare( "{$wpdb->comments}.comment_post_ID NOT IN (SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = %s)", self::PRIVATE_META ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- core table names
+		};
+		add_filter( 'comment_feed_where', fn( $where ) => $where . ' AND ' . $not_on_private() );
+		add_filter(
+			'comments_clauses',
+			function ( $clauses ) use ( $not_on_private ) {
+				if ( ! is_admin() ) {
+					$clauses['where'] = ( $clauses['where'] ? $clauses['where'] . ' AND ' : '' ) . $not_on_private();
+				}
+				return $clauses;
+			}
+		);
+		// Asking for one by ID (/wp/v2/media/123, or a comment on it) answers "not found", except to admins, however the route is spelled.
 		add_filter(
 			'rest_request_before_callbacks',
 			function ( $response, $handler, $request ) {
-				if ( preg_match( '#^/wp/v2/media/(\d+)#', $request->get_route(), $m ) && get_post_meta( (int) $m[1], self::PRIVATE_META, true ) && ! current_user_can( 'manage_options' ) ) {
-					return new \WP_Error( 'rest_post_invalid_id', __( 'Invalid post ID.' ), array( 'status' => 404 ) ); // phpcs:ignore WordPress.WP.I18n.MissingArgDomain -- core's own message
+				$controller = is_array( $handler['callback'] ?? null ) ? $handler['callback'][0] : null;
+				$id         = (int) $request['id'];
+				if ( $id && $controller instanceof \WP_REST_Comments_Controller ) {
+					$id = (int) ( get_comment( $id )->comment_post_ID ?? 0 ); // a comment on one names it too
+				} elseif ( ! $controller instanceof \WP_REST_Attachments_Controller ) {
+					$id = 0;
+				}
+				if ( $id && get_post_meta( $id, self::PRIVATE_META, true ) && ! current_user_can( 'manage_options' ) ) {
+					return new \WP_Error( 'rest_post_invalid_id', __( 'Invalid post ID.' ), array( 'status' => 404 ) ); // phpcs:ignore WordPress.WP.I18n.MissingArgDomain -- core's message, on purpose
 				}
 				return $response;
 			},

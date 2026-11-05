@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.18.5
+Stable tag: 1.18.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -232,7 +232,7 @@ Each part of the plugin is a class in `includes/` that registers its own hooks; 
 
 **Encryption key**: private messages and stored passwords are encrypted with a key created in `wp-content/mbcom-key.php`. To keep it in wp-config.php instead, add `define( 'MEMBUILD_COMMUNITY_KEY', '…64 hexadecimal characters…' );` with the same value. Back it up: without it, encrypted messages can't be read. Admins are asked to save a copy (Community settings → Advanced → Encryption key, which also shows and downloads it). Some backup and migration plugins only copy the uploads, plugins and themes folders, not loose files in wp-content, so check yours includes `mbcom-key.php`. If a moved or restored site lost the key, messages pause instead of being locked with a new key, and the saved copy can be pasted back in the same place.
 
-**Protected files on nginx**: lesson files and photos in private messages live in `wp-content/uploads/mbcom-private/`, which Apache and IIS block automatically. On nginx, add `location ^~ /wp-content/uploads/mbcom-private/ { deny all; }` to your site's configuration. Site Health tells you if the folder is reachable from the web.
+**Protected files on nginx and OpenLiteSpeed**: lesson files and photos in private messages live in `wp-content/uploads/mbcom-private/`, which Apache and IIS block automatically. On nginx, add `location ^~ /wp-content/uploads/mbcom-private/ { deny all; }` to your site's configuration. On OpenLiteSpeed, add `RewriteRule ^wp-content/uploads/mbcom-private/ - [F,L]` near the top of the `.htaccess` file in your site's main folder. Site Health tells you if the folder is reachable from the web.
 
 == Copyright ==
 
@@ -262,6 +262,14 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.18.6 =
+* Fixed (security): logged-out visitors can no longer find a private upload's address, name or title through WordPress's attachment links, feeds, search, embed previews, media API or comments. If your server doesn't block the protected files folder, which is common on nginx and OpenLiteSpeed, please add the rule that Site Health shows you.
+* Fixed: changing the community's address keeps old links working, including links in emails already sent, login links and links saved in chats. They go to the same place at the new address. A page you make at an old address comes first. This covers address changes made from this version on.
+* Fixed: after a change of address, the old one no longer half-opens the community or overrides a page made there.
+* Fixed: website buttons saved before a change of address still show the right words for visitors and members.
+* Changed: Settings says old links keep working, and that members who added the app to their phone may need to add it again.
+* Changed: Site Health and the readme give the rule for OpenLiteSpeed as well as nginx.
 
 = 1.18.5 =
 * Fixed: errors from a visitor's browser extensions are no longer reported as problems with the plugin.

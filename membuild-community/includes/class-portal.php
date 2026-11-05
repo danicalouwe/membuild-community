@@ -15,9 +15,13 @@ defined( 'ABSPATH' ) || exit;
  */
 class Portal {
 
+	const OLD_ADDRESSES      = 'mbcom_old_addresses';
+	const OLD_ADDRESSES_KEPT = 20;
+
 	public static function register_hooks() {
 		self::add_rewrite_rule();
 		add_filter( 'query_vars', array( __CLASS__, 'query_vars' ) );
+		add_action( 'template_redirect', array( __CLASS__, 'maybe_follow_old_address' ), -1 ); // before Coming soon's gate (priority 0)
 		add_action( 'template_redirect', array( __CLASS__, 'maybe_render' ), 1 );
 		add_action( 'template_redirect', array( __CLASS__, 'maybe_land' ), 2 );
 		add_filter( 'login_redirect', array( __CLASS__, 'login_redirect' ), 20, 3 );
@@ -82,7 +86,69 @@ class Portal {
 	}
 
 	public static function add_rewrite_rule() {
-		add_rewrite_rule( '^' . preg_quote( Settings::slug(), '/' ) . '(?:/(.*))?/?$', 'index.php?mbcom_portal=1&mbcom_path=$matches[1]', 'top' );
+		add_rewrite_rule( self::rule( Settings::slug() ), 'index.php?mbcom_portal=1&mbcom_path=$matches[1]', 'top' );
+	}
+
+	private static function rule( $slug ) {
+		return '^' . preg_quote( $slug, '/' ) . '(?:/(.*))?/?$';
+	}
+
+	/**
+	 * The community just moved. Its old address leaves the stored rules at once: they outrank
+	 * pages, and the app can't run from there. It's remembered so old links can follow.
+	 */
+	public static function moved( $old ) {
+		global $wp_rewrite;
+		unset( $wp_rewrite->extra_rules_top[ self::rule( $old ) ] );
+		self::add_rewrite_rule();
+		flush_rewrite_rules( false );
+
+		$past   = array_diff( (array) get_option( self::OLD_ADDRESSES, array() ), array( $old, Settings::slug() ) );
+		$past[] = $old;
+		update_option( self::OLD_ADDRESSES, array_slice( array_values( $past ), -self::OLD_ADDRESSES_KEPT ), true );
+	}
+
+	/**
+	 * Links to a past address go on to the same place at the current one. Only when nothing
+	 * else is there, so a page made at an old address wins. Temporary, because a browser
+	 * would remember a permanent one and loop if the community moves back.
+	 */
+	public static function maybe_follow_old_address() {
+		if ( ! in_array( Helpers::method(), array( 'GET', 'HEAD' ), true ) ) {
+			return;
+		}
+		$query = isset( $_SERVER['QUERY_STRING'] ) ? wp_unslash( $_SERVER['QUERY_STRING'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- wp_safe_redirect() cleans the whole address
+		$to    = self::current_address_for( (string) $GLOBALS['wp']->request, (string) $query );
+		if ( $to && ( is_404() || self::found_by_accident() ) ) {
+			Helpers::no_page_cache();
+			wp_safe_redirect( $to, 302 );
+			exit;
+		}
+	}
+
+	/**
+	 * WordPress reads /old-address/events as "the file named events, whatever comes first", and a
+	 * post's name can match the same way. Those don't live at the old address, so the link still follows.
+	 */
+	private static function found_by_accident() {
+		if ( ! is_singular() ) {
+			return false;
+		}
+		$found = get_queried_object();
+		if ( ! $found instanceof \WP_Post || ( is_attachment() && ! $found->post_parent ) ) {
+			return true;
+		}
+		$first = sanitize_title( rawurldecode( strtok( trim( (string) $GLOBALS['wp']->request, '/' ), '/' ) ) );
+		return $found->post_name !== $first && 0 !== strpos( trailingslashit( (string) get_permalink( $found ) ), home_url( '/' . $first . '/' ) );
+	}
+
+	/** Where a request path belongs now, or '' when it isn't under a past address. */
+	public static function current_address_for( $request, $query = '' ) {
+		$parts = explode( '/', trim( $request, '/' ), 2 );
+		if ( ! in_array( sanitize_title( rawurldecode( $parts[0] ) ), (array) get_option( self::OLD_ADDRESSES, array() ), true ) ) {
+			return '';
+		}
+		return self::url() . ( $parts[1] ?? '' ) . ( '' !== $query ? '?' . $query : '' );
 	}
 
 	public static function query_vars( $vars ) {
@@ -131,6 +197,7 @@ class Portal {
 			'nonce'    => wp_create_nonce( 'wp_rest' ),
 			'ajaxUrl'  => admin_url( 'admin-ajax.php' ), // for refreshing the nonce in tabs left open overnight
 			'basePath' => wp_parse_url( home_url( '/' . Settings::slug() ), PHP_URL_PATH ),
+			'oldPaths' => array_map( fn( $slug ) => wp_parse_url( home_url( '/' . $slug ), PHP_URL_PATH ), (array) get_option( self::OLD_ADDRESSES, array() ) ), // links saved in chats and posts before a move
 			'siteName' => Settings::name(),
 			'community' => Settings::public_config(),
 			// wp_logout_url() is HTML-escaped (&amp;); the app needs the plain URL or the nonce gets lost.

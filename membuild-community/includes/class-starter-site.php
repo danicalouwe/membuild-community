@@ -54,6 +54,16 @@ class Starter_Site {
 		return untrailingslashit( (string) self::path( Portal::url() ) ) . ( $page ? '/' . $page : '' );
 	}
 
+	/** Saved pages keep their links when the community moves: read those as the current address. */
+	private static function moved_path( $path ) {
+		$home = untrailingslashit( (string) self::path( home_url( '/' ) ) );
+		if ( null === $path || 0 !== strpos( $path . '/', $home . '/' ) ) {
+			return $path;
+		}
+		$to = Portal::current_address_for( substr( $path, strlen( $home ) ) );
+		return $to ? self::path( $to ) : $path;
+	}
+
 	/** Join, then straight to $after (a course, an event) once they have an account. */
 	public static function join_then( $after = '' ) {
 		return Login::url( 'join', $after ? array( 'redirect_to' => $after ) : array() );
@@ -207,7 +217,7 @@ class Starter_Site {
 		if ( preg_match( '/^#mbcom-plan-(\d+)$/', $href, $p ) ) {
 			return self::plan_button( $html, (int) $p[1] );
 		}
-		$path = self::path( $href );
+		$path = self::moved_path( self::path( $href ) );
 		if ( '#mbcom-join' === $href || self::community_path( 'join' ) === $path ) {
 			return $in ? self::relabel( $html, Portal::url(), __( 'Go to the community →', 'membuild-community' ) ) : self::relabel( $html, Login::url( 'join' ) );
 		}

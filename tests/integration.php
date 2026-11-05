@@ -545,6 +545,7 @@ mbcom_check( '…while the answer names only the one that can’t be used', arra
 // If the database refused the key's column: messages still save, a resend still isn't a second copy, and the upgrade tries again.
 global $wpdb;
 $messages_table = \MemBuild\Community\Install::table( 'messages' );
+$wpdb->query( "ALTER TABLE {$messages_table} FORCE" ); // each run's dropped column stays in the table until a rebuild, and after many runs the database refuses this
 $wpdb->query( "ALTER TABLE {$messages_table} DROP INDEX client_key, DROP COLUMN client_key" );
 $no_column_key = 'nocol' . wp_rand();
 list( $s1, $first )  = mbcom_call( $ana, 'POST', "/messages/threads/{$tid}/messages", array( 'content' => 'No column', 'client_key' => $no_column_key ) );
@@ -3522,6 +3523,41 @@ mbcom_check( 'it stays the MemBuild logo when the community has its own', false 
 mbcom_check( 'the file is in the plugin', file_exists( MEMBUILD_COMMUNITY_DIR . 'assets/admin/menu-icon.png' ) );
 update_option( 'mbcom_settings', $mi_saved );
 \MemBuild\Community\Settings::flush();
+
+/* ---------------------------------------------------------------- */
+echo "\nThe community address\n";
+$ca_home   = \MemBuild\Community\Settings::slug();
+$ca_rule   = fn( $slug ) => array_key_exists( '^' . preg_quote( $slug, '/' ) . '(?:/(.*))?/?$', $GLOBALS['wp_rewrite']->extra_rules_top );
+$ca_to     = fn( ...$a ) => \MemBuild\Community\Portal::current_address_for( ...$a );
+$ca_url    = fn( $p = '' ) => home_url( '/mbct-second/' . $p );
+delete_option( 'mbcom_old_addresses' );
+mbcom_call( $admin, 'PUT', '/settings', array( 'slug' => 'mbct-first' ) );
+mbcom_check( 'moving it swaps the rule (tests/address-check.sh checks the stored ones)', $ca_rule( 'mbct-first' ) && ! $ca_rule( $ca_home ) );
+mbcom_call( $admin, 'PUT', '/settings', array( 'slug' => 'mbct-second' ) );
+mbcom_check( 'every past address goes straight to the current one', $ca_url() === $ca_to( $ca_home ) && $ca_url() === $ca_to( 'mbct-first/' ) );
+mbcom_check( 'the rest of the link comes along', $ca_url( 'classroom/5?a=1&b=c%20d' ) === $ca_to( 'mbct-first/classroom/5', 'a=1&b=c%20d' ) && $ca_url( 'file/12/My%20File.pdf' ) === $ca_to( $ca_home . '/file/12/My%20File.pdf' ) );
+mbcom_check( 'other addresses are left alone', '' === $ca_to( 'mbct-firstly/classroom' ) && '' === $ca_to( 'about/mbct-first' ) && '' === $ca_to( 'mbct-second' ) && '' === $ca_to( '' ) );
+mbcom_call( $admin, 'PUT', '/settings', array( 'slug' => 'mbct-first' ) );
+mbcom_check( 'moving back: the address in use is never treated as a past one', '' === $ca_to( 'mbct-first/x' ) && home_url( '/mbct-first/x' ) === $ca_to( 'mbct-second/x' ) );
+$ca_slug = sanitize_title( '社区' );
+mbcom_call( $admin, 'PUT', '/settings', array( 'slug' => '社区' ) );
+mbcom_call( $admin, 'PUT', '/settings', array( 'slug' => 'mbct-first' ) );
+mbcom_check( 'an address in another alphabet follows too, however the browser spells it', '' !== $ca_to( $ca_slug ) && '' !== $ca_to( rawurlencode( '社区' ) . '/x' ) );
+update_option( 'mbcom_old_addresses', array_map( fn( $i ) => "mbct-old-$i", range( 1, 25 ) ), false );
+mbcom_call( $admin, 'PUT', '/settings', array( 'slug' => 'mbct-second' ) );
+$ca_past = get_option( 'mbcom_old_addresses' );
+mbcom_check( 'the list stays short and keeps the newest', 20 === count( $ca_past ) && 'mbct-first' === end( $ca_past ) && ! in_array( 'mbct-old-1', $ca_past, true ) );
+$ca_button = new ReflectionMethod( \MemBuild\Community\Starter_Site::class, 'button' );
+$ca_button->setAccessible( true );
+$ca_a = fn( $page ) => '<a class="x" href="/mbct-first/' . $page . '">Words</a>';
+wp_set_current_user( $admin );
+mbcom_check( 'saved website buttons still know a signed-in member: no Log in, and Join opens the community', '' === $ca_button->invoke( null, $ca_a( 'login' ) ) && false !== strpos( $ca_button->invoke( null, $ca_a( 'join' ) ), 'Go to the community' ) );
+wp_set_current_user( 0 );
+mbcom_check( '…and a visitor\'s See all events still joins first', false !== strpos( $ca_button->invoke( null, $ca_a( 'events' ) ), 'redirect_to' ) );
+mbcom_check( '…and other links are left alone', $ca_a( 'x' ) === $ca_button->invoke( null, $ca_a( 'x' ) ) );
+mbcom_check( 'removing the plugin with its data removes the list', false !== strpos( (string) file_get_contents( MEMBUILD_COMMUNITY_DIR . 'uninstall.php' ), "'mbcom_old_addresses'" ) );
+mbcom_call( $admin, 'PUT', '/settings', array( 'slug' => $ca_home ) );
+delete_option( 'mbcom_old_addresses' );
 
 /* ---------------------------------------------------------------- */
 echo "\n{$GLOBALS['mbcom_passed']} passed, {$GLOBALS['mbcom_failed']} failed\n";

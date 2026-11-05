@@ -502,8 +502,7 @@ class Settings {
 		}
 
 		if ( $s['slug'] !== $old ) {
-			Portal::add_rewrite_rule();
-			flush_rewrite_rules( false );
+			Portal::moved( $old );
 		}
 
 		$out           = self::rest_get();

@@ -7,11 +7,14 @@ import { cfg } from '../config.js'
  */
 const URL_RE = /https?:\/\/[^\s<]+[^\s<.,:;"')\]!?]/g
 
+/** The community's address a path sits under: the current one, or one it had when the link was saved. */
+const homeOf = (path) => [cfg.basePath, ...(cfg.oldPaths || [])].find((home) => path === home || path.startsWith(`${home}/`))
+
 /** {post, comment} for a link into this community, or null. */
 export function parseInternal(href) {
   try {
     const u = new URL(href, location.origin)
-    if (u.origin !== location.origin || !u.pathname.startsWith(cfg.basePath)) return null
+    if (u.origin !== location.origin || !homeOf(u.pathname)) return null
     const post = Number(u.searchParams.get('post'))
     if (!post) return null
     return { post, comment: Number(u.searchParams.get('comment')) || 0 }
@@ -33,8 +36,9 @@ export function sharedIn(text) {
 export function courseIdOf(href) {
   try {
     const u = new URL(href, location.origin)
-    if (u.origin !== location.origin || !u.pathname.startsWith(cfg.basePath)) return 0
-    const m = u.pathname.slice(cfg.basePath.length).replace(/^\/+/, '').match(/^classroom\/(\d+)(?:\/\d+)?\/?$/)
+    const home = homeOf(u.pathname)
+    if (u.origin !== location.origin || !home) return 0
+    const m = u.pathname.slice(home.length).replace(/^\/+/, '').match(/^classroom\/(\d+)(?:\/\d+)?\/?$/)
     return m ? Number(m[1]) : 0
   } catch {
     return 0

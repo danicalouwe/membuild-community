@@ -33,8 +33,7 @@ async function keepOnRemove(keep) {
     <label class="field">
       <span class="label">{{ t.__('Community address', 'membuild-community') }}</span>
       <span class="url"><span class="prefix">{{ meta.home_url.replace(/^https?:\/\//, '') }}</span><input v-model="form.slug" type="text" maxlength="40" :aria-label="t.__('Community address', 'membuild-community')" /></span>
-      <small v-if="form.slug !== savedForm.slug" class="warn">{{ t.__('Old links to the community will stop working after you save.', 'membuild-community') }}</small>
-      <small v-else>{{ t.__('Change it before you invite members, so links keep working.', 'membuild-community') }}</small>
+      <small v-if="form.slug !== savedForm.slug">{{ t.__('Old links will keep working and take people to the new address. Members who added the app to their phone may need to add it again.', 'membuild-community') }}</small>
     </label>
 
     <hr class="rule" />

@@ -20,6 +20,10 @@ fi
 docker cp tests/integration.php "$container:/tmp/mbcom-integration.php" >/dev/null
 ./node_modules/.bin/wp-env run tests-cli wp ${WP_PATH:+--path="$WP_PATH"} eval-file /tmp/mbcom-integration.php 2>&1 | grep -vE '^(ℹ|✔|✖) |^Command failed'
 status="${PIPESTATUS[0]}"
+# Changing the community's address, over real web requests.
+bash tests/address-check.sh "$container" || status=1
+# Private uploads can't be found by a logged-out visitor, whichever way they ask.
+bash tests/private-files-check.sh "$container" || status=1
 # The login pages in a real Chrome, on the local site (port 8891), when it's up and built.
 if [ ! -f tests/login/login-check.cjs ]; then
   :

@@ -94,7 +94,7 @@ class Health {
 				if ( 200 === $code ) {
 					return array(
 						'critical',
-						esc_html__( 'Lesson files and photos in private messages can be opened by anyone who knows their address, because your web server ignores the folder’s block rules (common on nginx). Add this to your site’s nginx configuration:', 'membuild-community' ) . ' <code>location ^~ /wp-content/uploads/mbcom-private/ { deny all; }</code>',
+						esc_html__( 'Lesson files and photos in private messages can be opened by anyone who knows their address, because your web server ignores the folder’s block rules (common on nginx and OpenLiteSpeed). Add this to your site’s nginx configuration:', 'membuild-community' ) . ' <code>location ^~ /wp-content/uploads/mbcom-private/ { deny all; }</code> ' . esc_html__( 'On OpenLiteSpeed, add this near the top of the .htaccess file in your site’s main folder:', 'membuild-community' ) . ' <code>RewriteRule ^wp-content/uploads/mbcom-private/ - [F,L]</code>',
 						'',
 					);
 				}
