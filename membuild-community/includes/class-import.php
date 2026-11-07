@@ -1,8 +1,9 @@
 <?php
 /**
- * Import: brings a community over from BuddyBoss, BuddyPress, PeepSo or FluentCommunity
- * (read straight from their tables, so it works with the old plugin switched off), or
- * members from a spreadsheet (Kajabi, Mighty Networks, Circle, Skool, any CSV).
+ * Import: brings a community over from BuddyBoss, BuddyPress, PeepSo or FluentCommunity,
+ * or courses from LearnDash or Tutor LMS (read straight from their tables, so it works
+ * with the old plugin switched off), or members from a spreadsheet (Kajabi, Mighty
+ * Networks, Circle, Skool, any CSV).
  *
  * Choose → Check (a dry run: counts and anything worth knowing) → Import (in the
  * background, a batch at a time, with Pause) → Done (Undo, Email everyone).
@@ -45,14 +46,22 @@ class Import {
 		'buddypress'      => Import_Buddypress::class,
 		'peepso'          => Import_Peepso::class,
 		'fluentcommunity' => Import_Fluent::class,
+		'learndash'       => Import_Learndash::class,
+		'tutor'           => Import_Tutor::class,
 	);
 	const STEPS    = array( 'members', 'topics', 'posts', 'comments', 'reactions', 'courses', 'messages', 'points', 'finish' );
-	const BRINGS   = array( 'profiles', 'posts', 'reactions', 'courses', 'messages', 'points' );
+	const BRINGS   = array( 'profiles', 'posts', 'reactions', 'courses', 'progress', 'access', 'timing', 'messages', 'points' );
+	// What a course plugin's courses bring when ticked; a community plugin's courses always bring all three.
+	const COURSE_PARTS = array( 'progress', 'access', 'timing' );
+	// Shortcodes that only work with the plugin they came from (LearnDash, Tutor), taken out of lesson text.
+	const SHORTCODES = '#\[/?(?:ld_[\w-]*|ld-[\w-]*|learndash[\w-]*|sfwd[\w-]*|course_[\w-]*|lesson_[\w-]*|topic_[\w-]*|quiz[\w-]*|student|visitor|groupinfo|usermeta|tutor[\w-]*)(?:\s+[\w-]+\s*=[^\]]*)?\s*/?\]#i'; // [student notes] is just words
 	const MAIL_PER = 8;    // welcome or "we've moved" emails per run, every few minutes: about 200 an hour
 
 	public static function register_hooks() {
 		add_action( self::HOOK, array( __CLASS__, 'tick' ) );
 		add_action( self::MAIL, array( __CLASS__, 'mail_tick' ) );
+		add_action( 'activated_plugin', array( __CLASS__, 'forget_found' ) );
+		add_action( 'deactivated_plugin', array( __CLASS__, 'forget_found' ) );
 	}
 
 	public static function register_routes() {
@@ -78,14 +87,26 @@ class Import {
 
 	/** The community plugins whose data is on this site, switched on or off. */
 	public static function found() {
+		// Reading every course and student is slow on a big site, and the Import screen asks every few seconds.
+		$cached = get_transient( 'mbcom_import_found' );
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
 		$out = array();
 		foreach ( array_keys( self::SOURCES ) as $key ) {
 			$src = self::source( $key );
 			if ( $src->detect() ) {
-				$out[] = array( 'key' => $key, 'label' => $src->label(), 'active' => $src->active(), 'last' => $src->last_activity() ? Helpers::iso( $src->last_activity() ) : null ) + $src->summary();
+				$out[] = array( 'key' => $key, 'label' => $src->label(), 'kind' => $src->kind(), 'active' => $src->active(), 'last' => $src->last_activity() ? Helpers::iso( $src->last_activity() ) : null ) + $src->summary();
 			}
 		}
+		set_transient( 'mbcom_import_found', $out, 5 * MINUTE_IN_SECONDS );
 		return $out;
+	}
+
+	/** Read what's on the site again next time (an import started, finished or was undone, or a plugin was switched). */
+	public static function forget_found() {
+		delete_transient( 'mbcom_import_found' );
+		Import_Learndash::forget();
 	}
 
 	/* ---------- REST ---------- */
@@ -126,6 +147,7 @@ class Import {
 		}
 		$job['id']      = (int) get_option( 'mbcom_import_seq', 0 ) + 1;
 		$job['status']  = 'running';
+		self::forget_found();
 		$job['started'] = Helpers::now();
 		$job['by']      = get_current_user_id();
 		$job['total']   = self::source( $job['source'] )->totals( $job );
@@ -148,6 +170,7 @@ class Import {
 		$job = self::job();
 		if ( $job && 'paused' === $job['status'] ) {
 			$job['status'] = 'running';
+			unset( $job['error'] ); // the reason it stopped is old news once it runs again
 			self::save( $job );
 			self::schedule();
 		}
@@ -292,6 +315,11 @@ class Import {
 			return new \WP_Error( 'mbcom_empty', __( 'Tick at least one thing to bring.', 'membuild-community' ), array( 'status' => 400 ) );
 		}
 		$job['groups_to'] = 'spaces' === $req['groups'] && self::groups_handler( $key, array() ) ? 'spaces' : 'topics';
+		$job['kind']      = $src->kind();
+		if ( 'learndash' === $key ) {
+			// Where LearnDash topics go: lessons with topics become sections, or topics follow their lesson.
+			$job['shape'] = in_array( $req['shape'], array( 'sections', 'follow' ), true ) ? $req['shape'] : '';
+		}
 		if ( 'csv' === $key ) {
 			$extra = Import_Csv::options( $req );
 			if ( is_wp_error( $extra ) ) {
@@ -317,7 +345,7 @@ class Import {
 		if ( ! $job || ! empty( $job['dismissed'] ) ) {
 			return null;
 		}
-		$keep = array( 'id', 'source', 'label', 'bring', 'status', 'step', 'counts', 'total', 'started', 'finished', 'error', 'undone', 'emailing', 'notes', 'groups_to', 'welcome' );
+		$keep = array( 'id', 'source', 'label', 'kind', 'bring', 'status', 'step', 'counts', 'total', 'started', 'finished', 'error', 'undone', 'emailing', 'notes', 'groups_to', 'welcome' );
 		$out  = array_intersect_key( $job, array_flip( $keep ) );
 		foreach ( array( 'started', 'finished' ) as $k ) {
 			if ( ! empty( $out[ $k ] ) ) {
@@ -332,7 +360,7 @@ class Import {
 	public static function steps_for( $job ) {
 		$b    = $job['bring'];
 		$want = array(
-			'members'   => true, // profiles, or for a spreadsheet the accounts themselves
+			'members'   => 'courses' !== ( $job['kind'] ?? '' ), // profiles, or for a spreadsheet the accounts themselves; a course plugin has none
 			'topics'    => in_array( 'posts', $b, true ),
 			'posts'     => in_array( 'posts', $b, true ),
 			'comments'  => in_array( 'posts', $b, true ),
@@ -482,6 +510,7 @@ class Import {
 			$job['counts']['members'] = max( (int) ( $job['counts']['members'] ?? 0 ), (int) ( $job['total']['members'] ?? 0 ) );
 		}
 		Search::schedule_index();
+		self::forget_found();
 		delete_transient( 'mbcom_member_total' );
 		$job['status']   = 'done';
 		$job['finished'] = Helpers::now();
@@ -745,33 +774,77 @@ class Import {
 	}
 
 	/**
-	 * A course into the Classroom: sections become modules, lessons keep their order and
-	 * video, and members keep their progress. A private course gets a membership with the
-	 * same students.
+	 * A course into the Classroom: sections become modules, lessons keep their order,
+	 * video, files and timing, and members keep their progress.
+	 *
+	 * Who can open it: 'everyone' => true keeps it open. Otherwise each of 'memberships'
+	 * (key, name, members, price, period, url) opens it: a membership another course of
+	 * this import already made is shared, so a LearnDash group or a Tutor plan stays one
+	 * membership. A private course from a community plugin gets a membership with the same
+	 * students, as before.
+	 *
+	 * From a course plugin, students and progress, who can open it, and lesson timing each
+	 * come only when ticked (progress, access, timing).
 	 */
-	private static function write_course( $job, $c ) {
+	private static function write_course( &$job, $c ) {
 		global $wpdb;
 		if ( self::mapped( $job['source'], 'course', $c['source_id'] ) ) {
 			return 0;
 		}
+		$half = self::mapped( $job['source'], 'course_wip', $c['source_id'] );
+		if ( $half ) {
+			// The last try stopped partway (the host's time limit). Twice is enough: then pause and say why, not loop.
+			$tries = (array) get_option( 'mbcom_import_tries', array() );
+			$key   = self::family( $job['source'] ) . ':' . $c['source_id'];
+			$tries[ $key ] = (int) ( $tries[ $key ] ?? 0 ) + 1;
+			if ( $tries[ $key ] > 2 ) {
+				unset( $tries[ $key ] ); // Resume gives it two fresh tries
+				update_option( 'mbcom_import_tries', $tries, false );
+				/* translators: %s: a course name */
+				throw new \RuntimeException( sprintf( __( '“%s” is too big to bring in one go on this host. Ask your host to raise PHP’s time limit (max_execution_time), then press Resume.', 'membuild-community' ), sanitize_text_field( $c['title'] ) ) );
+			}
+			update_option( 'mbcom_import_tries', $tries, false );
+			// Clear what it wrote and start this course again.
+			self::clear_courses( array( $half ) );
+			$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE source = %s AND ( ( kind = 'course_wip' AND source_id = %s ) OR ( kind IN ('progress', 'finished') AND source_id LIKE %s ) )", Install::table( 'import_map' ), self::family( $job['source'] ), (string) $c['source_id'], $wpdb->esc_like( $half . ':' ) . '%' ) );
+		}
+		$lms      = 'courses' === ( $job['kind'] ?? '' );
+		$wants    = fn( $part ) => ! $lms || in_array( $part, $job['bring'], true );
 		$at       = $c['created_at'] ?: Helpers::now();
-		$group_id = 0;
-		if ( $c['private'] ) {
+		$groups   = array();
+		$everyone = ! empty( $c['everyone'] ) || ( ! $c['private'] && empty( $c['memberships'] ) );
+		$own = $c['private'] && empty( $c['memberships'] ) ? self::mapped( $job['source'], 'membership', 'course:' . $c['source_id'] ) : 0;
+		if ( $own && isset( Access::groups()[ $own ] ) ) {
+			$groups[] = $own; // made by a try that stopped partway: the course gets it back
+		} elseif ( $c['private'] && empty( $c['memberships'] ) ) {
+			if ( $own ) {
+				// The owner deleted it by hand between tries: forget it, so the new one is remembered.
+				$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE source = %s AND kind = 'membership' AND source_id = %s", Install::table( 'import_map' ), self::family( $job['source'] ), 'course:' . $c['source_id'] ) );
+			}
 			$group_id = Access::create( $c['title'] );
 			foreach ( $c['students'] as $uid ) {
 				Access::add( $group_id, (int) $uid );
 			}
 			self::remember( $job, 'membership', 'course:' . $c['source_id'], $group_id );
+			$groups[] = $group_id;
 		}
+		if ( ! $everyone && $wants( 'access' ) ) {
+			foreach ( (array) ( $c['memberships'] ?? array() ) as $m ) {
+				$groups[] = self::write_membership( $job, $m );
+			}
+			$job['counts']['memberships'] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE import_id = %d AND kind = 'membership'", Install::table( 'import_map' ), (int) $job['id'] ) );
+		}
+		$groups = array_values( array_unique( array_filter( $groups ) ) );
 		$wpdb->insert(
 			Install::table( 'courses' ),
 			array(
 				'title'         => mb_substr( sanitize_text_field( $c['title'] ), 0, 200 ),
 				'description'   => Helpers::clean_text( $c['description'], 2000 ),
 				'cover_url'     => $c['cover_url'] ? esc_url_raw( $c['cover_url'] ) : null,
-				'status'        => $c['published'] ? 'published' : 'draft',
-				'access'        => $group_id ? 'groups' : 'everyone',
-				'access_groups' => $group_id ? wp_json_encode( array( $group_id ) ) : null,
+				'status'        => 'draft', // shown once all its lessons are in, never half-finished
+				// A paid course whose access wasn't brought opens only for admins until the owner chooses.
+				'access'        => $everyone ? 'everyone' : 'groups',
+				'access_groups' => $everyone ? null : wp_json_encode( $groups ),
 				'sort_order'    => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', Install::table( 'courses' ) ) ),
 				'created_by'    => (int) $c['created_by'] ?: (int) ( $job['by'] ?? 0 ),
 				'created_at'    => $at,
@@ -779,7 +852,7 @@ class Import {
 			)
 		);
 		$course_id = (int) $wpdb->insert_id;
-		self::remember( $job, 'course', $c['source_id'], $course_id );
+		self::remember( $job, 'course_wip', $c['source_id'], $course_id );
 		$modules = array();
 		foreach ( $c['modules'] as $i => $m ) {
 			$wpdb->insert( Install::table( 'modules' ), array( 'course_id' => $course_id, 'title' => mb_substr( sanitize_text_field( $m['title'] ), 0, 200 ), 'sort_order' => $i ) );
@@ -787,6 +860,7 @@ class Import {
 		}
 		$lessons = array();
 		$order   = array();
+		$by      = (int) ( $job['by'] ?? 0 );
 		foreach ( $c['lessons'] as $l ) {
 			$module = $modules[ $l['module'] ] ?? 0;
 			if ( ! $module ) {
@@ -795,12 +869,8 @@ class Import {
 				$module                  = (int) $wpdb->insert_id;
 				$modules[ $l['module'] ] = $module;
 			}
-			$media_id = null;
-			if ( $l['video'] && ( Embeds::youtube_id( $l['video'] ) || Embeds::vimeo_id( $l['video'] ) ) ) {
-				$embed    = Embeds::create( (int) ( $job['by'] ?? 0 ), $l['video'] );
-				$media_id = is_array( $embed ) && ! empty( $embed['id'] ) ? (int) $embed['id'] : null;
-			}
 			$order[ $module ] = ( $order[ $module ] ?? -1 ) + 1;
+			$timed            = $wants( 'timing' );
 			$wpdb->insert(
 				Install::table( 'lessons' ),
 				array(
@@ -808,23 +878,277 @@ class Import {
 					'module_id'  => $module,
 					'title'      => mb_substr( sanitize_text_field( $l['title'] ), 0, 200 ),
 					'content'    => Helpers::clean_text( self::text( $l['content'] ), 50000 ),
-					'media_id'   => $media_id,
+					'media_id'   => null,
+					'drip_days'  => $timed ? min( 3650, max( 0, (int) ( $l['drip_days'] ?? 0 ) ) ) : 0,
+					'open_on'    => $timed && ! empty( $l['open_on'] ) ? $l['open_on'] : null,
 					'sort_order' => $order[ $module ],
 					'created_at' => $l['created_at'] ?: $at,
 					'updated_at' => $l['created_at'] ?: $at,
 				)
 			);
-			$lessons[ $l['source_id'] ] = (int) $wpdb->insert_id;
-		}
-		foreach ( $c['done'] as $d ) {
-			if ( isset( $lessons[ $d['lesson'] ] ) ) {
-				$wpdb->query( $wpdb->prepare( 'INSERT IGNORE INTO %i (user_id, lesson_id, course_id, completed_at) VALUES (%d, %d, %d, %s)', Install::table( 'lesson_progress' ), $d['user_id'], $lessons[ $d['lesson'] ], $course_id, $d['at'] ?: $at ) );
+			$lesson_id                  = (int) $wpdb->insert_id;
+			$lessons[ $l['source_id'] ] = $lesson_id;
+			self::count( $job, 'lessons', 1 );
+			$media_id                   = self::lesson_video( $job, $by, $l, $lesson_id );
+			$files                      = self::lesson_files( $job, $by, (array) ( $l['files'] ?? array() ), $lesson_id );
+			$change = array_filter( array( 'media_id' => $media_id, 'resources' => $files ? wp_json_encode( $files ) : null ) );
+			if ( ! $media_id && ! empty( $l['video'] ) && $lms ) {
+				// The video couldn't come over (private, deleted, or not one that plays here): its link stays in the lesson.
+				$change['content'] = trim( Helpers::clean_text( self::text( $l['content'] ), 49000 ) . "\n\n" . $l['video'] );
+			}
+			if ( $change ) {
+				$wpdb->update( Install::table( 'lessons' ), $change, array( 'id' => $lesson_id ) );
 			}
 		}
-		foreach ( array_unique( array_merge( $c['students'], array_column( $c['done'], 'user_id' ) ) ) as $uid ) {
-			$wpdb->query( $wpdb->prepare( 'INSERT IGNORE INTO %i (user_id, course_id, started_at) VALUES (%d, %d, %s)', Install::table( 'course_starts' ), (int) $uid, $course_id, $at ) );
+		if ( $c['published'] ) {
+			$wpdb->update( Install::table( 'courses' ), array( 'status' => 'published' ), array( 'id' => $course_id ) );
 		}
+		if ( ! $wants( 'progress' ) ) {
+			self::course_done( $job, $c['source_id'] );
+			return 1;
+		}
+		$points = in_array( 'points', $job['bring'], true );
+		$by_lesson = array_flip( $lessons );
+		$per       = array();
+		foreach ( $c['done'] as $d ) {
+			if ( isset( $lessons[ $d['lesson'] ] ) ) {
+				$per[ (int) $d['user_id'] ][] = $wpdb->prepare( '(%d, %d, %d, %s)', $d['user_id'], $lessons[ $d['lesson'] ], $course_id, $d['at'] ?: $at );
+			}
+		}
+		// One query per student, not one per finished lesson.
+		foreach ( $per as $uid => $rows ) {
+			$before = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(MAX(id), 0) FROM %i', Install::table( 'lesson_progress' ) ) );
+			$wpdb->query( $wpdb->prepare( 'INSERT IGNORE INTO %i (user_id, lesson_id, course_id, completed_at) VALUES ' . implode( ',', $rows ), Install::table( 'lesson_progress' ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- each row prepared above
+			self::count( $job, 'finished_lessons', max( 0, (int) $wpdb->rows_affected ) );
+			if ( $points && $wpdb->rows_affected > 0 ) {
+				foreach ( $wpdb->get_results( $wpdb->prepare( 'SELECT id, lesson_id FROM %i WHERE user_id = %d AND course_id = %d AND id > %d', Install::table( 'lesson_progress' ), $uid, $course_id, $before ), ARRAY_A ) as $r ) {
+					self::remember( $job, 'progress', $course_id . ':' . $uid . ':' . $by_lesson[ (int) $r['lesson_id'] ], (int) $r['id'] );
+				}
+			}
+		}
+		// Who finished the whole course stays finished: any lesson they hadn't ticked (a quiz was the last step) is ticked on that day.
+		foreach ( (array) ( $c['finished'] ?? array() ) as $f ) {
+			$uid  = (int) $f['user_id'];
+			$when = $f['at'] ?: $at;
+			if ( ! $lessons ) {
+				continue;
+			}
+			// One query per student, not one per lesson: a big course can have thousands who finished it.
+			$values = implode( ',', array_map( fn( $lid ) => $wpdb->prepare( '(%d, %d, %d, %s)', $uid, $lid, $course_id, $when ), $lessons ) );
+			$before = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COALESCE(MAX(id), 0) FROM %i', Install::table( 'lesson_progress' ) ) );
+			$wpdb->query( $wpdb->prepare( "INSERT IGNORE INTO %i (user_id, lesson_id, course_id, completed_at) VALUES {$values}", Install::table( 'lesson_progress' ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- each row prepared above
+			if ( $points && $wpdb->rows_affected ) {
+				foreach ( $wpdb->get_results( $wpdb->prepare( 'SELECT id, lesson_id FROM %i WHERE user_id = %d AND course_id = %d AND id > %d', Install::table( 'lesson_progress' ), $uid, $course_id, $before ), ARRAY_A ) as $r ) {
+					self::remember( $job, 'progress', $course_id . ':' . $uid . ':' . $by_lesson[ (int) $r['lesson_id'] ], (int) $r['id'] );
+				}
+			}
+			if ( $points && $lessons ) {
+				self::remember( $job, 'finished', $course_id . ':' . $uid, $course_id );
+			}
+		}
+		$job['seen'] = $job['seen'] ?? array();
+		// Each student's real start: when the old plugin gave them the course, or failing that their first finished lesson.
+		// Starting everyone today would make drip lessons they could already open wait all over again.
+		$began = array();
+		foreach ( (array) ( $c['started'] ?? array() ) as $uid => $when ) {
+			$began[ (int) $uid ] = (string) $when;
+		}
+		foreach ( array_merge( $c['done'], (array) ( $c['finished'] ?? array() ) ) as $f ) {
+			$uid = (int) $f['user_id'];
+			if ( ! empty( $f['at'] ) && ( empty( $began[ $uid ] ) || $f['at'] < $began[ $uid ] ) ) {
+				$began[ $uid ] = $f['at'];
+			}
+		}
+		$starts = array();
+		foreach ( array_unique( array_merge( $c['students'], array_column( $c['done'], 'user_id' ), array_column( (array) ( $c['finished'] ?? array() ), 'user_id' ) ) ) as $uid ) {
+			$job['seen'][ (int) $uid ] = 1; // students across all courses, counted once
+			$starts[] = $wpdb->prepare( '(%d, %d, %s)', (int) $uid, $course_id, ( $began[ (int) $uid ] ?? '' ) ?: $at );
+		}
+		foreach ( array_chunk( $starts, 500 ) as $chunk ) {
+			$wpdb->query( $wpdb->prepare( 'INSERT IGNORE INTO %i (user_id, course_id, started_at) VALUES ' . implode( ',', $chunk ), Install::table( 'course_starts' ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- each row prepared above
+		}
+		$job['counts']['students'] = count( $job['seen'] );
+		self::course_done( $job, $c['source_id'] );
 		return 1;
+	}
+
+	/** All of a course is in: from now on it counts as imported (re-imports skip it, Undo removes it). */
+	private static function course_done( $job, $source_id ) {
+		global $wpdb;
+		$tries = get_option( 'mbcom_import_tries' );
+		if ( is_array( $tries ) && isset( $tries[ self::family( $job['source'] ) . ':' . $source_id ] ) ) {
+			unset( $tries[ self::family( $job['source'] ) . ':' . $source_id ] );
+			update_option( 'mbcom_import_tries', $tries, false );
+		}
+		$wpdb->query( $wpdb->prepare( "UPDATE %i SET kind = 'course' WHERE import_id = %d AND source = %s AND kind = 'course_wip' AND source_id = %s", Install::table( 'import_map' ), (int) $job['id'], self::family( $job['source'] ), (string) $source_id ) );
+	}
+
+	/** Courses with everything in them: lessons, sections, progress, starts and their points. */
+	private static function clear_courses( array $ids ) {
+		global $wpdb;
+		$ids = array_filter( array_map( 'intval', $ids ) );
+		foreach ( array_chunk( $ids, 500 ) as $chunk ) {
+			$in = implode( ',', $chunk );
+			$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE object_type = 'lesson' AND object_id IN (SELECT id FROM %i WHERE course_id IN ({$in}))", Install::table( 'points' ), Install::table( 'lessons' ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- integers
+			$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE object_type = 'course' AND object_id IN ({$in})", Install::table( 'points' ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- integers
+			$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE post_id = 0 AND scope = 'lesson' AND scope_id IN (SELECT id FROM %i WHERE course_id IN ({$in}))", Install::table( 'media' ), Install::table( 'lessons' ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- integers; rows only, never files
+			foreach ( array( 'lesson_progress', 'course_starts', 'lessons', 'modules' ) as $part ) {
+				$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE course_id IN ({$in})", Install::table( $part ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- integers
+			}
+			$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE id IN ({$in})", Install::table( 'courses' ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- integers
+		}
+	}
+
+	/**
+	 * A membership from a course plugin (a paid course, a LearnDash group, a Tutor Pro
+	 * plan), made once per import family and shared by every course it opens. The old
+	 * price and link show on its Get access button until the owner sets up payment.
+	 */
+	private static function write_membership( $job, array $m ) {
+		global $wpdb;
+		$key = (string) $m['key'];
+		$id  = self::mapped( $job['source'], 'membership', $key );
+		if ( $id && isset( Access::groups()[ $id ] ) ) {
+			$mine = (int) $wpdb->get_var( $wpdb->prepare( "SELECT import_id FROM %i WHERE source = %s AND kind = 'membership' AND source_id = %s", Install::table( 'import_map' ), self::family( $job['source'] ), $key ) ) === (int) $job['id'];
+			if ( $mine ) {
+				return $id; // this import made it, with its people, for an earlier course
+			}
+			// Made by an earlier import and shared with this one's courses: people who got it since come in too,
+			// written down so undoing this import takes back only them.
+			foreach ( array_unique( array_map( 'intval', (array) $m['members'] ) ) as $uid ) {
+				if ( $uid && Access::add( $id, $uid ) ) {
+					self::granted( $job, $id, $uid );
+				}
+			}
+			return $id;
+		}
+		if ( $id ) {
+			// The owner deleted it by hand: forget the old one, so this import's new one is the one remembered.
+			$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE source = %s AND kind = 'membership' AND source_id = %s", Install::table( 'import_map' ), self::family( $job['source'] ), $key ) );
+		}
+		$id = Access::create( $m['name'] );
+		$wpdb->update(
+			Install::table( 'groups' ),
+			array(
+				'price'   => ! empty( $m['price'] ) ? mb_substr( sanitize_text_field( (string) $m['price'] ), 0, 20 ) : null,
+				'period'  => in_array( $m['period'] ?? '', Access::PERIODS, true ) ? $m['period'] : 'once',
+				'cta_url' => ! empty( $m['url'] ) ? ( esc_url_raw( (string) $m['url'], array( 'http', 'https' ) ) ?: null ) : null,
+			),
+			array( 'id' => $id )
+		);
+		foreach ( array_unique( array_map( 'intval', (array) $m['members'] ) ) as $uid ) {
+			if ( $uid && get_userdata( $uid ) ) {
+				Access::add( $id, $uid );
+			}
+		}
+		self::remember( $job, 'membership', $key, $id );
+		Access::forget_all();
+		return $id;
+	}
+
+	/**
+	 * A lesson's video: YouTube or Vimeo as an embed, a video on the owner's own Bunny
+	 * library as that video, or a video file in the Media Library. Others stay out (the
+	 * dry run says how many).
+	 *
+	 * The file or Bunny video still belongs to the old plugin's lesson, so the row only
+	 * points at it: no attachment (deleting the course here never deletes the file) and
+	 * marked shared for Bunny (never deleted there either).
+	 */
+	private static function lesson_video( $job, $user_id, array $l, $lesson_id ) {
+		global $wpdb;
+		$url = (string) ( $l['video'] ?? '' );
+		if ( '' === $url ) {
+			return null;
+		}
+		if ( Embeds::youtube_id( $url ) || Embeds::vimeo_id( $url ) ) {
+			$embed = Embeds::create( $user_id, $url );
+			if ( ! is_array( $embed ) || empty( $embed['id'] ) ) {
+				return null;
+			}
+			// post_id 0, not NULL: the hourly clean-up removes media nobody claimed (Media::cleanup_orphans).
+			$wpdb->update( Install::table( 'media' ), array( 'post_id' => 0 ), array( 'id' => (int) $embed['id'] ) );
+			Files::protect( (int) $embed['id'], 'lesson', $lesson_id );
+			self::remember( $job, 'lesson_media', $lesson_id . ':video', (int) $embed['id'] );
+			return (int) $embed['id'];
+		}
+		$guid = self::bunny_guid( $url );
+		$file = $l['video_file'] ?? null;
+		if ( ! $guid && ! $file ) {
+			return null;
+		}
+		$wpdb->insert(
+			Install::table( 'media' ),
+			array(
+				'user_id'       => $user_id,
+				'post_id'       => 0, // claimed by the lesson, so the hourly clean-up leaves it
+				'kind'          => 'video',
+				'url'           => $guid ? Bunny::playlist( $guid ) : esc_url_raw( $url ),
+				'poster_url'    => $guid ? Bunny::thumbnail( $guid ) : null,
+				'mime'          => $guid ? 'video/bunny' : ( $file['mime'] ?: 'video/mp4' ),
+				'meta'          => $guid ? wp_json_encode( array( 'provider' => Bunny::META, 'guid' => $guid, 'library' => Bunny::settings()['library_id'], 'status' => 'ready', 'shared' => true ) ) : null,
+				'created_at'    => Helpers::now(),
+			)
+		);
+		$media_id = (int) $wpdb->insert_id;
+		Files::protect( $media_id, 'lesson', $lesson_id );
+		self::remember( $job, 'lesson_media', $lesson_id . ':video', $media_id );
+		return $media_id;
+	}
+
+	/** Whether a video link plays here as a lesson's video: YouTube, Vimeo, or the owner's own Bunny library. */
+	public static function plays( $url ) {
+		$url = (string) $url;
+		return '' !== $url && ( Embeds::youtube_id( $url ) || Embeds::vimeo_id( $url ) || '' !== self::bunny_guid( $url ) );
+	}
+
+	/** The first web address in a box or a bit of embed code, for a video that can't play here but whose link should stay. */
+	public static function first_url( $text ) {
+		$text = html_entity_decode( (string) $text, ENT_QUOTES, 'UTF-8' );
+		return preg_match( '#https?://[^\s"\'<>\[\]]+#i', $text, $m ) ? esc_url_raw( $m[0] ) : '';
+	}
+
+	/** The id of a video on the owner's own Bunny library, from its player or video address. */
+	private static function bunny_guid( $url ) {
+		if ( ! Bunny::enabled() ) {
+			return '';
+		}
+		$v = Bunny::settings();
+		if ( preg_match( '#(?:iframe|player|video)\.mediadelivery\.net/(?:embed|play)/(\d+)/([0-9a-f-]{36})#i', $url, $m ) ) {
+			return (string) $m[1] === (string) $v['library_id'] ? strtolower( $m[2] ) : '';
+		}
+		if ( preg_match( '#^https?://([^/]+)/([0-9a-f-]{36})/#i', $url, $m ) ) {
+			return strtolower( $m[1] ) === strtolower( $v['cdn_host'] ) ? strtolower( $m[2] ) : '';
+		}
+		return '';
+	}
+
+	/** A lesson's files (Tutor's attachments): links to them in the Media Library, which stay the old plugin's. */
+	private static function lesson_files( $job, $user_id, array $files, $lesson_id ) {
+		global $wpdb;
+		$out = array();
+		foreach ( array_slice( $files, 0, 20 ) as $f ) {
+			if ( empty( $f['url'] ) ) {
+				continue;
+			}
+			$wpdb->insert(
+				Install::table( 'media' ),
+				array(
+					'user_id'       => $user_id,
+					'post_id'       => 0, // claimed by the lesson, so the hourly clean-up leaves it
+					'kind'          => 0 === strpos( (string) $f['mime'], 'image/' ) ? 'image' : 'file',
+					'url'           => esc_url_raw( $f['url'] ),
+					'mime'          => (string) $f['mime'] ?: 'application/octet-stream',
+					'created_at'    => Helpers::now(),
+				)
+			);
+			$media_id = (int) $wpdb->insert_id;
+			Files::protect( $media_id, 'lesson', $lesson_id );
+			$name     = mb_substr( sanitize_text_field( (string) ( $f['name'] ?? '' ) ), 0, 120 ) ?: pathinfo( basename( (string) wp_parse_url( $f['url'], PHP_URL_PATH ) ), PATHINFO_FILENAME );
+			$out[]    = array( 'media_id' => $media_id, 'name' => $name, 'url' => esc_url_raw( $f['url'] ), 'mime' => (string) $f['mime'] );
+			self::remember( $job, 'lesson_media', $lesson_id . ':' . $media_id, $media_id );
+		}
+		return $out;
 	}
 
 	/** A chat with its messages, encrypted as they come in. Members see it as read. */
@@ -887,7 +1211,7 @@ class Import {
 	private static function write_points( $job, $after ) {
 		global $wpdb;
 		$rows = $wpdb->get_results(
-			$wpdb->prepare( "SELECT id, kind, local_id FROM %i WHERE import_id = %d AND kind IN ('post', 'comment', 'reaction') AND id > %d ORDER BY id LIMIT %d", Install::table( 'import_map' ), (int) $job['id'], (int) $after, self::BATCH * 2 ),
+			$wpdb->prepare( "SELECT id, kind, source_id, local_id FROM %i WHERE import_id = %d AND kind IN ('post', 'comment', 'reaction', 'progress', 'finished') AND id > %d ORDER BY id LIMIT %d", Install::table( 'import_map' ), (int) $job['id'], (int) $after, self::BATCH * 2 ),
 			ARRAY_A
 		);
 		foreach ( $rows as $r ) {
@@ -895,6 +1219,15 @@ class Import {
 			if ( 'post' === $r['kind'] ) {
 				$p = $wpdb->get_row( $wpdb->prepare( 'SELECT user_id, created_at FROM %i WHERE id = %d', Install::table( 'posts' ), $lid ), ARRAY_A );
 				$p && Points::award( (int) $p['user_id'], 'post', 'post', $lid, 0, $p['created_at'] );
+			} elseif ( 'progress' === $r['kind'] ) {
+				// A finished lesson, on the day it was finished.
+				$d = $wpdb->get_row( $wpdb->prepare( 'SELECT user_id, lesson_id, completed_at FROM %i WHERE id = %d', Install::table( 'lesson_progress' ), $lid ), ARRAY_A );
+				$d && Points::award( (int) $d['user_id'], 'lesson', 'lesson', (int) $d['lesson_id'], 0, $d['completed_at'] );
+			} elseif ( 'finished' === $r['kind'] ) {
+				// A finished course, on the day of its last lesson.
+				$uid  = (int) explode( ':', $r['source_id'] )[1];
+				$when = $wpdb->get_var( $wpdb->prepare( 'SELECT MAX(completed_at) FROM %i WHERE user_id = %d AND course_id = %d', Install::table( 'lesson_progress' ), $uid, $lid ) );
+				$when && Points::award( $uid, 'course', 'course', $lid, 0, $when );
 			} elseif ( 'comment' === $r['kind'] ) {
 				$c = $wpdb->get_row( $wpdb->prepare( 'SELECT user_id, created_at FROM %i WHERE id = %d', Install::table( 'comments' ), $lid ), ARRAY_A );
 				$c && Points::award( (int) $c['user_id'], 'comment', 'comment', $lid, 0, $c['created_at'] );
@@ -925,18 +1258,23 @@ class Import {
 		$map     = Install::table( 'import_map' );
 		$removed = array();
 		$tables  = array(
-			'reaction'   => 'reactions',
-			'media'      => 'media',
+			'reaction'     => 'reactions',
+			'media'        => 'media',
+			'lesson_media' => 'media', // only the rows: the files and Bunny videos are the old plugin's
 			'comment'    => 'comments',
 			'post'       => 'posts',
 			'message'    => 'messages',
 			'thread'     => 'threads',
 			'topic'      => 'topics',
 			'course'     => 'courses',
+			'course_wip' => 'courses', // one stopped partway
 			'membership' => 'groups',
 		);
 		foreach ( $tables as $kind => $table ) {
 			$ids = array_map( 'intval', $wpdb->get_col( $wpdb->prepare( 'SELECT local_id FROM %i WHERE import_id = %d AND kind = %s', $map, $import_id, $kind ) ) );
+			if ( 'membership' === $kind && $ids ) {
+				$ids = self::unshared( $import_id, $ids );
+			}
 			foreach ( array_chunk( $ids, 500 ) as $chunk ) {
 				$in = implode( ',', $chunk );
 				if ( 'post' === $kind ) {
@@ -961,7 +1299,10 @@ class Import {
 					$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE thread_id IN ({$in})", Install::table( 'messages' ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- integers, and messages written since
 					$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE thread_id IN ({$in})", Install::table( 'thread_members' ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- integers
 				}
-				if ( 'course' === $kind ) {
+				if ( 'course' === $kind || 'course_wip' === $kind ) {
+					// Points for its lessons and for finishing it go with it.
+					$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE object_type = 'lesson' AND object_id IN (SELECT id FROM %i WHERE course_id IN ({$in}))", Install::table( 'points' ), Install::table( 'lessons' ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- integers
+					$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE object_type = 'course' AND object_id IN ({$in})", Install::table( 'points' ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- integers
 					foreach ( array( 'lesson_progress', 'course_starts', 'lessons', 'modules' ) as $part ) {
 						$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE course_id IN ({$in})", Install::table( $part ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- integers
 					}
@@ -995,8 +1336,34 @@ class Import {
 		Topics::forget();
 		Access::forget_all();
 		/** @param int $import_id The import that was undone. */
+		self::forget_found();
 		do_action( 'membuild_community/import_undone', $import_id );
 		return $removed;
+	}
+
+	/**
+	 * Of the memberships an import made, the ones no remaining course opens with. A membership
+	 * a later import's course also uses stays, and that import takes it over for its own Undo.
+	 */
+	private static function unshared( $import_id, array $ids ) {
+		global $wpdb;
+		$map  = Install::table( 'import_map' );
+		$used = array();
+		foreach ( $wpdb->get_results( $wpdb->prepare( "SELECT id, access_groups FROM %i WHERE access = 'groups' AND access_groups IS NOT NULL", Install::table( 'courses' ) ), ARRAY_A ) as $course ) {
+			foreach ( array_intersect( $ids, array_map( 'intval', (array) json_decode( (string) $course['access_groups'], true ) ) ) as $gid ) {
+				$used[ $gid ] = (int) $course['id'];
+			}
+		}
+		foreach ( $used as $gid => $course_id ) {
+			$owner = (int) $wpdb->get_var( $wpdb->prepare( "SELECT import_id FROM %i WHERE kind IN ('course', 'course_wip') AND local_id = %d AND import_id <> %d LIMIT 1", $map, $course_id, $import_id ) );
+			if ( $owner ) {
+				$wpdb->update( $map, array( 'import_id' => $owner ), array( 'import_id' => $import_id, 'kind' => 'membership', 'local_id' => $gid ) );
+			} else {
+				// The owner's own course uses it now: it's theirs.
+				$wpdb->delete( $map, array( 'import_id' => $import_id, 'kind' => 'membership', 'local_id' => $gid ) );
+			}
+		}
+		return array_values( array_diff( $ids, array_keys( $used ) ) );
 	}
 
 	/* ---------- Email ---------- */
@@ -1130,6 +1497,43 @@ class Import {
 		$html = preg_replace( '#<li[^>]*>#i', '• ', $html );
 		$text = html_entity_decode( wp_strip_all_tags( $html ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 		return trim( preg_replace( "/\n{3,}/", "\n\n", preg_replace( "/[ \t]+\n/", "\n", $text ) ) );
+	}
+
+	/**
+	 * The first video in a lesson's text or video box that can play here: a YouTube or
+	 * Vimeo link, or a Bunny player or video address. Found in an iframe, a link, a
+	 * [video] or [embed] shortcode, or written out.
+	 */
+	public static function video_url( $text ) {
+		$text = html_entity_decode( (string) $text, ENT_QUOTES, 'UTF-8' );
+		if ( ! preg_match_all( '#(?:https?:)?//[^\s"\'<>\[\]]+#i', $text, $m ) ) {
+			return '';
+		}
+		foreach ( $m[0] as $url ) {
+			$url = 0 === strpos( $url, '//' ) ? 'https:' . $url : $url;
+			if ( Embeds::youtube_id( $url ) || Embeds::vimeo_id( $url ) || preg_match( '#mediadelivery\.net/(?:embed|play)/\d+/[0-9a-f-]{36}|\.b-cdn\.net/[0-9a-f-]{36}/#i', $url ) ) {
+				return esc_url_raw( $url );
+			}
+		}
+		return '';
+	}
+
+	/**
+	 * Lesson text from a course plugin, ready for Import::text: its own shortcodes taken
+	 * out (they only work with that plugin; the words around them stay), and the video
+	 * that became the lesson's video taken out of the text, so it doesn't show twice.
+	 */
+	public static function tidy( $html, $video = '' ) {
+		$html = (string) $html;
+		if ( $video ) {
+			$quoted = preg_quote( $video, '#' );
+			$html   = preg_replace( '#<iframe[^>]*' . $quoted . '[^>]*>\s*</iframe>#i', '', $html );
+			$html   = preg_replace( '#\[(video|embed)[^\]]*\]\s*(?:' . $quoted . ')?\s*(?:\[/\1\])?#i', '', $html );
+			$html   = preg_replace( '#<p>\s*(?:<a[^>]*>\s*)?' . $quoted . '\s*(?:</a>\s*)?</p>#i', '', $html ); // the link alone in a paragraph
+			$html   = preg_replace( '#^\s*' . $quoted . '\s*$#mi', '', $html ); // or alone on a line
+		}
+		$html = preg_replace( '#<!--\s*/?wp:[^>]*-->#', '', $html ); // block editor notes
+		return trim( preg_replace( self::SHORTCODES, '', $html ) );
 	}
 
 	/** Whether a table exists, so a source can be found with its plugin switched off. */

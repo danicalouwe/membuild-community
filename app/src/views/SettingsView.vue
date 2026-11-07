@@ -161,19 +161,31 @@ onBeforeRouteLeave(async () => !dirty.value || (await askConfirm({ title: t.__('
 
 const scrollTo = (id) => document.getElementById(`s-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 // The side list marks the section you're looking at.
+// It's the last section whose top has passed a line near the top of the screen, worked out on every
+// scroll: a tall section (Import) used to leave the mark on the one before, or on the first.
 const current = ref('general')
-let spy = null
+let frame = 0
+const pick = () => {
+  frame = 0
+  const line = window.innerHeight * 0.3
+  const atEnd = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2
+  let id = SECTIONS[0].id
+  for (const s of SECTIONS) {
+    const el = document.getElementById(`s-${s.id}`)
+    if (el && (el.getBoundingClientRect().top <= line || (atEnd && el.getBoundingClientRect().top < window.innerHeight))) id = s.id
+  }
+  current.value = id
+}
+const onScroll = () => { if (!frame) frame = requestAnimationFrame(pick) }
 watch(form, (f, old) => {
   if (!f || old) return
-  nextTick(() => {
-    spy = new IntersectionObserver((entries) => {
-      const seen = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0]
-      if (seen) current.value = seen.target.id.replace('s-', '')
-    }, { rootMargin: '-20% 0px -70% 0px' })
-    SECTIONS.forEach((s) => { const el = document.getElementById(`s-${s.id}`); if (el) spy.observe(el) })
-  })
+  window.addEventListener('scroll', onScroll, { passive: true })
+  nextTick(pick)
 })
-onBeforeUnmount(() => spy?.disconnect())
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', onScroll)
+  if (frame) cancelAnimationFrame(frame)
+})
 </script>
 
 <template>

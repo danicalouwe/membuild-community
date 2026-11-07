@@ -30,6 +30,11 @@ abstract class Import_Source {
 
 	abstract public function detect();
 
+	/** 'community' (members, posts, chats) or 'courses' (LearnDash, Tutor LMS). */
+	public function kind() {
+		return 'community';
+	}
+
 	public function active() {
 		return false;
 	}

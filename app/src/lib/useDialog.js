@@ -8,11 +8,15 @@ function lockScroll() {
   if (locks++ === 0) {
     savedOverflow = document.documentElement.style.overflow
     document.documentElement.style.overflow = 'hidden'
+    document.documentElement.dataset.dialogOpen = '' // settle.js leaves the page where it is while a dialog is open
   }
 }
 
 function unlockScroll() {
-  if (--locks === 0) document.documentElement.style.overflow = savedOverflow
+  if (--locks === 0) {
+    document.documentElement.style.overflow = savedOverflow
+    delete document.documentElement.dataset.dialogOpen
+  }
 }
 
 /**

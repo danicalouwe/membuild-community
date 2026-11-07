@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.18.8
+Stable tag: 1.19.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -262,6 +262,15 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.19.0 =
+* New: Import brings courses from LearnDash and Tutor LMS (free and Pro), even with them switched off. Sections, lessons, text, videos, files and cover pictures come into the Classroom, with students, what they finished and when, who finished the whole course, and lesson timing.
+* New: paid courses, LearnDash groups and Tutor Pro plans become memberships with the same people in them. Their old price shows on the Get access button until you choose how people buy.
+* New: points can be worked out from finished lessons, so long-time students start at the right level.
+* New: importing again brings only new courses, and Check says when there's nothing new. Undo takes back what an import brought; students stay members.
+* Fixed: a lesson video from an earlier community import no longer goes missing a day later.
+* Fixed: a confirm box no longer jumps the page back to the top.
+* Fixed: the Settings side menu marks the section you're looking at.
 
 = 1.18.8 =
 * Fixed (security): comment feeds no longer name a private upload or print its file address through a reply to an old comment on that upload. Those replies are left out of feeds.

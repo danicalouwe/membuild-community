@@ -2534,6 +2534,7 @@ foreach ( array( $im_a, $im_b ) as $u ) {
 	$wpdb->insert( "{$im_p}bp_messages_recipients", array( 'user_id' => $u, 'thread_id' => 7 ) );
 }
 
+\MemBuild\Community\Import::forget_found();
 list( $s, $st ) = mbcom_call( $im_admin, 'GET', '/import' );
 $im_bp = array_values( array_filter( $st['found'] ?? array(), fn( $x ) => 'buddypress' === $x['key'] ) )[0] ?? null;
 mbcom_check( 'BuddyPress is found with its plugin switched off, with its numbers', 200 === $s && $im_bp && 2 === $im_bp['posts'] && 3 === $im_bp['comments'] && 1 === $im_bp['groups'], wp_json_encode( $im_bp ) );
@@ -2656,6 +2657,209 @@ mbcom_check( 'someone already here keeps their name', 'Original' === get_userdat
 mbcom_check( 'the file is deleted when it’s done', ! file_exists( \MemBuild\Community\Files::dir() . 'import-' . $up['file'] ) );
 mbcom_call( $im_admin, 'POST', '/import/undo' );
 mbcom_check( 'Undo takes the membership back but keeps the account', $im_n && get_userdata( $im_n->ID ) && ! in_array( (int) $im_vip['id'], \MemBuild\Community\Access::manual_groups( $im_n->ID ), true ) );
+
+// LearnDash: its posts, settings, course tree and progress, as LearnDash saves them (LearnDash itself isn't here).
+$ld_post = function ( $type, $title, $content = '', $extra = array() ) {
+	return (int) wp_insert_post( array_merge( array( 'post_type' => $type, 'post_title' => $title, 'post_content' => $content, 'post_status' => 'publish', 'post_author' => $GLOBALS['im_admin_id'], 'post_date_gmt' => '2025-03-01 10:00:00' ), $extra ) );
+};
+$GLOBALS['im_admin_id'] = $im_admin;
+$ld_c1 = $ld_post( 'sfwd-courses', 'Launch in 30 Days', '<p>Plan it</p>' );
+$ld_l1 = $ld_post( 'sfwd-lessons', 'Pick your offer', '<p>Start here</p>[ld_video]' );
+$ld_t1 = $ld_post( 'sfwd-topic', 'Who is it for?', '<p>Think</p><iframe src="https://www.youtube.com/embed/dQw4w9WgXcQ"></iframe>' );
+$ld_t2 = $ld_post( 'sfwd-topic', 'What do they get?', '<p>List it</p>' );
+$ld_l2 = $ld_post( 'sfwd-lessons', 'Price it', '<p>Numbers</p>' );
+$ld_q1 = $ld_post( 'sfwd-quiz', 'Check your offer' );
+$ld_c2 = $ld_post( 'sfwd-courses', 'Free starter', '' );
+$ld_l3 = $ld_post( 'sfwd-lessons', 'Welcome', '<p>Hi</p>' );
+$ld_g1 = $ld_post( 'groups', 'Coaching group' );
+update_post_meta( $ld_c1, '_sfwd-courses', array( 'sfwd-courses_course_price_type' => 'paynow', 'sfwd-courses_course_price' => '$49' ) );
+update_post_meta( $ld_c2, '_sfwd-courses', array( 'sfwd-courses_course_price_type' => 'free' ) );
+update_post_meta( $ld_c1, 'ld_course_steps', array( 'steps' => array( 'h' => array( 'sfwd-lessons' => array( $ld_l1 => array( 'sfwd-topic' => array( $ld_t1 => array(), $ld_t2 => array() ), 'sfwd-quiz' => array() ), $ld_l2 => array( 'sfwd-topic' => array() ) ), 'sfwd-quiz' => array( $ld_q1 => array() ) ) ), 'course_id' => $ld_c1, 'version' => '4.0', 'empty' => false ) );
+update_post_meta( $ld_c1, 'course_sections', wp_json_encode( array( array( 'order' => 1, 'ID' => 991, 'post_title' => 'Pricing', 'type' => 'section-heading' ) ) ) );
+update_post_meta( $ld_l1, '_sfwd-lessons', array( 'sfwd-lessons_lesson_video_enabled' => 'on', 'sfwd-lessons_lesson_video_url' => 'https://youtu.be/dQw4w9WgXcQ' ) );
+update_post_meta( $ld_l2, '_sfwd-lessons', array( 'sfwd-lessons_visible_after' => '7' ) );
+update_post_meta( $ld_l3, 'course_id', $ld_c2 ); // an older course without the builder's tree
+update_post_meta( $ld_c1, 'learndash_group_enrolled_' . $ld_g1, time() );
+update_user_meta( $im_a, 'learndash_group_users_' . $ld_g1, $ld_g1 );
+update_user_meta( $im_b, 'course_' . $ld_c1 . '_access_from', strtotime( '2025-02-01 09:00:00 UTC' ) );
+update_user_meta( $im_a, 'course_completed_' . $ld_c1, strtotime( '2025-04-02 09:00:00 UTC' ) );
+update_user_meta( $im_b, '_sfwd-course_progress', array( $ld_c1 => array( 'lessons' => array( $ld_l1 => 1 ), 'topics' => array( $ld_l1 => array( $ld_t1 => 1, $ld_t2 => 0 ) ), 'completed' => 2, 'total' => 4 ) ) );
+$wpdb->query( "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}learndash_user_activity (activity_id bigint unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY, user_id bigint, post_id bigint, course_id bigint, activity_type varchar(50), activity_status tinyint, activity_started int, activity_completed int, activity_updated int)" );
+$wpdb->insert( "{$wpdb->prefix}learndash_user_activity", array( 'user_id' => $im_b, 'post_id' => $ld_t1, 'course_id' => $ld_c1, 'activity_type' => 'topic', 'activity_status' => 1, 'activity_completed' => strtotime( '2025-03-10 08:00:00 UTC' ), 'activity_updated' => strtotime( '2025-03-10 08:00:00 UTC' ) ) );
+$im_yt = function ( $pre, $args, $url ) {
+	return false !== strpos( $url, 'youtube.com/oembed' ) ? array( 'headers' => array(), 'body' => wp_json_encode( array( 'title' => 'Offer video', 'thumbnail_url' => 'https://i.ytimg.com/vi/x/hq.jpg' ) ), 'response' => array( 'code' => 200, 'message' => 'OK' ), 'cookies' => array(), 'filename' => null ) : $pre;
+};
+add_filter( 'pre_http_request', $im_yt, 10, 3 );
+
+\MemBuild\Community\Import::forget_found(); // LearnDash's posts were just added, without switching a plugin on
+list( , $ld_state ) = mbcom_call( $im_admin, 'GET', '/import' );
+list( , $ld_again ) = mbcom_call( $im_admin, 'GET', '/import' );
+mbcom_check( '…and the Import screen’s next look reads it from the cache, not the whole site again', $ld_again['found'] == $ld_state['found'] && is_array( get_transient( 'mbcom_import_found' ) ) );
+$ld_found = current( array_filter( $ld_state['found'], fn( $f ) => 'learndash' === $f['key'] ) );
+mbcom_check( 'LearnDash is found with LearnDash switched off, as a course plugin', $ld_found && 'courses' === $ld_found['kind'] && 2 === $ld_found['courses'] && 2 === $ld_found['topics'] && 'Pick your offer' === ( $ld_found['sample']['lesson'] ?? '' ), wp_json_encode( $ld_found ) );
+$ld_src  = \MemBuild\Community\Import::source( 'learndash' );
+list( $ld_rows ) = $ld_src->batch( 'courses', 0, 1, array( 'shape' => 'follow' ) );
+mbcom_check( '…topics can follow their lesson, under LearnDash’s own section headings', array( 'Lessons', 'Pricing' ) === array_column( $ld_rows[0]['modules'], 'title' ) && array( $ld_l1, $ld_t1, $ld_t2, $ld_l2 ) === array_column( $ld_rows[0]['lessons'], 'source_id' ), wp_json_encode( array( $ld_rows[0]['modules'], array_column( $ld_rows[0]['lessons'], 'source_id' ) ) ) );
+list( , $ld_ck ) = mbcom_call( $im_admin, 'POST', '/import/check', array( 'source' => 'learndash', 'bring' => array( 'courses', 'progress', 'access', 'timing', 'points' ), 'shape' => 'sections' ) );
+$ld_tags = array_column( $ld_ck['notes'] ?? array(), 'tag' );
+mbcom_check( 'the LearnDash check says payments stay, quizzes stay, and shortcodes are tidied', in_array( 'your_turn', $ld_tags, true ) && in_array( 'left_out', $ld_tags, true ) && in_array( 'tidied', $ld_tags, true ), wp_json_encode( $ld_ck ) );
+mbcom_call( $im_admin, 'POST', '/import/dismiss' );
+mbcom_call( $im_admin, 'POST', '/import/start', array( 'source' => 'learndash', 'bring' => array( 'courses', 'progress', 'access', 'timing', 'points' ), 'shape' => 'sections' ) );
+$jl     = $im_run();
+$ld_map = fn( $kind, $sid ) => (int) $wpdb->get_var( $wpdb->prepare( "SELECT local_id FROM {$wpdb->prefix}mbcom_import_map WHERE source = 'learndash' AND kind = %s AND source_id = %s", $kind, (string) $sid ) );
+$ld_k1  = $ld_map( 'course', $ld_c1 );
+$ld_mods = $wpdb->get_col( $wpdb->prepare( "SELECT title FROM {$wpdb->prefix}mbcom_modules WHERE course_id = %d ORDER BY sort_order", $ld_k1 ) );
+$ld_les  = $wpdb->get_results( $wpdb->prepare( "SELECT l.title, l.content, l.media_id, l.drip_days, m.title AS section FROM {$wpdb->prefix}mbcom_lessons l JOIN {$wpdb->prefix}mbcom_modules m ON m.id = l.module_id WHERE l.course_id = %d ORDER BY m.sort_order, l.sort_order", $ld_k1 ), ARRAY_A );
+mbcom_check( 'LearnDash: a lesson with topics becomes a section, and the lesson after it keeps its heading', 'done' === $jl['status'] && array( 'Pick your offer', 'Pricing' ) === $ld_mods && array( 'Pick your offer', 'Who is it for?', 'What do they get?', 'Price it' ) === array_column( $ld_les, 'title' ), wp_json_encode( array( $jl['status'], $jl['error'] ?? '', $ld_mods, $ld_les ) ) );
+mbcom_check( '…the video box and a video in the text both play, and LearnDash’s shortcodes are gone', $ld_les && $ld_les[0]['media_id'] && $ld_les[1]['media_id'] && 'Start here' === $ld_les[0]['content'] && 'Think' === $ld_les[1]['content'], wp_json_encode( $ld_les ) );
+mbcom_check( '…a lesson that opens 7 days after starting still does', $ld_les && 7 === (int) $ld_les[3]['drip_days'] );
+$ld_course = $wpdb->get_row( $wpdb->prepare( "SELECT status, access, access_groups FROM {$wpdb->prefix}mbcom_courses WHERE id = %d", $ld_k1 ), ARRAY_A );
+$ld_mc     = $ld_map( 'membership', 'course:' . $ld_c1 );
+$ld_mg     = $ld_map( 'membership', 'group:' . $ld_g1 );
+$ld_price  = $wpdb->get_var( $wpdb->prepare( "SELECT price FROM {$wpdb->prefix}mbcom_groups WHERE id = %d", $ld_mc ) );
+mbcom_check( '…a paid course and its group become two memberships with the same people, and the price comes along', 'published' === $ld_course['status'] && 'groups' === $ld_course['access'] && array( $ld_mc, $ld_mg ) == json_decode( $ld_course['access_groups'], true ) && '49' === $ld_price && in_array( $ld_mc, \MemBuild\Community\Access::manual_groups( $im_b ), true ) && in_array( $ld_mg, \MemBuild\Community\Access::manual_groups( $im_a ), true ), wp_json_encode( array( $ld_course, $ld_mc, $ld_mg, $ld_price ) ) );
+mbcom_check( '…a free course stays open to everyone', 'everyone' === $wpdb->get_var( $wpdb->prepare( "SELECT access FROM {$wpdb->prefix}mbcom_courses WHERE id = %d", $ld_map( 'course', $ld_c2 ) ) ) );
+$ld_start_b = $wpdb->get_var( $wpdb->prepare( "SELECT started_at FROM {$wpdb->prefix}mbcom_course_starts WHERE course_id = %d AND user_id = %d", $ld_k1, $im_b ) );
+mbcom_check( '…a LearnDash student keeps the day they got the course, so drip lessons don’t wait again', '2025-02-01 09:00:00' === $ld_start_b, (string) $ld_start_b );
+$ld_done_b = $wpdb->get_results( $wpdb->prepare( "SELECT l.title, p.completed_at FROM {$wpdb->prefix}mbcom_lesson_progress p JOIN {$wpdb->prefix}mbcom_lessons l ON l.id = p.lesson_id WHERE p.course_id = %d AND p.user_id = %d ORDER BY l.id", $ld_k1, $im_b ), ARRAY_A );
+mbcom_check( '…what a student finished comes along, on the day they finished it', 2 === count( $ld_done_b ) && '2025-03-10 08:00:00' === array_column( $ld_done_b, 'completed_at', 'title' )['Who is it for?'], wp_json_encode( $ld_done_b ) );
+mbcom_check( '…a student who finished the course has every lesson finished', 4 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_lesson_progress WHERE course_id = %d AND user_id = %d", $ld_k1, $im_a ) ) );
+mbcom_check( '…and finished lessons give points', (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_points WHERE user_id = %d AND reason = 'lesson'", $im_b ) ) >= 2 && 1 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_points WHERE user_id = %d AND reason = 'course' AND object_id = %d", $im_a, $ld_k1 ) ) );
+mbcom_check( '…the Done screen has its numbers', 2 === ( $jl['counts']['courses'] ?? 0 ) && 5 === ( $jl['counts']['lessons'] ?? 0 ) && 2 === ( $jl['counts']['memberships'] ?? 0 ) && 2 === ( $jl['counts']['students'] ?? 0 ), wp_json_encode( $jl['counts'] ?? null ) );
+$wpdb->query( $wpdb->prepare( "UPDATE {$wpdb->prefix}mbcom_media SET created_at = %s WHERE id IN (SELECT media_id FROM {$wpdb->prefix}mbcom_lessons WHERE course_id = %d AND media_id IS NOT NULL)", gmdate( 'Y-m-d H:i:s', time() - 3 * DAY_IN_SECONDS ), $ld_k1 ) );
+\MemBuild\Community\Media::cleanup_orphans();
+mbcom_check( '…the lessons’ videos are still there days later (the hourly clean-up leaves them)', 2 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_media m JOIN {$wpdb->prefix}mbcom_lessons l ON l.media_id = m.id WHERE l.course_id = %d AND m.post_id = 0 AND m.scope = 'lesson'", $ld_k1 ) ) );
+$ld_media = array_map( 'intval', $wpdb->get_col( $wpdb->prepare( "SELECT media_id FROM {$wpdb->prefix}mbcom_lessons WHERE course_id = %d AND media_id IS NOT NULL", $ld_k1 ) ) );
+mbcom_call( $im_admin, 'POST', '/import/undo' );
+mbcom_check( '…Undo also takes the lessons’ video rows', $ld_media && 0 === (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_media WHERE id IN (" . implode( ',', $ld_media ?: array( 0 ) ) . ')' ) );
+mbcom_check( '…and Undo takes the courses, memberships and points away', 0 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_courses WHERE id = %d", $ld_k1 ) ) && ! isset( \MemBuild\Community\Access::groups()[ $ld_mg ] ) && 0 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_points WHERE user_id = %d AND reason = 'lesson'", $im_b ) ) && 'publish' === get_post_status( $ld_l1 ) );
+
+// A LearnDash group shared by courses from two imports: undoing the first keeps it for the second's course.
+$im_last = fn() => (int) \MemBuild\Community\Import::job()['id'];
+mbcom_call( $im_admin, 'POST', '/import/dismiss' );
+mbcom_call( $im_admin, 'POST', '/import/start', array( 'source' => 'learndash', 'bring' => array( 'courses', 'progress', 'access', 'timing' ), 'shape' => 'sections' ) );
+$im_run();
+$sh_x  = $im_last();
+$sh_g  = $ld_map( 'membership', 'group:' . $ld_g1 );
+$ld_c3 = $ld_post( 'sfwd-courses', 'Second course', '' );
+$ld_l4 = $ld_post( 'sfwd-lessons', 'Hello again', '<p>Hi</p>' );
+update_post_meta( $ld_l4, 'course_id', $ld_c3 );
+update_post_meta( $ld_c3, '_sfwd-courses', array( 'sfwd-courses_course_price_type' => 'closed' ) );
+update_post_meta( $ld_c3, 'learndash_group_enrolled_' . $ld_g1, time() );
+\MemBuild\Community\Import::forget_found(); // in the same request here; a real import reads afresh each step
+// A try that stopped partway through this course, the last time: a half-written course is waiting.
+$wpdb->insert( "{$wpdb->prefix}mbcom_courses", array( 'title' => 'Half', 'status' => 'draft', 'access' => 'everyone', 'created_at' => '2025-01-01 00:00:00', 'updated_at' => '2025-01-01 00:00:00' ) );
+$sh_half = (int) $wpdb->insert_id;
+$wpdb->insert( "{$wpdb->prefix}mbcom_lessons", array( 'course_id' => $sh_half, 'module_id' => 0, 'title' => 'Half lesson', 'created_at' => '2025-01-01 00:00:00', 'updated_at' => '2025-01-01 00:00:00' ) );
+$wpdb->insert( "{$wpdb->prefix}mbcom_import_map", array( 'import_id' => $sh_x, 'source' => 'learndash', 'kind' => 'course_wip', 'source_id' => (string) $ld_c3, 'local_id' => $sh_half ) );
+update_option( 'mbcom_import_tries', array( 'learndash:' . $ld_c3 => 1 ), false ); // its second try
+mbcom_call( $im_admin, 'POST', '/import/dismiss' );
+mbcom_call( $im_admin, 'POST', '/import/start', array( 'source' => 'learndash', 'bring' => array( 'courses', 'progress', 'access', 'timing' ), 'shape' => 'sections' ) );
+$im_run();
+$sh_y  = $im_last();
+$sh_k3 = $ld_map( 'course', $ld_c3 );
+mbcom_check( 'a course a stopped try left half-written is cleared and brought again, once', $sh_k3 && 0 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_courses WHERE id = %d", $sh_half ) ) && 0 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_lessons WHERE course_id = %d", $sh_half ) ) && 1 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_import_map WHERE source = 'learndash' AND source_id = %s AND kind IN ('course', 'course_wip')", (string) $ld_c3 ) ) );
+mbcom_check( '…and its tries are forgotten once it’s in', array() === get_option( 'mbcom_import_tries' ) );
+mbcom_check( '…its course uses the group the first import made', in_array( $sh_g, array_map( 'intval', (array) json_decode( (string) $wpdb->get_var( $wpdb->prepare( "SELECT access_groups FROM {$wpdb->prefix}mbcom_courses WHERE id = %d", $sh_k3 ) ), true ) ), true ) );
+\MemBuild\Community\Import::undo( $sh_x );
+\MemBuild\Community\Access::forget_all();
+mbcom_check( 'undoing the first import keeps a membership the second import’s course still opens with', isset( \MemBuild\Community\Access::groups()[ $sh_g ] ) && in_array( $sh_g, \MemBuild\Community\Access::manual_groups( $im_a ), true ) && $sh_y === (int) $wpdb->get_var( $wpdb->prepare( "SELECT import_id FROM {$wpdb->prefix}mbcom_import_map WHERE kind = 'membership' AND local_id = %d", $sh_g ) ) );
+\MemBuild\Community\Import::undo( $sh_y );
+\MemBuild\Community\Access::forget_all();
+mbcom_check( '…and undoing the second one then takes it away', ! isset( \MemBuild\Community\Access::groups()[ $sh_g ] ) && 0 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_courses WHERE id = %d", $sh_k3 ) ) );
+wp_delete_post( $ld_c3, true );
+wp_delete_post( $ld_l4, true );
+mbcom_check( 'LearnDash shortcodes go, ordinary words in brackets stay', 'Read [student notes] then go.' === trim( preg_replace( \MemBuild\Community\Import::SHORTCODES, '', 'Read [student notes] then go.[ld_video][student]' ) ) . '' && '' === trim( preg_replace( \MemBuild\Community\Import::SHORTCODES, '', '[ld_course_list num="3"][/student][quizinfo show="score"]' ) ) );
+$ld_trash = $ld_post( 'sfwd-lessons', 'Old lesson', '' );
+$ld_tree  = get_post_meta( $ld_c1, 'ld_course_steps', true );
+$ld_tree2 = $ld_tree;
+$ld_tree2['steps']['h']['sfwd-lessons'][ $ld_trash ] = array( 'sfwd-topic' => array( 999999 => array() ) );
+update_post_meta( $ld_c1, 'ld_course_steps', $ld_tree2 );
+wp_trash_post( $ld_trash );
+$ld_out = \MemBuild\Community\Import_Learndash::outline( $ld_c1 );
+mbcom_check( 'a trashed or deleted lesson in LearnDash’s course list is left out', ! in_array( $ld_trash, array_merge( ...array_map( fn( $sec ) => array_map( fn( $l ) => $l[0], $sec[1] ), $ld_out ) ), true ), wp_json_encode( $ld_out ) );
+update_post_meta( $ld_c1, 'ld_course_steps', $ld_tree );
+wp_delete_post( $ld_trash, true );
+
+// A video link alone in a paragraph goes once it's the lesson's video; a video box that can't play here keeps its link.
+mbcom_check( 'a lesson’s video link alone in a paragraph is taken out of the text', '<p>Watch this.</p><p>Then write.</p>' === \MemBuild\Community\Import::tidy( '<p>Watch this.</p><p>https://vimeo.com/76979871</p><p>Then write.</p>', 'https://vimeo.com/76979871' ) );
+$ld_box  = $ld_post( 'sfwd-lessons', 'Video file lesson', '<p>Words</p>' );
+update_post_meta( $ld_box, '_sfwd-lessons', array( 'sfwd-lessons_lesson_video_enabled' => 'on', 'sfwd-lessons_lesson_video_url' => 'https://example.com/videos/grow.mp4' ) );
+$ld_lm   = new ReflectionMethod( '\MemBuild\Community\Import_Learndash', 'lesson' );
+$ld_lm->setAccessible( true );
+$ld_boxr = $ld_lm->invoke( null, $ld_box, 'x', 'sfwd-lessons' );
+mbcom_check( '…and a LearnDash video file that can’t play here keeps its link for the lesson', 'https://example.com/videos/grow.mp4' === $ld_boxr['video'] && '<p>Words</p>' === $ld_boxr['content'], wp_json_encode( $ld_boxr ) );
+mbcom_check( '…and it isn’t counted as playing here', ! \MemBuild\Community\Import::plays( 'https://example.com/videos/grow.mp4' ) && \MemBuild\Community\Import::plays( 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' ) );
+wp_delete_post( $ld_box, true );
+
+// Tutor LMS (free and Pro): topics, lessons, enrolments, finished lessons and a site-wide plan.
+$tu_c1 = $ld_post( 'courses', 'Pricing Workshop', '<p>Price well</p>' );
+$tu_c2 = $ld_post( 'courses', 'Free intro', '' );
+$tu_t1 = $ld_post( 'topics', 'Getting started', '', array( 'post_parent' => $tu_c1, 'menu_order' => 1 ) );
+$tu_l1 = $ld_post( 'lesson', 'Your first price', '<p>Read</p>', array( 'post_parent' => $tu_t1, 'menu_order' => 1 ) );
+$tu_q1 = $ld_post( 'tutor_quiz', 'Quick quiz', '', array( 'post_parent' => $tu_t1, 'menu_order' => 2 ) );
+$tu_l2 = $ld_post( 'lesson', 'Shortcode video', '<p>Watch</p>', array( 'post_parent' => $tu_t1, 'menu_order' => 3 ) );
+$tu_f  = (int) wp_insert_attachment( array( 'post_title' => 'Worksheet', 'post_mime_type' => 'application/pdf', 'post_status' => 'inherit', 'guid' => content_url( 'uploads/worksheet.pdf' ) ) );
+update_post_meta( $tu_f, '_wp_attached_file', 'worksheet.pdf' );
+update_post_meta( $tu_c1, '_tutor_course_price_type', 'paid' );
+update_post_meta( $tu_c1, 'tutor_course_price', '30' );
+update_post_meta( $tu_c2, '_tutor_course_price_type', 'free' );
+update_post_meta( $tu_c1, '_tutor_course_settings', array( 'enable_content_drip' => 1, 'content_drip_type' => 'specific_days' ) );
+update_post_meta( $tu_l1, '_video', array( 'source' => 'youtube', 'source_youtube' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' ) );
+update_post_meta( $tu_l1, '_content_drip_settings', array( 'after_xdays_of_enroll' => '3' ) );
+update_post_meta( $tu_l1, '_tutor_attachments', array( $tu_f ) );
+update_post_meta( $tu_l2, '_video', array( 'source' => 'shortcode', 'source_shortcode' => '[some_player id=1]' ) );
+$ld_post( 'tutor_enrolled', 'Course Enrolled', '', array( 'post_parent' => $tu_c1, 'post_author' => $im_b, 'post_status' => 'completed' ) );
+$ld_post( 'tutor_enrolled', 'Course Enrolled', '', array( 'post_parent' => $tu_c1, 'post_author' => $im_out, 'post_status' => 'pending' ) );
+update_user_meta( $im_b, '_tutor_completed_lesson_id_' . $tu_l1, strtotime( '2025-05-01 12:00:00 UTC' ) + (int) ( get_option( 'gmt_offset' ) * HOUR_IN_SECONDS ) );
+wp_insert_comment( array( 'comment_post_ID' => $tu_c1, 'user_id' => $im_b, 'comment_type' => 'course_completed', 'comment_agent' => 'TutorLMSPlugin', 'comment_approved' => 'approved', 'comment_date_gmt' => '2025-05-02 12:00:00', 'comment_content' => '' ) );
+$wpdb->query( "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}tutor_subscription_plans (id bigint unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY, payment_type varchar(50) DEFAULT 'recurring', plan_type varchar(50), restriction_mode varchar(50) NULL, plan_name varchar(255), recurring_value int DEFAULT 1, recurring_interval varchar(10) DEFAULT 'month', regular_price decimal(10,2), sale_price decimal(10,2) NULL)" );
+$wpdb->query( "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}tutor_subscription_plan_items (id bigint unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY, plan_id bigint, object_name varchar(50), object_id bigint)" );
+$wpdb->query( "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}tutor_subscriptions (id bigint unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY, user_id bigint, plan_id bigint, status varchar(50))" );
+$wpdb->insert( "{$wpdb->prefix}tutor_subscription_plans", array( 'plan_type' => 'full_site', 'plan_name' => 'All courses', 'recurring_value' => 1, 'recurring_interval' => 'month', 'regular_price' => 19 ) );
+$tu_plan = (int) $wpdb->insert_id;
+$wpdb->insert( "{$wpdb->prefix}tutor_subscriptions", array( 'user_id' => $im_a, 'plan_id' => $tu_plan, 'status' => 'active' ) );
+$wpdb->insert( "{$wpdb->prefix}tutor_subscriptions", array( 'user_id' => $im_out, 'plan_id' => $tu_plan, 'status' => 'cancelled' ) );
+$wpdb->insert( "{$wpdb->prefix}tutor_subscription_plans", array( 'plan_type' => 'category', 'restriction_mode' => 'include', 'plan_name' => 'Pricing category', 'regular_price' => 9 ) );
+$wpdb->insert( "{$wpdb->prefix}tutor_subscription_plan_items", array( 'plan_id' => (int) $wpdb->insert_id, 'object_name' => 'category', 'object_id' => 424242 ) );
+\MemBuild\Community\Import::forget_found();
+list( $tu_s ) = mbcom_call( $im_admin, 'GET', '/import' );
+mbcom_check( 'a Tutor plan by category doesn’t break Import with Tutor switched off', 200 === $tu_s, (string) $tu_s );
+$wpdb->query( "DELETE FROM {$wpdb->prefix}tutor_subscription_plans WHERE plan_type = 'category'" );
+list( , $tu_ck ) = mbcom_call( $im_admin, 'POST', '/import/check', array( 'source' => 'tutor', 'bring' => array( 'courses', 'progress', 'access', 'timing', 'points' ) ) );
+mbcom_check( 'the Tutor check names the “All courses” plan and the shortcode video', false !== strpos( wp_json_encode( $tu_ck ), 'All courses' ) && in_array( 'your_turn', array_column( $tu_ck['notes'] ?? array(), 'tag' ), true ), wp_json_encode( $tu_ck ) );
+mbcom_call( $im_admin, 'POST', '/import/dismiss' );
+mbcom_call( $im_admin, 'POST', '/import/start', array( 'source' => 'tutor', 'bring' => array( 'courses', 'progress', 'access', 'timing', 'points' ) ) );
+$jt     = $im_run();
+$tu_map = fn( $kind, $sid ) => (int) $wpdb->get_var( $wpdb->prepare( "SELECT local_id FROM {$wpdb->prefix}mbcom_import_map WHERE source = 'tutor' AND kind = %s AND source_id = %s", $kind, (string) $sid ) );
+$tu_k1  = $tu_map( 'course', $tu_c1 );
+$tu_les = $wpdb->get_results( $wpdb->prepare( "SELECT l.title, l.media_id, l.drip_days, l.resources, m.title AS section FROM {$wpdb->prefix}mbcom_lessons l JOIN {$wpdb->prefix}mbcom_modules m ON m.id = l.module_id WHERE l.course_id = %d ORDER BY l.sort_order", $tu_k1 ), ARRAY_A );
+mbcom_check( 'Tutor: its topic becomes a section, its lessons come in order, quizzes stay behind', 'done' === $jt['status'] && array( 'Your first price', 'Shortcode video' ) === array_column( $tu_les, 'title' ) && 'Getting started' === $tu_les[0]['section'], wp_json_encode( array( $jt['status'], $jt['error'] ?? '', $tu_les ) ) );
+$tu_res = json_decode( (string) ( $tu_les[0]['resources'] ?? '' ), true );
+mbcom_check( '…with its video, its 3-day timing and its file', $tu_les[0]['media_id'] && 3 === (int) $tu_les[0]['drip_days'] && 'Worksheet' === ( $tu_res[0]['name'] ?? '' ), wp_json_encode( $tu_les[0] ) );
+$tu_start_b = $wpdb->get_var( $wpdb->prepare( "SELECT started_at FROM {$wpdb->prefix}mbcom_course_starts WHERE course_id = %d AND user_id = %d", $tu_k1, $im_b ) );
+mbcom_check( '…a Tutor student keeps the day they enrolled', '2025-03-01 10:00:00' === $tu_start_b, (string) $tu_start_b );
+$tu_ext = $ld_post( 'lesson', 'Outside video', '' );
+update_post_meta( $tu_ext, '_video', array( 'source' => 'external_url', 'source_external_url' => 'https://example.com/v/talk.mp4' ) );
+mbcom_check( '…a Tutor video from another site keeps its link for the lesson', 'https://example.com/v/talk.mp4' === \MemBuild\Community\Import_Tutor::video( $tu_ext )['url'], wp_json_encode( \MemBuild\Community\Import_Tutor::video( $tu_ext ) ) );
+wp_delete_post( $tu_ext, true );
+$tu_course = $wpdb->get_row( $wpdb->prepare( "SELECT access, access_groups FROM {$wpdb->prefix}mbcom_courses WHERE id = %d", $tu_k1 ), ARRAY_A );
+$tu_mc     = $tu_map( 'membership', 'course:' . $tu_c1 );
+$tu_mp     = $tu_map( 'membership', 'plan:' . $tu_plan );
+mbcom_check( '…a paid course gets its enrolled students; the “All courses” plan its active subscribers', array( $tu_mc, $tu_mp ) == json_decode( (string) $tu_course['access_groups'], true ) && in_array( $tu_mc, \MemBuild\Community\Access::manual_groups( $im_b ), true ) && in_array( $tu_mp, \MemBuild\Community\Access::manual_groups( $im_a ), true ) && ! array_intersect( array( $tu_mc, $tu_mp ), \MemBuild\Community\Access::manual_groups( $im_out ) ), wp_json_encode( array( $tu_course, $tu_mc, $tu_mp, \MemBuild\Community\Access::manual_groups( $im_b ), \MemBuild\Community\Access::manual_groups( $im_a ), \MemBuild\Community\Access::manual_groups( $im_out ) ) ) );
+mbcom_check( '…a free course stays open, and finished lessons keep their day', 'everyone' === $wpdb->get_var( $wpdb->prepare( "SELECT access FROM {$wpdb->prefix}mbcom_courses WHERE id = %d", $tu_map( 'course', $tu_c2 ) ) ) && '2025-05-01 12:00:00' === $wpdb->get_var( $wpdb->prepare( "SELECT MIN(completed_at) FROM {$wpdb->prefix}mbcom_lesson_progress WHERE course_id = %d AND user_id = %d", $tu_k1, $im_b ) ) );
+mbcom_call( $im_admin, 'POST', '/import/undo' );
+mbcom_check( '…Undo leaves Tutor’s own file where it was', 0 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_courses WHERE id = %d", $tu_k1 ) ) && get_post( $tu_f ) && 'attachment' === get_post_type( $tu_f ), wp_json_encode( array( $tu_k1, get_post_status( $tu_f ), (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_courses WHERE id = %d", $tu_k1 ) ) ) ) );
+remove_filter( 'pre_http_request', $im_yt, 10 );
+foreach ( array( $ld_c1, $ld_l1, $ld_t1, $ld_t2, $ld_l2, $ld_q1, $ld_c2, $ld_l3, $ld_g1, $tu_c1, $tu_c2, $tu_t1, $tu_l1, $tu_q1, $tu_l2, $tu_f ) as $im_pid ) {
+	wp_delete_post( $im_pid, true );
+}
+$wpdb->query( "DELETE FROM {$wpdb->posts} WHERE post_type = 'tutor_enrolled'" );
+$wpdb->query( "DELETE FROM {$wpdb->comments} WHERE comment_type = 'course_completed'" );
+$wpdb->query( "DELETE FROM {$wpdb->usermeta} WHERE meta_key LIKE '%course\\_%' OR meta_key LIKE 'learndash%' OR meta_key LIKE '\\_sfwd%' OR meta_key LIKE '\\_tutor%'" );
+foreach ( array( 'learndash_user_activity', 'tutor_subscription_plans', 'tutor_subscription_plan_items', 'tutor_subscriptions' ) as $tb ) {
+	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}{$tb}" );
+}
 
 // Tidy up: the fake plugins' tables and what's left of the imports.
 foreach ( array( 'bp_activity', 'bp_activity_meta', 'bp_groups', 'bp_groups_members', 'bp_messages_messages', 'bp_messages_recipients', 'bp_xprofile_fields', 'bp_xprofile_data' ) as $tb ) {

@@ -6,7 +6,9 @@
 const keyboardOpen = () => !!window.visualViewport && window.visualViewport.height < window.innerHeight - 80
 
 export function settlePage() {
-  if (!window.scrollY || keyboardOpen()) return
+  // A dialog stops the page scrolling on purpose: that isn't a page that can't scroll, and sending
+  // it to the top lost the owner's place (Settings › Import › Undo, low on a long page).
+  if (!window.scrollY || keyboardOpen() || 'dialogOpen' in document.documentElement.dataset) return
   const el = document.scrollingElement || document.documentElement
   const cantScroll = el.scrollHeight <= window.innerHeight + 1 || getComputedStyle(document.documentElement).overflow === 'hidden'
   if (cantScroll) window.scrollTo(0, 0)

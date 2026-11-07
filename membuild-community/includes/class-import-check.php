@@ -14,8 +14,44 @@ defined( 'ABSPATH' ) || exit;
 
 class Import_Check {
 
-	private static function n( $count ) {
+	public static function n( $count ) {
 		return number_format_i18n( (int) $count );
+	}
+
+	/** "2 quizzes, 1 assignment and 3 certificates": the parts that aren't empty, joined as a sentence. */
+	public static function join( array $parts ) {
+		$parts = array_values( array_filter( $parts ) );
+		if ( count( $parts ) < 2 ) {
+			return (string) ( $parts[0] ?? '' );
+		}
+		$last = array_pop( $parts );
+		/* translators: 1: "2 quizzes, 1 assignment", 2: "3 certificates" */
+		return sprintf( __( '%1$s and %2$s', 'membuild-community' ), implode( ', ', $parts ), $last );
+	}
+
+	/** "3 courses come into the Classroom", or "1 new course…" when the rest came over last time. */
+	public static function courses_line( $n, $again ) {
+		return $again
+			/* translators: %s: number of courses */
+			? sprintf( _n( '%s new course comes into the Classroom', '%s new courses come into the Classroom', $n, 'membuild-community' ), self::n( $n ) )
+			/* translators: %s: number of courses */
+			: sprintf( _n( '%s course comes into the Classroom', '%s courses come into the Classroom', $n, 'membuild-community' ), self::n( $n ) );
+	}
+
+	/** A course plugin imported before with no new courses since: say so instead of counting what won't come. */
+	public static function nothing_new( $n, $label ) {
+		return array(
+			'items' => array(
+				array(
+					'title' => __( 'Nothing new to bring', 'membuild-community' ),
+					/* translators: 1: number of courses, 2: plugin name */
+					'sub'   => sprintf( _n( 'The %1$s course in %2$s is already here from last time. Courses you add to %2$s later come over when you import again.', 'All %1$s courses in %2$s are already here from last time. Courses you add to %2$s later come over when you import again.', $n, 'membuild-community' ), self::n( $n ), $label ),
+					'tag'   => 'here',
+				),
+			),
+			'notes'   => array(),
+			'nothing' => true,
+		);
 	}
 
 	public static function wordpress( Import_Source $src, array $job ) {

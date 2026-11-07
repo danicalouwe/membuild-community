@@ -422,10 +422,13 @@ class Bunny {
 	public static function register_hooks() {
 	}
 
-	/** Deletes one media row's video from Bunny (used when an unused upload is cleaned up). */
+	/**
+	 * Deletes one media row's video from Bunny (used when an unused upload is cleaned up).
+	 * A video Import found in another plugin's lesson ('shared') is still that plugin's: it stays.
+	 */
 	public static function delete_video( array $row ) {
 		$meta = json_decode( (string) $row['meta'], true ) ?: array();
-		if ( self::enabled() && ! empty( $meta['guid'] ) && ( $meta['library'] ?? '' ) === self::settings()['library_id'] ) {
+		if ( self::enabled() && empty( $meta['shared'] ) && ! empty( $meta['guid'] ) && ( $meta['library'] ?? '' ) === self::settings()['library_id'] ) {
 			self::api( 'DELETE', '/videos/' . rawurlencode( $meta['guid'] ) );
 		}
 	}

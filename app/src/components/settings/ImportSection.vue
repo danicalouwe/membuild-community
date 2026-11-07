@@ -10,7 +10,8 @@ import { t } from '../../lib/i18n.js'
 
 /**
  * Settings › Import: bring a community over from BuddyBoss, BuddyPress, PeepSo or
- * FluentCommunity (found on this site, even switched off), or members from a spreadsheet.
+ * FluentCommunity, or courses from LearnDash or Tutor LMS (found on this site, even
+ * switched off), or members from a spreadsheet.
  * Choose → Check (a dry run) → Import (in the background, with Pause) → Done (Undo).
  * The work happens on the server; this asks, shows and follows along.
  */
@@ -22,6 +23,7 @@ const screen = ref('start') // start | where | copy | hosted | choose | check | 
 const source = ref(null) // the found source being imported
 const bring = ref([])
 const groupsTo = ref('topics')
+const shape = ref('') // LearnDash: where topics go (sections | follow)
 const report = ref(null)
 const file = ref(null) // { file, name, rows, columns, memberships }
 const map = ref([])
@@ -74,10 +76,13 @@ watch(screen, scrollUp)
 /* ---------- Choose ---------- */
 
 const isFluent = computed(() => source.value?.key === 'fluentcommunity')
+const isCourses = computed(() => source.value?.kind === 'courses')
+const isTutor = computed(() => source.value?.key === 'tutor')
 const groupWord = computed(() => (isFluent.value ? t.__('spaces', 'membuild-community') : t.__('groups', 'membuild-community')))
 const options = computed(() => {
   const s = source.value
   if (!s) return []
+  if (s.kind === 'courses') return courseOptions(s)
   return [
     { key: 'profiles', title: t.__('Members’ profiles', 'membuild-community'), count: n(s.members), text: t.__('Photo, cover, bio and location. Everyone keeps their own login.', 'membuild-community') },
     { key: 'posts', title: t.__('Posts and comments', 'membuild-community'), count: t.sprintf(t._n('%s post', '%s posts', s.posts, 'membuild-community'), n(s.posts)) + ' · ' + t.sprintf(t._n('%s comment', '%s comments', s.comments, 'membuild-community'), n(s.comments)), text: t.__('With their photos, dates and authors. Replies to replies join the same comment, as they do here.', 'membuild-community') },
@@ -88,20 +93,87 @@ const options = computed(() => {
   ].filter(Boolean)
 })
 
+/** A course plugin (LearnDash, Tutor LMS): courses, students and progress, who can open them, lesson timing, points. */
+function courseOptions(s) {
+  const tutor = s.key === 'tutor'
+  return [
+    {
+      key: 'courses',
+      title: t.__('Courses', 'membuild-community'),
+      count: tutor
+        ? [t.sprintf(t._n('%s course', '%s courses', s.courses, 'membuild-community'), n(s.courses)), t.sprintf(/* translators: %s: number of Tutor topics */ t._n('%s topic', '%s topics', s.sections, 'membuild-community'), n(s.sections)), t.sprintf(t._n('%s lesson', '%s lessons', s.lessons, 'membuild-community'), n(s.lessons))].join(' · ')
+        : [t.sprintf(t._n('%s course', '%s courses', s.courses, 'membuild-community'), n(s.courses)), t.sprintf(t._n('%s lesson', '%s lessons', s.sections, 'membuild-community'), n(s.sections)), t.sprintf(/* translators: %s: number of LearnDash topics */ t._n('%s topic', '%s topics', s.topics, 'membuild-community'), n(s.topics))].join(' · '),
+      text: tutor ? t.__('Into the Classroom. Tutor’s topics become sections, in the same order, with lesson text, videos, files and cover pictures.', 'membuild-community') : t.__('Into the Classroom with their sections, text, videos and cover pictures. Drafts stay drafts.', 'membuild-community'),
+    },
+    {
+      key: 'progress',
+      title: t.__('Students and their progress', 'membuild-community'),
+      count: t.sprintf(t._n('%s student', '%s students', s.students, 'membuild-community'), n(s.students)) + ' · ' + t.sprintf(/* translators: %s: number of finished lessons */ t.__('%s finished', 'membuild-community'), n(s.done)),
+      text: tutor ? t.__('Who is enrolled, what they finished and when, and who finished the whole course. Unpaid and cancelled enrollments are left out.', 'membuild-community') : t.__('Who is in each course, what they finished and when, and who finished the whole course. Everyone keeps their own login.', 'membuild-community'),
+    },
+    {
+      key: 'access',
+      title: t.__('Who can open each course', 'membuild-community'),
+      count: [
+        s.open && t.sprintf(/* translators: %s: number of courses */ t.__('%s open', 'membuild-community'), n(s.open)),
+        s.paid && t.sprintf(/* translators: %s: number of courses */ t.__('%s paid', 'membuild-community'), n(s.paid)),
+        tutor && s.plans && t.sprintf(/* translators: %s: number of Tutor Pro plans */ t._n('%s plan', '%s plans', s.plans, 'membuild-community'), n(s.plans)),
+        !tutor && s.groups && t.sprintf(t._n('%s group', '%s groups', s.groups, 'membuild-community'), n(s.groups)),
+      ]
+        .filter(Boolean)
+        .join(' · '),
+      text: tutor ? t.__('Free courses stay open to everyone. Each paid course, and each Tutor Pro plan, becomes a membership with the people who have it now.', 'membuild-community') : t.__('Open and free courses stay open to everyone. Paid courses and LearnDash groups each become a membership, with the same people in it.', 'membuild-community'),
+    },
+    {
+      key: 'timing',
+      title: t.__('Lesson timing', 'membuild-community'),
+      count: '',
+      text: tutor ? t.__('Lessons that open some days after enrolling keep doing that. Lessons that open on a date keep the date.', 'membuild-community') : t.__('Lessons that open some days after a student starts keep doing that.', 'membuild-community'),
+    },
+    { key: 'points', title: t.__('Points', 'membuild-community'), count: t.__('worked out from finished lessons', 'membuild-community'), text: t.__('So long-time students start at the right level.', 'membuild-community') },
+  ]
+}
+
 function choose(s) {
   source.value = s
-  bring.value = ['profiles', 'posts', 'reactions', 'courses', 'messages', 'points'].filter((k) => k === 'profiles' || k === 'posts' || k === 'points' || s[k])
+  bring.value =
+    s.kind === 'courses'
+      ? ['courses', 'progress', 'access', 'timing', 'points']
+      : ['profiles', 'posts', 'reactions', 'courses', 'messages', 'points'].filter((k) => k === 'profiles' || k === 'posts' || k === 'points' || s[k])
+  shape.value = s.shape || ''
+  parked = []
   groupsTo.value = 'topics'
   report.value = null
   screen.value = 'choose'
 }
-const toggle = (key) => (bring.value = bring.value.includes(key) ? bring.value.filter((k) => k !== key) : [...bring.value, key])
+// From a course plugin, students, access and timing come with courses, and points come from
+// students' finished lessons. Unticking one switches off what needs it; ticking it again puts
+// back what was ticked before, so "Who can open each course" never stays off by accident.
+const NEEDS = { progress: 'courses', access: 'courses', timing: 'courses', points: 'progress' }
+let parked = []
+const toggle = (key) => {
+  const on = !bring.value.includes(key)
+  bring.value = on ? [...bring.value, key] : bring.value.filter((k) => k !== key)
+  if (!isCourses.value) return
+  const after = (k) => NEEDS[k] === key || NEEDS[NEEDS[k]] === key // what needs this, directly or through another
+  if (!on) {
+    parked = [...new Set([...parked, ...bring.value.filter(after)])]
+    bring.value = bring.value.filter((k) => !after(k))
+  } else {
+    const back = parked.filter(after)
+    parked = parked.filter((k) => !after(k))
+    bring.value = [...new Set([...bring.value, ...back])]
+  }
+}
+const lockedOff = (key) => isCourses.value && !!NEEDS[key] && !bring.value.includes(NEEDS[key])
+const showShape = computed(() => source.value?.key === 'learndash' && source.value.topics > 0 && bring.value.includes('courses'))
+const sample = computed(() => source.value?.sample || null)
 
 async function check() {
   busy.value = true
   error.value = ''
   try {
-    report.value = await api.importCheck({ source: source.value.key, bring: bring.value, groups: groupsTo.value })
+    report.value = await api.importCheck({ source: source.value.key, bring: bring.value, groups: groupsTo.value, shape: shape.value })
     screen.value = 'check'
   } catch (e) {
     error.value = e.message
@@ -114,7 +186,7 @@ async function start() {
   busy.value = true
   error.value = ''
   try {
-    const body = source.value.key === 'csv' ? csvBody() : { source: source.value.key, bring: bring.value, groups: groupsTo.value }
+    const body = source.value.key === 'csv' ? csvBody() : { source: source.value.key, bring: bring.value, groups: groupsTo.value, shape: shape.value }
     state.value.job = await api.importStart(body)
     screen.value = 'progress'
     follow()
@@ -178,6 +250,14 @@ async function pause() {
 
 const doneTiles = computed(() => {
   const c = job.value?.counts || {}
+  if (job.value?.kind === 'courses')
+    return [
+      { v: c.courses, l: t._n('course', 'courses', c.courses, 'membuild-community') },
+      { v: c.lessons, l: t._n('lesson', 'lessons', c.lessons, 'membuild-community') },
+      { v: c.students, l: t._n('student', 'students', c.students, 'membuild-community') },
+      { v: c.finished_lessons, l: t._n('finished lesson', 'finished lessons', c.finished_lessons, 'membuild-community') },
+      { v: c.memberships, l: t._n('membership', 'memberships', c.memberships, 'membuild-community') },
+    ].filter((x) => x.v)
   return [
     { v: c.members, l: t._n('member', 'members', c.members, 'membuild-community') },
     { v: c.posts, l: t._n('post', 'posts', c.posts, 'membuild-community') },
@@ -190,7 +270,9 @@ const doneTiles = computed(() => {
 const took = computed(() => {
   const j = job.value
   if (!j?.started || !j?.finished) return ''
-  const mins = Math.max(1, Math.round((new Date(j.finished) - new Date(j.started)) / 60000))
+  const secs = (new Date(j.finished) - new Date(j.started)) / 1000
+  if (secs < 60) return t.sprintf(/* translators: %s: a time */ t.__('Finished %s, in under a minute.', 'membuild-community'), clock(j.finished))
+  const mins = Math.round(secs / 60)
   return t.sprintf(/* translators: 1: a time, 2: minutes */ t._n('Finished %1$s, in %2$d minute.', 'Finished %1$s, in %2$d minutes.', mins, 'membuild-community'), clock(j.finished), mins)
 })
 
@@ -209,7 +291,7 @@ async function emailEveryone() {
 async function undo() {
   const ok = await askConfirm({
     title: t.__('Undo this import?', 'membuild-community'),
-    text: t.__('This removes exactly what it brought: posts, comments, reactions, chats, topics and memberships it made. Members and their profiles stay.', 'membuild-community'),
+    text: job.value?.kind === 'courses' ? t.__('This removes exactly what it brought: the courses, their lessons, students’ progress and points, and the memberships it made. Students stay members.', 'membuild-community') : t.__('This removes exactly what it brought: posts, comments, reactions, chats, topics and memberships it made. Members and their profiles stay.', 'membuild-community'),
     confirm: t.__('Undo the import', 'membuild-community'),
     danger: true,
   })
@@ -230,6 +312,8 @@ async function undo() {
 
 const day = (iso, time = false) => (iso ? new Date(iso).toLocaleString([], time ? { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' } : { day: 'numeric', month: 'short' }) : '')
 const pastTitle = (p) => (p.source === 'csv' ? t.sprintf(/* translators: %s: file name */ t.__('Spreadsheet: %s', 'membuild-community'), p.name || 'CSV') : p.label) + ' · ' + day(p.finished, true)
+/** A past import from a course plugin (LearnDash, Tutor LMS): its words talk about students. */
+const isLms = (p) => ['learndash', 'tutor'].includes(p.source)
 function pastLine(p) {
   const c = p.counts || {}
   if (p.status === 'undone') return t.__('Nothing from it is left.', 'membuild-community')
@@ -244,9 +328,13 @@ function pastLine(p) {
           c.messages && t.sprintf(t._n('%s chat', '%s chats', c.messages, 'membuild-community'), n(c.messages)),
           c.courses && t.sprintf(t._n('%s course', '%s courses', c.courses, 'membuild-community'), n(c.courses)),
           c.topics && t.sprintf(t._n('%s topic', '%s topics', c.topics, 'membuild-community'), n(c.topics)),
+          isLms(p) && c.students && t.sprintf(t._n('%s student', '%s students', c.students, 'membuild-community'), n(c.students)),
+          isLms(p) && c.memberships && t.sprintf(t._n('%s membership', '%s memberships', c.memberships, 'membuild-community'), n(c.memberships)),
         ]
   return parts.filter(Boolean).join(' · ') || t.__('Everything was already here.', 'membuild-community')
 }
+/** An import that found everything already here brought nothing, so there's nothing to undo. */
+const pastEmpty = (p) => !Object.values(p.counts || {}).some((v) => Number(v) > 0)
 const undoingId = ref(0)
 async function undoPast(p) {
   undoingId.value = p.id
@@ -266,14 +354,18 @@ async function undoPast(p) {
       s.reactions && t.sprintf(t._n('%s reaction', '%s reactions', s.reactions, 'membuild-community'), n(s.reactions)),
       s.messages && t.sprintf(t._n('%s message', '%s messages', s.messages, 'membuild-community'), n(s.messages)),
     ].filter(Boolean)
+    undoingId.value = 0 // the button takes focus back when the box closes, so it can't stay disabled
     const ok = await askConfirm({
       title: t.sprintf(/* translators: 1: where from, 2: a date */ t.__('Undo the %1$s import from %2$s?', 'membuild-community'), p.source === 'csv' ? t.__('spreadsheet', 'membuild-community') : p.label, day(p.finished)),
-      text: (what.length ? t.sprintf(/* translators: %s: a list, e.g. "320 posts, 1,140 comments" */ t.__('This removes what it brought: %s.', 'membuild-community'), what.join(', ')) : t.__('This removes what it brought.', 'membuild-community')) + ' ' + (p.source === 'csv' ? t.__('The accounts it made stay, so nobody is locked out.', 'membuild-community') : t.__('Members and their profiles stay.', 'membuild-community')),
+      text: isLms(p)
+        ? (what.length ? t.sprintf(/* translators: %s: a list, e.g. "12 courses, 8 memberships" */ t.__('This removes what it brought: %s, and the students’ progress and points from them. Students stay members.', 'membuild-community'), what.join(', ')) : t.__('This removes what it brought, and the students’ progress and points from it. Students stay members.', 'membuild-community'))
+        : (what.length ? t.sprintf(/* translators: %s: a list, e.g. "320 posts, 1,140 comments" */ t.__('This removes what it brought: %s.', 'membuild-community'), what.join(', ')) : t.__('This removes what it brought.', 'membuild-community')) + ' ' + (p.source === 'csv' ? t.__('The accounts it made stay, so nobody is locked out.', 'membuild-community') : t.__('Members and their profiles stay.', 'membuild-community')),
       note: later.length ? t.sprintf(/* translators: %s: e.g. "46 comments and 210 reactions" */ t.__('Since then, members added %s to what it brought. They go with it.', 'membuild-community'), later.join(', ')) : '',
       confirm: t.__('Undo the import', 'membuild-community'),
       danger: true,
     })
     if (!ok) return
+    undoingId.value = p.id
     const r = await api.importUndo(p.id)
     state.value = await api.importState()
     refreshTopics()
@@ -438,9 +530,14 @@ const plat = computed(() => PLATFORMS.value[platform.value])
 const TAGS = {
   ready: ['ok', () => t.__('Ready', 'membuild-community')],
   merged: ['', () => t.__('Merged', 'membuild-community')],
+  here: ['', () => t.__('Already here', 'membuild-community')],
   updated: ['', () => t.__('Updated', 'membuild-community')],
   brought: ['', () => t.__('Brought', 'membuild-community')],
   linked: ['warn', () => t.__('Linked', 'membuild-community')],
+  your_turn: ['warn', () => t.__('Your turn', 'membuild-community')],
+  changes: ['warn', () => t.__('Changes', 'membuild-community')],
+  tidied: ['', () => t.__('Tidied', 'membuild-community')],
+  copied: ['', () => t.__('Copied', 'membuild-community')],
   left_out: ['warn', () => t.__('Left out', 'membuild-community')],
   skipped: ['bad', () => t.__('Skipped', 'membuild-community')],
   memberships: ['accent', () => t.__('Memberships', 'membuild-community')],
@@ -458,7 +555,14 @@ const foundLine = (s) =>
     ? t.sprintf(/* translators: %s: "3 days ago" */ t.__('Switched on. Last activity %s.', 'membuild-community'), ago(s.last))
     : t.sprintf(/* translators: %s: "3 days ago" */ t.__('Switched off, but its data is still here. Last activity %s.', 'membuild-community'), ago(s.last))
 const foundTiles = (s) =>
-  [
+  s.kind === 'courses'
+    ? [
+        { v: s.courses, l: t._n('course', 'courses', s.courses, 'membuild-community') },
+        { v: s.lessons, l: t._n('lesson', 'lessons', s.lessons, 'membuild-community') },
+        { v: s.students, l: t._n('student', 'students', s.students, 'membuild-community') },
+        { v: s.done, l: t._n('lesson finished', 'lessons finished', s.done, 'membuild-community') },
+      ].filter((x) => x.v)
+    : [
     { v: s.members, l: t._n('member', 'members', s.members, 'membuild-community') },
     { v: s.posts, l: t._n('post', 'posts', s.posts, 'membuild-community') },
     { v: s.comments, l: t._n('comment', 'comments', s.comments, 'membuild-community') },
@@ -467,7 +571,18 @@ const foundTiles = (s) =>
     { v: s.courses, l: t._n('course', 'courses', s.courses, 'membuild-community') },
   ].filter((x) => x.v)
 // The plugin with the most members gets the one main button; the others are listed under it.
-const byMembers = computed(() => [...(state.value?.found || [])].sort((a, b) => (b.members || 0) - (a.members || 0)))
+// A community plugin goes before a course plugin, so students already have their profiles.
+const byMembers = computed(() => [...(state.value?.found || [])].sort((a, b) => (a.kind === 'courses') - (b.kind === 'courses') || (b.members || 0) - (a.members || 0)))
+const hasCommunity = computed(() => byMembers.value.some((s) => s.kind !== 'courses'))
+const lastDone = (s) => (state.value?.past || []).find((p) => p.source === s.key && p.status === 'done' && !pastEmpty(p))
+const alsoLine = (s) =>
+  lastDone(s)
+    ? t.sprintf(/* translators: 1: e.g. "12 courses, 340 lessons", 2: a date */ s.kind === 'courses' ? t.__('%1$s. Imported %2$s: importing again brings only new courses.', 'membuild-community') : t.__('%1$s. Imported %2$s: importing again brings only what’s new.', 'membuild-community'), shortLine(s), day(lastDone(s).finished))
+    : s.kind === 'courses' && hasCommunity.value
+    ? t.sprintf(/* translators: 1: e.g. "12 courses, 340 lessons", 2: plugin name */ t.__('%1$s. Bring it after %2$s, so students already have their profiles.', 'membuild-community'), shortLine(s), byMembers.value[0].label)
+    : shortLine(s)
+const sourceIcon = (s) => (s.kind === 'courses' ? 'cap' : 'box')
+const goSettings = (id) => router.push({ name: 'settings', query: { s: id }, hash: `#s-${id}` }).then(() => document.getElementById(`s-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
 const biggest = computed(() => byMembers.value[0] || null)
 const alsoFound = computed(() => byMembers.value.slice(1))
 const shortLine = (s) => foundTiles(s).slice(0, 2).map((x) => `${n(x.v)} ${x.l}`).join(', ')
@@ -492,10 +607,10 @@ const stepNo = computed(() => ({ choose: 1, check: 2, progress: 3, done: 4 })[sc
       <!-- Start: what's on this site, and a spreadsheet. -->
       <template v-if="screen === 'start'">
         <h2 class="im-top">{{ t.__('Import', 'membuild-community') }}</h2>
-        <p class="intro">{{ t.__('Bring members and their history from another community plugin, or add members from a spreadsheet. Nothing in the old plugin is changed or deleted.', 'membuild-community') }}</p>
+        <p class="intro">{{ t.__('Bring members, their history and your courses from another community or course plugin, or add members from a spreadsheet. Nothing in the old plugin is changed or deleted.', 'membuild-community') }}</p>
         <div v-if="biggest" class="im-box">
           <div class="im-found">
-            <span class="im-ic accent"><Icon name="box" :size="20" /></span>
+            <span class="im-ic accent"><Icon :name="sourceIcon(biggest)" :size="20" /></span>
             <span class="im-words"><strong>{{ t.sprintf(/* translators: %s: plugin name */ t.__('%s, found on this site', 'membuild-community'), biggest.label) }}</strong><small>{{ foundLine(biggest) }}{{ alsoFound.length ? ` ${t.__('The biggest, so start here.', 'membuild-community')}` : '' }}</small></span>
             <button type="button" class="btn btn-lg btn-primary" @click="choose(biggest)">{{ t.__('Import', 'membuild-community') }} <Icon name="arrowRight" :size="18" /></button>
           </div>
@@ -507,8 +622,8 @@ const stepNo = computed(() => ({ choose: 1, check: 2, progress: 3, done: 4 })[sc
         <template v-if="alsoFound.length">
           <h3 class="im-also">{{ t.__('Also on this site', 'membuild-community') }}</h3>
           <div v-for="s in alsoFound" :key="s.key" class="im-box im-found">
-            <span class="im-ic"><Icon name="box" :size="20" /></span>
-            <span class="im-words"><strong>{{ s.label }}</strong><small>{{ shortLine(s) }}</small></span>
+            <span class="im-ic"><Icon :name="sourceIcon(s)" :size="20" /></span>
+            <span class="im-words"><strong>{{ s.label }}</strong><small>{{ alsoLine(s) }}</small></span>
             <button type="button" class="btn btn-lg" @click="choose(s)">{{ t.__('Import', 'membuild-community') }}</button>
           </div>
         </template>
@@ -522,7 +637,7 @@ const stepNo = computed(() => ({ choose: 1, check: 2, progress: 3, done: 4 })[sc
           <p>
             {{ t.__('Try it on a copy of your site first (staging), then run it here.', 'membuild-community') }}
             <button type="button" class="im-link" @click="screen = 'copy'">{{ t.__('How to make a copy', 'membuild-community') }}</button>.
-            {{ t.__('BuddyBoss, BuddyPress, PeepSo and FluentCommunity show up here the same way when they’re on this site.', 'membuild-community') }}
+            {{ t.__('BuddyBoss, BuddyPress, PeepSo, FluentCommunity, LearnDash and Tutor LMS show up here the same way when they’re on this site, even switched off.', 'membuild-community') }}
           </p>
         </div>
       </template>
@@ -598,13 +713,38 @@ const stepNo = computed(() => ({ choose: 1, check: 2, progress: 3, done: 4 })[sc
         <p class="intro">{{ t.__('Tick what to bring. Nothing happens until you check it on the next step.', 'membuild-community') }}</p>
         <div class="im-box">
           <h3>{{ t.sprintf(t.__('What to bring from %s', 'membuild-community'), source.label) }}</h3>
-          <label v-for="o in options" :key="o.key" class="im-tick">
-            <input type="checkbox" :checked="bring.includes(o.key)" @change="toggle(o.key)" />
+          <label v-for="o in options" :key="o.key" class="im-tick" :class="{ off: lockedOff(o.key) }">
+            <input type="checkbox" :checked="bring.includes(o.key)" :disabled="lockedOff(o.key)" @change="toggle(o.key)" />
             <span class="im-box-mark tick-box"><Icon name="check" :size="14" /></span>
-            <span class="im-words"><strong>{{ o.title }} <span class="im-count">· {{ o.count }}</span></strong><small>{{ o.text }}</small></span>
+            <span class="im-words"><strong>{{ o.title }} <span v-if="o.count" class="im-count">· {{ o.count }}</span></strong><small>{{ o.text }}</small></span>
           </label>
         </div>
-        <div v-if="source.groups && bring.includes('posts')" class="im-box">
+        <!-- LearnDash has one more level than the Classroom: the owner picks where topics go, seeing their own course. -->
+        <div v-if="showShape" class="im-box">
+          <h3 id="im-shape-q">{{ t.__('Your lessons have topics. Where should they go?', 'membuild-community') }}</h3>
+          <p class="im-p">{{ sample ? t.sprintf(/* translators: %s: a course name */ t.__('The Classroom has sections and lessons, one level less than LearnDash. Here’s your course “%s” each way.', 'membuild-community'), sample.course) : t.__('The Classroom has sections and lessons, one level less than LearnDash.', 'membuild-community') }}</p>
+          <div class="im-shapes" role="radiogroup" aria-labelledby="im-shape-q">
+            <label class="choice pick-card im-shape" :class="{ on: shape === 'sections' }">
+              <input v-model="shape" type="radio" name="im-shape" value="sections" /><span class="mark pick-dot" /><strong>{{ t.__('Lessons become sections', 'membuild-community') }}</strong>
+              <small>{{ source.shape === 'sections' ? t.sprintf(/* translators: 1: courses, 2: all courses */ t.__('Best when most lessons have topics, like yours (%1$s of %2$s courses).', 'membuild-community'), n(source.mostly), n(source.courses)) : t.__('Best when most lessons have topics.', 'membuild-community') }}</small>
+              <span v-if="sample" class="im-shape-ex">
+                <b>{{ t.sprintf(/* translators: %s: a section name */ t.__('Section: %s', 'membuild-community'), sample.lesson) }}</b>
+                <span>· {{ t.sprintf(/* translators: %s: a lesson name */ t.__('%s (its own video)', 'membuild-community'), sample.lesson) }}</span>
+                <span v-for="x in sample.topics" :key="x">· {{ x }}</span>
+              </span>
+            </label>
+            <label class="choice pick-card im-shape" :class="{ on: shape === 'follow' }">
+              <input v-model="shape" type="radio" name="im-shape" value="follow" /><span class="mark pick-dot" /><strong>{{ t.__('Topics follow their lesson', 'membuild-community') }}</strong>
+              <small>{{ sample && !sample.heading ? t.__('Each topic comes right after its lesson, in one list.', 'membuild-community') : t.__('Keeps your LearnDash sections as they are.', 'membuild-community') }}</small>
+              <span v-if="sample" class="im-shape-ex">
+                <b>{{ t.sprintf(t.__('Section: %s', 'membuild-community'), sample.heading || t.__('Lessons', 'membuild-community')) }}</b>
+                <span>· {{ sample.lesson }}</span>
+                <span v-for="x in sample.topics" :key="x">· {{ x }}</span>
+              </span>
+            </label>
+          </div>
+        </div>
+        <div v-if="!isCourses && source.groups && bring.includes('posts')" class="im-box">
           <h3>{{ t.sprintf(/* translators: 1: number, 2: "groups" or "spaces" */ t.__('The %1$s %2$s become topics', 'membuild-community'), n(source.groups), groupWord) }}</h3>
           <p class="im-p">{{ t.__('Each one becomes a topic of the same name, and its posts come over in it, so members can filter Home by it. Private ones become members-only topics: a membership is made with the same people, and only they see those posts.', 'membuild-community') }}</p>
           <div v-if="state.pro" class="choices">
@@ -640,7 +780,7 @@ const stepNo = computed(() => ({ choose: 1, check: 2, progress: 3, done: 4 })[sc
         <p v-if="error" class="error-text" role="alert">{{ error }}</p>
         <div class="im-act">
           <button type="button" class="btn btn-lg" @click="screen = 'start'">{{ t.__('Back', 'membuild-community') }}</button>
-          <button type="button" class="btn btn-lg btn-primary" :disabled="busy || !bring.length" @click="check">{{ busy ? t.__('Checking…', 'membuild-community') : t.__('Check first', 'membuild-community') }} <Icon name="arrowRight" :size="18" /></button>
+          <button type="button" class="btn btn-lg btn-primary" :disabled="busy || !bring.length || (showShape && !shape)" @click="check">{{ busy ? t.__('Checking…', 'membuild-community') : t.__('Check first', 'membuild-community') }} <Icon name="arrowRight" :size="18" /></button>
         </div>
       </template>
 
@@ -664,8 +804,9 @@ const stepNo = computed(() => ({ choose: 1, check: 2, progress: 3, done: 4 })[sc
         </div>
         <p v-if="error" class="error-text" role="alert">{{ error }}</p>
         <div class="im-act">
-          <button type="button" class="btn btn-lg" @click="screen = 'choose'">{{ t.__('Back', 'membuild-community') }}</button>
-          <button type="button" class="btn btn-lg btn-primary" :disabled="busy" @click="start">{{ t.__('Start importing', 'membuild-community') }} <Icon name="arrowRight" :size="18" /></button>
+          <button v-if="report.nothing" type="button" class="btn btn-lg" @click="source = null; screen = 'start'">{{ t.__('Back to Import', 'membuild-community') }}</button>
+          <button v-else type="button" class="btn btn-lg" @click="screen = 'choose'">{{ t.__('Back', 'membuild-community') }}</button>
+          <button v-if="!report.nothing" type="button" class="btn btn-lg btn-primary" :disabled="busy" @click="start">{{ t.__('Start importing', 'membuild-community') }} <Icon name="arrowRight" :size="18" /></button>
         </div>
       </template>
 
@@ -689,33 +830,41 @@ const stepNo = computed(() => ({ choose: 1, check: 2, progress: 3, done: 4 })[sc
             <small>{{ r.text }}</small>
           </div>
         </div>
-        <p v-if="job.source !== 'csv'" class="im-hint">{{ t.__('Members can use the community while it runs. Posts appear in Home in their original order, under their original dates, so nobody’s feed fills up with old posts at the top.', 'membuild-community') }}</p>
+        <p v-if="job.kind === 'courses'" class="im-hint">{{ t.__('Students can use the community while it runs. A course shows in the Classroom once all its lessons are in, never half-finished.', 'membuild-community') }}</p>
+        <p v-else-if="job.source !== 'csv'" class="im-hint">{{ t.__('Members can use the community while it runs. Posts appear in Home in their original order, under their original dates, so nobody’s feed fills up with old posts at the top.', 'membuild-community') }}</p>
       </template>
 
       <!-- 4. Done (or undone). -->
       <template v-else-if="screen === 'done' && job">
         <h2>{{ job.status === 'undone' ? t.__('Undone', 'membuild-community') : t.__('Done', 'membuild-community') }}</h2>
         <div v-if="job.status === 'undone'" class="im-box">
-          <p class="im-p">{{ t.__('Everything this import brought is gone again. Members and their profiles stayed. You can import again any time.', 'membuild-community') }}</p>
+          <p class="im-p">{{ job.kind === 'courses' ? t.__('Everything this import brought is gone again. Students stayed members. You can import again any time.', 'membuild-community') : t.__('Everything this import brought is gone again. Members and their profiles stayed. You can import again any time.', 'membuild-community') }}</p>
           <div class="im-act left"><button type="button" class="btn btn-lg btn-primary" @click="again">{{ t.__('Back to Import', 'membuild-community') }}</button></div>
         </div>
         <template v-else>
           <div class="im-box">
             <div class="im-found">
               <span class="im-ic ok"><Icon name="check" :size="20" /></span>
-              <span class="im-words"><strong class="im-run-title">{{ job.source === 'csv' ? t.__('Your members are here', 'membuild-community') : t.__('Your community is here', 'membuild-community') }}</strong><small>{{ took }}</small></span>
+              <span class="im-words"><strong class="im-run-title">{{ job.source === 'csv' ? t.__('Your members are here', 'membuild-community') : job.kind === 'courses' ? t.__('Your courses are here', 'membuild-community') : t.__('Your community is here', 'membuild-community') }}</strong><small>{{ took }}</small></span>
             </div>
             <div v-if="doneTiles.length" class="im-tiles">
               <span v-for="x in doneTiles" :key="x.l" class="im-tile"><strong>{{ n(x.v) }}</strong>{{ x.l }}</span>
             </div>
-            <div class="im-act left">
+            <div v-if="job.kind === 'courses'" class="im-act left">
+              <button type="button" class="btn btn-lg btn-primary" @click="router.push({ name: 'classroom' })">{{ t.__('Open the Classroom', 'membuild-community') }} <Icon name="arrowRight" :size="18" /></button>
+            </div>
+            <div v-else class="im-act left">
               <button type="button" class="btn btn-lg btn-primary" @click="router.push({ name: 'feed' })">{{ t.__('See your community', 'membuild-community') }} <Icon name="arrowRight" :size="18" /></button>
               <button type="button" class="btn btn-lg" @click="router.push({ name: 'feed', query: { write: 1 } })">{{ t.__('Write a welcome post', 'membuild-community') }}</button>
             </div>
           </div>
           <div class="im-box">
             <h3>{{ t.__('Next, when you’re ready', 'membuild-community') }}</h3>
-            <div v-if="!(job.source === 'csv' && job.welcome)" class="im-line">
+            <div v-if="job.kind === 'courses' && job.counts?.memberships" class="im-line">
+              <span class="im-words"><strong>{{ t.sprintf(/* translators: %s: number of memberships */ t._n('Choose how people buy the new membership', 'Choose how people buy the %s new memberships', job.counts.memberships, 'membuild-community'), n(job.counts.memberships)) }}</strong><small>{{ t.sprintf(/* translators: %s: plugin name */ t.__('Until you do, their courses show Get access with the old %s price and link.', 'membuild-community'), job.label) }}</small></span>
+              <button type="button" class="btn" @click="goSettings('access')">{{ t.__('Go to Memberships', 'membuild-community') }}</button>
+            </div>
+            <div v-if="job.kind !== 'courses' && !(job.source === 'csv' && job.welcome)" class="im-line">
               <span class="im-words"><strong>{{ t.__('Tell your members', 'membuild-community') }}</strong><small>{{ job.source === 'csv' ? t.__('One email from you, with a link to set their password.', 'membuild-community') : t.__('One email from you, with a link to log in. Their passwords haven’t changed.', 'membuild-community') }}</small></span>
               <span v-if="job.emailing" class="status-tag" :class="{ ok: job.emailing.finished }">{{ job.emailing.finished ? t.sprintf(t.__('Sent to %s', 'membuild-community'), n(job.emailing.sent)) : t.sprintf(/* translators: 1: sent, 2: total */ t.__('Sending: %1$s of %2$s', 'membuild-community'), n(job.emailing.sent), n(job.emailing.total)) }}</span>
               <button v-else type="button" class="btn" @click="emailEveryone"><Icon name="mail" :size="16" /> {{ t.__('Email everyone', 'membuild-community') }}</button>
@@ -725,11 +874,11 @@ const stepNo = computed(() => ({ choose: 1, check: 2, progress: 3, done: 4 })[sc
               <span class="status-tag" :class="{ ok: job.emailing.finished }">{{ job.emailing.finished ? t.sprintf(/* translators: %s: number */ t.__('Sent to %s', 'membuild-community'), n(job.emailing.sent)) : t.sprintf(t.__('Sending: %1$s of %2$s', 'membuild-community'), n(job.emailing.sent), n(job.emailing.total)) }}</span>
             </div>
             <div v-if="job.source !== 'csv'" class="im-line">
-              <span class="im-words"><strong>{{ t.sprintf(/* translators: %s: plugin name */ t.__('Switch %s off', 'membuild-community'), job.label) }}</strong><small>{{ t.__('Its data stays in the database. Import again any time: it only brings what’s new.', 'membuild-community') }}</small></span>
+              <span class="im-words"><strong>{{ job.kind === 'courses' && job.counts?.memberships ? t.sprintf(/* translators: %s: plugin name */ t.__('Then switch %s off', 'membuild-community'), job.label) : t.sprintf(/* translators: %s: plugin name */ t.__('Switch %s off', 'membuild-community'), job.label) }}</strong><small>{{ job.kind === 'courses' ? t.__('Its data stays in the database. Import again any time: it only brings new courses.', 'membuild-community') : t.__('Its data stays in the database. Import again any time: it only brings what’s new.', 'membuild-community') }}</small></span>
               <a class="btn" :href="state.plugins">{{ t.__('Go to Plugins', 'membuild-community') }}</a>
             </div>
             <div class="im-line">
-              <span class="im-words"><strong>{{ t.__('Undo this import', 'membuild-community') }}</strong><small>{{ job.source === 'csv' ? t.__('Removes the memberships it gave. The accounts it made stay, so nobody is locked out.', 'membuild-community') : t.__('Removes exactly what this import brought in (posts, comments, reactions, chats). Members and their profiles stay.', 'membuild-community') }}</small></span>
+              <span class="im-words"><strong>{{ t.__('Undo this import', 'membuild-community') }}</strong><small>{{ job.source === 'csv' ? t.__('Removes the memberships it gave. The accounts it made stay, so nobody is locked out.', 'membuild-community') : job.kind === 'courses' ? t.__('Removes the courses, memberships and progress it brought. Students stay members.', 'membuild-community') : t.__('Removes exactly what this import brought in (posts, comments, reactions, chats). Members and their profiles stay.', 'membuild-community') }}</small></span>
               <button type="button" class="btn" :disabled="busy" @click="undo"><Icon name="undo" :size="16" /> {{ t.__('Undo', 'membuild-community') }}</button>
             </div>
             <div class="im-line">
@@ -813,7 +962,7 @@ const stepNo = computed(() => ({ choose: 1, check: 2, progress: 3, done: 4 })[sc
         <div v-for="p in state.past" :key="p.id" class="im-line">
           <span class="im-words"><strong>{{ pastTitle(p) }}</strong><small>{{ pastLine(p) }}</small></span>
           <span v-if="p.status === 'undone'" class="status-tag">{{ t.sprintf(/* translators: %s: a date */ t.__('Undone %s', 'membuild-community'), day(p.undone_at)) }}</span>
-          <button v-else type="button" class="btn" :disabled="!!undoingId || ['running', 'paused'].includes(job?.status)" @click="undoPast(p)"><Icon name="undo" :size="16" /> {{ t.__('Undo', 'membuild-community') }}</button>
+          <button v-else-if="!pastEmpty(p)" type="button" class="btn" :disabled="!!undoingId || ['running', 'paused'].includes(job?.status)" @click="undoPast(p)"><Icon name="undo" :size="16" /> {{ t.__('Undo', 'membuild-community') }}</button>
         </div>
       </div>
     </div>
@@ -958,7 +1107,7 @@ const stepNo = computed(() => ({ choose: 1, check: 2, progress: 3, done: 4 })[sc
 
 .im-tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); /* five fit in a row on a laptop */
   gap: 10px;
   margin-top: 16px;
 }
@@ -1136,6 +1285,33 @@ const stepNo = computed(() => ({ choose: 1, check: 2, progress: 3, done: 4 })[sc
   cursor: pointer;
 }
 
+.im-tick.off {
+  opacity: 0.5;
+}
+.im-shapes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* side by side when there's room, else one above the other */
+  gap: 12px;
+  margin-top: 14px;
+}
+.im-shape-ex {
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-sizing: border-box;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+.im-shape-ex b {
+  color: var(--text);
+  font-weight: 650;
+}
 .im-tick + .im-tick {
   border-top: 1px solid var(--border);
 }
