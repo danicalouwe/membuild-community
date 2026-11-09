@@ -57,6 +57,7 @@ const paths = {
   hash: 'M5 9h14M5 15h14M10 4L8 20M16 4l-2 16', // a topic
   sort: 'M4 7h16M7 12h10M10 17h4', // sort posts
   arrowRight: 'M5 12h14M13 6l6 6-6 6',
+  arrowUpRight: 'M7 17 17 7M8 7h9v9', // goes to another page (Moderation, from the Settings menu)
   mail: 'M3 6h18v12H3zM3 7l9 7 9-7',
   moon: 'M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z',
   eye: 'M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
@@ -86,6 +87,7 @@ const paths = {
   calendar: 'M4 6h16v15H4zM4 10h16M8 3v4M16 3v4',
   flag: 'M5 21V4M5 4h11l-2 4 2 4H5',
   shield: 'M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z',
+  shieldCheck: 'M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6zM9 12l2 2 4-4',
   block: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM5.6 5.6l12.8 12.8',
   users: 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21a7 7 0 0 1 14 0M16 3.5a4 4 0 0 1 0 7.5M18 14.5a7 7 0 0 1 4 6.5',
   search: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-4.3-4.3',

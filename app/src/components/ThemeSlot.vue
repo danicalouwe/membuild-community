@@ -35,7 +35,10 @@ function isFrom(instance, piece) {
 </script>
 
 <template>
-  <component :is="entry.piece" v-if="entry" v-bind="data"><slot /></component>
+  <!-- The default, and any named parts (app.shell's "page"), go on to the piece as its slots. -->
+  <component :is="entry.piece" v-if="entry" v-bind="data">
+    <template v-for="(_, part) in $slots" #[part]><slot :name="part" /></template>
+  </component>
   <slot v-else />
   <component :is="x.piece" v-for="(x, i) in extras" :key="`${x.theme}-${i}`" v-bind="data" />
 </template>

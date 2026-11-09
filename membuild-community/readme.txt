@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.19.0
+Stable tag: 1.20.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -177,6 +177,10 @@ The plugin works without any outside service. These are only contacted when you 
 * Terms: https://vimeo.com/terms
 * Privacy: https://vimeo.com/privacy
 
+**WordPress.org plugin directory** (only when you turn on Two-step login in Settings → Security)
+* What is sent: your server asks WordPress.org (`api.wordpress.org`) for the free Two Factor plugin and downloads it from `downloads.wordpress.org`, the same way WordPress installs any plugin. Nothing about your community or members is sent. If Two Factor is already installed, nothing is downloaded.
+* Terms and privacy: https://wordpress.org/about/privacy/
+
 **Gravatar** (WordPress's default profile pictures)
 * Members without an uploaded photo show their Gravatar, loaded from `secure.gravatar.com`, as in the rest of WordPress.
 * Terms: https://wordpress.com/tos/
@@ -262,6 +266,13 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.20.0 =
+* New: Two-step login. Settings → Security turns it on with one switch (it adds the free Two Factor plugin from WordPress.org, or uses the copy already there). Choose who has to use it: anyone who wants it, you and your team, or everyone.
+* New: after the password, and after an emailed login link, the community login page asks for the code in the community's own look. Members set it up from Edit profile → Two-step login (an app with a QR code, email codes, or recovery codes) and never see the WordPress dashboard.
+* New: Settings has a page for each section, in a grouped menu, with Search settings. Each page has its own save bar, and Settings opens on the page you used last. Old Settings links still land on the right page.
+* New: the Settings menu shows how many reports are waiting in Moderation.
+* Fixed: pressing Escape to close a dropdown inside a pop-up (such as "Poll closes" in Create post) no longer asks "Discard this post?".
 
 = 1.19.0 =
 * New: Import brings courses from LearnDash and Tutor LMS (free and Pro), even with them switched off. Sections, lessons, text, videos, files and cover pictures come into the Classroom, with students, what they finished and when, who finished the whole course, and lesson timing.

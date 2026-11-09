@@ -282,7 +282,7 @@ class Problems {
 		$share = Usage::state()['share'];
 		$state = $share
 			? '<span class="mb-badge mb-badge--ok">' . esc_html__( 'Share usage is on', 'membuild-community' ) . '</span>'
-			: '<a class="mb-badge mb-badge--neutral" href="' . esc_url( Admin::app_url( 'settings#s-updates' ) ) . '">' . esc_html__( 'Share usage is off · Settings', 'membuild-community' ) . '</a>';
+			: '<a class="mb-badge mb-badge--neutral" href="' . esc_url( Admin::app_url( 'settings/news' ) ) . '">' . esc_html__( 'Share usage is off · Settings', 'membuild-community' ) . '</a>';
 		Admin::shell_open(
 			'problems',
 			__( 'Problems', 'membuild-community' ),

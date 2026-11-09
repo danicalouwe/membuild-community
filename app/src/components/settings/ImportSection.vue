@@ -7,6 +7,7 @@ import { showToast } from '../../lib/toast.js'
 import { refreshTopics } from '../../lib/topics.js'
 import Icon from '../Icon.vue'
 import { t } from '../../lib/i18n.js'
+import { settingsSlug } from '../../lib/settings-pages.js'
 
 /**
  * Settings › Import: bring a community over from BuddyBoss, BuddyPress, PeepSo or
@@ -582,7 +583,7 @@ const alsoLine = (s) =>
     ? t.sprintf(/* translators: 1: e.g. "12 courses, 340 lessons", 2: plugin name */ t.__('%1$s. Bring it after %2$s, so students already have their profiles.', 'membuild-community'), shortLine(s), byMembers.value[0].label)
     : shortLine(s)
 const sourceIcon = (s) => (s.kind === 'courses' ? 'cap' : 'box')
-const goSettings = (id) => router.push({ name: 'settings', query: { s: id }, hash: `#s-${id}` }).then(() => document.getElementById(`s-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+const goSettings = (id) => router.push({ name: 'settings', params: { section: settingsSlug(id) } })
 const biggest = computed(() => byMembers.value[0] || null)
 const alsoFound = computed(() => byMembers.value.slice(1))
 const shortLine = (s) => foundTiles(s).slice(0, 2).map((x) => `${n(x.v)} ${x.l}`).join(', ')

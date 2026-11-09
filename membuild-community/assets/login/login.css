@@ -206,3 +206,24 @@ form { display: flex; flex-direction: column; gap: 18px; }
 .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .birthday .label small { margin-left: 6px; }
 .trap { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+/* Two-step login: the code box, the setup choices, the app's QR code */
+.field input.code { font-size: 22px; font-weight: 700; letter-spacing: 4px; }
+.field input.code::placeholder { letter-spacing: 4px; }
+.picks { gap: 12px; }
+.picks legend { margin-bottom: 10px; }
+.pick { position: relative; display: flex; gap: 14px; align-items: flex-start; padding: 16px 18px; border: 1.5px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--text-2); font-size: 15px; line-height: 1.45; cursor: pointer; }
+.pick b { display: block; margin-bottom: 4px; color: var(--text); font-size: 17px; }
+.pick em { color: var(--text-2); font-style: normal; font-weight: 600; }
+.pick input { position: absolute; opacity: 0; width: 22px; height: 22px; margin: 0; }
+.pick .dot { flex: none; box-sizing: border-box; width: 22px; height: 22px; margin-top: 1px; border: 2px solid var(--box); border-radius: 50%; }
+.pick:has(input:checked) { border-color: var(--text); box-shadow: 0 0 0 1px var(--text); }
+.pick input:checked + .dot { border: 7px solid var(--text); }
+.pick input:focus-visible + .dot { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ring); }
+.qr-row { display: flex; gap: 18px; align-items: center; }
+.qr { flex: none; display: block; box-sizing: border-box; width: 156px; height: 156px; padding: 8px; border: 1px solid var(--line); border-radius: 12px; background: #fff; } /* always white, so phones can read it in dark mode */
+.qr svg { display: block; width: 100%; height: 100%; }
+.key { display: inline-block; margin-top: 6px; color: var(--text); font: 700 17px/1.4 ui-monospace, Menlo, monospace; letter-spacing: 1px; user-select: all; }
+@media (max-width: 480px) {
+	.qr-row { flex-direction: column; align-items: flex-start; }
+}

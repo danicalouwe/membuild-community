@@ -7,6 +7,7 @@ import ConfirmDialog from './ConfirmDialog.vue'
 import Icon from './Icon.vue'
 import { offerButton } from '../lib/offer.js'
 import { t } from '../lib/i18n.js'
+import { useDraft } from './settings/context.js'
 
 /**
  * Settings › Memberships. A membership decides who can open a locked course: the
@@ -98,6 +99,19 @@ async function rename() {
 
 /* ---------- Courses ---------- */
 const choosing = ref(null) // { group, courses: Set }
+// Settings asks before leaving while one of these boxes holds something not saved yet.
+const sameCourses = (set, g) => set.size === g.courses.length && g.courses.every((c) => set.has(c.id))
+useDraft(
+  () =>
+    !!(creating.value && (creating.value.name.trim() || creating.value.courses.size)) ||
+    !!(renaming.value && renaming.value.name.trim() !== renaming.value.group.name) ||
+    !!(choosing.value && !sameCourses(choosing.value.courses, choosing.value.group)),
+  () => {
+    creating.value = null
+    renaming.value = null
+    choosing.value = null
+  },
+)
 async function saveCourses() {
   await update(choosing.value.group, { course_ids: [...choosing.value.courses] })
   if (!error.value) choosing.value = null

@@ -150,14 +150,14 @@ class Health {
 				return array(
 					'recommended',
 					esc_html__( 'Community emails are sent by your web host’s mail, which is often slow, rate-limited or lands in spam. Connect Resend or another SMTP service for reliable delivery.', 'membuild-community' ),
-					'<a href="' . esc_url( home_url( '/' . Settings::slug() . '/settings' ) ) . '">' . esc_html__( 'Email settings', 'membuild-community' ) . '</a>',
+					'<a href="' . esc_url( home_url( '/' . Settings::slug() . '/settings/email' ) ) . '">' . esc_html__( 'Email settings', 'membuild-community' ) . '</a>',
 				);
 		}
 		return array( 'good', '', '' );
 	}
 
 	private static function key_settings_url() {
-		return home_url( '/' . Settings::slug() . '/settings?s=advanced#s-key' );
+		return home_url( '/' . Settings::slug() . '/settings/address#s-key' );
 	}
 
 	private static function key_problem() {

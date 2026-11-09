@@ -186,7 +186,9 @@ class Login {
 			wp_clear_auth_cookie();
 		}
 
-		if ( 'login' === $path ) {
+		if ( 'login' === $path && isset( $_REQUEST['wp-auth-id'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification -- Two_Step::page checks the login nonce
+			Two_Step::page(); // the second step: a code, or setting it up
+		} elseif ( 'login' === $path ) {
 			self::login_page();
 		} elseif ( 'join' === $path ) {
 			self::join_page();
@@ -253,6 +255,8 @@ class Login {
 			$notice = __( 'You’ve logged out.', 'membuild-community' );
 		} elseif ( isset( $_GET['reset'] ) ) {
 			$notice = __( 'Your password was changed. Log in with your new password.', 'membuild-community' );
+		} elseif ( isset( $_GET['timedout'] ) ) {
+			$error = __( 'That took too long. Please log in again.', 'membuild-community' );
 		}
 		// phpcs:enable
 
@@ -839,6 +843,20 @@ class Login {
 			}
 		}
 		return $out;
+	}
+
+	/** Two_Step's pages, in the same look. */
+	public static function show( $view, array $data ) {
+		if ( ! empty( $data['qr'] ) && defined( 'TWO_FACTOR_DIR' ) ) {
+			// Two Factor's own QR maker, so the key never leaves the site.
+			wp_register_script( 'mbcom-qr', plugins_url( 'includes/qrcode-generator/qrcode.js', TWO_FACTOR_DIR . 'two-factor.php' ), array(), MEMBUILD_COMMUNITY_VERSION, array( 'in_footer' => true ) );
+		}
+		self::render( $view, $data );
+	}
+
+	/** A form sent from another site (see cross_site). */
+	public static function from_elsewhere() {
+		return self::cross_site();
 	}
 
 	private static function render( $view, array $data ) {

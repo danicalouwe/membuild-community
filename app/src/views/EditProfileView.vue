@@ -11,7 +11,7 @@ import { t } from '../lib/i18n.js'
 /**
  * Edit profile, its own page: what other members see. Name, About you and Where you
  * live save by themselves. Photo and cover change on the profile itself (the camera).
- * Below: Emails you get, Privacy and Blocked people, each showing where it stands.
+ * Below: Emails you get, Privacy, Two-step login and Blocked people, each showing where it stands.
  */
 const BIO_MAX = 160
 
@@ -64,6 +64,11 @@ async function save() {
 const email = ref(null)
 api.emailPrefs().then((p) => (email.value = p)).catch(() => {})
 const FREQ = computed(() => ({ instant: t.__('As it happens', 'membuild-community'), daily: t.__('Once a day', 'membuild-community'), off: t.__('No emails', 'membuild-community') }))
+
+/* ---------- Two-step login (its own page, while the owner has it on) ---------- */
+const twoStepOn = !!cfg.community.twoStep
+const twoStep = ref(null)
+if (twoStepOn) api.twoStep().then((r) => (twoStep.value = r)).catch(() => {})
 
 /* ---------- Privacy ---------- */
 const privacy = ref(null)
@@ -126,6 +131,10 @@ const blockedNote = computed(() =>
       <RouterLink v-if="onlineOn" :to="{ name: 'privacy' }" class="row">
         <strong>{{ t.__('Privacy', 'membuild-community') }}</strong>
         <span>{{ privacy && !privacy.show_online ? t.__('Hidden when you’re online', 'membuild-community') : t.__('Showing when you’re online', 'membuild-community') }} ›</span>
+      </RouterLink>
+      <RouterLink v-if="twoStepOn" :to="{ name: 'two-step' }" class="row">
+        <strong>{{ t.__('Two-step login', 'membuild-community') }}</strong>
+        <span>{{ twoStep ? (twoStep.on ? t.__('On', 'membuild-community') : t.__('Off', 'membuild-community')) : '' }} ›</span>
       </RouterLink>
       <button class="row" @click="blockedOpen = true">
         <strong>{{ t.__('Blocked people', 'membuild-community') }}</strong>

@@ -1,6 +1,6 @@
 <script setup>
 import Icon from '../Icon.vue'
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { api } from '../../api.js'
 import { cfg } from '../../config.js'
@@ -34,13 +34,18 @@ const box = ref(null)
 const spot = ref(false)
 onMounted(async () => {
   status.value = await api.encryption().catch(() => null)
+  spotlight()
+})
+// Also when the link is followed while this page is already open.
+watch(() => route.hash, spotlight)
+async function spotlight() {
   if (route.hash !== '#s-key') return
   await nextTick()
   box.value?.scrollIntoView({ block: 'center', behavior: 'smooth' })
   spot.value = true
   setTimeout(() => (spot.value = false), 2600)
   setTimeout(() => box.value?.querySelector('.actions .btn')?.focus({ preventScroll: true }), 500)
-})
+}
 
 async function run(fn, success) {
   busy.value = true

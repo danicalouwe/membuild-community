@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { cfg, feature } from './config.js'
 import FeedView from './views/FeedView.vue'
 import { t } from './lib/i18n.js'
+import { forwardOldSettingsLink } from './lib/settings-pages.js'
 
 // The sections, in the order members see them. `short` is the label under each phone tab.
 // Courses and people come before the extras: they're why most communities exist.
@@ -42,7 +43,8 @@ export const router = createRouter({
     { path: '/leaderboard', name: 'leaderboard', component: () => import('./views/LeaderboardView.vue') },
     { path: '/leaderboard/levels', name: 'levels', component: () => import('./views/LevelsView.vue') },
     { path: '/moderation', name: 'moderation', component: () => import('./views/ModerationView.vue') },
-    { path: '/settings', name: 'settings', component: () => import('./views/SettingsView.vue') },
+    // One page per section: /settings/features. /settings alone: the list on phones, the last page on computers.
+    { path: '/settings/:section([A-Za-z0-9-]+)?', name: 'settings', component: () => import('./views/SettingsView.vue') },
     { path: '/members', name: 'members', component: () => import('./views/MembersView.vue') },
     { path: '/search', name: 'search', component: () => import('./views/SearchView.vue') },
     {
@@ -62,6 +64,7 @@ export const router = createRouter({
     { path: '/me/emails', name: 'emails', component: () => import('./views/EmailsView.vue') },
     { path: '/me/edit', name: 'profile-edit', component: () => import('./views/EditProfileView.vue') },
     { path: '/me/privacy', name: 'privacy', component: () => import('./views/PrivacyView.vue') },
+    { path: '/me/two-step', name: 'two-step', component: () => import('./views/TwoStepView.vue') },
     { path: '/me/billing', name: 'billing', component: () => import('./views/BillingView.vue') },
     { path: '/me/billing/:id([A-Za-z0-9]+)', name: 'billing-item', component: () => import('./views/BillingDetailView.vue'), props: true },
     { path: '/me', name: 'me', component: () => import('./views/MemberView.vue'), props: () => ({ id: cfg.user.id }) },
@@ -77,5 +80,9 @@ router.beforeEach((to) => {
   if (to.name === 'member' && Number(to.params.id) === cfg.user.id) return { name: 'me' } // your own profile lives at /me
   if (routeFeature[to.name] && !feature(routeFeature[to.name])) return { name: 'feed' }
   if (to.name === 'settings' && !cfg.community.canManage) return { name: 'feed' }
+  if (to.name === 'settings') {
+    const next = forwardOldSettingsLink(to) // /settings#s-email and /settings?s=email → /settings/email
+    if (next) return next
+  }
   if (to.name === 'moderation' && !cfg.community.isStaff) return { name: 'feed' }
 })

@@ -5,7 +5,7 @@ import { setTopics, topics } from '../../lib/topics.js'
 import BaseDialog from '../BaseDialog.vue'
 import Icon from '../Icon.vue'
 import { t } from '../../lib/i18n.js'
-import { useSettings } from './context.js'
+import { useDraft, useSettings } from './context.js'
 
 // Settings › Topics: the list (saved as you go, like Memberships), and "On Home" (with the form).
 const { form } = useSettings()
@@ -37,11 +37,18 @@ onMounted(async () => {
 
 /* ---------- New and Edit (the same box) ---------- */
 const editing = ref(null) // { id?, name, color, description, members, group_id, staff_only }
+let editingFrom = '' // the box as it opened, to tell whether anything was typed
+useDraft(
+  () => !!editing.value && JSON.stringify(editing.value) !== editingFrom,
+  () => (editing.value = null),
+)
 function openNew() {
   editing.value = { name: '', color: colors.value[topics.items.length % colors.value.length], description: '', members: false, group_id: 0, staff_only: false }
+  editingFrom = JSON.stringify(editing.value)
 }
 function openEdit(x) {
   editing.value = { id: x.id, name: x.name, color: x.color, description: x.description, members: !!x.group_id, group_id: x.group_id, staff_only: x.staff_only }
+  editingFrom = JSON.stringify(editing.value)
 }
 const canSave = computed(() => editing.value?.name.trim() && (!editing.value.members || editing.value.group_id))
 async function saveTopic() {

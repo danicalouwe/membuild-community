@@ -68,6 +68,7 @@ class Settings {
 			'login_host'  => 0,    // whose name is on that card ("Host of …"); 0: the site's first admin
 			'login_live'  => true, // the next live call on Log in, member faces on Join, once they're real
 			'login_magic' => true, // "Email me a login link": log in with a one-time link, no password
+			'two_step_who' => 'anyone', // Security › Who has to use it? anyone | team (owners and moderators) | everyone; see Two_Step
 			'display'     => 'auto', // the look members start with: auto (match device) | light | dark; each can change it
 			'min_age'     => 13,   // 0, 13, 16 or 18; asked at sign-up, never stored
 			'terms_url'   => '',
@@ -211,6 +212,7 @@ class Settings {
 			'video'       => Bunny::enabled() ? 'bunny' : 'local',
 			'mapTiles'    => self::feature( 'places' ) ? Rest_Places::tiles() : null,
 			'giphy'       => Giphy::config(), // a browser key: GIPHY's terms have members' browsers search them directly
+			'twoStep'     => Two_Step::active(), // two-step login is on: members get Edit profile › Two-step login
 		);
 	}
 
@@ -290,6 +292,7 @@ class Settings {
 			'settings'   => $s,
 			'smtp_plugin' => Email::smtp_plugin(),
 			'admin_email' => wp_get_current_user()->user_email,
+			'open_reports' => Moderation::open_count(), // the "2 to review" tag on the Moderation row in the Settings menu
 			'site_name'  => get_bloginfo( 'name' ),
 			'home_url'   => home_url( '/' ),
 			'registration_locked' => is_multisite(), // on a network only the network admin can change registration
@@ -299,6 +302,7 @@ class Settings {
 			'login_url'           => Login::url( 'login', array( 'preview' => '1' ) ), // opens for admins too (see Login::login_page)
 			'join_preview_url'    => Login::url( 'join', array( 'preview' => '1' ) ), // the same for the Join page (Login::join_page)
 			'hosts'               => Login::host_choices(), // who can be the host on the login card: admins and moderators
+			'two_step'            => Two_Step::status(), // Security: Two Factor on, off or not added yet
 			'accents'    => self::ACCENTS,
 			'rules'      => self::rule_labels(),
 			'thresholds' => Points::thresholds(),
@@ -462,6 +466,9 @@ class Settings {
 			if ( array_key_exists( $key, $in ) ) {
 				$s[ $key ] = (bool) $in[ $key ];
 			}
+		}
+		if ( array_key_exists( 'two_step_who', $in ) ) {
+			$s['two_step_who'] = in_array( $in['two_step_who'], Two_Step::WHO, true ) ? $in['two_step_who'] : 'anyone';
 		}
 		if ( array_key_exists( 'delete_data', $in ) ) {
 			$s['delete_data'] = (bool) $in['delete_data'];

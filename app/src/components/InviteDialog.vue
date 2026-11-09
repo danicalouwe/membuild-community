@@ -54,7 +54,7 @@ async function copy(text, what) {
         <span>
           {{ t.__('People who already have an account on your website can log in with it.', 'membuild-community') }}
           {{ open ? t.__('Anyone can join with this link.', 'membuild-community') : t.__('New people join through your own sign-up page.', 'membuild-community') }}
-          <RouterLink :to="{ name: 'settings', hash: '#s-joining' }" @click="emit('close')">{{ t.__('Change who can join', 'membuild-community') }}</RouterLink>
+          <RouterLink :to="{ name: 'settings', params: { section: 'joining' } }" @click="emit('close')">{{ t.__('Change who can join', 'membuild-community') }}</RouterLink>
         </span>
       </p>
       <div class="act"><button type="button" class="btn-grey" @click="emit('close')">{{ t.__('Done', 'membuild-community') }}</button></div>

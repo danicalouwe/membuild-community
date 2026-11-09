@@ -15,6 +15,10 @@ import { t } from './lib/i18n.js'
 import { reportProblem } from './lib/problems.js'
 import { CONTRACT, SLOTS, STYLED_CLASSES, addToSlot, replaceSlot } from './lib/slots.js'
 import { MEMBER_FIELDS, member } from './lib/member.js'
+import { DATA_FIELDS } from './lib/data.js'
+import { addons, data, registerAddon, request } from './lib/addons.js'
+import { makeWords } from './lib/words.js'
+import ThemeSlot from './components/ThemeSlot.vue'
 import Icon from './components/Icon.vue'
 import Avatar from './components/Avatar.vue'
 import HeaderActions from './components/HeaderActions.vue'
@@ -61,10 +65,16 @@ const mb = Object.freeze({
   memberFields: MEMBER_FIELDS,
   replaceSlot,
   addToSlot,
+  data, // load and save for a theme's own pages, permissions checked by the server (lib/data.js)
+  dataFields: DATA_FIELDS,
+  addons, // the add-ons that said they're here: { id: { name, version, slots } }, read-only and live
+  registerAddon, // for add-ons (lib/addons.js)
+  request, // the community's own request, for add-ons' routes under /addons/ only
   vue: Vue, // the app's own Vue 3: build pieces with it, don't bundle another
   router,
   t,
-  components: { Icon, Avatar, HeaderActions, SearchBox }, // the community's own parts, to reuse inside pieces
+  words: makeWords(cfg.words), // a theme's renamed words, for a theme's or add-on's own text (lib/words.js)
+  components: { Icon, Avatar, HeaderActions, SearchBox, ThemeSlot }, // the community's own parts, to reuse inside pieces; add-ons draw their slots with ThemeSlot
   ready: (fn) => run(fn),
 })
 function run(fn) {

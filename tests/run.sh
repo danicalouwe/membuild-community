@@ -5,6 +5,10 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 # The theme contract: text sizes and corners must come from the tokens (no Docker needed).
 node tests/check-styles.mjs || exit 1
+# The words layer's rules, in JS (the same table runs against the PHP in integration.php).
+node tests/words-check.mjs || exit 1
+# Settings addresses: old links forward, any case works.
+node tests/settings-links-check.mjs || exit 1
 # The file is copied into the container (it's too long to pass on the command line).
 # This folder's own tests container: wp-env names its containers after this folder's install path,
 # so a site started from another checkout or project is never picked.
@@ -15,6 +19,7 @@ if ! docker ps --format '{{.Names}}' | grep -qxF -- "$container"; then
   exit 1
 fi
 docker cp tests/integration.php "$container:/tmp/mbcom-integration.php" >/dev/null
+docker cp tests/words-cases.json "$container:/tmp/mbcom-words-cases.json" >/dev/null
 ./node_modules/.bin/wp-env run tests-cli wp ${WP_PATH:+--path="$WP_PATH"} eval-file /tmp/mbcom-integration.php 2>&1 | grep -vE '^(ℹ|✔|✖) |^Command failed'
 status="${PIPESTATUS[0]}"
 # Changing the community's address, over real web requests.

@@ -210,6 +210,7 @@ class Portal {
 			'oldPaths' => array_map( fn( $slug ) => wp_parse_url( home_url( '/' . $slug ), PHP_URL_PATH ), (array) get_option( self::OLD_ADDRESSES, array() ) ), // links saved in chats and posts before a move
 			'siteName' => Settings::name(),
 			'community' => Settings::public_config(),
+			'words'     => Words::config(), // a theme's renamed words: the app needs them before its first line runs
 			// wp_logout_url() is HTML-escaped (&amp;); the app needs the plain URL or the nonce gets lost.
 			'logoutUrl' => html_entity_decode( wp_logout_url( Login::enabled() ? Login::url( 'login', array( 'loggedout' => '1' ) ) : home_url() ) ),
 			'siteUrl'   => add_query_arg( 'mbcom_site', '1', home_url( '/' ) ),

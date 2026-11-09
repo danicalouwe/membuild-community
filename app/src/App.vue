@@ -11,10 +11,12 @@ import HeaderActions from './components/HeaderActions.vue'
 import SearchBox from './components/SearchBox.vue'
 import LevelUpToast from './components/LevelUpToast.vue'
 import ThemeSlot from './components/ThemeSlot.vue'
+import PageView from './components/PageView.vue'
 import Toast from './components/Toast.vue'
 import ConfirmHost from './components/ConfirmHost.vue'
 import MemberViewToggle from './components/MemberViewToggle.vue'
-import { canSeeAsMember } from './lib/preview.js'
+import { asMember, canSeeAsMember } from './lib/preview.js'
+import { replacement } from './lib/slots.js'
 import { me, refreshStats } from './stores/me.js'
 import { levelShown } from './lib/popups.js'
 import { openChat } from './stores/chatDock.js'
@@ -46,7 +48,7 @@ const phoneMenuOpen = ref(false)
 window.addEventListener('mbcom:phone-menu-state', (e) => (phoneMenuOpen.value = e.detail))
 const openPhoneMenu = () => window.dispatchEvent(new CustomEvent('mbcom:phone-menu'))
 // Pages without the left sidebar: profiles, your settings pages, Messages (its own chat list is the side column), an event (its own two columns), Places and the Leaderboard.
-const onProfile = computed(() => ['member', 'me', 'profile-edit', 'privacy', 'billing', 'billing-item', 'emails', 'messages', 'event', 'places', 'leaderboard', 'levels', 'settings', 'search', 'moderation'].includes(route.name))
+const onProfile = computed(() => ['member', 'me', 'profile-edit', 'privacy', 'two-step', 'billing', 'billing-item', 'emails', 'messages', 'event', 'places', 'leaderboard', 'levels', 'settings', 'search', 'moderation'].includes(route.name))
 const inLesson = computed(() => inCourse.value && !!route.params.lessonId && !route.query.tab)
 // Single-column pages sit at the exact centre of the window, as on Facebook: the right side
 // reserves the same width as the left column. Grids and maps use the full width beside it.
@@ -99,10 +101,9 @@ router.afterEach((to, from, failure) => {
   if (!from.matched.length || to.name === from.name || calm.matches) return
   nextTick(() => mainEl.value?.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 150, easing: 'ease-out' }))
 })
-// Pages kept in memory (the last five): coming back shows them at once, where you were, and
-// they refresh quietly. Only lists and sections; forms, editors, detail pages, Reels (its videos),
-// Messages (its open chat keeps listening), Search and Settings start fresh each time.
-const KEPT = ['FeedView', 'PlacesView', 'ClassroomView', 'EventsView', 'MembersView', 'LeaderboardView']
+// The frame (app.shell) stays the community's in the owner's own view and on the owner's screens.
+const shellOff = computed(() => (!!cfg.community.canManage && !asMember.value) || building.value || ['settings', 'moderation'].includes(route.name))
+const shellThemed = computed(() => !shellOff.value && !!replacement('app.shell'))
 
 /*
  * Facebook's desktop layout on wide screens: icons across the top (a label on
@@ -204,11 +205,35 @@ const homeLabel = t.sprintf(/* translators: %s: the site's name */ t.__('%s home
 // A course page belongs to the Classroom tab, and Saved posts to Home.
 const isActive = (tab) =>
   route.name === tab.name || (tab.name === 'feed' && route.name === 'saved') || (tab.name === 'classroom' && route.name === 'course') || (tab.name === 'members' && route.name === 'member') || (tab.name === 'events' && route.name === 'event')
+
+const shellData = computed(() => ({
+  tabs: desktopTabs.value,
+  phoneTabs: mobileTabs.value,
+  isActive,
+  tools: sideLinks.value,
+  user: cfg.user,
+  logo: cfg.community.logo,
+  siteName: cfg.siteName,
+  notifications: messages.notifications,
+  unread: messages.unread,
+  isPhone: !isWide.value,
+  openMenu: openPhoneMenu,
+  menuOpen: phoneMenuOpen.value,
+}))
 </script>
 
 <template>
-  <div class="shell" :class="{ 'bars-hidden': barsHidden, immersive, 'in-course': inCourse, 'in-lesson': inLesson, building, 'on-profile': onProfile, 'no-tabbar': route.name === 'levels' || (route.name === 'settings' && !!route.query.s) || (route.name === 'messages' && !!route.params.threadId), 'phone-bare': route.name === 'search' || (route.name === 'messages' && !!route.params.threadId) }">
+  <div class="shell" :class="{ 'bars-hidden': barsHidden, immersive, 'in-course': inCourse, 'in-lesson': inLesson, building, 'on-profile': onProfile, 'no-tabbar': route.name === 'levels' || (route.name === 'settings' && !!route.params.section) || (route.name === 'messages' && !!route.params.threadId), 'phone-bare': route.name === 'search' || (route.name === 'messages' && !!route.params.threadId) }">
     <a class="skip-link" href="#mbcom-main" @click.prevent="skipToMain">{{ t.__('Skip to content', 'membuild-community') }}</a>
+    <!-- A theme's own frame: the muted notice stays the community's, above it. -->
+    <div v-if="shellThemed && cfg.community.restriction" class="restricted" role="status">
+      <Icon name="shield" :size="18" />
+      <span v-if="cfg.community.restriction.status === 'muted'">{{ mutedNotice }}</span>
+    </div>
+    <ThemeSlot name="app.shell" :off="shellOff" :data="shellData">
+    <template #page>
+      <div id="mbcom-main" class="theme-page" tabindex="-1"><PageView /></div>
+    </template>
     <header class="topbar">
       <ThemeSlot name="app.top-bar" :data="{ tabs: desktopTabs, isActive, user: cfg.user, logo: cfg.community.logo, siteName: cfg.siteName, home: '/' }">
       <div class="topbar-inner">
@@ -262,11 +287,7 @@ const isActive = (tab) =>
     </aside>
 
     <main id="mbcom-main" ref="mainEl" class="main" tabindex="-1" :class="{ flush: route.name === 'places', centred, 'page-again': pageAgain }">
-      <RouterView v-slot="{ Component }">
-        <KeepAlive :include="KEPT" :max="5">
-          <component :is="Component" />
-        </KeepAlive>
-      </RouterView>
+      <PageView />
     </main>
 
     <nav class="tabbar" :aria-label="t.__('Sections', 'membuild-community')">
@@ -288,6 +309,7 @@ const isActive = (tab) =>
       </template>
       </ThemeSlot>
     </nav>
+    </ThemeSlot>
 
     <PostDialog v-if="linked" :key="linked.id" :post="linked" :highlight="Number(route.query.comment) || 0" @close="closeLinked" />
     <ChatDock v-if="showDock" />
@@ -653,7 +675,8 @@ const isActive = (tab) =>
 }
 
 /* The content takes focus from "Skip to content"; the ring belongs on what's inside. */
-.main:focus {
+.main:focus,
+.theme-page:focus {
   outline: none;
 }
 

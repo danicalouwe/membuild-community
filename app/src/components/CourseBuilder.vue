@@ -574,9 +574,9 @@ const counter = computed(() => `${form.value.description.length} / 160`)
                 <p v-if="alsoOpens.length" class="ms-also">
                   {{ t.sprintf(/* translators: 1: membership name, 2: other course names */ t.__('%1$s also opens %2$s. Its price and link are set once for all of them.', 'membuild-community'), shown.name, alsoOpens.join(', ')) }}
                 </p>
-                <RouterLink :to="{ name: 'settings', hash: '#s-access' }" class="link">{{ t.__('Change the price or link in Memberships', 'membuild-community') }} ›</RouterLink>
+                <RouterLink :to="{ name: 'settings', params: { section: 'memberships' } }" class="link">{{ t.__('Change the price or link in Memberships', 'membuild-community') }} ›</RouterLink>
               </div>
-              <RouterLink v-else :to="{ name: 'settings', hash: '#s-access' }" class="link">{{ groups.length ? t.__('Manage memberships', 'membuild-community') : t.__('Create a membership', 'membuild-community') }} ›</RouterLink>
+              <RouterLink v-else :to="{ name: 'settings', params: { section: 'memberships' } }" class="link">{{ groups.length ? t.__('Manage memberships', 'membuild-community') : t.__('Create a membership', 'membuild-community') }} ›</RouterLink>
             </template>
           </div>
         </fieldset>

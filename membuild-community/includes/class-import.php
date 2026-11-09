@@ -1389,7 +1389,7 @@ class Import {
 		/* translators: %s: where it came from, e.g. BuddyBoss */
 		$title = sprintf( __( 'Your import from %s is done', 'membuild-community' ), $job['label'] );
 		$line  = $parts ? implode( ', ', $parts ) . '.' : __( 'Everything was already here.', 'membuild-community' );
-		$url   = Portal::url() . '/settings?s=import#s-import';
+		$url   = Portal::url() . '/settings/import';
 		$html  = Email::layout( $title, Email::para( esc_html( $line ) ), $url, __( 'See what came over', 'membuild-community' ), '', __( 'You’re getting this because you started an import.', 'membuild-community' ) );
 		Email::send( $owner->user_email, $title, $html, $title . "\n\n" . $line . "\n\n" . $url );
 	}

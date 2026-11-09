@@ -141,6 +141,8 @@ list( $s ) = mbcom_call( $ana, 'PUT', '/settings', array( 'name' => 'Pwned' ) );
 mbcom_check( "members can't change settings", 403 === $s, (string) $s );
 list( $s ) = mbcom_call( $admin, 'PUT', '/settings', array( 'posting' => 'staff', 'features' => array( 'reels' => false ) ) );
 mbcom_check( 'admins can change settings', 200 === $s, (string) $s );
+list( $s, $d ) = mbcom_call( $admin, 'GET', '/settings' );
+mbcom_check( 'Settings says how many reports wait (the Moderation row in its menu)', 200 === $s && is_int( $d['open_reports'] ?? null ), wp_json_encode( $d['open_reports'] ?? null ) );
 list( $s ) = mbcom_call( $ana, 'POST', '/posts', array( 'content' => 'members only now?' ) );
 mbcom_check( '"only staff can post" blocks members', 403 === $s, (string) $s );
 list( $s ) = mbcom_call( $admin, 'POST', '/posts', array( 'content' => 'admin announcement' ) );
@@ -3545,6 +3547,61 @@ list( $jp_st, $jp_s ) = mbcom_call( $admin, 'GET', '/settings' );
 mbcom_check( 'Settings carries the Join preview address', 200 === $jp_st && false !== strpos( (string) ( $jp_s['join_preview_url'] ?? '' ), '/join?preview=1' ), wp_json_encode( $jp_s['join_preview_url'] ?? null ) );
 
 /* ---------------------------------------------------------------- */
+mbcom_section( 'Words layer' );
+$w_table = json_decode( (string) file_get_contents( '/tmp/mbcom-words-cases.json' ), true );
+$w_bad   = array();
+foreach ( array( array( $w_table['words'], $w_table['cases'] ), array( $w_table['traded']['words'], $w_table['traded']['cases'] ) ) as list( $w_words, $w_cases ) ) {
+	foreach ( $w_cases as list( $w_from, $w_want ) ) {
+		$w_got = \MemBuild\Community\Words::swap_with( $w_from, $w_words );
+		if ( $w_got !== $w_want ) {
+			$w_bad[] = "{$w_from} => {$w_got}";
+		}
+	}
+}
+mbcom_check( 'the PHP swap follows the same table as the JS', ! $w_bad, implode( ' | ', $w_bad ) );
+mbcom_check( 'with no theme, nothing is listening', false === has_filter( 'gettext_membuild-community' ) || ! has_filter( 'membuild_community/words' ) );
+mbcom_check( 'with no theme, sentences stay', 'Course not found.' === __( 'Course not found.', 'membuild-community' ) );
+$w_theme = function ( $words ) {
+	$words['course'] = array( 'one' => '<b>program</b>', 'many' => '100% programs' );
+	$words['member'] = array( 'one' => 'athlete', 'many' => 'athletes' );
+	$words['nonsense'] = array( 'one' => 'x', 'many' => 'y' );
+	$words['lesson'] = array( 'one' => 'only one form' );
+	return $words;
+};
+add_filter( 'membuild_community/words', $w_theme );
+\MemBuild\Community\Words::flush();
+\MemBuild\Community\Words::listen();
+mbcom_check( 'a theme’s words reach __()', 'Program not found.' === __( 'Course not found.', 'membuild-community' ), __( 'Course not found.', 'membuild-community' ) );
+mbcom_check( '…and _x()', 'Program' === _x( 'Course', 'test', 'membuild-community' ) );
+mbcom_check( '…and _n(), singular and plural', 'a program' === _n( 'a course', '%d courses', 1, 'membuild-community' ) && '%d 100 programs' === _n( 'a course', '%d courses', 2, 'membuild-community' ), _n( 'a course', '%d courses', 2, 'membuild-community' ) );
+mbcom_check( '…but not another plugin’s words', 'Course not found.' === __( 'Course not found.', 'another-plugin' ) );
+$w_cfg = \MemBuild\Community\Words::config();
+mbcom_check( 'tags and % are stripped, unknown keys and half-set words dropped', array( 'course', 'member' ) === array_keys( (array) $w_cfg['list'] ) && 'program' === $w_cfg['list']->course['one'] && '100 programs' === $w_cfg['list']->course['many'], wp_json_encode( $w_cfg ) );
+mbcom_check( 'Words::get gives the theme’s word, or the usual one', 'athletes' === \MemBuild\Community\Words::get( 'member', 2 ) && 'lesson' === \MemBuild\Community\Words::get( 'lesson' ) && '' === \MemBuild\Community\Words::get( 'nonsense' ) );
+list( $w_st, $w_res ) = mbcom_call( $admin, 'GET', '/courses/99999999' );
+mbcom_check( 'a server message says the theme’s word', 404 === $w_st && 'Program not found.' === ( $w_res['message'] ?? '' ), wp_json_encode( $w_res ) );
+$w_mail = null;
+$w_catch = function ( $short, $atts ) use ( &$w_mail ) {
+	$w_mail = $atts;
+	return true;
+};
+add_filter( 'pre_wp_mail', $w_catch, 10, 2 );
+wp_mail( 'words-test@example.com', __( 'Your course is ready', 'membuild-community' ), __( 'A member wrote.', 'membuild-community' ) );
+remove_filter( 'pre_wp_mail', $w_catch, 10 );
+mbcom_check( 'an email says the theme’s word', 'Your program is ready' === ( $w_mail['subject'] ?? '' ) && 'An athlete wrote.' === ( $w_mail['message'] ?? '' ), wp_json_encode( $w_mail ) );
+$w_german = function () {
+	return 'de_DE';
+};
+add_filter( 'pre_determine_locale', $w_german );
+add_filter( 'locale', $w_german );
+\MemBuild\Community\Words::flush();
+mbcom_check( 'another language keeps its own words', 'Course not found.' === __( 'Course not found.', 'membuild-community' ) && false === \MemBuild\Community\Words::config()['english'] && '' === \MemBuild\Community\Words::get( 'lesson' ), __( 'Course not found.', 'membuild-community' ) );
+remove_filter( 'pre_determine_locale', $w_german );
+remove_filter( 'locale', $w_german );
+remove_filter( 'membuild_community/words', $w_theme );
+\MemBuild\Community\Words::flush();
+
+/* ---------------------------------------------------------------- */
 mbcom_section( 'Saved posts' );
 
 global $wpdb;
@@ -3780,6 +3837,269 @@ remove_filter( 'home_url', $sf_home );
 mbcom_check( 'removing the plugin with its data removes the list', false !== strpos( (string) file_get_contents( MEMBUILD_COMMUNITY_DIR . 'uninstall.php' ), "'mbcom_old_addresses'" ) );
 mbcom_call( $admin, 'PUT', '/settings', array( 'slug' => $ca_home ) );
 delete_option( 'mbcom_old_addresses' );
+
+/* ---------------------------------------------------------------- */
+echo "\nTwo-step login\n";
+if ( ! class_exists( 'Two_Factor_Core' ) ) {
+	echo "  (skipped: the Two Factor plugin isn't on this test site)\n";
+} else {
+	$ts      = '\MemBuild\Community\Two_Step';
+	$ts_m    = mbcom_user( 'mbct_twostep' );
+	$ts_mod  = mbcom_user( 'mbct_twostep_mod', 'editor' );
+	$ts_saved = get_option( 'mbcom_settings' );
+	$ts_who  = function ( $who ) {
+		$s = get_option( 'mbcom_settings' );
+		$s['two_step_who'] = $who;
+		update_option( 'mbcom_settings', $s );
+		$r = new ReflectionProperty( '\MemBuild\Community\Settings', 'cache' );
+		$r->setAccessible( true );
+		$r->setValue( null, null );
+	};
+	// A real login session for $user, so Two Factor's "typed a code lately" rule can be checked.
+	$ts_session = function ( $user ) {
+		// A fresh login: Two Factor copies the old session's marks into a new one made while signed in.
+		unset( $_COOKIE[ LOGGED_IN_COOKIE ] );
+		wp_set_current_user( 0 );
+		$token = WP_Session_Tokens::get_instance( $user )->create( time() + HOUR_IN_SECONDS );
+		$_COOKIE[ LOGGED_IN_COOKIE ] = wp_generate_auth_cookie( $user, time() + HOUR_IN_SECONDS, 'logged_in', $token );
+		wp_set_current_user( $user );
+	};
+	$ts_tick = fn( $n = 0 ) => (int) floor( time() / Two_Factor_Totp::DEFAULT_TIME_STEP_SEC ) + $n;
+	add_filter( 'send_auth_cookies', '__return_false' );
+
+	mbcom_check( 'the masked address keeps the first letter and the domain', 'a•••@example.test' === $ts::masked( 'ana@example.test' ), $ts::masked( 'ana@example.test' ) );
+	$ts_who( 'anyone' );
+	mbcom_check( 'anyone who wants it: nobody is asked to set it up', ! $ts::required( $ts_m ) && ! $ts::required( $admin ) && '' === $ts::step_for( $ts_m ) );
+	$ts_who( 'team' );
+	mbcom_check( 'required for the team: owners and moderators must set it up', $ts::required( $admin ) && $ts::required( $ts_mod ) && 'setup' === $ts::step_for( $admin ) );
+	mbcom_check( '…and members are not asked', ! $ts::required( $ts_m ) );
+	$ts_who( 'everyone' );
+	mbcom_check( 'required for everyone: members must set it up', $ts::required( $ts_m ) && 'setup' === $ts::step_for( $ts_m ) );
+	mbcom_call( $admin, 'PUT', '/settings', array( 'two_step_who' => 'nobody-at-all' ) );
+	$ts_who( get_option( 'mbcom_settings' )['two_step_who'] ?? '' );
+	mbcom_check( 'an unknown choice for who uses it falls back to Anyone who wants it', 'anyone' === \MemBuild\Community\Two_Step::who(), \MemBuild\Community\Two_Step::who() );
+	$ts_who( 'anyone' );
+
+	// The owner's switch.
+	list( $st, $res ) = mbcom_call( $admin, 'GET', '/settings/two-step' );
+	mbcom_check( 'the owner sees Two Factor is on', 200 === $st && 'on' === $res['state'], wp_json_encode( $res ) );
+	list( $st ) = mbcom_call( $ts_m, 'GET', '/settings/two-step' );
+	mbcom_check( '…a member can’t see the switch', 403 === $st, (string) $st );
+	list( $st ) = mbcom_call( $ts_m, 'POST', '/settings/two-step', array( 'on' => false ) );
+	mbcom_check( '…or turn Two Factor off', 403 === $st && class_exists( 'Two_Factor_Core' ), (string) $st );
+	list( , $res ) = mbcom_call( $admin, 'GET', '/settings' );
+	mbcom_check( 'Settings carries the switch’s state', 'on' === ( $res['two_step']['state'] ?? '' ), wp_json_encode( $res['two_step'] ?? null ) );
+	$ts_can = new ReflectionMethod( $ts, 'can_add' );
+	$ts_can->setAccessible( true );
+	wp_set_current_user( $admin );
+	$ts_ftp = fn() => 'ftpext';
+	add_filter( 'filesystem_method', $ts_ftp, PHP_INT_MAX );
+	mbcom_check( 'a host that asks for FTP details counts as blocked, so the owner gets the by-hand steps', false === $ts_can->invoke( null ) );
+	remove_filter( 'filesystem_method', $ts_ftp, PHP_INT_MAX );
+	wp_set_current_user( $ts_m );
+	mbcom_check( '…and a member can never add plugins', false === $ts_can->invoke( null ) );
+
+	// A member sets it up on their own page.
+	$ts_session( $ts_m );
+	list( $st, $res ) = mbcom_call( $ts_m, 'GET', '/me/two-step' );
+	mbcom_check( 'a member starts with it off', 200 === $st && true === $res['available'] && false === $res['on'] && 'm•••@example.test' === $res['address'], wp_json_encode( $res ) );
+	list( $st, $res ) = mbcom_call( $ts_m, 'POST', '/me/two-step', array( 'action' => 'codes' ) );
+	mbcom_check( 'recovery codes need the app or email first', 400 === $st, (string) $st );
+	list( $st, $res ) = mbcom_call( $ts_m, 'POST', '/me/two-step', array( 'action' => 'app_start' ) );
+	$ts_key = $res['key'] ?? '';
+	mbcom_check( 'starting the app gives a key, a scan address and Two Factor’s own QR drawing', 200 === $st && $ts_key && 0 === strpos( $res['uri'], 'otpauth://totp/' ) && false !== strpos( $res['qr_script'], 'qrcode.js' ), wp_json_encode( $res ) );
+	mbcom_check( '…and it isn’t on until a code is typed', ! $ts::using( $ts_m ) );
+	list( $st ) = mbcom_call( $ts_m, 'POST', '/me/two-step', array( 'action' => 'app_confirm', 'code' => '000000' === Two_Factor_Totp::calc_totp( $ts_key ) ? '111111' : '000000' ) );
+	mbcom_check( 'a wrong app code is refused', 400 === $st, (string) $st );
+	delete_user_meta( $ts_m, Two_Factor_Core::USER_RATE_LIMIT_KEY );
+	delete_user_meta( $ts_m, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY );
+	list( $st, $res ) = mbcom_call( $ts_m, 'POST', '/me/two-step', array( 'action' => 'app_confirm', 'code' => Two_Factor_Totp::calc_totp( $ts_key ) ) );
+	mbcom_check( 'the right app code turns it on', 200 === $st && $res['on'] && $res['app'] && $ts::using( $ts_m ), wp_json_encode( $res ) );
+	mbcom_check( '…and the first way counts as a code just typed', true === $res['confirmed'] );
+	list( $st, $res ) = mbcom_call( $ts_m, 'POST', '/me/two-step', array( 'action' => 'codes' ) );
+	mbcom_check( 'recovery codes are made and shown once (10, not saved in the page cache)', 200 === $st && 10 === count( $res['new_codes'] ?? array() ) && 10 === $res['codes'], wp_json_encode( $res ) );
+	$ts_codes = $res['new_codes'] ?? array();
+	list( , $res ) = mbcom_call( $ts_m, 'GET', '/me/two-step' );
+	mbcom_check( '…and never shown again', ! isset( $res['new_codes'] ) );
+
+	// Changing it later needs a fresh code.
+	$ts_session( $ts_m );
+	list( $st, $res ) = mbcom_call( $ts_m, 'POST', '/me/two-step', array( 'action' => 'off' ) );
+	mbcom_check( 'a session without a recent code can’t turn it off', 403 === $st && 'mbcom_two_step_confirm' === ( $res['code'] ?? '' ) && $ts::using( $ts_m ), wp_json_encode( $res ) );
+	list( $st, $res ) = mbcom_call( $ts_m, 'GET', '/me/two-step' );
+	mbcom_check( '…and the page asks them to confirm it’s them', false === $res['confirmed'] );
+	list( $st ) = mbcom_call( $ts_m, 'POST', '/me/two-step', array( 'action' => 'confirm', 'code' => $ts_codes[0] ?? '' ) );
+	mbcom_check( 'a recovery code confirms it’s them', 200 === $st, (string) $st );
+	list( , $res ) = mbcom_call( $ts_m, 'GET', '/me/two-step' );
+	mbcom_check( '…and is used up', true === $res['confirmed'] && 9 === $res['codes'], wp_json_encode( $res ) );
+	list( $st ) = mbcom_call( $ts_m, 'POST', '/me/two-step', array( 'action' => 'confirm', 'code' => $ts_codes[0] ?? '' ) );
+	mbcom_check( '…so it doesn’t work twice', 400 === $st, (string) $st );
+	delete_user_meta( $ts_m, Two_Factor_Core::USER_RATE_LIMIT_KEY );
+	delete_user_meta( $ts_m, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY );
+
+	// Email codes, then removing the app.
+	$ts_email = Two_Factor_Email::get_instance();
+	list( $st ) = mbcom_call( $ts_m, 'POST', '/me/two-step', array( 'action' => 'email_on', 'code' => '12345678' ) );
+	mbcom_check( 'email codes don’t turn on without the emailed code', 400 === $st && ! in_array( 'Two_Factor_Email', Two_Factor_Core::get_enabled_providers_for_user( $ts_m ), true ), (string) $st );
+	delete_user_meta( $ts_m, Two_Factor_Core::USER_RATE_LIMIT_KEY );
+	delete_user_meta( $ts_m, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY );
+	list( $st, $res ) = mbcom_call( $ts_m, 'POST', '/me/two-step', array( 'action' => 'email_on', 'code' => $ts_email->generate_token( $ts_m ) ) );
+	mbcom_check( 'the emailed code turns email codes on', 200 === $st && $res['email'], wp_json_encode( $res ) );
+	list( $st, $res ) = mbcom_call( $ts_m, 'POST', '/me/two-step', array( 'action' => 'app_remove' ) );
+	mbcom_check( 'removing the app keeps email codes and recovery codes', 200 === $st && ! $res['app'] && $res['email'] && 9 === $res['codes'] && '' === (string) get_user_meta( $ts_m, Two_Factor_Totp::SECRET_META_KEY, true ), wp_json_encode( $res ) );
+
+	// Required: a member can't turn off their last way.
+	$ts_who( 'everyone' );
+	list( $st ) = mbcom_call( $ts_m, 'POST', '/me/two-step', array( 'action' => 'email_off' ) );
+	mbcom_check( 'when it’s required, the last way can’t be turned off', 400 === $st && $ts::using( $ts_m ), (string) $st );
+	list( $st ) = mbcom_call( $ts_m, 'POST', '/me/two-step', array( 'action' => 'off' ) );
+	mbcom_check( '…and neither can the whole thing', 400 === $st && $ts::using( $ts_m ), (string) $st );
+	$ts_who( 'anyone' );
+	list( $st, $res ) = mbcom_call( $ts_m, 'POST', '/me/two-step', array( 'action' => 'email_off' ) );
+	mbcom_check( 'turning off the last way also ends the recovery codes', 200 === $st && ! $res['on'] && null === $res['codes'] && ! $ts::using( $ts_m ), wp_json_encode( $res ) );
+
+	// Logging in: after the password, the community login page asks for the code.
+	$ts_key2 = Two_Factor_Totp::generate_key();
+	Two_Factor_Totp::get_instance()->set_user_totp_key( $ts_m, $ts_key2 );
+	Two_Factor_Core::enable_provider_for_user( $ts_m, 'Two_Factor_Totp' );
+	$ts_to = '';
+	$ts_catch = function ( $loc ) { throw new RuntimeException( $loc ); };
+	add_filter( 'wp_redirect', $ts_catch, 1 );
+	$_REQUEST['redirect_to'] = home_url( '/community/classroom' );
+	try {
+		$ts::after_password( 'mbct_twostep', get_userdata( $ts_m ) );
+	} catch ( RuntimeException $e ) {
+		$ts_to = $e->getMessage();
+	}
+	unset( $_REQUEST['redirect_to'] );
+	parse_str( (string) wp_parse_url( $ts_to, PHP_URL_QUERY ), $ts_q );
+	mbcom_check( 'after the password, a member using it goes to the community login page for the code', 0 === strpos( $ts_to, \MemBuild\Community\Login::url( 'login' ) ) && (int) ( $ts_q['wp-auth-id'] ?? 0 ) === $ts_m && false === strpos( $ts_to, 'wp-login.php' ), $ts_to );
+	mbcom_check( '…carrying where they were going', home_url( '/community/classroom' ) === ( $ts_q['redirect_to'] ?? '' ), $ts_to );
+	mbcom_check( '…with a login nonce Two Factor accepts', Two_Factor_Core::verify_login_nonce( $ts_m, $ts_q['wp-auth-nonce'] ?? '' ) );
+	$ts_to = '';
+	try {
+		$ts::after_password( 'mbct_ana', get_userdata( $ana ) );
+	} catch ( RuntimeException $e ) {
+		$ts_to = $e->getMessage();
+	}
+	mbcom_check( 'a member not using it logs straight in', '' === $ts_to, $ts_to );
+	$ts_who( 'everyone' );
+	$ts_to = '';
+	try {
+		$ts::after_password( 'mbct_ana', get_userdata( $ana ) );
+	} catch ( RuntimeException $e ) {
+		$ts_to = $e->getMessage();
+	}
+	mbcom_check( 'when it’s required, a member without it goes to set it up first', false !== strpos( $ts_to, 'wp-auth-id=' . $ana ), $ts_to );
+	$ts::hold_cookies( get_userdata( $ana ) );
+	mbcom_check( '…and gets no login cookies until then', false === apply_filters( 'send_auth_cookies', true, 0, 0, $ana, 'logged_in', '' ) );
+	remove_all_filters( 'send_auth_cookies' );
+	$_REQUEST['interim-login'] = 1;
+	$ts::hold_cookies( get_userdata( $ana ) );
+	mbcom_check( '…but the “log in again” box inside wp-admin isn’t held up', true === apply_filters( 'send_auth_cookies', true, 0, 0, $ana, 'logged_in', '' ) );
+	unset( $_REQUEST['interim-login'] );
+	$ts_api = fn() => false;
+	add_filter( 'two_factor_user_api_login_enable', $ts_api );
+	mbcom_check( 'a password alone still works outside the API (no error, just held cookies)', $ts::hold_cookies( get_userdata( $ana ) ) instanceof WP_User );
+	remove_filter( 'two_factor_user_api_login_enable', $ts_api );
+	remove_all_filters( 'send_auth_cookies' );
+	remove_filter( 'wp_redirect', $ts_catch, 1 );
+
+	// The code page and the setup page themselves (Two_Step::page), as the browser sends them.
+	add_filter( 'send_auth_cookies', '__return_false' );
+	$ts_page = function ( $method, $params ) use ( $ts ) {
+		$_SERVER['REQUEST_METHOD'] = $method;
+		$_REQUEST                  = $params;
+		$_GET                      = 'GET' === $method ? $params : array();
+		$_POST                     = 'POST' === $method ? $params : array();
+		$to                        = '';
+		$catch                     = function ( $loc ) { throw new RuntimeException( $loc ); };
+		add_filter( 'wp_redirect', $catch, 1 );
+		ob_start();
+		try {
+			$ts::page();
+		} catch ( RuntimeException $e ) {
+			$to = $e->getMessage();
+		}
+		$out = (string) ob_get_clean();
+		remove_filter( 'wp_redirect', $catch, 1 );
+		$_REQUEST = $_GET = $_POST = array();
+		$_SERVER['REQUEST_METHOD'] = 'GET';
+		return array( $to, $out );
+	};
+	$ts_nonce_in = fn( $html ) => preg_match( '/name="wp-auth-nonce" value="([a-f0-9]+)"/', $html, $m ) ? $m[1] : '';
+	$ts_clear    = function ( $u ) {
+		delete_user_meta( $u, Two_Factor_Core::USER_RATE_LIMIT_KEY );
+		delete_user_meta( $u, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY );
+	};
+	list( $ts_to ) = $ts_page( 'GET', array( 'wp-auth-id' => $ts_m, 'wp-auth-nonce' => 'abc123' ) );
+	mbcom_check( 'the code page with a wrong or old nonce goes back to Log in', false !== strpos( $ts_to, 'timedout=1' ), $ts_to );
+	$ts_n = Two_Factor_Core::create_login_nonce( $ts_m )['key'];
+	list( $ts_to, $ts_out ) = $ts_page( 'POST', array( 'wp-auth-id' => $ts_m, 'wp-auth-nonce' => $ts_n, 'provider' => 'Two_Factor_Totp', 'authcode' => '000000' === Two_Factor_Totp::calc_totp( $ts_key2 ) ? '111111' : '000000' ) );
+	mbcom_check( 'a wrong code shows the error on the community page', '' === $ts_to && false !== strpos( $ts_out, 'That code isn’t right' ), $ts_to );
+	mbcom_check( '…with a new nonce for the next try', '' !== $ts_nonce_in( $ts_out ) && $ts_n !== $ts_nonce_in( $ts_out ) && ! Two_Factor_Core::verify_login_nonce( $ts_m, $ts_n ) );
+	$ts_clear( $ts_m );
+	list( $ts_to ) = $ts_page( 'POST', array( 'wp-auth-id' => $ts_m, 'wp-auth-nonce' => $ts_nonce_in( $ts_out ), 'provider' => 'Two_Factor_Totp', 'authcode' => Two_Factor_Totp::calc_totp( $ts_key2 ), 'redirect_to' => home_url( '/community/events' ) ) );
+	mbcom_check( 'the right code logs in and goes where they were heading', home_url( '/community/events' ) === $ts_to, $ts_to );
+	$ts_hash = new ReflectionMethod( 'Two_Factor_Core', 'hash_login_nonce' );
+	$ts_hash->setAccessible( true );
+	$ts_old  = array( 'user_id' => $ts_m, 'expiration' => time() + 60, 'key' => bin2hex( random_bytes( 32 ) ) );
+	update_user_meta( $ts_m, Two_Factor_Core::USER_META_NONCE_KEY, array( 'expiration' => $ts_old['expiration'], 'key' => $ts_hash->invoke( null, $ts_old ) ) );
+	list( $ts_to ) = $ts_page( 'GET', array( 'wp-auth-id' => $ts_m, 'wp-auth-nonce' => $ts_old['key'], 'provider' => 'Two_Factor_Email', 'way' => array( 'x' ) ) );
+	mbcom_check( 'a code page about to run out renews its nonce in the address', false !== strpos( $ts_to, 'wp-auth-nonce=' ) && false === strpos( $ts_to, $ts_old['key'] ), $ts_to );
+	mbcom_check( '…keeping the way they picked exactly (Email me a code instead)', false !== strpos( $ts_to, 'provider=Two_Factor_Email' ) && false === strpos( $ts_to, 'way=' ), $ts_to );
+
+	// Required, setting up an app: the emailed code first, so a stolen password can't add the thief's app.
+	$ts_mail_n = count( $mbcom_mails );
+	$ts_n      = Two_Factor_Core::create_login_nonce( $ana )['key'];
+	list( $ts_to, $ts_out ) = $ts_page( 'GET', array( 'wp-auth-id' => $ana, 'wp-auth-nonce' => $ts_n, 'way' => 'app' ) );
+	mbcom_check( 'choosing an app at setup first asks for the code we emailed', '' === $ts_to && false !== strpos( $ts_out, 'First, type the code we sent' ) && false === strpos( $ts_out, 'data-qr' ) && count( $mbcom_mails ) > $ts_mail_n, $ts_to );
+	list( $ts_to, $ts_out ) = $ts_page( 'POST', array( 'wp-auth-id' => $ana, 'wp-auth-nonce' => $ts_n, 'way' => 'app', 'code' => '123' ) );
+	mbcom_check( '…a wrong emailed code doesn’t show the QR code', false === strpos( $ts_out, 'data-qr' ) && false !== strpos( $ts_out, 'That code isn’t right' ) );
+	$ts_clear( $ana );
+	list( $ts_to, $ts_out ) = $ts_page( 'POST', array( 'wp-auth-id' => $ana, 'wp-auth-nonce' => $ts_nonce_in( $ts_out ), 'way' => 'app', 'code' => Two_Factor_Email::get_instance()->generate_token( $ana ) ) );
+	mbcom_check( '…the right one shows the QR code', false !== strpos( $ts_out, 'data-qr="otpauth://' ), $ts_to );
+	$ts_pend = get_user_meta( $ana, 'mbcom_totp_pending', true );
+	$ts_mail_n = count( $mbcom_mails );
+	list( $ts_to ) = $ts_page( 'POST', array( 'wp-auth-id' => $ana, 'wp-auth-nonce' => $ts_nonce_in( $ts_out ), 'way' => 'app', 'code' => Two_Factor_Totp::calc_totp( $ts_pend['key'] ?? '' ) ) );
+	mbcom_check( '…and the app’s code finishes it and logs them in', '' !== $ts_to && false === strpos( $ts_to, 'timedout' ) && $ts::using( $ana ) && in_array( 'Two_Factor_Totp', Two_Factor_Core::get_enabled_providers_for_user( $ana ), true ), $ts_to );
+	$ts_told = array_values( array_filter( array_slice( $mbcom_mails, $ts_mail_n ), fn( $m ) => 'mbct_ana@example.test' === $m['to'] ) );
+	mbcom_check( '…and the member is emailed that two-step login is now on', $ts_told && false !== strpos( (string) $ts_told[0]['subject'], 'Two-step login is on' ), wp_json_encode( array_column( $ts_told, 'subject' ) ) );
+	mbcom_check( '…and the “email checked” mark is gone', '' === (string) get_user_meta( $ana, 'mbcom_setup_email_ok', true ) );
+
+	// After many wrong codes anywhere, the password is reset, as Two Factor does on its own screen.
+	$ts_try = new ReflectionMethod( $ts, 'try_code' );
+	$ts_try->setAccessible( true );
+	$ts_clear( $ts_m );
+	update_user_meta( $ts_m, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY, 40 );
+	$ts_pass = get_userdata( $ts_m )->user_pass;
+	$ts_said = $ts_try->invoke( null, get_userdata( $ts_m ), fn() => false );
+	clean_user_cache( $ts_m );
+	mbcom_check( 'too many wrong codes reset the password and say so', false !== strpos( (string) $ts_said, 'password was reset' ) && get_userdata( $ts_m )->user_pass !== $ts_pass, (string) $ts_said );
+	delete_user_meta( $ts_m, Two_Factor_Core::USER_PASSWORD_WAS_RESET_KEY );
+	$ts_clear( $ts_m );
+	remove_all_filters( 'send_auth_cookies' );
+
+	// Tidy up.
+	foreach ( array( $ts_m, $ana ) as $ts_u ) {
+		foreach ( array( 'Two_Factor_Totp', 'Two_Factor_Email', 'Two_Factor_Backup_Codes' ) as $ts_p ) {
+			Two_Factor_Core::disable_provider_for_user( $ts_u, $ts_p );
+		}
+		Two_Factor_Totp::get_instance()->delete_user_totp_key( $ts_u );
+		delete_user_meta( $ts_u, Two_Factor_Backup_Codes::BACKUP_CODES_META_KEY );
+		delete_user_meta( $ts_u, 'mbcom_totp_since' );
+		delete_user_meta( $ts_u, Two_Factor_Core::USER_META_NONCE_KEY );
+		delete_user_meta( $ts_u, 'mbcom_totp_pending' );
+		delete_user_meta( $ts_u, 'mbcom_setup_email_ok' );
+		delete_user_meta( $ts_u, Two_Factor_Email::TOKEN_META_KEY );
+		delete_user_meta( $ts_u, Two_Factor_Core::USER_RATE_LIMIT_KEY );
+		delete_user_meta( $ts_u, Two_Factor_Core::USER_FAILED_LOGIN_ATTEMPTS_KEY );
+		WP_Session_Tokens::get_instance( $ts_u )->destroy_all();
+	}
+	unset( $_COOKIE[ LOGGED_IN_COOKIE ] );
+	update_option( 'mbcom_settings', $ts_saved );
+	$ts_who( $ts_saved['two_step_who'] ?? 'anyone' );
+}
 
 /* ---------------------------------------------------------------- */
 echo "\n{$GLOBALS['mbcom_passed']} passed, {$GLOBALS['mbcom_failed']} failed\n";

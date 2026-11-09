@@ -80,6 +80,81 @@ export const SLOTS = {
     about: 'One course in that list, for members.',
     props: { course: 'the course (as above, plus lessons_count, completed_count, lock, faces, learners, posts_count)', to: 'where it opens (a route)', state: '“new”, “going”, “done” or “locked”' },
   },
+  // Whole pages (layer 4). A page piece gets the ids from the address and loads the rest with
+  // mb.data; the default page is its default slot. The owner's own view (an owner not using
+  // “See it as a member”) always keeps the community's pages, with their edit tools.
+  'app.shell': {
+    kind: 'replace',
+    about: 'The frame around every page (top bar, left menu, phone tab bar). Put <slot name="page" /> where the page goes; the default slot is the whole default frame. The muted notice, pop-ups and the chat dock stay the community’s. Settings, Moderation, the course editor and the owner’s own view keep the default.',
+    props: { tabs: 'the sections on computers: { name, path, icon, label }', phoneTabs: 'the sections on phones (as above, plus short)', isActive: 'tab → is it the page you’re on', tools: 'moderator links: { to, icon, label, badge }', user: 'the signed-in member', logo: 'the logo’s address or ""', siteName: 'the site’s name', notifications: 'unread alerts', unread: 'unread messages', isPhone: 'is it the phone layout', openMenu: 'opens the phone menu (mb.components.HeaderActions holds it)', menuOpen: 'is it open' },
+  },
+  'page.home': { kind: 'replace', about: 'Home (/). Load posts with mb.data.feed.', props: { topic: 'the topic id in the address (?topic=3), or 0' } },
+  'page.classroom': { kind: 'replace', about: 'The Classroom (/classroom). Load courses with mb.data.courses.list().', props: {} },
+  'page.course': { kind: 'replace', about: 'A course before a lesson is open (/classroom/12). Not while the owner edits it.', props: { courseId: 'the course', tab: '“overview” or “posts”' } },
+  'page.lesson': { kind: 'replace', about: 'A lesson (/classroom/12/34). Not while the owner edits it.', props: { courseId: 'the course', lessonId: 'the lesson' } },
+  'page.events': { kind: 'replace', about: 'The Events list (/events).', props: {} },
+  'page.event': { kind: 'replace', about: 'One event’s page (/events/56). Hosts keep the default.', props: { eventId: 'the event (its post id)' } },
+  'page.profile': { kind: 'replace', about: 'Someone else’s profile (/members/78). Your own profile always keeps the default (it has the edit tools).', props: { memberId: 'the member' } },
+  'page.leaderboard': { kind: 'replace', about: 'The Leaderboard (/leaderboard).', props: {} },
+}
+
+/**
+ * The page slot for the page that's open now, or '' when it has none. Each takes only the ids
+ * from the address. `owner` is the owner's own view, where page slots are off.
+ */
+export function pageSlotFor(route, owner) {
+  const q = route.query
+  switch (route.name) {
+    case 'feed':
+      return owner ? '' : 'page.home'
+    case 'classroom':
+      return owner ? '' : 'page.classroom'
+    case 'course':
+      if (owner || q.edit) return ''
+      return route.params.lessonId && !q.tab ? 'page.lesson' : 'page.course'
+    case 'events':
+      return owner ? '' : 'page.events'
+    case 'event':
+      return 'page.event' // the host's own view is decided with the staff check in App.vue
+    case 'member':
+      return owner ? '' : 'page.profile'
+    case 'leaderboard':
+      return 'page.leaderboard'
+    default:
+      return ''
+  }
+}
+
+export function pageProps(route) {
+  const p = route.params
+  const q = route.query
+  switch (route.name) {
+    case 'feed':
+      return { topic: Number(q.topic) || 0 }
+    case 'course':
+      if (p.lessonId && !q.tab) return { courseId: Number(p.courseId), lessonId: Number(p.lessonId) }
+      return { courseId: Number(p.courseId), tab: ['posts', 'discussion'].includes(q.tab) ? 'posts' : 'overview' } // old links said “discussion”
+    case 'event':
+      return { eventId: Number(p.id) }
+    case 'member':
+      return { memberId: Number(p.id) }
+    default:
+      return {}
+  }
+}
+
+/** An add-on's own slots (lib/addons.js): names start with its id, so nothing clashes. */
+export function addSlots(id, slots = {}) {
+  const added = []
+  for (const [name, s] of Object.entries(slots)) {
+    if (!name.startsWith(`${id}.`) || SLOTS[name] || !['replace', 'add'].includes(s?.kind)) {
+      console.warn(`[MemBuild Community] “${name}” isn’t a slot add-on “${id}” can add: its name must start with “${id}.”, be new, and be a replace or add slot.`)
+      continue
+    }
+    SLOTS[name] = { kind: s.kind, about: String(s.about || ''), props: { ...(s.props || {}) }, addon: id }
+    added.push(name)
+  }
+  return added
 }
 
 const replaced = reactive({}) // slot name → { piece, theme }

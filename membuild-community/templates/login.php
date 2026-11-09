@@ -11,6 +11,7 @@
  */
 
 use MemBuild\Community\Login;
+use MemBuild\Community\Two_Step;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -24,6 +25,8 @@ $mbcom_titles = array(
 	'forgot'   => __( 'Forgot your password?', 'membuild-community' ),
 	'reset'    => __( 'Choose a new password', 'membuild-community' ),
 	'expired'  => __( 'This link has expired', 'membuild-community' ),
+	'twostep'  => __( 'Type your code', 'membuild-community' ),
+	'twosetup' => __( 'Set up two-step login', 'membuild-community' ),
 );
 // The big heading: two lines, the second highlighted in the community's color.
 $mbcom_h1 = function ( $first, $second, $class = '' ) {
@@ -202,6 +205,172 @@ $mbcom_kses = array( 'strong' => array(), 'b' => array(), 'a' => array( 'href' =
 			?>
 			<?php if ( ! empty( $data['live'] ) ) : ?>
 				<div class="live-under"><?php echo $mbcom_live( $data['live'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped where built ?></div>
+			<?php endif; ?>
+
+		<?php elseif ( 'twostep' === $view ) : ?>
+			<?php
+			// The second step: a code from their app, their email or a recovery code (see Two_Step).
+			$mbcom_way  = $data['way'];
+			$mbcom_args = array_filter(
+				array(
+					'wp-auth-id'    => $data['u'],
+					'wp-auth-nonce' => $data['n'],
+					'redirect_to'   => $data['redirect'],
+					'rememberme'    => $data['keep'] ? 1 : 0,
+				)
+			);
+			$mbcom_other = fn( $way ) => Login::url( 'login', $mbcom_args + array( 'provider' => Two_Step::provider_for( $way ) ) );
+			$mbcom_field = array(
+				'app'      => 'authcode',
+				'email'    => 'two-factor-email-code',
+				'recovery' => 'two-factor-backup-code',
+			);
+			echo $mbcom_brand; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped where built
+			echo 'email' === $mbcom_way ? $mbcom_h1( __( 'Check your', 'membuild-community' ), __( 'email.', 'membuild-community' ) ) : $mbcom_h1( __( 'One more', 'membuild-community' ), __( 'step.', 'membuild-community' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped where built
+			?>
+			<div class="intro">
+				<p class="lead">
+				<?php
+				if ( 'email' === $mbcom_way ) {
+					/* translators: %s: the member's email address, partly hidden (a•••@example.com) */
+					echo esc_html( sprintf( __( 'We sent a code to %s. It works for 10 minutes.', 'membuild-community' ), $data['address'] ) );
+				} elseif ( 'recovery' === $mbcom_way ) {
+					esc_html_e( 'Type one of the recovery codes you saved. Each one works once.', 'membuild-community' );
+				} else {
+					/* translators: %s: community name */
+					echo esc_html( sprintf( __( 'Open your authenticator app and type the 6-digit code for %s.', 'membuild-community' ), $name ) );
+				}
+				?>
+				</p>
+			</div>
+			<?php if ( $data['error'] ) : ?>
+				<?php echo $mbcom_alert( esc_html( $data['error'] ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped here ?>
+			<?php elseif ( $data['notice'] ) : ?>
+				<?php echo $mbcom_okbox( esc_html( $data['notice'] ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped here ?>
+			<?php endif; ?>
+			<form method="post" action="<?php echo esc_url( Login::url( 'login' ) ); ?>">
+				<?php foreach ( $mbcom_args as $mbcom_k => $mbcom_v ) : ?>
+					<input type="hidden" name="<?php echo esc_attr( $mbcom_k ); ?>" value="<?php echo esc_attr( $mbcom_v ); ?>">
+				<?php endforeach; ?>
+				<input type="hidden" name="provider" value="<?php echo esc_attr( Two_Step::provider_for( $mbcom_way ) ); ?>">
+				<label class="field">
+					<span class="label"><?php echo esc_html( array( 'recovery' => __( 'Recovery code', 'membuild-community' ), 'email' => __( 'Code from the email', 'membuild-community' ) )[ $mbcom_way ] ?? __( '6-digit code', 'membuild-community' ) ); ?></span>
+					<input class="code" name="<?php echo esc_attr( $mbcom_field[ $mbcom_way ] ); ?>" type="text" inputmode="numeric" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" required <?php echo $mbcom_af; ?>>
+				</label>
+				<button class="btn" type="submit"><?php esc_html_e( 'Log in', 'membuild-community' ); ?> <?php echo $mbcom_arrow; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- a fixed icon ?></button>
+				<?php if ( 'email' === $mbcom_way ) : ?>
+					<p class="or" aria-hidden="true"><span><?php esc_html_e( 'or', 'membuild-community' ); ?></span></p>
+					<button class="btn outline" type="submit" name="two-factor-email-code-resend" value="1" formnovalidate><?php esc_html_e( 'Send it again', 'membuild-community' ); ?></button>
+				<?php elseif ( 'app' === $mbcom_way && in_array( 'email', $data['others'], true ) ) : ?>
+					<p class="or" aria-hidden="true"><span><?php esc_html_e( 'or', 'membuild-community' ); ?></span></p>
+					<a class="btn outline" href="<?php echo esc_url( $mbcom_other( 'email' ) ); ?>"><?php esc_html_e( 'Email me a code instead', 'membuild-community' ); ?></a>
+				<?php endif; ?>
+			</form>
+			<?php
+			$mbcom_ways = array_filter(
+				array(
+					'app' === $mbcom_way || ! in_array( 'app', $data['others'], true ) ? '' : '<a href="' . esc_url( $mbcom_other( 'app' ) ) . '">' . esc_html__( 'Use your app', 'membuild-community' ) . '</a>',
+					'recovery' === $mbcom_way && in_array( 'email', $data['others'], true ) ? '<a href="' . esc_url( $mbcom_other( 'email' ) ) . '">' . esc_html__( 'Email me a code', 'membuild-community' ) . '</a>' : '',
+					'recovery' === $mbcom_way || ! in_array( 'recovery', $data['others'], true ) ? '' : '<a href="' . esc_url( $mbcom_other( 'recovery' ) ) . '">' . esc_html__( 'Use a recovery code', 'membuild-community' ) . '</a>',
+				)
+			);
+			?>
+			<?php if ( $mbcom_ways ) : ?>
+				<p class="foot">
+				<?php
+				/* translators: %s: other ways to get a code, as links ("Use your app or Use a recovery code") */
+				echo wp_kses( sprintf( __( 'Can’t get a code? %s', 'membuild-community' ), implode( ' ' . esc_html__( 'or', 'membuild-community' ) . ' ', $mbcom_ways ) ), $mbcom_kses );
+				?>
+				</p>
+			<?php else : ?>
+				<p class="foot"><?php esc_html_e( 'Not you?', 'membuild-community' ); ?> <?php echo $mbcom_login; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped where built ?></p>
+			<?php endif; ?>
+
+		<?php elseif ( 'twosetup' === $view ) : ?>
+			<?php
+			// Someone the owner asks to use two-step login, setting it up right after their password.
+			$mbcom_args   = array_filter(
+				array(
+					'wp-auth-id'    => $data['u'],
+					'wp-auth-nonce' => $data['n'],
+					'redirect_to'   => $data['redirect'],
+					'rememberme'    => $data['keep'] ? 1 : 0,
+				)
+			);
+			$mbcom_hidden = function ( $args ) {
+				foreach ( $args as $k => $v ) {
+					echo '<input type="hidden" name="' . esc_attr( $k ) . '" value="' . esc_attr( $v ) . '">';
+				}
+			};
+			$mbcom_prove = ! empty( $data['prove'] ); // an app, but the emailed code comes first (see Two_Step::setup_step)
+			echo $mbcom_brand; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped where built
+			if ( 'email' === $data['way'] || $mbcom_prove ) {
+				echo $mbcom_h1( __( 'Check your', 'membuild-community' ), __( 'email.', 'membuild-community' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped where built
+			} elseif ( 'app' === $data['way'] ) {
+				echo $mbcom_h1( __( 'Set up', 'membuild-community' ), __( 'your app.', 'membuild-community' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped where built
+			} else {
+				echo $mbcom_h1( __( 'Protect your', 'membuild-community' ), __( 'account.', 'membuild-community' ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped where built
+			}
+			?>
+			<div class="intro">
+				<p class="lead">
+				<?php
+				if ( 'email' === $data['way'] ) {
+					/* translators: %s: the member's email address, partly hidden (a•••@example.com) */
+					echo esc_html( sprintf( __( 'We sent a code to %s. Type it here to finish.', 'membuild-community' ), $data['address'] ) );
+				} elseif ( $mbcom_prove ) {
+					/* translators: %s: the member's email address, partly hidden (a•••@example.com) */
+					echo esc_html( sprintf( __( 'First, type the code we sent to %s. Then you can add your app.', 'membuild-community' ), $data['address'] ) );
+				} elseif ( 'app' === $data['way'] ) {
+					esc_html_e( 'Scan this with an authenticator app, like Google Authenticator, then type the 6-digit code it shows.', 'membuild-community' );
+				} else {
+					/* translators: %s: community name */
+					echo esc_html( sprintf( __( '%s asks everyone to add a second step when they log in. It takes a minute.', 'membuild-community' ), $name ) );
+				}
+				?>
+				</p>
+			</div>
+			<?php if ( $data['error'] ) : ?>
+				<?php echo $mbcom_alert( esc_html( $data['error'] ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped here ?>
+			<?php elseif ( $data['notice'] ) : ?>
+				<?php echo $mbcom_okbox( esc_html( $data['notice'] ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped here ?>
+			<?php endif; ?>
+			<?php if ( ! $data['way'] ) : ?>
+				<form method="get" action="<?php echo esc_url( Login::url( 'login' ) ); ?>">
+					<?php $mbcom_hidden( $mbcom_args ); ?>
+					<fieldset class="field picks">
+						<legend class="label"><?php esc_html_e( 'How do you want to get your code?', 'membuild-community' ); ?></legend>
+						<label class="pick"><input type="radio" name="way" value="email" checked><span class="dot" aria-hidden="true"></span><span><b><?php esc_html_e( 'Email me a code', 'membuild-community' ); ?> <em><?php esc_html_e( '(Easiest)', 'membuild-community' ); ?></em></b>
+						<?php
+						/* translators: %s: the member's email address, partly hidden (a•••@example.com) */
+						echo esc_html( sprintf( __( 'Each time you log in, we send a code to %s.', 'membuild-community' ), $data['address'] ) );
+						?>
+						</span></label>
+						<label class="pick"><input type="radio" name="way" value="app"><span class="dot" aria-hidden="true"></span><span><b><?php esc_html_e( 'Use an authenticator app', 'membuild-community' ); ?></b><?php esc_html_e( 'Get codes from an app on your phone, like Google Authenticator.', 'membuild-community' ); ?></span></label>
+					</fieldset>
+					<button class="btn" type="submit"><?php esc_html_e( 'Continue', 'membuild-community' ); ?> <?php echo $mbcom_arrow; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- a fixed icon ?></button>
+				</form>
+				<p class="foot"><?php esc_html_e( 'Not you?', 'membuild-community' ); ?> <a href="<?php echo esc_url( Login::url( 'login' ) ); ?>"><?php esc_html_e( 'Log in again', 'membuild-community' ); ?></a></p>
+			<?php else : ?>
+				<form method="post" action="<?php echo esc_url( Login::url( 'login' ) ); ?>">
+					<?php $mbcom_hidden( $mbcom_args + array( 'way' => $data['way'] ) ); ?>
+					<?php if ( 'app' === $data['way'] && ! $mbcom_prove ) : ?>
+						<div class="qr-row">
+							<span class="qr" data-qr="<?php echo esc_attr( $data['qr'] ); ?>" role="img" aria-label="<?php esc_attr_e( 'QR code to scan with your app', 'membuild-community' ); ?>"></span>
+							<span class="small"><?php esc_html_e( 'Can’t scan? Type this key instead:', 'membuild-community' ); ?><br><code class="key"><?php echo esc_html( trim( chunk_split( $data['secret'], 4, ' ' ) ) ); ?></code></span>
+						</div>
+					<?php endif; ?>
+					<label class="field">
+						<span class="label"><?php 'email' === $data['way'] || $mbcom_prove ? esc_html_e( 'Code from the email', 'membuild-community' ) : esc_html_e( '6-digit code', 'membuild-community' ); ?></span>
+						<input class="code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" required <?php echo 'email' === $data['way'] || $mbcom_prove ? $mbcom_af : ''; ?>>
+					</label>
+					<button class="btn" type="submit"><?php $mbcom_prove ? esc_html_e( 'Continue', 'membuild-community' ) : esc_html_e( 'Finish and log in', 'membuild-community' ); ?> <?php echo $mbcom_arrow; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- a fixed icon ?></button>
+					<?php if ( 'email' === $data['way'] || $mbcom_prove ) : ?>
+						<p class="or" aria-hidden="true"><span><?php esc_html_e( 'or', 'membuild-community' ); ?></span></p>
+						<button class="btn outline" type="submit" name="resend" value="1" formnovalidate><?php esc_html_e( 'Send it again', 'membuild-community' ); ?></button>
+					<?php endif; ?>
+				</form>
+				<p class="foot"><a href="<?php echo esc_url( Login::url( 'login', $mbcom_args ) ); ?>"><?php esc_html_e( 'Pick another way', 'membuild-community' ); ?></a></p>
 			<?php endif; ?>
 
 		<?php elseif ( 'linksent' === $view ) : ?>
@@ -419,6 +588,6 @@ $mbcom_kses = array( 'strong' => array(), 'b' => array(), 'a' => array( 'href' =
 		</div>
 	</section>
 </main>
-<?php wp_print_scripts( array( 'mbcom-login' ) ); ?>
+<?php wp_print_scripts( 'twosetup' === $view && ! empty( $data['qr'] ) ? array( 'mbcom-qr', 'mbcom-login' ) : array( 'mbcom-login' ) ); ?>
 </body>
 </html>

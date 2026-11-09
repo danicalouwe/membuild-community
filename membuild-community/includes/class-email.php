@@ -244,7 +244,7 @@ class Email {
 			__( 'Your emails are working', 'membuild-community' ),
 			self::para( esc_html( $how ) )
 				. '<div style="margin-top:16px;padding:14px 16px;border-radius:12px;background:#fff3d6;color:#7a4e00;font-size:16px;line-height:1.5"><strong>' . esc_html__( 'Found this in spam?', 'membuild-community' ) . '</strong> ' . esc_html( $spam ) . '</div>',
-			home_url( '/' . Settings::slug() . '/settings?s=email' ),
+			home_url( '/' . Settings::slug() . '/settings/email' ),
 			__( 'Back to Settings', 'membuild-community' ),
 			'',
 			/* translators: %s: community name */

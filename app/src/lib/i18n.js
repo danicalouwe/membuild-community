@@ -9,7 +9,14 @@
  * only the "t.__(…)" form survives minification.
  * In templates, `t` is available everywhere: {{ t.__('Save', 'membuild-community') }}
  */
+import { makeSwapper } from './words.js'
+
 const wpI18n = window.wp?.i18n
+
+// A theme's words (lib/words.js), on the community's own sentences only, on English sites.
+const words = window.membuildCommunity?.words
+const swapper = words?.english ? makeSwapper(words.list) : (text) => text
+const swap = (text, domain) => (domain === 'membuild-community' ? swapper(text) : text)
 
 function format(text, args) {
   let i = 0
@@ -21,9 +28,9 @@ function format(text, args) {
 }
 
 export const t = {
-  __: (text, domain) => (wpI18n ? wpI18n.__(text, domain) : text),
-  _x: (text, context, domain) => (wpI18n ? wpI18n._x(text, context, domain) : text),
-  _n: (single, plural, n, domain) => (wpI18n ? wpI18n._n(single, plural, n, domain) : n === 1 ? single : plural),
+  __: (text, domain) => swap(wpI18n ? wpI18n.__(text, domain) : text, domain),
+  _x: (text, context, domain) => swap(wpI18n ? wpI18n._x(text, context, domain) : text, domain),
+  _n: (single, plural, n, domain) => swap(wpI18n ? wpI18n._n(single, plural, n, domain) : n === 1 ? single : plural, domain),
   sprintf: (text, ...args) => (wpI18n ? wpI18n.sprintf(text, ...args) : format(text, args)),
 }
 

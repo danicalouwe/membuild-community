@@ -689,6 +689,28 @@ h4 {
 }
 
 /* A sentence saying something went wrong (role="alert" where it appears after an action). */
+/* A quiet note with an icon: grey for information, yellow (.warn) for "do this now". */
+.info-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 8px 0 0;
+  padding: 16px 18px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--text-2);
+  line-height: 1.5;
+}
+
+.info-note.warn {
+  background: var(--warn-soft);
+  color: var(--warn-text);
+}
+
+.info-note > svg {
+  flex: none;
+}
+
 .error-text {
   margin: 0;
   /* Always red, even inside a block that greys its text. */

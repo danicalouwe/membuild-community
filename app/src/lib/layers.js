@@ -13,6 +13,23 @@ export function focusables(root) {
   return [...root.querySelectorAll(FOCUSABLE)].filter((el) => el.getAttribute('tabindex') !== '-1' && (el.offsetParent !== null || el === document.activeElement))
 }
 
+// The <select> whose list is open, as far as the page can tell: opened by a click or by
+// Alt+Down / Alt+Up / F4 / Space, closed by choosing, leaving it, or the Escape it takes.
+let listOpen = null
+if (typeof document !== 'undefined') {
+  const selectOf = (e) => (e.target instanceof Element ? e.target.closest('select') : null)
+  document.addEventListener('pointerdown', (e) => {
+    const s = selectOf(e)
+    listOpen = s && listOpen !== s ? s : null
+  }, true)
+  document.addEventListener('keydown', (e) => {
+    const s = selectOf(e)
+    if (s && (e.key === 'F4' || e.key === ' ' || (e.altKey && (e.key === 'ArrowDown' || e.key === 'ArrowUp')))) listOpen = s
+  }, true)
+  document.addEventListener('change', (e) => { if (selectOf(e) === listOpen) listOpen = null }, true)
+  document.addEventListener('focusout', (e) => { if (selectOf(e) === listOpen) listOpen = null }, true)
+}
+
 // Listens on window in the bubble phase, so a field inside a dialog can still
 // claim Escape first (e.g. "cancel reply") by stopping it or preventing its default.
 function onKeydown(e) {
@@ -20,6 +37,12 @@ function onKeydown(e) {
   if (!top) return
   if (e.key === 'Escape') {
     if (e.defaultPrevented) return
+    // Escape while a dropdown's list is open only closes the list (it asked "Discard this post?"
+    // over "Poll closes"). A dropdown that is just focused still lets Escape close the dialog.
+    if (listOpen && e.target === listOpen) {
+      listOpen = null
+      return
+    }
     e.preventDefault()
     top.close()
   } else if (e.key === 'Tab') {

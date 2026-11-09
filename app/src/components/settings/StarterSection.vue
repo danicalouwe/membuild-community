@@ -228,9 +228,9 @@ async function remove() {
       </p>
 
       <!-- The look: the main colour, the logo, the money-back promise. -->
-      <h3 class="sp-sub">{{ t.__('Colour and logo', 'membuild-community') }}</h3>
-      <ColorPick :model-value="colour === swatches[0] ? '' : colour" :accents="swatches" :label="t.__('Main colour', 'membuild-community')" @update:model-value="pickColour" />
-      <small class="sp-note">{{ t.__('Also your community’s main colour (Settings › General). Buttons get dark or white words, whichever reads best.', 'membuild-community') }}</small>
+      <h3 class="sp-sub">{{ t.__('Color and logo', 'membuild-community') }}</h3>
+      <ColorPick :model-value="colour === swatches[0] ? '' : colour" :accents="swatches" :label="t.__('Main color', 'membuild-community')" @update:model-value="pickColour" />
+      <small class="sp-note">{{ t.__('Also your community’s main color (Settings › Your community). Buttons get dark or white words, whichever reads best.', 'membuild-community') }}</small>
       <label v-if="state.logo" class="toggle-row sp-logo">
         <img :src="state.logo" alt="" class="sp-logo-img" />
         <span>
@@ -339,9 +339,9 @@ async function remove() {
         <input v-model="answers.gets" type="text" maxlength="120" :placeholder="t.__('Weekly live classes, short courses, a kind group', 'membuild-community')" />
       </label>
       <div class="field">
-        <span class="label">{{ t.__('Colour and logo', 'membuild-community') }}</span>
-        <ColorPick :model-value="colour === swatches[0] ? '' : colour" :accents="swatches" :label="t.__('Main colour', 'membuild-community')" @update:model-value="(v) => (colour = v || swatches[0])" />
-        <small>{{ t.__('Pick one, or + for any colour, the same control as Settings › General. Buttons get dark or white words, whichever reads best. Logo from Site Logo.', 'membuild-community') }}</small>
+        <span class="label">{{ t.__('Color and logo', 'membuild-community') }}</span>
+        <ColorPick :model-value="colour === swatches[0] ? '' : colour" :accents="swatches" :label="t.__('Main color', 'membuild-community')" @update:model-value="(v) => (colour = v || swatches[0])" />
+        <small>{{ t.__('Pick one, or + for any color, the same control as Settings › Your community. Buttons get dark or white words, whichever reads best. Logo from Site Logo.', 'membuild-community') }}</small>
       </div>
       <label v-if="state.logo" class="toggle-row sp-logo">
         <img :src="state.logo" alt="" class="sp-logo-img" />

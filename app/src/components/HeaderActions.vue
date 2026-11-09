@@ -73,6 +73,8 @@ const you = computed(() => [
   ...(cfg.billing !== null && cfg.billing !== undefined ? [{ to: { name: 'billing' }, icon: 'card', label: t.__('Billing', 'membuild-community') }] : []),
   // Privacy: whether others see when you're online (only while the owner shows who's online).
   ...(cfg.community.features?.online !== false && cfg.community.features?.messages !== false ? [{ to: { name: 'privacy' }, icon: 'eye', label: t.__('Privacy', 'membuild-community') }] : []),
+  // Two-step login: only while the owner has it on (Settings › Security).
+  ...(cfg.community.twoStep ? [{ to: { name: 'two-step' }, icon: 'shieldCheck', label: t.__('Two-step login', 'membuild-community') }] : []),
 ])
 const after = computed(() =>
   [

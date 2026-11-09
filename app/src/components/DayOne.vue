@@ -27,9 +27,9 @@ watch(
 )
 
 const OWNER = [
-  { key: 'look', label: t.__('Name, logo and color', 'membuild-community'), to: { name: 'settings', hash: '#s-general' } },
-  { key: 'email', label: t.__('Choose how emails are sent', 'membuild-community'), to: { name: 'settings', hash: '#s-email' } },
-  { key: 'key', label: t.__('Save your safety key', 'membuild-community'), to: { name: 'settings', query: { s: 'advanced' }, hash: '#s-key' } },
+  { key: 'look', label: t.__('Name, logo and color', 'membuild-community'), to: { name: 'settings', params: { section: 'community' } } },
+  { key: 'email', label: t.__('Choose how emails are sent', 'membuild-community'), to: { name: 'settings', params: { section: 'email' } } },
+  { key: 'key', label: t.__('Save your safety key', 'membuild-community'), to: { name: 'settings', params: { section: 'address' }, hash: '#s-key' } },
   { key: 'course', label: t.__('Add your first course', 'membuild-community'), to: { name: 'classroom' }, optional: true },
   { key: 'post', label: t.__('Write a welcome post', 'membuild-community'), to: { name: 'feed', query: { write: 1 } } },
   { key: 'invite', label: t.__('Invite your members', 'membuild-community'), invite: true },

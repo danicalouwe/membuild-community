@@ -75,7 +75,7 @@ function line(g) {
         </ul>
         <p v-else class="intro">
           {{ t.__('There are no memberships yet.', 'membuild-community') }}
-          <RouterLink :to="{ name: 'settings', hash: '#s-access' }" @click="emit('close')">{{ t.__('Make one in Settings', 'membuild-community') }}</RouterLink>
+          <RouterLink :to="{ name: 'settings', params: { section: 'memberships' } }" @click="emit('close')">{{ t.__('Make one in Settings', 'membuild-community') }}</RouterLink>
         </p>
       </template>
       <p v-if="error" class="error-text">{{ error }}</p>
