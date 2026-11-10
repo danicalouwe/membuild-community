@@ -261,6 +261,12 @@ export const api = {
   encryptionKey: () => request('/settings/encryption/key'),
   encryptionAction: (action, key) => request('/settings/encryption', { method: 'POST', body: { action, key } }),
   usage: () => request('/settings/usage'),
+  // Settings › Add-ons (owner): paid add-ons, their keys, installing.
+  addons: () => request('/settings/addons'),
+  checkAddonKey: (body) => request('/settings/addons/check', { method: 'POST', body }),
+  installAddon: (slug) => request('/settings/addons/install', { method: 'POST', body: { slug } }),
+  addonDownload: (slug) => request('/settings/addons/download', { method: 'POST', body: { slug } }),
+  removeAddonKey: (slug, which) => request('/settings/addons/remove', { method: 'POST', body: { slug, which } }),
   saveUsage: (body) => request('/settings/usage', { method: 'PUT', body }),
   forgetUsage: () => request('/settings/usage/forget', { method: 'POST' }),
   subscribeUpdates: (body) => request('/settings/updates', { method: 'POST', body }),

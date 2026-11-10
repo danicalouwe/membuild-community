@@ -99,6 +99,33 @@ h2 {
   font-size: var(--fs-lg);
 }
 
+/* A few short lines in a grey box (askConfirm's points): what happens next, calmly. */
+.text :deep(.points) {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: var(--fs-base);
+  list-style: none;
+}
+
+.text :deep(.points li) {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.45;
+}
+
+.text :deep(.points svg) {
+  flex: none;
+  margin-top: 3px;
+  color: var(--text-2);
+}
+
 .tick {
   display: flex;
   align-items: center;

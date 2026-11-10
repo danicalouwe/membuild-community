@@ -9,6 +9,17 @@
  *     slots: { 'checkins.card': { kind: 'replace', about: 'The check-in card.', props: { day: 'the day' } } },
  *   }))
  *
+ * An add-on can also add its own section to Settings (owners only, like all of Settings):
+ *
+ *   settings: { id: 'crm', label: 'CRM', icon: 'users', after: 'access', summary: 'Tags and contacts', component: CrmSettings }
+ *
+ * It goes after the core section named in `after` (or after Add-ons), in the side list and the phone
+ * list, at /settings/<id> (/settings/crm; old /settings#s-crm links forward there). Register from
+ * membuild_community/app_head, before the app starts, so a link straight to the page finds it.
+ * Point membuild_community/addon_open_url at the page too. The component draws its own card, saves by
+ * itself (not with the Save bar) and should give its outer element id="s-<id>". If it fails, the
+ * rest of Settings carries on and the Problems page says which add-on.
+ *
  * Then mb.addons.checkins is { name, version } (read-only and live, so a theme's piece that checks
  * it redraws when the add-on arrives), mb.data.checkins holds its functions, and its slots are in
  * mb.slots. Slot names start with the add-on's id, so add-ons never clash with the core or each other.
@@ -19,7 +30,7 @@
  *
  * Contract 1 promise: registerAddon, addons and request are only ever added to.
  */
-import { reactive, readonly } from 'vue'
+import { markRaw, reactive, readonly } from 'vue'
 import { request as coreRequest } from '../api.js'
 import { coreData } from './data.js'
 import { CONTRACT, addSlots } from './slots.js'
@@ -27,6 +38,11 @@ import { reportProblem } from './problems.js'
 
 const list = reactive({})
 export const addons = readonly(list)
+
+// Settings sections that add-ons added, in the order they arrived (SettingsView places them).
+const sections = reactive([])
+export const addonSections = readonly(sections)
+const SECTION_ID = /^[a-z][a-z0-9-]{1,30}$/
 
 // mb.data: the core's namespaces, then each add-on's under its id. None can be swapped out later.
 export const data = {}
@@ -49,6 +65,12 @@ export function registerAddon(id, info = {}) {
   if (list[id] || id in data) {
     reportProblem(new Error(`Two add-ons (or an add-on and the community) use the id “${id}”; ${name} is left out.`), `add-on: ${id}`, 0, 'register')
     return false
+  }
+  const set = info.settings
+  if (set && (!set.component || !SECTION_ID.test(String(set.id || id)) || sections.some((x) => x.id === String(set.id || id)))) {
+    reportProblem(new Error(`${name} tried to add a Settings section without a component, or with an id that's taken.`), `add-on: ${id}`, 0, 'register')
+  } else if (set) {
+    sections.push({ id: String(set.id || id), label: String(set.label || name), icon: String(set.icon || 'box'), after: String(set.after || 'addons'), summary: String(set.summary || ''), component: markRaw(set.component), addon: id })
   }
   keep(id, info.data && typeof info.data === 'object' ? info.data : {})
   const slots = addSlots(id, info.slots)

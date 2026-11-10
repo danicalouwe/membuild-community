@@ -24,8 +24,11 @@ import JoiningSection from '../components/settings/JoiningSection.vue'
 import UpdatesSection from '../components/settings/UpdatesSection.vue'
 import AdvancedSection from '../components/settings/AdvancedSection.vue'
 import ImportSection from '../components/settings/ImportSection.vue'
+import AddonsSection from '../components/settings/AddonsSection.vue'
 import StarterSection from '../components/settings/StarterSection.vue'
 import SecuritySection from '../components/settings/SecuritySection.vue'
+import AddonSettings from '../components/settings/AddonSettings.vue'
+import { addonSections } from '../lib/addons.js'
 import { t } from '../lib/i18n.js'
 
 /**
@@ -51,12 +54,32 @@ const COMPONENTS = {
   video: VideoSection,
   gifs: GifsSection,
   import: ImportSection,
+  addons: AddonsSection,
   updates: UpdatesSection,
   advanced: AdvancedSection,
 }
 const ISOLATED = ['access']
-const SECTIONS = SETTINGS_PAGES.filter((p) => COMPONENTS[p.id]).map((p) => ({ ...p, component: COMPONENTS[p.id], isolated: ISOLATED.includes(p.id) }))
-const GROUPS = SETTINGS_GROUPS.map((g) => ({ ...g, pages: SECTIONS.filter((s) => s.group === g.id) })).filter((g) => g.pages.length)
+const CORE_SECTIONS = SETTINGS_PAGES.filter((p) => COMPONENTS[p.id]).map((p) => ({ ...p, component: COMPONENTS[p.id], isolated: ISOLATED.includes(p.id) }))
+// An add-on's own page (lib/addons.js) goes after the core page it names, in that page's group,
+// or after Add-ons. Its address is its id (/settings/crm). Each is drawn inside AddonSettings, so
+// a broken one can't take Settings down with it.
+const SECTIONS = computed(() => {
+  // On a multisite network, add-ons are installed from the main site only.
+  const list = CORE_SECTIONS.filter((s) => s.id !== 'addons' || cfg.community.addonsHere !== false)
+  for (const a of addonSections) {
+    if (CORE_SECTIONS.some((s) => s.id === a.id || s.slug === a.id) || list.some((s) => s.id === a.id)) continue
+    let at = list.findIndex((s) => s.id === a.after)
+    if (at < 0) at = list.findIndex((s) => s.id === 'addons')
+    // A subsite has no Add-ons page: the end of Connections, else the end.
+    if (at < 0) list.forEach((s, i) => s.group === 'connections' && (at = i))
+    if (at < 0) at = list.length - 1
+    // After any add-on pages already there, so they keep the order they arrived in.
+    while (list[at + 1]?.addonSection) at++
+    list.splice(at + 1, 0, { ...a, slug: a.id, group: list[at].group, find: [], isolated: true, addonSection: true })
+  }
+  return list
+})
+const GROUPS = computed(() => SETTINGS_GROUPS.map((g) => ({ ...g, pages: SECTIONS.value.filter((s) => s.group === g.id) })).filter((g) => g.pages.length))
 const sectionPath = (s) => ({ name: 'settings', params: { section: s.slug } })
 // Moderation stays its own page; Safety links to it, with how many reports wait.
 const showModeration = !!cfg.community.isStaff
@@ -70,7 +93,7 @@ const onPhoneChange = (e) => (onPhone.value = e.matches)
 phoneMq.addEventListener('change', onPhoneChange)
 onBeforeUnmount(() => phoneMq.removeEventListener('change', onPhoneChange))
 
-const page = computed(() => SECTIONS.find((s) => s.slug === route.params.section) || null)
+const page = computed(() => SECTIONS.value.find((s) => s.slug === route.params.section) || null)
 const openId = computed(() => (onPhone.value ? page.value?.id || '' : ''))
 const shownSections = computed(() => (page.value ? [page.value] : []))
 // /settings alone: the list on phones; on a computer, the page you were last on (else the first).
@@ -80,7 +103,7 @@ watch(
   ([slug, phone]) => {
     if (route.name !== 'settings') return
     if (slug && !page.value) return router.replace({ name: 'settings' })
-    if (!slug && !phone) router.replace(sectionPath(SECTIONS.find((s) => s.slug === lastSettingsPage()) || SECTIONS[0]))
+    if (!slug && !phone) router.replace(sectionPath(SECTIONS.value.find((s) => s.slug === lastSettingsPage()) || SECTIONS.value[0]))
   },
   { immediate: true },
 )
@@ -105,9 +128,10 @@ const summary = (id) => {
     video: f.video?.provider === 'bunny' ? 'Bunny Stream' : t.__('This site', 'membuild-community'),
     gifs: f.gifs?.key ? t.__('Set up', 'membuild-community') : t.__('Not set up', 'membuild-community'),
     import: t.__('From another plugin or a spreadsheet', 'membuild-community'),
+    addons: t.__('Extra features made by MemBuild', 'membuild-community'),
     updates: t.__('New features, usage', 'membuild-community'),
     advanced: t.__('Address, safety key', 'membuild-community'),
-  }[id]
+  }[id] ?? (addonSections.find((a) => a.id === id)?.summary || '')
 }
 
 const meta = ref(null) // labels, presets and defaults from the server
@@ -215,7 +239,7 @@ const results = computed(() => {
   const q = query.value.trim().toLowerCase()
   if (!q) return []
   const out = []
-  for (const s of SECTIONS) {
+  for (const s of SECTIONS.value) {
     if (s.label.toLowerCase().includes(q)) out.push({ key: s.id, label: s.label, where: groupLabel[s.group], section: s })
     for (const name of s.find) if (name.toLowerCase().includes(q)) out.push({ key: `${s.id}:${name}`, label: name, where: `${groupLabel[s.group]} › ${s.label}`, section: s, find: name })
   }
@@ -377,7 +401,8 @@ const resultsSaid = computed(() => (!query.value.trim() ? '' : results.value.len
       <template v-else>
         <!-- display: contents, so the section still sits directly in the column. -->
         <div v-for="s in shownSections" :key="s.id" class="slot" :class="{ styled: !s.isolated }">
-          <component :is="s.component" />
+          <AddonSettings v-if="s.addonSection" :section="s" />
+          <component :is="s.component" v-else />
         </div>
         <p v-if="page?.id === 'updates'" class="credit">MemBuild - Community · {{ t.__('Built by', 'membuild-community') }} <a href="https://membuild.com/community" target="_blank" rel="noopener">MemBuild</a></p>
       </template>

@@ -31,6 +31,15 @@ defined( 'ABSPATH' ) || exit;
 		<link rel="icon" type="image/png" sizes="32x32" href="<?php echo esc_url( $icons[32] ); ?>">
 		<link rel="icon" type="image/png" sizes="192x192" href="<?php echo esc_url( $icons[192] ); ?>">
 	<?php endif; ?>
+	<?php
+	/*
+	 * After a plugin update, a phone may reopen this page from before the update, whose app files
+	 * are gone, and show a blank page. When one of the app's own files fails to load, reload once
+	 * (not again within 10 seconds, so a real outage can't loop). Once the app has started, it
+	 * handles failures itself, so nothing a member typed is lost (app/src/lib/freshness.js).
+	 */
+	?>
+	<script>( function ( build ) { window.addEventListener( 'error', function ( e ) { var el = e.target, src = el && ( el.src || el.href ); if ( window.mbcomStarted || ! src || ( el.tagName !== 'SCRIPT' && el.tagName !== 'LINK' ) || src.indexOf( build ) === -1 ) return; try { var last = Number( sessionStorage.getItem( 'mbcom-reloaded-at' ) ) || 0; if ( Date.now() - last < 10000 ) return; sessionStorage.setItem( 'mbcom-reloaded-at', String( Date.now() ) ); } catch ( err ) { return; } location.reload(); }, true ); } )( <?php echo wp_json_encode( wp_parse_url( MEMBUILD_COMMUNITY_URL . 'assets/build/', PHP_URL_PATH ) ); ?> );</script>
 	<?php wp_print_styles( array( 'mbcom-app', 'mbcom-app-1' ) ); ?>
 	<script>window.MBCommunity = window.MBCommunity || { queue: [], ready: function ( fn ) { this.queue.push( fn ); } };</script>
 	<?php

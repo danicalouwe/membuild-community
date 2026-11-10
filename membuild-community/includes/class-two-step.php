@@ -712,11 +712,26 @@ class Two_Step {
 		return current_user_can( 'install_plugins' ) && ! ( defined( 'DISALLOW_FILE_MODS' ) && DISALLOW_FILE_MODS ) && 'direct' === get_filesystem_method();
 	}
 
-	/** { state: on | off | missing, version, can_add, plugins_url, who } */
+	/**
+	 * Two Factor marked Active in Plugins, but its code never loaded (a broken or half-updated
+	 * copy). Turning it "on" again would change nothing, and nobody would be asked for a code.
+	 */
+	private static function broken( $file ) {
+		if ( ! function_exists( 'is_plugin_active' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+		return $file && ! self::active() && is_plugin_active( $file );
+	}
+
+	private static function broken_error() {
+		return self::error( 'mbcom_two_step_broken', __( 'Two Factor is installed but isn’t working, so nobody would be asked for a code. Delete it in Plugins, then turn this on again to add a fresh copy.', 'membuild-community' ), 409 );
+	}
+
+	/** { state: on | off | missing | broken, version, can_add, plugins_url, who } */
 	public static function status() {
 		$file = self::active() ? '' : self::plugin_file();
 		return array(
-			'state'       => self::active() ? 'on' : ( $file ? 'off' : 'missing' ),
+			'state'       => self::active() ? 'on' : ( self::broken( $file ) ? 'broken' : ( $file ? 'off' : 'missing' ) ),
 			'version'     => defined( 'TWO_FACTOR_VERSION' ) ? TWO_FACTOR_VERSION : null,
 			'can_add'     => self::active() || $file ? true : self::can_add(),
 			'plugins_url' => admin_url( 'plugin-install.php?s=two-factor&tab=search&type=term' ),
@@ -751,9 +766,17 @@ class Two_Step {
 			}
 			$file = self::plugin_file();
 		}
+		if ( self::broken( $file ) ) {
+			return self::broken_error();
+		}
 		$on = $file ? activate_plugin( $file ) : new \WP_Error( 'mbcom_two_step_add_failed', '' );
 		if ( is_wp_error( $on ) ) {
 			return self::error( 'mbcom_two_step_add_failed', __( 'Two Factor was added but didn’t turn on. Open Plugins and choose Activate under Two Factor.', 'membuild-community' ), 500 );
+		}
+		// Activating loads its code; if that still didn't define Two Factor, say so instead of "on".
+		if ( ! self::active() ) {
+			deactivate_plugins( $file );
+			return self::broken_error();
 		}
 		return array_merge(
 			self::status(),

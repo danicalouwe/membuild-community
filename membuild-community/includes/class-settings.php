@@ -204,6 +204,7 @@ class Settings {
 			'isStaff'     => self::is_staff( get_current_user_id() ),
 			'reportReasons' => Moderation::reasons(),
 			'canManage'   => Helpers::can_manage(),
+			'addonsHere'  => Addons::here(), // Settings › Add-ons: single sites and a network's main site only
 			'canSeeAsMember' => current_user_can( 'manage_options' ), // the floating "See it as a member" button
 			'asMember'    => Helpers::as_member_pick(), // { group, level } while seeing it as a member
 			'memberships' => current_user_can( 'manage_options' ) ? array_values( array_map( fn( $g ) => array( 'id' => $g['id'], 'name' => $g['name'] ), Access::groups() ) ) : array(), // the picker's choices

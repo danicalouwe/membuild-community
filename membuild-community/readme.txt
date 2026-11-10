@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.20.0
+Stable tag: 1.21.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -266,6 +266,15 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.21.0 =
+* New: Settings → Add-ons lists MemBuild's paid add-ons, starting with CRM Connect. Paste the key from your purchase email and install the add-on in one click; every download is checked before it goes on your site.
+* New: add-on updates show on WordPress's own update screens while your paid year lasts. When the year ends, the add-on keeps working and only updates stop.
+* New: an add-on can add its own page to Settings (CRM Connect adds Settings → CRM, under Members and access).
+* On a multisite network, add-ons are managed from the main site.
+* Fixed: the phone app reloads itself after an update instead of showing a white screen, and never over a post you're writing.
+* Fixed: Settings → Security no longer says two-step login is on when the Two Factor plugin is installed but doesn't load, and says when it's installed but switched off.
+* Fixed: turning on two-step login says "Turning on…" instead of "Installing…" when Two Factor is already there.
 
 = 1.20.0 =
 * New: Two-step login. Settings → Security turns it on with one switch (it adds the free Two Factor plugin from WordPress.org, or uses the copy already there). Choose who has to use it: anyone who wants it, you and your team, or everyone.

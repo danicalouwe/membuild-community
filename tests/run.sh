@@ -9,6 +9,8 @@ node tests/check-styles.mjs || exit 1
 node tests/words-check.mjs || exit 1
 # Settings addresses: old links forward, any case works.
 node tests/settings-links-check.mjs || exit 1
+# The add-on price says "a year" once, whatever tools.membuild.com sends.
+node tests/price-check.mjs || exit 1
 # The file is copied into the container (it's too long to pass on the command line).
 # This folder's own tests container: wp-env names its containers after this folder's install path,
 # so a site started from another checkout or project is never picked.

@@ -17,7 +17,7 @@ const WHO = [
   { key: 'everyone', label: t.__('Required for everyone', 'membuild-community'), hint: t.__('Every member sets it up at their next log in.', 'membuild-community') },
 ]
 
-const status = ref(meta.value?.two_step || null) // { state: on | off | missing, version, can_add, plugins_url, needs_login_page }
+const status = ref(meta.value?.two_step || null) // { state: on | off | missing | broken, version, can_add, plugins_url, needs_login_page }
 const working = ref(false)
 const blocked = ref('') // the host's answer when it won't add plugins
 const on = computed(() => status.value?.state === 'on')
@@ -50,7 +50,9 @@ async function change(want) {
   try {
     setStatus(await api.twoStepSwitch(want))
   } catch (e) {
-    blocked.value = e.message || t.__('That didn’t work. Try again.', 'membuild-community')
+    // A copy of Two Factor that's installed but never loads: say so in place, not as "couldn't be added".
+    if (e?.code === 'mbcom_two_step_broken') setStatus({ ...(status.value || {}), state: 'broken' })
+    else blocked.value = e.message || t.__('That didn’t work. Try again.', 'membuild-community')
   } finally {
     working.value = false
   }
@@ -79,11 +81,11 @@ async function checkAgain() {
         <strong>{{ t.__('Two-step login', 'membuild-community') }}</strong>
         <small>{{ t.__('After their password, people type a code from their phone or email.', 'membuild-community') }}</small>
       </span>
-      <span v-if="working" class="status-tag lg">{{ on ? t.__('Turning off…', 'membuild-community') : t.__('Installing…', 'membuild-community') }}</span>
+      <span v-if="working" class="status-tag lg">{{ on ? t.__('Turning off…', 'membuild-community') : status?.state === 'missing' ? t.__('Installing…', 'membuild-community') : t.__('Turning on…', 'membuild-community') }}</span>
       <input v-else type="checkbox" class="switch" role="switch" :checked="on" :disabled="!status" @change="flip" />
     </label>
 
-    <p v-if="working && !on" class="info-note"><Icon name="download" :size="20" /><span>{{ t.__('Adding the free Two Factor plugin from WordPress.org. This takes a few seconds.', 'membuild-community') }}</span></p>
+    <p v-if="working && !on && status?.state === 'missing'" class="info-note"><Icon name="download" :size="20" /><span>{{ t.__('Adding the free Two Factor plugin from WordPress.org. This takes a few seconds.', 'membuild-community') }}</span></p>
 
     <div v-else-if="blocked" class="info-note warn" role="alert">
       <Icon name="info" :size="20" />
@@ -119,7 +121,8 @@ async function checkAgain() {
       </fieldset>
     </template>
 
-    <p v-else-if="status?.state === 'off'" class="small">{{ t.__('Two Factor is already on this site. Turning this on switches it on.', 'membuild-community') }}</p>
+    <p v-else-if="status?.state === 'broken' && !blocked" class="info-note"><Icon name="info" :size="20" /><span>{{ t.__('Two Factor is installed but isn’t working, so nobody would be asked for a code. Delete it in Plugins, then turn this on again to add a fresh copy.', 'membuild-community') }}</span></p>
+    <p v-else-if="status?.state === 'off'" class="small">{{ t.__('Two Factor is installed but switched off. Turning this on switches it on.', 'membuild-community') }}</p>
     <p v-else-if="status" class="small">{{ t.__('Turning this on adds the free Two Factor plugin from WordPress.org.', 'membuild-community') }}</p>
   </section>
 </template>

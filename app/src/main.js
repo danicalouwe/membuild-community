@@ -13,6 +13,7 @@ import { vStream } from './lib/stream.js'
 import { vAutoGrow } from './lib/autoGrow.js'
 import { t } from './lib/i18n.js'
 import { reportProblem } from './lib/problems.js'
+import { onLoadFailure, watchForUpdates } from './lib/freshness.js'
 import { CONTRACT, SLOTS, STYLED_CLASSES, addToSlot, replaceSlot } from './lib/slots.js'
 import { MEMBER_FIELDS, member } from './lib/member.js'
 import { DATA_FIELDS } from './lib/data.js'
@@ -23,22 +24,16 @@ import Icon from './components/Icon.vue'
 import Avatar from './components/Avatar.vue'
 import HeaderActions from './components/HeaderActions.vue'
 import SearchBox from './components/SearchBox.vue'
+import BaseDialog from './components/BaseDialog.vue'
+import { askConfirm } from './lib/confirm.js'
 
 applyAccent(cfg.community.accent)
 
 // After a plugin update, a page left open still points at the old app files, which are gone.
-// When one fails to load, reload once to pick up the new version.
-window.addEventListener('vite:preloadError', (e) => {
-  try {
-    const last = Number(sessionStorage.getItem('mbcom-reloaded-at')) || 0
-    if (Date.now() - last < 10000) return // already tried just now: don't loop
-    sessionStorage.setItem('mbcom-reloaded-at', String(Date.now()))
-  } catch {
-    return // no storage to remember the attempt, so don't risk a reload loop
-  }
-  e.preventDefault()
-  window.location.reload()
-})
+// When one fails to load, reload once to pick up the new version; coming back to the page
+// after a while away checks for an update too (lib/freshness.js).
+window.addEventListener('vite:preloadError', onLoadFailure)
+watchForUpdates()
 
 // Errors in the app's own code go to the site's Problems page (admins only see
 // it; see the plugin's Problems class). A few per page load, each once, and
@@ -74,7 +69,8 @@ const mb = Object.freeze({
   router,
   t,
   words: makeWords(cfg.words), // a theme's renamed words, for a theme's or add-on's own text (lib/words.js)
-  components: { Icon, Avatar, HeaderActions, SearchBox, ThemeSlot }, // the community's own parts, to reuse inside pieces; add-ons draw their slots with ThemeSlot
+  components: { Icon, Avatar, HeaderActions, SearchBox, ThemeSlot, BaseDialog }, // the community's own parts, to reuse inside pieces; add-ons draw their slots with ThemeSlot
+  askConfirm, // our own “Are you sure?” box (lib/confirm.js), for add-ons' settings
   ready: (fn) => run(fn),
 })
 function run(fn) {

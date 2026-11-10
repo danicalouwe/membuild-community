@@ -57,6 +57,7 @@ class Install {
 		wp_clear_scheduled_hook( Usage::HOOK );
 		wp_clear_scheduled_hook( Usage::HOOK . '_now' );
 		wp_clear_scheduled_hook( Search::INDEX_HOOK );
+		wp_clear_scheduled_hook( Addons::CRON );
 		flush_rewrite_rules();
 	}
 

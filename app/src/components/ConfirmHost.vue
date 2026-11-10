@@ -1,5 +1,6 @@
 <script setup>
 import ConfirmDialog from './ConfirmDialog.vue'
+import Icon from './Icon.vue'
 import { answerConfirm, confirmState } from '../lib/confirm.js'
 </script>
 
@@ -16,7 +17,10 @@ import { answerConfirm, confirmState } from '../lib/confirm.js'
     @confirm="answerConfirm(true)"
     @close="answerConfirm(false)"
   >
-    <p v-if="confirmState.open.note">{{ confirmState.open.text }}</p><template v-else>{{ confirmState.open.text }}</template>
+    <p v-if="confirmState.open.note || confirmState.open.points?.length">{{ confirmState.open.text }}</p><template v-else>{{ confirmState.open.text }}</template>
     <p v-if="confirmState.open.note" class="note warn">{{ confirmState.open.note }}</p>
+    <ul v-if="confirmState.open.points?.length" class="points">
+      <li v-for="(p, i) in confirmState.open.points" :key="i"><Icon :name="p.icon || 'check'" :size="16" />{{ p.text }}</li>
+    </ul>
   </ConfirmDialog>
 </template>

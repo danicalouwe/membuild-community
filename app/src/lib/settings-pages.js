@@ -55,6 +55,7 @@ export const SETTINGS_PAGES = [
   { id: 'gifs', slug: 'gifs', group: 'content', icon: 'gif', label: t.__('GIFs', 'membuild-community'), find: [t.__('GIPHY key', 'membuild-community'), t.__('Which GIFs can show', 'membuild-community')] },
   { id: 'security', slug: 'security', group: 'safety', icon: 'shieldCheck', label: t.__('Security', 'membuild-community'), find: [t.__('Two-step login', 'membuild-community')] },
   { id: 'import', slug: 'import', group: 'connections', icon: 'download', label: t.__('Import', 'membuild-community'), find: [t.__('Past imports', 'membuild-community')] },
+  { id: 'addons', slug: 'add-ons', group: 'connections', icon: 'box', label: t.__('Add-ons', 'membuild-community'), find: [] },
   { id: 'updates', slug: 'news', group: 'about', icon: 'bell', label: t.__('News from MemBuild', 'membuild-community'), find: [] },
   {
     id: 'advanced', slug: 'address', group: 'about', icon: 'settings', label: t.__('Address & safety key', 'membuild-community'),
@@ -64,7 +65,7 @@ export const SETTINGS_PAGES = [
 
 // Old anchors whose page has another name, including sections that live in add-ons (they land on
 // their page once it's there, and on Settings until then). `key` is a place on the address page.
-const RENAMED = { general: 'community', website: 'main-website', access: 'memberships', updates: 'news', advanced: 'address', key: 'address', addons: 'add-ons' }
+const RENAMED = { general: 'community', website: 'main-website', access: 'memberships', updates: 'news', advanced: 'address', key: 'address' }
 
 /** The address word for an old section id (or an address word), known or not. */
 export const settingsSlug = (id) => SETTINGS_PAGES.find((p) => p.id === id || p.slug === id)?.slug || RENAMED[id] || id
@@ -83,7 +84,10 @@ export function forwardOldSettingsLink(to) {
   const fromHash = /^#s-[\w-]+$/.test(to.hash) ? to.hash.slice(3) : ''
   const old = (fromQuery || fromHash).toLowerCase()
   if (!old) return null
-  return { name: 'settings', params: { section: settingsSlug(old) }, hash: old === 'key' ? '#s-key' : '', replace: true }
+  // Anything else in the address stays (an add-on's own ?crm=log, say).
+  const query = { ...to.query }
+  delete query.s
+  return { name: 'settings', params: { section: settingsSlug(old) }, query, hash: old === 'key' ? '#s-key' : '', replace: true }
 }
 
 // The page you were last on, so Settings opens there on a computer. This browser only.

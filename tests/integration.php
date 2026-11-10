@@ -3840,6 +3840,37 @@ delete_option( 'mbcom_old_addresses' );
 
 /* ---------------------------------------------------------------- */
 echo "\nTwo-step login\n";
+// A copy of Two Factor that is marked Active but never loads must not be reported as "on".
+// A fake copy left by a run that crashed half-way is cleared first, so the checks never stop running.
+$tsb_left = WP_PLUGIN_DIR . '/two-factor/two-factor.php';
+if ( ! class_exists( 'Two_Factor_Core' ) && file_exists( $tsb_left ) && false !== strpos( (string) file_get_contents( $tsb_left ), '0.0.1-broken' ) ) {
+	require_once ABSPATH . 'wp-admin/includes/plugin.php';
+	deactivate_plugins( 'two-factor/two-factor.php' );
+	unlink( $tsb_left );
+	rmdir( WP_PLUGIN_DIR . '/two-factor' );
+	wp_clean_plugins_cache();
+}
+if ( ! class_exists( 'Two_Factor_Core' ) && ! file_exists( WP_PLUGIN_DIR . '/two-factor' ) ) {
+	require_once ABSPATH . 'wp-admin/includes/plugin.php';
+	wp_mkdir_p( WP_PLUGIN_DIR . '/two-factor' );
+	file_put_contents( WP_PLUGIN_DIR . '/two-factor/two-factor.php', "<?php\n/**\n * Plugin Name: Two Factor\n * Version: 0.0.1-broken\n */\n" );
+	wp_clean_plugins_cache();
+	wp_set_current_user( 1 );
+	$tsb_req = new WP_REST_Request( 'POST' );
+	$tsb_req->set_param( 'on', true );
+	$tsb_off = \MemBuild\Community\Two_Step::rest_switch( $tsb_req );
+	mbcom_check( 'broken Two Factor, switched off: turning on says it isn’t working', is_wp_error( $tsb_off ) && 'mbcom_two_step_broken' === $tsb_off->get_error_code() );
+	mbcom_check( 'broken Two Factor: left switched off, not reported on', ! is_plugin_active( 'two-factor/two-factor.php' ) && 'off' === \MemBuild\Community\Two_Step::status()['state'] );
+	activate_plugin( 'two-factor/two-factor.php' );
+	mbcom_check( 'broken Two Factor marked Active: status is broken', 'broken' === \MemBuild\Community\Two_Step::status()['state'] );
+	$tsb_on = \MemBuild\Community\Two_Step::rest_switch( $tsb_req );
+	mbcom_check( 'broken Two Factor marked Active: turning on says it isn’t working', is_wp_error( $tsb_on ) && 'mbcom_two_step_broken' === $tsb_on->get_error_code() );
+	deactivate_plugins( 'two-factor/two-factor.php' );
+	unlink( WP_PLUGIN_DIR . '/two-factor/two-factor.php' );
+	rmdir( WP_PLUGIN_DIR . '/two-factor' );
+	wp_clean_plugins_cache();
+	wp_set_current_user( 0 );
+}
 if ( ! class_exists( 'Two_Factor_Core' ) ) {
 	echo "  (skipped: the Two Factor plugin isn't on this test site)\n";
 } else {
@@ -4100,6 +4131,207 @@ if ( ! class_exists( 'Two_Factor_Core' ) ) {
 	update_option( 'mbcom_settings', $ts_saved );
 	$ts_who( $ts_saved['two_step_who'] ?? 'anyone' );
 }
+
+mbcom_section( 'Add-ons: keys, signed installs and updates (with a stand-in for tools.membuild.com)' );
+// These tests install and then delete wp-content/plugins/crm-connect. On a test site where a real
+// CRM Connect is already there (often a folder linked to its code), deleting it would delete that code.
+if ( \MemBuild\Community\Addons::installed( 'crm-connect' ) ) {
+	echo "  - skipped: crm-connect is already on this site, and these tests would delete it. Run them on a site without it.\n";
+	$GLOBALS['mbcom_failed']++; // not a pass: the section didn't run
+} else {
+$ad_cls = \MemBuild\Community\Addons::class;
+delete_option( 'mbcom_addon_keys' );
+delete_option( 'mbcom_addon_updates' );
+delete_transient( 'mbcom_addon_list' );
+// A signing key of the tests' own, used instead of MemBuild's (the real private keys never leave Danica's computer).
+$ad_pair = sodium_crypto_sign_keypair();
+$ad_keys = new ReflectionProperty( $ad_cls, 'keys' );
+$ad_keys->setAccessible( true );
+$ad_keys->setValue( null, array( 't1' => base64_encode( sodium_crypto_sign_publickey( $ad_pair ) ) ) );
+$ad_sign = function ( $file, $slug, $version, $key = null ) use ( $ad_pair ) {
+	$sha = hash_file( 'sha256', $file );
+	$sig = base64_encode( sodium_crypto_sign_detached( "membuild-release/v1\n{$slug}\n{$version}\n{$sha}\n", $key ?: sodium_crypto_sign_secretkey( $ad_pair ) ) );
+	return array( 'v' => 1, 'key' => 't1', 'slug' => $slug, 'version' => $version, 'sha256' => $sha, 'sig' => $sig );
+};
+$ad_zip = function ( $version ) {
+	$file = wp_tempnam( 'crm-connect.zip' );
+	$zip  = new ZipArchive();
+	$zip->open( $file, ZipArchive::CREATE | ZipArchive::OVERWRITE );
+	$zip->addFromString( 'crm-connect/crm-connect.php', "<?php\n/**\n * Plugin Name: CRM Connect (test)\n * Version: {$version}\n */\n" );
+	$zip->close();
+	return $file;
+};
+// The stand-in server: answers by action, remembers what each request sent.
+$ad_zip_file = $ad_zip( '1.0.0' );
+$ad_server   = array(
+	'addon_list'     => array( 'ok' => true, 'products' => array( array( 'slug' => 'crm-connect', 'name' => 'CRM Connect', 'line' => 'From the server.', 'price' => '69', 'page_url' => 'https://membuild.com/add-ons/crm-connect', 'version' => '1.0.0' ) ) ),
+	'addon_check'    => array( 'ok' => false, 'code' => 'not_found', 'message' => 'Not found.' ),
+	'addon_download' => null,
+	'addon_update'   => null,
+	'addon_remove'   => array( 'ok' => true ),
+);
+$ad_sent     = array();
+$ad_stand    = function ( $pre, $args, $url ) use ( &$ad_server, &$ad_sent, &$ad_zip_file ) {
+	if ( ! str_starts_with( $url, 'https://tools.membuild.com/' ) ) {
+		return $pre;
+	}
+	parse_str( (string) wp_parse_url( $url, PHP_URL_QUERY ), $q );
+	$action = $q['action'] ?? '';
+	if ( 'addon_zip' === $action ) {
+		file_put_contents( $args['filename'], file_get_contents( $ad_zip_file ) );
+		return array( 'response' => array( 'code' => 200, 'message' => 'OK' ), 'body' => '', 'headers' => array(), 'cookies' => array(), 'filename' => $args['filename'] );
+	}
+	$ad_sent[ $action ][] = json_decode( (string) ( $args['body'] ?? '' ), true );
+	$reply                = $ad_server[ $action ] ?? null;
+	if ( null === $reply ) {
+		return new WP_Error( 'http_request_failed', 'Could not resolve host' );
+	}
+	return array( 'response' => array( 'code' => empty( $reply['ok'] ) ? 400 : 200, 'message' => '' ), 'body' => wp_json_encode( $reply ), 'headers' => array() );
+};
+add_filter( 'pre_http_request', $ad_stand, 10, 3 );
+$ad_good = array( 'ok' => true, 'slug' => 'crm-connect', 'name' => 'CRM Connect', 'role' => 'live', 'site' => 'example.test', 'live_site' => 'example.test', 'test_site' => '', 'status' => 'active', 'paid_until' => gmdate( 'Y-m-d', time() + 300 * DAY_IN_SECONDS ), 'updates' => true, 'moves_left' => 3 );
+$ad_key  = 'MBC-7Q4K-XR2P-9LDM';
+
+list( $s ) = mbcom_call( $ana, 'GET', '/settings/addons' );
+mbcom_check( 'a member can’t see Settings › Add-ons', in_array( $s, array( 401, 403 ), true ), (string) $s );
+mbcom_check( 'Add-ons are here on a single site', \MemBuild\Community\Addons::here() );
+// An admin whose plugin rights were taken away (or a multisite subsite admin) can't install.
+$ad_no_install = function ( $caps ) { unset( $caps['install_plugins'] ); return $caps; };
+add_filter( 'user_has_cap', $ad_no_install );
+list( $s ) = mbcom_call( $admin, 'POST', '/settings/addons/install', array( 'slug' => 'crm-connect' ) );
+list( $s2 ) = mbcom_call( $admin, 'POST', '/settings/addons/download', array( 'slug' => 'crm-connect' ) );
+remove_filter( 'user_has_cap', $ad_no_install );
+mbcom_check( 'without WordPress’s install_plugins right, install and download are refused', in_array( $s, array( 401, 403 ), true ) && in_array( $s2, array( 401, 403 ), true ), "$s $s2" );
+list( $s ) = mbcom_call( $ana, 'POST', '/settings/addons/check', array( 'slug' => 'crm-connect', 'key' => $ad_key ) );
+mbcom_check( '…or check a key', in_array( $s, array( 401, 403 ), true ), (string) $s );
+list( $s, $d ) = mbcom_call( $admin, 'GET', '/settings/addons' );
+mbcom_check( 'the owner sees the add-ons from tools.membuild.com', 200 === $s && 'From the server.' === ( $d['products'][0]['line'] ?? '' ), wp_json_encode( $d ) );
+mbcom_call( $admin, 'GET', '/settings/addons' );
+mbcom_check( '…asked once, then kept for 12 hours', 1 === count( $ad_sent['addon_list'] ?? array() ) );
+$ad_server['addon_list'] = null;
+delete_transient( 'mbcom_addon_list' );
+list( , $d ) = mbcom_call( $admin, 'GET', '/settings/addons' );
+mbcom_check( 'when the server can’t be reached, CRM Connect is still listed', 'crm-connect' === ( $d['products'][0]['slug'] ?? '' ) && 'CRM Connect' === $d['products'][0]['name'] );
+delete_transient( 'mbcom_addon_list' );
+$ad_server['addon_list'] = array( 'ok' => true, 'products' => array( array( 'slug' => 'crm-connect', 'name' => 'CRM Connect', 'line' => 'From the server.', 'price' => '69', 'page_url' => 'https://membuild.com/add-ons/crm-connect', 'version' => '1.0.0' ) ) );
+
+$ad_usage = get_option( 'mbcom_usage' );
+delete_option( 'mbcom_usage' );
+list( , $d ) = mbcom_call( $admin, 'POST', '/settings/addons/check', array( 'slug' => 'crm-connect', 'key' => ' mbc-7q4k-xr2p-9ldn ' ) );
+$ad_req = end( $ad_sent['addon_check'] );
+mbcom_check( 'a key that isn’t found says not_found and isn’t saved', false === $d['ok'] && 'not_found' === $d['code'] && ! get_option( 'mbcom_addon_keys' ) );
+mbcom_check( '…the key was tidied (uppercase, no spaces) and sent with the site and an install ID, even with usage sharing off', 'MBC-7Q4K-XR2P-9LDN' === $ad_req['key'] && home_url() === $ad_req['site_url'] && wp_is_uuid( $ad_req['install_id'] ) && empty( \MemBuild\Community\Usage::state()['share'] ) );
+mbcom_check( '…the same install ID usage reports use', \MemBuild\Community\Usage::state()['id'] === $ad_req['install_id'] );
+if ( $ad_usage ) {
+	update_option( 'mbcom_usage', $ad_usage, false );
+}
+list( , $d ) = mbcom_call( $admin, 'POST', '/settings/addons/check', array( 'slug' => 'crm-connect', 'key' => 'not a key' ) );
+mbcom_check( 'something that isn’t shaped like a key isn’t sent at all', 'not_found' === $d['code'] && 1 === count( $ad_sent['addon_check'] ) );
+
+$ad_server['addon_check'] = array( 'ok' => false, 'code' => 'used', 'message' => 'Used.', 'live_site' => 'oldgroundwork.com', 'moves_left' => 3 );
+list( , $d ) = mbcom_call( $admin, 'POST', '/settings/addons/check', array( 'slug' => 'crm-connect', 'key' => $ad_key ) );
+mbcom_check( 'a key used on another site says where', 'used' === $d['code'] && 'oldgroundwork.com' === $d['live_site'] && ! get_option( 'mbcom_addon_keys' ) );
+$ad_server['addon_check'] = $ad_good;
+list( , $d ) = mbcom_call( $admin, 'POST', '/settings/addons/check', array( 'slug' => 'crm-connect', 'key' => $ad_key, 'move' => true ) );
+mbcom_check( 'Move the key here sends move, and the key is saved', true === ( end( $ad_sent['addon_check'] )['move'] ?? null ) && $d['ok'] && $ad_key === ( get_option( 'mbcom_addon_keys' )['crm-connect']['key'] ?? '' ) );
+mbcom_check( '…in an option that isn’t loaded on every page', ! array_key_exists( 'mbcom_addon_keys', wp_load_alloptions() ) && in_array( $wpdb->get_var( "SELECT autoload FROM {$wpdb->options} WHERE option_name = 'mbcom_addon_keys'" ), array( 'no', 'off' ), true ) );
+mbcom_call( $admin, 'POST', '/settings/addons/check', array( 'slug' => 'crm-connect', 'key' => $ad_key, 'use_here' => true ) );
+mbcom_check( 'Use it here instead sends use_here', true === ( end( $ad_sent['addon_check'] )['use_here'] ?? null ) );
+list( , $d ) = mbcom_call( $admin, 'GET', '/settings/addons' );
+mbcom_check( 'the owner sees the saved key and its dates', $ad_key === ( $d['products'][0]['key']['key'] ?? '' ) && 'live' === $d['products'][0]['key']['last']['role'] && null === $d['products'][0]['installed'] );
+
+// Installing: the host won't let WordPress write plugins.
+$ad_server['addon_download'] = array( 'ok' => true, 'version' => '1.0.0', 'url' => 'api.php?action=addon_zip&t=abc', 'sha256' => hash_file( 'sha256', $ad_zip_file ), 'signature' => $ad_sign( $ad_zip_file, 'crm-connect', '1.0.0' ) );
+add_filter( 'membuild_community/addon_can_install', '__return_false' );
+list( , $d ) = mbcom_call( $admin, 'POST', '/settings/addons/install', array( 'slug' => 'crm-connect' ) );
+remove_filter( 'membuild_community/addon_can_install', '__return_false' );
+mbcom_check( 'a host that needs FTP details says host_blocked, with a fresh download link on tools.membuild.com', 'host_blocked' === ( $d['code'] ?? '' ) && 'https://tools.membuild.com/api.php?action=addon_zip&t=abc' === $d['url'] && ! \MemBuild\Community\Addons::installed( 'crm-connect' ), wp_json_encode( $d ) );
+list( , $d ) = mbcom_call( $admin, 'POST', '/settings/addons/download', array( 'slug' => 'crm-connect' ) );
+mbcom_check( 'Download the zip gets its own fresh link', $d['ok'] && str_contains( $d['url'], 'addon_zip' ) );
+$ad_server['addon_download']['url'] = 'https://evil.example/zip';
+list( , $d ) = mbcom_call( $admin, 'POST', '/settings/addons/download', array( 'slug' => 'crm-connect' ) );
+mbcom_check( 'a link to another server is never used', empty( $d['ok'] ) );
+
+// Signatures.
+$ad_p = fn( ...$a ) => \MemBuild\Community\Addons::problem( ...$a );
+$ad_s = $ad_sign( $ad_zip_file, 'crm-connect', '1.0.0' );
+$ad_h = hash_file( 'sha256', $ad_zip_file );
+mbcom_check( 'a zip signed with a MemBuild key passes', '' === $ad_p( $ad_zip_file, 'crm-connect', '1.0.0', $ad_h, $ad_s ) );
+mbcom_check( 'an unsigned zip is refused', '' !== $ad_p( $ad_zip_file, 'crm-connect', '1.0.0', $ad_h, null ) );
+$ad_other = $ad_zip( '1.0.0-x' );
+mbcom_check( 'a changed zip is refused', '' !== $ad_p( $ad_other, 'crm-connect', '1.0.0', '', $ad_s ) );
+mbcom_check( 'a signature for another add-on is refused', '' !== $ad_p( $ad_zip_file, 'crm-connect', '1.0.0', $ad_h, $ad_sign( $ad_zip_file, 'other-addon', '1.0.0' ) ) );
+mbcom_check( 'a signature for another version is refused', '' !== $ad_p( $ad_zip_file, 'crm-connect', '1.0.1', $ad_h, $ad_s ) );
+mbcom_check( 'a signature made with a key MemBuild doesn’t use is refused', '' !== $ad_p( $ad_zip_file, 'crm-connect', '1.0.0', $ad_h, $ad_sign( $ad_zip_file, 'crm-connect', '1.0.0', sodium_crypto_sign_secretkey( sodium_crypto_sign_keypair() ) ) ) );
+mbcom_check( 'an unknown key id is refused', '' !== $ad_p( $ad_zip_file, 'crm-connect', '1.0.0', $ad_h, array( 'key' => 'mb9' ) + $ad_s ) );
+mbcom_check( 'an older genuine release can’t replace a newer one', '' !== $ad_p( $ad_zip_file, 'crm-connect', '1.0.0', $ad_h, $ad_s, '1.2.0' ) );
+mbcom_check( 'the real public keys are MemBuild’s mb1 and mb2', array( 'mb1', 'mb2' ) === array_keys( \MemBuild\Community\Addons::KEYS ) );
+
+// A bad signature from the server: refused, nothing installed.
+$ad_server['addon_download'] = array( 'ok' => true, 'version' => '1.0.0', 'url' => 'api.php?action=addon_zip&t=abc', 'sha256' => $ad_h, 'signature' => $ad_sign( $ad_zip_file, 'crm-connect', '1.0.0', sodium_crypto_sign_secretkey( sodium_crypto_sign_keypair() ) ) );
+list( , $d ) = mbcom_call( $admin, 'POST', '/settings/addons/install', array( 'slug' => 'crm-connect' ) );
+mbcom_check( 'Install refuses a zip whose signature doesn’t check, in plain words', 'signature_bad' === ( $d['code'] ?? '' ) && str_contains( $d['message'], 'Nothing changed on your site' ) && ! \MemBuild\Community\Addons::installed( 'crm-connect' ), wp_json_encode( $d ) );
+$ad_server['addon_download'] = array( 'ok' => false, 'code' => 'ended', 'message' => 'Ended.' );
+list( , $d ) = mbcom_call( $admin, 'POST', '/settings/addons/install', array( 'slug' => 'crm-connect' ) );
+mbcom_check( 'a key whose updates ended can’t install', 'ended' === ( $d['code'] ?? '' ) );
+
+// The real thing: downloaded, checked, installed and switched on.
+$ad_server['addon_download'] = array( 'ok' => true, 'version' => '1.0.0', 'url' => 'api.php?action=addon_zip&t=abc', 'sha256' => $ad_h, 'signature' => $ad_s );
+list( , $d ) = mbcom_call( $admin, 'POST', '/settings/addons/install', array( 'slug' => 'crm-connect' ) );
+$ad_now = \MemBuild\Community\Addons::installed( 'crm-connect' );
+mbcom_check( 'Install puts the signed add-on on the site and switches it on', ! empty( $d['ok'] ) && $ad_now && $ad_now['active'] && '1.0.0' === $ad_now['version'], wp_json_encode( $d ) );
+
+// Updates through WordPress.
+wp_delete_file( $ad_zip_file );
+$ad_zip_file = $ad_zip( '1.1.0' );
+$ad_s2       = $ad_sign( $ad_zip_file, 'crm-connect', '1.1.0' );
+$ad_server['addon_update']   = array( 'ok' => true, 'version' => '1.1.0', 'newer' => true, 'updates' => true, 'url' => 'api.php?action=addon_zip&t=daily', 'sha256' => hash_file( 'sha256', $ad_zip_file ), 'signature' => $ad_s2, 'changelog' => 'Adds ActiveCampaign and fixes 4 things.', 'requires' => '6.4', 'requires_php' => '8.1', 'tested' => '6.8', 'paid_until' => '2027-11-08', 'status' => 'active' );
+$ad_server['addon_download'] = array( 'ok' => true, 'version' => '1.1.0', 'url' => 'api.php?action=addon_zip&t=fresh', 'sha256' => hash_file( 'sha256', $ad_zip_file ), 'signature' => $ad_s2 );
+\MemBuild\Community\Addons::check_updates();
+mbcom_check( 'the daily look sends the installed version', '1.0.0' === ( end( $ad_sent['addon_update'] )['version'] ?? '' ) );
+$t = \MemBuild\Community\Addons::offer( (object) array( 'checked' => array(), 'response' => array( $ad_now['file'] => (object) array( 'package' => 'https://downloads.wordpress.org/x.zip' ) ) ) );
+mbcom_check( 'a newer version shows in WordPress’s updates, from tools.membuild.com only', '1.1.0' === ( $t->response[ $ad_now['file'] ]->new_version ?? '' ) && 'tools.membuild.com/crm-connect' === ( $t->response[ $ad_now['file'] ]->id ?? '' ) );
+mbcom_check( '…its package is a marker, not a link, so WordPress can never fetch it unchecked', 'mbcom-addon:crm-connect' === ( $t->response[ $ad_now['file'] ]->package ?? '' ) );
+mbcom_check( '…and a marker for an add-on with no key here is left alone', false === \MemBuild\Community\Addons::pre_download( false, 'mbcom-addon:other-addon' ) );
+$ad_file = \MemBuild\Community\Addons::pre_download( false, $t->response[ $ad_now['file'] ]->package );
+mbcom_check( 'before WordPress installs it, a fresh link is fetched and its signature checked', is_string( $ad_file ) && is_file( $ad_file ) && hash_file( 'sha256', $ad_file ) === hash_file( 'sha256', $ad_zip_file ), is_wp_error( $ad_file ) ? $ad_file->get_error_message() : '' );
+if ( is_string( $ad_file ) ) {
+	wp_delete_file( $ad_file );
+}
+mbcom_check( '…and other plugins’ downloads are left alone', false === \MemBuild\Community\Addons::pre_download( false, 'https://downloads.wordpress.org/plugin/akismet.zip' ) );
+$ad_server['addon_download']['signature'] = $ad_sign( $ad_zip_file, 'crm-connect', '1.1.0', sodium_crypto_sign_secretkey( sodium_crypto_sign_keypair() ) );
+mbcom_check( '…and a bad signature stops the update', is_wp_error( \MemBuild\Community\Addons::pre_download( false, $t->response[ $ad_now['file'] ]->package ) ) );
+$ad_server['addon_update'] = array( 'ok' => true, 'version' => '1.1.0', 'newer' => true, 'updates' => false, 'changelog' => 'Adds ActiveCampaign and fixes 4 things.', 'paid_until' => '2026-01-01', 'status' => 'cancelled' );
+\MemBuild\Community\Addons::check_updates();
+$t = \MemBuild\Community\Addons::offer( (object) array( 'checked' => array(), 'response' => array() ) );
+mbcom_check( 'when updates have ended, nothing is offered', ! isset( $t->response[ $ad_now['file'] ] ) );
+list( , $d ) = mbcom_call( $admin, 'GET', '/settings/addons' );
+mbcom_check( '…and Settings knows a version is ready, and that the year ended', '1.1.0' === ( $d['products'][0]['update']['version'] ?? '' ) && $d['products'][0]['update']['newer'] && false === $d['products'][0]['key']['last']['updates'] && 'cancelled' === $d['products'][0]['key']['last']['status'] );
+
+// Removing.
+mbcom_call( $admin, 'POST', '/settings/addons/remove', array( 'slug' => 'crm-connect', 'which' => 'test' ) );
+mbcom_check( 'Remove the test copy asks the server, and keeps the key here', 'test' === ( end( $ad_sent['addon_remove'] )['which'] ?? '' ) && isset( get_option( 'mbcom_addon_keys' )['crm-connect'] ) );
+mbcom_call( $admin, 'POST', '/settings/addons/remove', array( 'slug' => 'crm-connect', 'which' => 'this' ) );
+mbcom_check( 'Remove key from this site frees it on the server and forgets it here', 'this' === ( end( $ad_sent['addon_remove'] )['which'] ?? '' ) && ! isset( get_option( 'mbcom_addon_keys' )['crm-connect'] ) );
+mbcom_check( '…and the add-on keeps working', (bool) \MemBuild\Community\Addons::installed( 'crm-connect' )['active'] );
+mbcom_check( 'removing the plugin with its data removes the keys', str_contains( (string) file_get_contents( MEMBUILD_COMMUNITY_DIR . 'uninstall.php' ), "'mbcom_addon_keys'" ) );
+
+// Clean up: the test add-on, its files, the options.
+require_once ABSPATH . 'wp-admin/includes/plugin.php';
+require_once ABSPATH . 'wp-admin/includes/file.php';
+if ( $ad_now ) {
+	deactivate_plugins( $ad_now['file'], true );
+	delete_plugins( array( $ad_now['file'] ) );
+}
+wp_delete_file( $ad_zip_file );
+wp_delete_file( $ad_other );
+remove_filter( 'pre_http_request', $ad_stand, 10 );
+$ad_keys->setValue( null, null );
+delete_option( 'mbcom_addon_keys' );
+delete_option( 'mbcom_addon_updates' );
+delete_transient( 'mbcom_addon_list' );
+wp_set_current_user( 0 );
+} // the add-on tests
 
 /* ---------------------------------------------------------------- */
 echo "\n{$GLOBALS['mbcom_passed']} passed, {$GLOBALS['mbcom_failed']} failed\n";
