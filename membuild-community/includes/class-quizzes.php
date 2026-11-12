@@ -18,11 +18,13 @@ defined( 'ABSPATH' ) || exit;
  * - A quiz only locks the next lesson in courses set to go in order (that's order_block).
  * - Editing or deleting a question keeps past passes; that question's totals start fresh.
  * - Leaving mid-quiz keeps the answers (the open attempt).
- * - The Why shows right after each answer; after a fail the right answers stay hidden.
+ * - Right after each answer, the right answers to that question show, with the Why. After a
+ *   fail, See your answers shows them too (agreed 12 Nov 2026, the canvas board
+ *   "QuizWrongShowsRight"; it replaces the first rule that hid them until a pass).
  * - The pass mark is a count, never more than the number of questions.
  *
- * The right answers never leave the server before a member's own answer to that question is
- * checked here, and only after a pass in "See your answers".
+ * The right answers to a question never leave the server before the member's own answer to
+ * it, in that try, is checked here.
  *
  * Members (who can open the lesson):
  *   GET  /lessons/{id}/quiz            the questions (no right answers) and where they are
@@ -252,13 +254,26 @@ class Quizzes {
 		return $m ? array( 'id' => (int) $m['id'], 'url' => $m['url'], 'width' => (int) ( $m['width'] ?? 0 ), 'height' => (int) ( $m['height'] ?? 0 ) ) : null;
 	}
 
-	/** What a checked answer tells the member: right or wrong, their own pick, and the Why. Never the right answer. */
-	private static function checked( array $q, array $given ) {
-		return array(
+	/**
+	 * What a checked answer tells the member: right or wrong, their own pick, the Why and, now that
+	 * they've answered, which answers were right (right_ids). Only for an answer given in this try;
+	 * $reveal false (the question was changed after the try began) leaves the right answers out.
+	 */
+	private static function checked( array $q, array $given, $reveal = true ) {
+		$out = array(
 			'picked' => array_map( 'intval', (array) ( $given['picked'] ?? array() ) ),
 			'right'  => ! empty( $given['right'] ),
 			'why'    => (string) $q['why'],
 		);
+		if ( $reveal ) {
+			$out['right_ids'] = self::right_ids( $q );
+		}
+		return $out;
+	}
+
+	/** Whether a question was left as it was since $when (a try's start or finish). */
+	private static function unchanged_since( array $q, $when ) {
+		return strtotime( (string) $q['updated_at'] ) <= strtotime( (string) $when );
 	}
 
 	/** GET /lessons/{id}/quiz: the questions and the member's answers so far (each one already checked). */
@@ -268,18 +283,20 @@ class Quizzes {
 			return $found;
 		}
 		list( $lesson, $quiz, $questions ) = $found;
-		$given   = self::attempt_answers( self::open_attempt( (int) $quiz['id'] ) );
+		$open    = self::open_attempt( (int) $quiz['id'] );
+		$given   = self::attempt_answers( $open );
 		$answers = array();
 		foreach ( $questions as $q ) {
 			if ( isset( $given[ (int) $q['id'] ] ) ) {
-				$answers[ (int) $q['id'] ] = self::checked( $q, $given[ (int) $q['id'] ] );
+				// A question changed since this try began may not be the one they answered: no right answers.
+				$answers[ (int) $q['id'] ] = self::checked( $q, $given[ (int) $q['id'] ], self::unchanged_since( $q, $open['started_at'] ) );
 			}
 		}
 		return array(
 			'lesson_id' => (int) $lesson['id'],
 			'quiz'      => self::summary( (int) $lesson['id'] ),
 			'questions' => array_map( array( __CLASS__, 'public_question' ), $questions ),
-			'answers'   => (object) $answers, // question id => {picked, right, why}
+			'answers'   => (object) $answers, // question id => {picked, right, why, right_ids}
 		);
 	}
 
@@ -344,7 +361,8 @@ class Quizzes {
 			$attempt = self::open_attempt( (int) $quiz['id'] );
 		}
 		$given = self::attempt_answers( $attempt );
-		if ( ! isset( $given[ $qid ] ) ) {
+		$fresh = ! isset( $given[ $qid ] );
+		if ( $fresh ) {
 			// Right means every right answer and no wrong one (for one right answer and true or false: the one).
 			$right          = $picked === self::right_ids( $question );
 			$given[ $qid ]  = array( 'picked' => $picked, 'right' => $right );
@@ -353,7 +371,9 @@ class Quizzes {
 				$wpdb->query( $wpdb->prepare( 'UPDATE %i SET answered = answered + 1, answered_right = answered_right + %d WHERE id = %d', Install::table( 'quiz_questions' ), $right ? 1 : 0, $qid ) );
 			}
 		}
-		$out = self::checked( $question, $given[ $qid ] ) + array( 'question_id' => $qid, 'finished' => false );
+		// Answered just now: checked against this very question, so its right answers can show. An
+		// earlier answer in this try (a double tap) shows them only if the question wasn't changed since.
+		$out = self::checked( $question, $given[ $qid ], $fresh || self::unchanged_since( $question, $attempt['started_at'] ) ) + array( 'question_id' => $qid, 'finished' => false );
 
 		$ids = array_map( 'intval', array_column( $questions, 'id' ) );
 		if ( ! array_diff( $ids, array_map( 'intval', array_keys( $given ) ) ) ) {
@@ -398,7 +418,7 @@ class Quizzes {
 
 	/**
 	 * GET /lessons/{id}/quiz/answers: the latest finished try, question by question: right or wrong,
-	 * the member's own answer and the Why. The right answers only once they've passed.
+	 * the member's own answer, the Why and the right answers, passed or not.
 	 */
 	public static function your_answers( \WP_REST_Request $req ) {
 		$found = self::for_member( (int) $req['id'] );
@@ -410,9 +430,8 @@ class Quizzes {
 		if ( ! $last ) {
 			return new \WP_Error( 'mbcom_no_try', __( 'Finish the quiz first, then your answers show here.', 'membuild-community' ), array( 'status' => 404 ) );
 		}
-		$given  = self::attempt_answers( $last );
-		$reveal = (bool) $last['passed'];
-		$items  = array();
+		$given = self::attempt_answers( $last );
+		$items = array();
 		foreach ( $questions as $q ) {
 			$mine  = $given[ (int) $q['id'] ] ?? null;
 			$texts = array();
@@ -428,8 +447,8 @@ class Quizzes {
 				'picked'   => array_values( array_filter( array_map( fn( $id ) => $texts[ (int) $id ] ?? null, (array) ( $mine['picked'] ?? array() ) ) ) ),
 				'why'      => (string) $q['why'],
 			);
-			// A question added or changed since that pass wasn't part of it: its right answer stays hidden.
-			if ( $reveal && strtotime( (string) $q['updated_at'] ) <= strtotime( (string) $last['finished_at'] ) ) {
+			// A question added or changed since that try began may not be the one they answered: its right answers stay hidden.
+			if ( null !== $mine && self::unchanged_since( $q, $last['started_at'] ) ) {
 				$item['right_answers'] = array_values( array_map( fn( $id ) => $texts[ $id ], self::right_ids( $q ) ) );
 			}
 			$items[] = $item;
@@ -439,7 +458,7 @@ class Quizzes {
 			'score'     => (int) $last['score'],
 			'total'     => (int) $last['total'],
 			'pass_mark' => self::pass_mark( $quiz, count( $questions ) ),
-			'passed'    => $reveal,
+			'passed'    => (bool) $last['passed'],
 			'on_fail'   => 'move_on' === $quiz['on_fail'] ? 'move_on' : 'retry',
 			'items'     => $items,
 		);

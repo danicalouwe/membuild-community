@@ -71,7 +71,10 @@ const index = computed(() => all.value.findIndex((l) => l.id === props.lesson.id
 const here = computed(() => all.value[index.value])
 const prev = computed(() => all.value[index.value - 1] || null)
 const next = computed(() => all.value[index.value + 1] || null)
-const dripDays = computed(() => (opens.value === 'days' ? Math.max(1, Math.min(365, Number(days.value) || 1)) : 0))
+// The days box takes whole days from 1 to 365, the same as the save: what the box shows after
+// leaving it, the example date and what's sent all use this.
+const snapDays = (v) => Math.max(1, Math.min(365, Math.round(Number(v)) || 1))
+const dripDays = computed(() => (opens.value === 'days' ? snapDays(days.value) : 0))
 // A lesson that opens before the one above it would show up first: say so, and offer the fix.
 const earlier = computed(() => (opens.value !== 'date' && prev.value && !prev.value.open_on && prev.value.drip_days > dripDays.value ? prev.value : null))
 const todayIso = localToday()
@@ -379,7 +382,7 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
           <small>{{ t.__('Good for one lesson a week.', 'membuild-community') }}</small>
           <span v-if="opens === 'days'" class="days">
             {{ t.__('Open it', 'membuild-community') }}
-            <input v-model="days" type="number" min="1" max="365" :aria-label="t.__('Days', 'membuild-community')" />
+            <input v-model="days" type="number" min="1" max="365" :aria-label="t.__('Days', 'membuild-community')" @blur="days = snapDays(days)" />
             {{ t.__('days after the start.', 'membuild-community') }}
           </span>
           <span v-if="opens === 'days'" class="example plain">{{ startExample[0] }}<strong>{{ longDate(plusDays(course.starts_on, dripDays)) }}</strong>{{ startExample[1] }}</span>
@@ -399,7 +402,7 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
           <small>{{ t.__('Good for a slow, steady start.', 'membuild-community') }}</small>
           <span v-if="opens === 'days'" class="days">
             {{ t.__('Open it', 'membuild-community') }}
-            <input v-model="days" type="number" min="1" max="365" :aria-label="t.__('Days', 'membuild-community')" />
+            <input v-model="days" type="number" min="1" max="365" :aria-label="t.__('Days', 'membuild-community')" @blur="days = snapDays(days)" />
             {{ t.__('days after they start the course.', 'membuild-community') }}
           </span>
           <span v-if="opens === 'days'" class="example">

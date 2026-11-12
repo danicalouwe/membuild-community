@@ -9,8 +9,8 @@ import { t } from '../lib/i18n.js'
 
 /**
  * Celebrates a new level, and names any courses it just unlocked. The same card as
- * "Lesson done" (size, badge, words, buttons), in the same place, and only once
- * that card is gone (lib/popups.js), so the two never cover each other.
+ * "Lesson done" (size, badge, words, buttons), in the same place, and only once that
+ * card and the "You finished the course" box are gone (lib/popups.js), so none cover each other.
  */
 const router = useRouter()
 let timer = null

@@ -6,8 +6,8 @@ import Icon from './Icon.vue'
 
 /**
  * Taking a lesson's quiz (canvas: Quizzes · Member): one question at a time, Check answer, then
- * right or wrong on what they picked and the Why, then Next question. The right answer is never
- * sent before checking, and after a wrong one it isn't shown (rule 11). Answers are kept as they
+ * the right answers (canvas: QuizWrongShowsRight), Right or Wrong and the Why, then Next question.
+ * The right answers are never sent before checking. Answers are kept as they
  * go, so leaving and coming back carries on at the question they left (rule 9). The last answer
  * shows the result: passed, not passed (Try again), or saved (They can move on anyway).
  */
@@ -22,7 +22,7 @@ const emit = defineEmits(['back', 'answers', 'next', 'finished', 'done'])
 const data = ref(null) // { quiz, questions, answers }
 const loadError = ref('')
 const idx = ref(0)
-const given = ref({}) // question id → { picked, right, why }
+const given = ref({}) // question id → { picked, right, why, right_ids }
 const picked = ref([])
 const busy = ref(false)
 const error = ref('')
@@ -69,9 +69,28 @@ function toggle(id) {
   error.value = ''
 }
 const isPicked = (id) => (checked.value ? checked.value.picked.includes(id) : picked.value.includes(id))
-// Only the member's own pick is marked: Right or Wrong. With more than one right answer the
-// whole question is right or wrong, so the mark sits beside the Why instead.
-const rowState = (id) => (!checked.value || many.value || !checked.value.picked.includes(id) ? '' : checked.value.right ? 'right' : 'wrong')
+// Once answered, every right answer is marked: 'right' when they ticked it, 'missed' (dashed) when
+// they didn't, and a tick that isn't right is 'wrong'. Without right_ids (a question changed while
+// the try was open) only a single pick can be marked, from whether the question was right.
+function rowState(id) {
+  const c = checked.value
+  if (!c) return ''
+  const mine = c.picked.includes(id)
+  if (Array.isArray(c.right_ids)) {
+    const right = c.right_ids.includes(id)
+    return right ? (mine ? 'right' : 'missed') : mine ? 'wrong' : ''
+  }
+  return many.value || !mine ? '' : c.right ? 'right' : 'wrong'
+}
+
+// Said to screen readers with Right or Wrong, so they hear the answer and not only the mark.
+const rightLine = computed(() => {
+  const ids = checked.value?.right_ids
+  if (!Array.isArray(ids) || !ids.length || !q.value) return ''
+  const texts = q.value.answers.filter((a) => ids.includes(a.id)).map((a) => a.text)
+  if (!texts.length) return ''
+  return t.sprintf(/* translators: %s: the right answer, or the right answers separated by commas */ t._n('Right answer: %s', 'Right answers: %s', texts.length, 'membuild-community'), texts.join(', '))
+})
 
 async function check() {
   if (!picked.value.length || busy.value) return
@@ -79,7 +98,7 @@ async function check() {
   error.value = ''
   try {
     const res = await api.answerQuiz(props.lesson.id, { question_id: q.value.id, picked: picked.value })
-    given.value = { ...given.value, [res.question_id]: { picked: res.picked, right: res.right, why: res.why } }
+    given.value = { ...given.value, [res.question_id]: { picked: res.picked, right: res.right, why: res.why, right_ids: res.right_ids } }
     picked.value = []
     if (res.finished) {
       pending = res
@@ -189,12 +208,13 @@ const resultLine = computed(() => {
           <label v-for="a in q.answers" :key="a.id" class="qt-answer" :class="[{ on: isPicked(a.id), done: !!checked }, rowState(a.id)]">
             <input :type="many ? 'checkbox' : 'radio'" :name="`qt-${q.id}`" :checked="isPicked(a.id)" :aria-disabled="!!checked || null" @click="checked && $event.preventDefault()" @change="toggle(a.id)" />
             <span class="qt-text">{{ a.text }}</span>
-            <span v-if="rowState(a.id) === 'right'" class="qt-mark right"><Icon name="check" :size="14" /> {{ t.__('Right', 'membuild-community') }}</span>
-            <span v-else-if="rowState(a.id) === 'wrong'" class="qt-mark wrong"><Icon name="close" :size="14" /> {{ t.__('Wrong', 'membuild-community') }}</span>
+            <span v-if="rowState(a.id) === 'right' || rowState(a.id) === 'missed'" class="status-tag ok"><Icon name="check" :size="14" /> {{ t.__('Right answer', 'membuild-community') }}</span>
+            <span v-else-if="rowState(a.id) === 'wrong'" class="status-tag bad"><Icon name="close" :size="14" /> {{ t.__('Not right', 'membuild-community') }}</span>
           </label>
         </div>
         <div v-if="checked" class="qt-why" aria-live="polite">
-          <span v-if="many" class="status-tag" :class="checked.right ? 'ok' : 'bad'"><Icon :name="checked.right ? 'check' : 'close'" :size="14" /> {{ checked.right ? t.__('Right', 'membuild-community') : t.__('Wrong', 'membuild-community') }}</span>
+          <span class="status-tag" :class="checked.right ? 'ok' : 'bad'"><Icon :name="checked.right ? 'check' : 'close'" :size="14" /> {{ checked.right ? t.__('Right', 'membuild-community') : t.__('Wrong', 'membuild-community') }}</span>
+          <span v-if="rightLine" class="sr-only">{{ rightLine }}</span>
           <template v-if="checked.why">
             <strong>{{ t.__('Why this is the answer', 'membuild-community') }}</strong>
             <p>{{ checked.why }}</p>
@@ -310,6 +330,11 @@ const resultLine = computed(() => {
   background: var(--danger-soft);
   box-shadow: inset 0 0 0 1px var(--danger-text);
 }
+/* A right answer they didn't tick: a dashed green outline on the plain row. */
+.qt-answer.missed {
+  border: 2px dashed var(--ok-text);
+  padding: 9px 13px; /* the 1px wider border keeps the row the same size */
+}
 .qt-answer:has(input:focus-visible) {
   outline: 2px solid var(--accent-text);
   outline-offset: 2px;
@@ -328,20 +353,6 @@ const resultLine = computed(() => {
   flex: 1;
   min-width: 0;
   font-size: var(--fs-lg);
-}
-.qt-mark {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--fs-sm);
-  font-weight: 700;
-}
-.qt-mark.right {
-  color: var(--ok-text);
-}
-.qt-mark.wrong {
-  color: var(--danger-text);
 }
 .qt-why {
   display: flex;

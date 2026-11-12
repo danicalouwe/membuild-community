@@ -1,7 +1,7 @@
 <script setup>
 import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
 import { api } from '../api.js'
-import { cfg } from '../config.js'
+import { cfg, feature } from '../config.js'
 import Icon from './Icon.vue'
 import { startAttachment } from '../lib/attachments.js'
 import { cityOfAddress, dateInZone, plainCover, zoneLabel, zonedToDate } from '../lib/events.js'
@@ -41,7 +41,8 @@ const form = ref({
   repeat: '',
   where: e?.where || 'online',
   url: e?.url || '',
-  placeId: e?.place?.id || 0,
+  // With Places turned off there's no picker, so a linked event starts as plain name and address the host can change.
+  placeId: feature('places') ? e?.place?.id || 0 : 0,
   venue: e?.place?.name || '',
   address: e?.place?.address || '',
   lat: e?.place?.lat ?? null,
@@ -64,7 +65,7 @@ const looking = ref(false)
 
 onMounted(async () => {
   if (cfg.community.canManage) groups.value = (await api.groups().catch(() => ({ items: [] }))).items || []
-  places.value = ((await api.places().catch(() => ({ items: [] }))).items || []).filter((p) => p.status === 'published')
+  if (feature('places')) places.value = ((await api.places().catch(() => ({ items: [] }))).items || []).filter((p) => p.status === 'published')
 })
 
 const DURATIONS = [15, 30, 45, 60, 90, 120, 180, 240]

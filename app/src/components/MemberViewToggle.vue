@@ -255,9 +255,11 @@ select {
 </style>
 
 <style>
-/* Phones: room at the end of the page for the floating eye (not on full-screen Reels or the map). */
+/* Phones: room at the end of the page for the floating eye (not on full-screen Reels or the map).
+   Only the page's own <main>: other pieces called .main (a comment's text column, an event's Join
+   button) once got this 64px too, leaving a gap under every comment preview (tracker #76). */
 @media (max-width: 767px) {
-  html.mbcom-mvt-room .shell:not(.immersive) .main:not(.flush)::after {
+  html.mbcom-mvt-room .shell:not(.immersive) main.main:not(.flush)::after {
     content: '';
     display: block;
     height: 64px;

@@ -104,6 +104,7 @@ a { color: inherit; }
 
 /* The next live call */
 .live { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 16px; background: var(--surface); box-shadow: 0 10px 26px rgb(16 24 40 / 10%); font-size: 15px; line-height: 1.35; }
+.live > span:last-child { min-width: 0; overflow-wrap: anywhere; }
 .live > span:last-child > span { color: var(--text-2); }
 .cal { flex: none; width: 44px; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); text-align: center; }
 .cal small { display: block; padding: 1px 0; background: #d92d20; color: #fff; font-size: 10px; font-weight: 800; text-transform: uppercase; }
@@ -226,4 +227,25 @@ form { display: flex; flex-direction: column; gap: 18px; }
 .key { display: inline-block; margin-top: 6px; color: var(--text); font: 700 17px/1.4 ui-monospace, Menlo, monospace; letter-spacing: 1px; user-select: all; }
 @media (max-width: 480px) {
 	.qr-row { flex-direction: column; align-items: flex-start; }
+}
+
+/* Phones: an invisible 44px tap area around small links on their own line, as tap-44 does in the app; the look
+   doesn't change. Links inside an error, the wrapped terms line or a line with two links (the two-step page's
+   "Use your app or Use a recovery code") stay as they are: their area would cover a field or the next link. */
+@media (max-width: 767px) {
+	.small:not(.terms) a, .foot a:only-of-type, .label a { position: relative; }
+	.small:not(.terms) a::after, .foot a:only-of-type::after, .label a::after {
+		content: '';
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		width: max(100%, 44px);
+		height: max(100%, 44px);
+		transform: translate(-50%, -50%);
+	}
+	/* Forgot password sits close above the password box: its area grows upward, so a tap on the box or Show stays there. */
+	.label a::after { top: auto; bottom: -6px; height: 44px; transform: translateX(-50%); }
+	.show { height: 44px; }
+	/* The next event's day reads at 13px, like the date tiles in the community. */
+	.cal small { font-size: 13px; }
 }

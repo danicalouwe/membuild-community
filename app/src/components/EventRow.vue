@@ -186,6 +186,7 @@ const people = (n) =>
 .title {
   font-size: var(--fs-2xl);
   line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
 .cancelled .title {
@@ -194,6 +195,8 @@ const people = (n) =>
 
 .line {
   display: inline-flex;
+  max-width: 100%;
+  overflow-wrap: anywhere;
   align-items: center;
   gap: 8px;
   color: var(--text-2);

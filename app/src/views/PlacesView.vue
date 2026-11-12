@@ -1177,6 +1177,7 @@ button.pc:hover {
 }
 
 .pc-body {
+  overflow-wrap: anywhere;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -1481,6 +1482,10 @@ button.pc:hover {
   font-size: var(--fs-2xl);
 }
 
+.plcard {
+  overflow-wrap: anywhere;
+}
+
 .plcard .city {
   display: flex;
   align-items: center;
@@ -1771,6 +1776,7 @@ button.pc:hover {
 .detail h1 {
   margin: 8px 0 0;
   font-size: var(--fs-6xl);
+  overflow-wrap: anywhere;
 }
 
 .kind {
@@ -1827,6 +1833,7 @@ button.pc:hover {
   align-items: center;
   gap: 10px;
   color: var(--text);
+  overflow-wrap: anywhere;
 }
 
 .facts li :deep(svg) {

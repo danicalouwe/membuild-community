@@ -4641,7 +4641,8 @@ mbcom_check( 'the outline marks the quiz lesson and what the locked one waits fo
 
 // Scoring: one right answer (wrong), then leave halfway (rule 9).
 list( $s, $a ) = mbcom_call( $qz_m, 'POST', "/lessons/{$qz_l[1]}/quiz/answer", array( 'question_id' => $qz_q1['id'], 'picked' => array( $qz_q1['answers'][0]['id'] ) ) );
-mbcom_check( 'a wrong answer is checked on the server: Wrong, the Why, only their own pick', 200 === $s && false === $a['right'] && 'The company keeps it on its servers.' === $a['why'] && array( $qz_q1['answers'][0]['id'] ) === $a['picked'] && ! isset( $a['answers'] ) && false === strpos( wp_json_encode( $a ), '"right":true' ), wp_json_encode( $a ) );
+mbcom_check( 'a wrong answer is checked on the server: Wrong, the Why, their own pick', 200 === $s && false === $a['right'] && 'The company keeps it on its servers.' === $a['why'] && array( $qz_q1['answers'][0]['id'] ) === $a['picked'] && ! isset( $a['answers'] ) && false === strpos( wp_json_encode( $a ), '"right":true' ), wp_json_encode( $a ) );
+mbcom_check( '…and, now that it’s answered, which answer was right (QuizWrongShowsRight)', array( $qz_q1['answers'][1]['id'] ) === ( $a['right_ids'] ?? null ), wp_json_encode( $a ) );
 list( , $a2 ) = mbcom_call( $qz_m, 'POST', "/lessons/{$qz_l[1]}/quiz/answer", array( 'question_id' => $qz_q1['id'], 'picked' => array( $qz_q1['answers'][1]['id'] ) ) );
 mbcom_check( 'an answer can’t be changed in the same try', false === $a2['right'] );
 list( $s ) = mbcom_call( $qz_m, 'POST', "/lessons/{$qz_l[1]}/quiz/answer", array( 'question_id' => $qz_q1['id'] + 999, 'picked' => array( 1 ) ) );
@@ -4651,16 +4652,18 @@ mbcom_check( 'true or false takes one answer only', 400 === $s, (string) $s );
 list( , $qz_les ) = mbcom_call( $qz_m, 'GET', "/lessons/{$qz_l[1]}" );
 mbcom_check( 'leaving halfway keeps the answers: carry on at question 2 of 3 (rule 9)', 'open' === $qz_les['quiz']['state'] && 2 === $qz_les['quiz']['at'] && 1 === $qz_les['quiz']['answered'] );
 list( , $qz_t ) = mbcom_call( $qz_m, 'GET', "/lessons/{$qz_l[1]}/quiz" );
-mbcom_check( '…and the quiz comes back with the answered question checked', false === ( (array) $qz_t['answers'] )[ $qz_q1['id'] ]['right'] );
+mbcom_check( '…and the quiz comes back with the answered question checked, with its right answer', false === ( (array) $qz_t['answers'] )[ $qz_q1['id'] ]['right'] && array( $qz_q1['answers'][1]['id'] ) === ( (array) $qz_t['answers'] )[ $qz_q1['id'] ]['right_ids'] );
+mbcom_check( '…but never the right answers to a question not answered yet', ! isset( ( (array) $qz_t['answers'] )[ $qz_q2['id'] ] ) && false === strpos( wp_json_encode( $qz_t['questions'] ), 'right' ), wp_json_encode( $qz_t['answers'] ) );
 // More than one right answer: all of them and no wrong one.
 $qz_r2 = array_values( array_map( fn( $x ) => $x['id'], array_filter( $qz_q2['answers'], fn( $x ) => $x['right'] ) ) );
 list( , $a ) = mbcom_call( $qz_m, 'POST', "/lessons/{$qz_l[1]}/quiz/answer", array( 'question_id' => $qz_q2['id'], 'picked' => array( $qz_r2[0], $qz_r2[1] ) ) );
 mbcom_check( 'more than one right answer: missing one is wrong', false === $a['right'] && false === $a['finished'] );
+mbcom_check( '…and all its right answers come back, the missed one too', ( function ( $x ) { sort( $x ); return $x; } )( $qz_r2 ) === ( $a['right_ids'] ?? null ), wp_json_encode( $a ) );
 list( , $a ) = mbcom_call( $qz_m, 'POST', "/lessons/{$qz_l[1]}/quiz/answer", array( 'question_id' => $qz_q3['id'], 'picked' => array( 1 ) ) );
 mbcom_check( 'true or false: the right one is right, and the last answer finishes the try', true === $a['right'] && true === $a['finished'] && 1 === $a['result']['score'] && 3 === $a['result']['total'] && false === $a['result']['passed'], wp_json_encode( $a['result'] ?? $a ) );
 mbcom_check( '…not passed: the lesson isn’t done (rule 1)', ! isset( $a['progress'] ) && 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE user_id = %d AND lesson_id = %d', $qz_tbl( 'lesson_progress' ), $qz_m, $qz_l[1] ) ) );
 list( , $ya ) = mbcom_call( $qz_m, 'GET', "/lessons/{$qz_l[1]}/quiz/answers" );
-mbcom_check( 'See your answers after a fail: right or wrong and the Why, never the right answers (rule 11)', 3 === count( $ya['items'] ) && array( false, false, true ) === array_column( $ya['items'], 'right' ) && ! isset( $ya['items'][0]['right_answers'] ) && 'The company keeps it on its servers.' === $ya['items'][0]['why'] && array( 'You do' ) === $ya['items'][0]['picked'] && false === strpos( wp_json_encode( $ya ), 'The app company' ), wp_json_encode( $ya['items'][0] ) );
+mbcom_check( 'See your answers after a fail: right or wrong, the Why and the right answers too (QuizWrongShowsRight)', 3 === count( $ya['items'] ) && false === $ya['passed'] && array( false, false, true ) === array_column( $ya['items'], 'right' ) && array( 'The app company' ) === ( $ya['items'][0]['right_answers'] ?? null ) && 'The company keeps it on its servers.' === $ya['items'][0]['why'] && array( 'You do' ) === $ya['items'][0]['picked'], wp_json_encode( $ya['items'][0] ) );
 list( $s ) = mbcom_call( $qz_m, 'GET', "/lessons/{$qz_l[2]}" );
 mbcom_check( 'still locked after a fail', 403 === $s, (string) $s );
 list( , $qz_les ) = mbcom_call( $qz_m, 'GET', "/lessons/{$qz_l[1]}" );
@@ -4694,7 +4697,18 @@ mbcom_check( '…the member’s lesson stays done', \MemBuild\Community\Rest_Cou
 $wpdb->query( $wpdb->prepare( 'UPDATE %i SET updated_at = updated_at + INTERVAL 1 MINUTE WHERE id = %d', $qz_tbl( 'quiz_questions' ), $qz_q2['id'] ) ); // edited a minute after the pass
 list( , $ya ) = mbcom_call( $qz_m, 'GET', "/lessons/{$qz_l[1]}/quiz/answers" );
 $ya_by = array_column( $ya['items'], null, 'id' );
-mbcom_check( 'a question changed since the pass doesn’t show its right answer; the others still do', ! isset( $ya_by[ $qz_q2['id'] ]['right_answers'] ) && isset( $ya_by[ $qz_q1['id'] ]['right_answers'] ), wp_json_encode( $ya['items'] ) );
+mbcom_check( 'a question changed since that try doesn’t show its right answer; the others still do', ! isset( $ya_by[ $qz_q2['id'] ]['right_answers'] ) && isset( $ya_by[ $qz_q1['id'] ]['right_answers'] ), wp_json_encode( $ya['items'] ) );
+// A question edited while that try was going on: the right answer next to the old score might be the new one.
+$qz_last = $wpdb->get_row( $wpdb->prepare( 'SELECT id, finished_at FROM %i WHERE quiz_id = %d AND user_id = %d AND finished_at IS NOT NULL ORDER BY id DESC LIMIT 1', $qz_tbl( 'quiz_attempts' ), $qz_id, $qz_m ), ARRAY_A );
+$wpdb->query( $wpdb->prepare( 'UPDATE %i SET started_at = finished_at - INTERVAL 2 MINUTE WHERE id = %d', $qz_tbl( 'quiz_attempts' ), $qz_last['id'] ) );
+$wpdb->query( $wpdb->prepare( 'UPDATE %i SET updated_at = %s - INTERVAL 1 MINUTE WHERE id = %d', $qz_tbl( 'quiz_questions' ), $qz_last['finished_at'], $qz_q1['id'] ) );
+list( , $ya ) = mbcom_call( $qz_m, 'GET', "/lessons/{$qz_l[1]}/quiz/answers" );
+$ya_by = array_column( $ya['items'], null, 'id' );
+mbcom_check( '…and one changed while that try was going on doesn’t either (from the try’s start, like the quiz itself)', ! isset( $ya_by[ $qz_q1['id'] ]['right_answers'] ), wp_json_encode( $ya['items'] ) );
+$wpdb->query( $wpdb->prepare( 'UPDATE %i SET updated_at = %s - INTERVAL 3 MINUTE WHERE id = %d', $qz_tbl( 'quiz_questions' ), $qz_last['finished_at'], $qz_q1['id'] ) );
+list( , $ya ) = mbcom_call( $qz_m, 'GET', "/lessons/{$qz_l[1]}/quiz/answers" );
+$ya_by = array_column( $ya['items'], null, 'id' );
+mbcom_check( '…while one last changed before that try began shows it', array( 'The app company' ) === ( $ya_by[ $qz_q1['id'] ]['right_answers'] ?? null ), wp_json_encode( $ya['items'] ) );
 // Delete a question: the pass mark comes down to the new count.
 mbcom_call( $qz_admin, 'PUT', "/lessons/{$qz_l[1]}/quiz/edit", array( 'pass_mark' => 3 ) );
 list( , $qz ) = mbcom_call( $qz_admin, 'DELETE', "/quiz-questions/{$qz_q3['id']}" );

@@ -285,7 +285,7 @@ const viewReplies = (n) => t.sprintf(/* translators: %d: number of replies */ t.
 <template>
   <div class="thread" :class="{ dark }">
     <div :ref="sortRoot" class="sort">
-      <button :ref="sortTrigger" class="sort-btn" aria-haspopup="menu" :aria-expanded="sortOpen" @click="toggleSort">
+      <button :ref="sortTrigger" class="sort-btn tap-44" aria-haspopup="menu" :aria-expanded="sortOpen" @click="toggleSort">
         {{ SORTS[sort] }} <Icon name="chevronDown" :size="16" />
       </button>
       <div v-if="sortOpen" :ref="sortList" class="sort-menu" role="menu" @keydown="onSortKey">

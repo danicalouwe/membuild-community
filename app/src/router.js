@@ -75,7 +75,7 @@ export const router = createRouter({
 })
 
 // Parts the admin switched off, and admin-only pages, send people back to the feed.
-const routeFeature = { levels: 'leaderboard', reels: 'reels', classroom: 'classroom', course: 'classroom', leaderboard: 'leaderboard', messages: 'messages', events: 'events', event: 'events' }
+const routeFeature = { levels: 'leaderboard', reels: 'reels', classroom: 'classroom', course: 'classroom', leaderboard: 'leaderboard', messages: 'messages', events: 'events', places: 'places', event: 'events' }
 router.beforeEach((to) => {
   if (to.name === 'member' && Number(to.params.id) === cfg.user.id) return { name: 'me' } // your own profile lives at /me
   if (routeFeature[to.name] && !feature(routeFeature[to.name])) return { name: 'feed' }

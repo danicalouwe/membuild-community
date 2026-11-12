@@ -196,6 +196,7 @@ const goingLabel = (n) => t.sprintf(/* translators: %d: number of members going 
   margin: 0;
   font-size: var(--fs-lg);
   line-height: 1.25;
+  overflow-wrap: anywhere;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;

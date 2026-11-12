@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.22.0
+Stable tag: 1.22.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -266,6 +266,17 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.22.1 =
+* Changed: as soon as a member answers a quiz question, every right answer is marked "Right answer", whether they picked it or not. A right answer they missed has a dashed green outline, and a pick that isn't right says "Not right". The Right or Wrong mark and the Why show for every kind of question, including one right answer and true or false. See your answers shows the right answers too, after a pass or a fail.
+* Fixed: on phones, comments under a post on Home and in a course's All posts no longer have a big empty gap below them, and an event's Join button no longer grows taller than it should.
+* Fixed: a very long word or web address in an event's title, description, place name or address wraps instead of pushing the page sideways or being cut off. The same goes for place cards, the map's place card and the next event on the login page.
+* Fixed: a cancelled event no longer says when its Join button turns on.
+* Fixed: on phones, small links and buttons are easier to tap: Add to calendar, See who's going, the event's Cancel and Delete links, how comments are sorted, and the links and Show button on the login, join and forgot password pages.
+* Fixed: on phones, the weekday on the login page's next event is easier to read.
+* Fixed: with Places turned off, its address goes back to Home, an event's place name is plain text instead of a link, and opening the event form no longer leaves an error in the browser's console. Editing an event that was at one of your Places shows its place name and address, so you can still change where it is.
+* Fixed: the level-up card waits until the "You finished the course" box is closed, so the two never cover each other.
+* Fixed: a lesson's days box snaps to a whole number from 1 to 365 when you leave it, so what you see is what's saved.
 
 = 1.22.0 =
 * New: quizzes. Add one to any lesson from the lesson editor: questions with one right answer, more than one, or true or false, an optional picture and an optional "Why this is the answer". Choose the pass mark and whether members can move on without passing.

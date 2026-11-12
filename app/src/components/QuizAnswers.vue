@@ -6,8 +6,7 @@ import Icon from './Icon.vue'
 
 /**
  * "Your answers" for the latest finished try: each question right or wrong, the member's own
- * answer and the Why. The right answers show only once they've passed (rule 11), so a fail
- * can't be copied on the next try.
+ * answer, the right answers (passed or not, since 1.22.1) and the Why.
  */
 const props = defineProps({
   lesson: { type: Object, required: true },
@@ -53,7 +52,6 @@ const numbered = (i) => t.sprintf(/* translators: %d: question number */ t.__('Q
         <span v-if="data.passed" class="status-tag ok">{{ t.__('Passed', 'membuild-community') }}</span>
         <span v-else class="status-tag warn">{{ t.__('Not passed yet', 'membuild-community') }}</span>
       </div>
-      <p v-if="!data.passed" class="info-note"><Icon name="info" :size="20" /> <span>{{ t.__('To keep the quiz fair, the right answers show once you pass. The Why under each question is a good hint.', 'membuild-community') }}</span></p>
 
       <section v-for="(item, i) in data.items" :key="item.id" class="card qa-item">
         <div class="qa-top">

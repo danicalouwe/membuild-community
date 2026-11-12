@@ -243,7 +243,7 @@ function goNext(id) {
   doneCard.value = null
   open(id)
 }
-// While "Lesson done" is up, a level-up or a small note waits its turn.
+// While "Lesson done" or "You finished the course" is up, a level-up or a small note waits its turn.
 watch(doneCard, (v) => (popups.lesson = !!v))
 onBeforeUnmount(() => (popups.lesson = false))
 watch(() => props.lessonId, () => (doneCard.value = null))
@@ -254,6 +254,8 @@ function continueCourse() {
   if (l) open(l.id)
 }
 const finished = ref(false) // the "You finished" moment
+watch(finished, (v) => (popups.finished = !!v))
+onBeforeUnmount(() => (popups.finished = false))
 const upNext = ref(null) // after a video ends: { id, title, seconds }
 let upTimer = null
 

@@ -267,7 +267,7 @@ const countLabel = computed(() => t.sprintf(/* translators: %d: number of questi
               <label class="pick-card qe-choice" :class="{ on: quiz.on_fail === 'retry' }">
                 <input type="radio" name="qe-on-fail" class="sr-only" value="retry" :checked="quiz.on_fail === 'retry'" @change="save({ on_fail: 'retry' })" />
                 <span class="pick-dot" />
-                <span><strong>{{ t.__('They can try again', 'membuild-community') }}</strong><small>{{ t.__('Any number of times. The next lesson stays closed until they pass.', 'membuild-community') }}</small></span>
+                <span><strong>{{ t.__('They can try again', 'membuild-community') }}</strong><small>{{ t.__('Any number of times. They see the right answers after each question, and the next lesson stays closed until they pass.', 'membuild-community') }}</small></span>
               </label>
               <label class="pick-card qe-choice" :class="{ on: quiz.on_fail === 'move_on' }">
                 <input type="radio" name="qe-on-fail" class="sr-only" value="move_on" :checked="quiz.on_fail === 'move_on'" @change="save({ on_fail: 'move_on' })" />

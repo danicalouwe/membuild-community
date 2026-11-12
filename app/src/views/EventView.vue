@@ -3,7 +3,7 @@ import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch 
 import { askConfirm } from '../lib/confirm.js'
 import { useRouter } from 'vue-router'
 import { api } from '../api.js'
-import { cfg } from '../config.js'
+import { cfg, feature } from '../config.js'
 import { eventList, removePost, setRsvp, updatePost, watchPost } from '../stores/feed.js'
 import Avatar from '../components/Avatar.vue'
 import Icon from '../components/Icon.vue'
@@ -98,6 +98,7 @@ const whereTitle = computed(() => {
   return service.value ? t.sprintf(/* translators: %s: Zoom, Google Meet… */ t.__('Online, on %s', 'membuild-community'), service.value) : t.__('Online', 'membuild-community')
 })
 const whereNote = computed(() => {
+  if (state.value === 'cancelled') return ''
   if (state.value === 'past') return e.value?.recording ? t.__('Watch any time', 'membuild-community') : t.__('No replay for this one', 'membuild-community')
   if (state.value === 'live') return isStream.value ? t.__('Playing on this page', 'membuild-community') : t.__('It’s open now', 'membuild-community')
   // Said once, here: when the Join button (or the stream) turns on. No second note under the button.
@@ -262,7 +263,7 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
         <div v-if="inPerson" class="row">
           <span class="ic"><Icon name="mapPin" :size="20" /></span>
           <span>
-            <RouterLink v-if="e.place.id" :to="{ name: 'places', params: { placeId: e.place.id } }" class="place-link">{{ e.place.name }} <Icon name="chevronRight" :size="16" /></RouterLink>
+            <RouterLink v-if="e.place.id && feature('places')" :to="{ name: 'places', params: { placeId: e.place.id } }" class="place-link">{{ e.place.name }} <Icon name="chevronRight" :size="16" /></RouterLink>
             <strong v-else>{{ e.place.name }}</strong>
             <small v-if="e.place.address">{{ e.place.address }}</small>
             <a :href="mapsUrl" target="_blank" rel="noopener" class="maps">{{ t.__('Open in Maps', 'membuild-community') }} <Icon name="external" :size="14" /></a>
@@ -271,14 +272,14 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
 
         <div v-if="e.where !== 'person'" class="row">
           <span class="ic"><Icon name="video" :size="20" /></span>
-          <span><strong>{{ whereTitle }}</strong><small>{{ whereNote }}</small></span>
+          <span><strong>{{ whereTitle }}</strong><small v-if="whereNote">{{ whereNote }}</small></span>
         </div>
 
         <div v-if="host && state !== 'cancelled'" class="row">
           <span class="ic"><Icon name="users" :size="20" /></span>
           <span>
             <strong>{{ state === 'past' ? t.sprintf(/* translators: %d: members who went */ t._n('%d went', '%d went', e.going_count, 'membuild-community'), e.going_count) : goingLabel(e.going_count) }}</strong>
-            <small><button v-if="e.going_count" class="link" @click="openGoing">{{ state === 'past' ? t.__('See who came', 'membuild-community') : t.__('See who’s going', 'membuild-community') }}</button><template v-if="e.going_count"> · </template>{{ t.__('only you see this', 'membuild-community') }}</small>
+            <small><button v-if="e.going_count" class="link tap-44" @click="openGoing">{{ state === 'past' ? t.__('See who came', 'membuild-community') : t.__('See who’s going', 'membuild-community') }}</button><template v-if="e.going_count"> · </template>{{ t.__('only you see this', 'membuild-community') }}</small>
           </span>
         </div>
 
@@ -291,7 +292,7 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
           </button>
           <p v-if="host && e.url && !isStream" class="note">{{ t.sprintf(/* translators: %s: a time, e.g. "12:45 PM ET" */ t.__('You can open it any time. Members’ button turns on at %s.', 'membuild-community'), joinAt) }}</p>
           <div class="cal-wrap">
-            <button class="cal" aria-haspopup="menu" :aria-expanded="calOpen" @click="calOpen = !calOpen"><Icon name="calendar" :size="18" /> {{ t.__('Add to calendar', 'membuild-community') }}</button>
+            <button class="cal tap-44" aria-haspopup="menu" :aria-expanded="calOpen" @click="calOpen = !calOpen"><Icon name="calendar" :size="18" /> {{ t.__('Add to calendar', 'membuild-community') }}</button>
             <div v-if="calOpen" class="menu cal-menu" role="menu" @click="calOpen = false">
               <a :href="links.google" target="_blank" rel="noopener" role="menuitem">Google Calendar</a>
               <button role="menuitem" @click="downloadIcs(calEvent, pageUrl, cfg.siteName)">Apple Calendar</button>
@@ -301,8 +302,8 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
           </div>
           <template v-if="host">
             <hr />
-            <button class="link danger" @click="cancel">{{ t.__('Cancel this event…', 'membuild-community') }}</button>
-            <button v-if="e.series" class="link danger" @click="cancelAll">{{ t.__('Cancel all still to come…', 'membuild-community') }}</button>
+            <button class="link danger tap-44" @click="cancel">{{ t.__('Cancel this event…', 'membuild-community') }}</button>
+            <button v-if="e.series" class="link danger tap-44" @click="cancelAll">{{ t.__('Cancel all still to come…', 'membuild-community') }}</button>
           </template>
         </template>
 
@@ -326,7 +327,7 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
 
         <template v-if="host && (state === 'past' || state === 'cancelled')">
           <hr />
-          <button class="link danger" @click="remove">{{ t.__('Delete this event…', 'membuild-community') }}</button>
+          <button class="link danger tap-44" @click="remove">{{ t.__('Delete this event…', 'membuild-community') }}</button>
         </template>
         </ThemeSlot>
       </aside>
@@ -452,6 +453,7 @@ h1 {
   margin: 14px 0 18px;
   font-size: var(--fs-9xl);
   line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .hosted {
@@ -497,6 +499,7 @@ h1 {
 .desc {
   font-size: var(--fs-lg);
   line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 
 /* The card on the right stays in view while the page scrolls. */
@@ -566,6 +569,12 @@ h1 {
   gap: 14px;
 }
 
+.when > span:last-child,
+.row > span:last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .row .ic {
   display: grid;
   flex: none;
@@ -592,6 +601,7 @@ h1 {
 
 .place-link {
   display: inline-flex;
+  max-width: 100%;
   align-items: center;
   gap: 2px;
   color: var(--text);
@@ -805,6 +815,13 @@ h1 {
 
   .event {
     padding-bottom: 110px;
+  }
+}
+
+/* Phones: the two Cancel links' 44px tap areas don't overlap. */
+@media (max-width: 767px) {
+  .link.danger + .link.danger {
+    margin-top: 8px;
   }
 }
 </style>
