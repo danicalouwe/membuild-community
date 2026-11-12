@@ -33,12 +33,12 @@ const goingLabel = (n) => t.sprintf(/* translators: %d: number of members going 
 <template>
   <div class="event-card" :class="{ compact, cancelled: state === 'cancelled', past: state === 'past' }" role="link" tabindex="0" @click="open" @keydown.enter="open">
     <div v-if="!compact" class="cover" :style="cover ? { backgroundImage: `url(${cover})` } : { background: fallback }">
-      <span class="date"><small>{{ badge.month }}</small><strong>{{ badge.day }}</strong></span>
+      <span class="date date-badge raised"><small>{{ badge.month }}</small><strong>{{ badge.day }}</strong></span>
       <span v-if="state === 'live'" class="live">● {{ t.__('Live now', 'membuild-community') }}</span>
       <span v-else-if="state === 'cancelled'" class="live off">{{ t.__('Cancelled', 'membuild-community') }}</span>
     </div>
     <div class="body">
-      <span v-if="compact" class="date inline"><small>{{ badge.month }}</small><strong>{{ badge.day }}</strong></span>
+      <span v-if="compact" class="date-badge"><small>{{ badge.month }}</small><strong>{{ badge.day }}</strong></span>
       <div class="text">
         <span class="when">
           {{ whenShort(e) }}
@@ -99,39 +99,6 @@ const goingLabel = (n) => t.sprintf(/* translators: %d: number of members going 
   position: absolute;
   top: 12px;
   left: 12px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 48px;
-  overflow: hidden;
-  border-radius: var(--radius-sm);
-  background: var(--paper);
-  color: var(--ink);
-  line-height: 1.1;
-}
-
-.date small {
-  font-size: var(--fs-2xs);
-  font-weight: 700;
-  text-transform: uppercase;
-  align-self: stretch;
-  padding: 3px 8px;
-  background: var(--date-month);
-  color: var(--date-month-text);
-  text-align: center;
-}
-
-.date strong {
-  padding: 2px 8px 4px;
-  font-size: var(--fs-3xl);
-}
-
-.date.inline {
-  position: static;
-  flex: none;
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border);
 }
 
 
@@ -254,13 +221,6 @@ const goingLabel = (n) => t.sprintf(/* translators: %d: number of members going 
   .going {
     width: 100%;
     justify-content: center;
-  }
-}
-
-/* Phones: the month at 13px, the smallest text on a phone. */
-@media (max-width: 767px) {
-  .date small {
-    font-size: var(--fs-sm);
   }
 }
 </style>

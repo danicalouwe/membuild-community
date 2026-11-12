@@ -101,7 +101,7 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
           </span>
         </div>
         <div v-else-if="startsOn" class="ov-starts">
-          <span class="ov-cal"><small>{{ startsOn.toLocaleDateString(undefined, { month: 'short' }) }}</small><strong>{{ startsOn.getDate() }}</strong></span>
+          <span class="date-badge raised"><small>{{ startsOn.toLocaleDateString(undefined, { month: 'short' }) }}</small><strong>{{ startsOn.getDate() }}</strong></span>
           <span>
             <strong>{{ t.sprintf(/* translators: %s: a date, e.g. "Monday, November 16" */ t.__('Starts %s', 'membuild-community'), startsOn.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })) }}</strong>
             <small>{{ t.__('You’re in. Lesson 1 opens then, and we’ll let you know.', 'membuild-community') }}</small>
@@ -375,35 +375,6 @@ const snippet = (text) => (text.length > 160 ? `${text.slice(0, 160).trim()}…`
   font-size: var(--fs-sm);
 }
 
-.ov-cal {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 52px;
-  overflow: hidden;
-  border-radius: var(--radius-sm);
-  background: var(--paper);
-  color: var(--ink);
-  line-height: 1.1;
-  box-shadow: var(--shadow-sm);
-}
-
-.ov-cal small {
-  align-self: stretch;
-  padding: 3px 8px;
-  background: var(--date-month);
-  color: var(--date-month-text);
-  font-size: var(--fs-2xs);
-  font-weight: 800;
-  text-align: center;
-  text-transform: uppercase;
-}
-
-.ov-cal strong {
-  padding: 3px 8px 5px;
-  font-size: var(--fs-xl);
-}
 
 .ov-lockbox p,
 .ov-soon {

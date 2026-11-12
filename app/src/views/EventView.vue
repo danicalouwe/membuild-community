@@ -252,7 +252,7 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
       <aside class="side card" :aria-label="t.__('When and where', 'membuild-community')">
         <ThemeSlot name="events.side-card" :off="host" :data="{ event: e, state, badge, post, rsvp }">
         <div class="when">
-          <span class="tile"><small>{{ badge.month }}</small><strong>{{ badge.day }}</strong></span>
+          <span class="date-badge large"><small>{{ badge.month }}</small><strong>{{ badge.day }}</strong></span>
           <span>
             <strong>{{ longDay }}</strong>
             <span>{{ here ? timeRangeIn(e) : timeRange(e) }}<template v-if="here && placeCity"> ({{ t.sprintf(/* translators: %s: a city */ t.__('%s time', 'membuild-community'), placeCity) }})</template></span>
@@ -521,36 +521,6 @@ h1 {
   border-bottom: 1px solid var(--border);
 }
 
-.tile {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  align-items: center;
-  width: 72px;
-  height: 78px;
-  overflow: hidden;
-  border-radius: var(--radius);
-  background: var(--surface-2);
-  line-height: 1.05;
-}
-
-.when .tile small {
-  font-size: var(--fs-sm);
-  font-weight: 800;
-  text-transform: uppercase;
-  align-self: stretch;
-  padding: 5px 8px;
-  background: var(--date-month);
-  color: var(--date-month-text);
-  text-align: center;
-}
-
-.when .tile strong {
-  flex: 1;
-  display: grid;
-  place-items: center;
-  font-size: var(--fs-8xl);
-}
 
 .when > span:last-child,
 .row > span:last-child {
@@ -559,7 +529,7 @@ h1 {
   gap: 3px;
 }
 
-.when strong {
+.when > span:last-child > strong {
   font-size: var(--fs-2xl);
 }
 

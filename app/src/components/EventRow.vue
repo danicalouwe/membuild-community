@@ -33,7 +33,7 @@ const people = (n) =>
 <template>
   <RouterLink :to="{ name: 'event', params: { id: post.id } }" class="er card" :class="{ past, cancelled: state === 'cancelled' }">
     <span class="cover" :style="cover ? { backgroundImage: `url(${cover})` } : plainCover()">
-      <span class="date"><small>{{ badge.month }}</small><strong>{{ badge.day }}</strong></span>
+      <span class="date date-badge raised"><small>{{ badge.month }}</small><strong>{{ badge.day }}</strong></span>
       <span v-if="state === 'live'" class="live">● {{ t.__('Live now', 'membuild-community') }}</span>
       <span v-if="state === 'past' && e.recording" class="play" aria-hidden="true"><Icon name="play" :size="20" /></span>
     </span>
@@ -102,32 +102,6 @@ const people = (n) =>
   position: absolute;
   top: 10px;
   left: 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 46px;
-  overflow: hidden;
-  border-radius: var(--radius-sm);
-  background: var(--paper);
-  color: var(--ink);
-  line-height: 1.1;
-  box-shadow: var(--shadow-sm);
-}
-
-.date small {
-  font-size: var(--fs-2xs);
-  font-weight: 800;
-  text-transform: uppercase;
-  align-self: stretch;
-  padding: 3px 8px;
-  background: var(--date-month);
-  color: var(--date-month-text);
-  text-align: center;
-}
-
-.date strong {
-  padding: 2px 8px 4px;
-  font-size: var(--fs-4xl);
 }
 
 .live {
@@ -265,16 +239,6 @@ const people = (n) =>
   .date {
     top: 6px;
     left: 6px;
-    min-width: 36px;
-    padding: 3px 6px;
-  }
-
-  .date small {
-    font-size: var(--fs-sm); /* 13px: the smallest text on a phone */
-  }
-
-  .date strong {
-    font-size: var(--fs-lg);
   }
 
   .play {

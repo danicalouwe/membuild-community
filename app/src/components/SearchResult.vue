@@ -123,7 +123,7 @@ const quote = computed(() => (['course', 'lesson'].includes(props.item.kind) ? p
   <div class="row" :class="{ 'has-msg': message && item.kind === 'member' }">
     <RouterLink :to="to" class="result" @click="emit('open')">
       <Avatar v-if="item.user && item.kind === 'member'" :user="item.user" :size="48" online="bottom" />
-      <span v-else-if="eventDay" class="cal" :class="{ past: item.past }"><small>{{ eventDay.month }}</small><b>{{ eventDay.day }}</b></span>
+      <span v-else-if="eventDay" class="date-badge" :class="{ past: item.past }"><small>{{ eventDay.month }}</small><strong>{{ eventDay.day }}</strong></span>
       <!-- A post with a picture shows it; a reel or video post gets a play badge, so it reads as video at a glance. -->
       <span v-else-if="item.thumb" class="thumb" :class="{ tall: item.kind === 'reel', video: item.video }">
         <img :src="item.thumb" alt="" />
@@ -164,35 +164,6 @@ const quote = computed(() => (['course', 'lesson'].includes(props.item.kind) ? p
   color: var(--text);
 }
 
-.cal {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-sm);
-  color: var(--accent-text);
-  background: var(--accent-soft);
-  line-height: 1;
-}
-
-.cal small {
-  font-size: var(--fs-2xs);
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.cal b {
-  margin-top: 2px;
-  font-size: var(--fs-3xl);
-}
-
-.cal.past {
-  color: var(--text-2);
-  background: var(--surface-2);
-}
 
 .msg {
   display: inline-flex;

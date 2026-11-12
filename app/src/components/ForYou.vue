@@ -39,7 +39,7 @@ const newLine = (n) => t.sprintf(/* translators: %d: number of people */ t._n('%
     <h2>{{ t.__('For you', 'membuild-community') }}</h2>
 
     <RouterLink v-if="data.event" class="row" :to="{ name: 'event', params: { id: data.event.id } }">
-      <span class="tile">
+      <span class="date-badge">
         <small>{{ dateBadge(data.event).month }}</small>
         <strong>{{ dateBadge(data.event).day }}</strong>
       </span>
@@ -103,40 +103,11 @@ h2 {
   background: var(--surface-2);
 }
 
-.tile,
 .cover,
 .faces {
   flex: none;
   width: 44px;
   height: 44px;
-}
-
-/* A little calendar page: the month on a red strip, the day on white under it. */
-.tile {
-  display: grid;
-  grid-template-rows: auto 1fr;
-  overflow: hidden;
-  text-align: center;
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  box-shadow: inset 0 0 0 1px var(--border);
-  line-height: 1;
-}
-
-.tile small {
-  padding: 4px 0 3px;
-  background: var(--date-month);
-  font-size: var(--fs-3xs);
-  font-weight: 750;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--date-month-text);
-}
-
-.tile strong {
-  display: grid;
-  place-items: center;
-  font-size: var(--fs-2xl);
 }
 
 /* The course cover inside a ring that fills with progress. */

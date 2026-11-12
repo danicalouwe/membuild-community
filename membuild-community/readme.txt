@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.22.1
+Stable tag: 1.22.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -266,6 +266,9 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.22.2 =
+* Fixed: on phones, the month on an event's little calendar date is easier to read everywhere it shows: search, the Places list and a course's start date now match event cards and the Events list. Every date tile now has the same look on every screen, and past events in search have a grey month.
 
 = 1.22.1 =
 * Changed: as soon as a member answers a quiz question, every right answer is marked "Right answer", whether they picked it or not. A right answer they missed has a dashed green outline, and a pick that isn't right says "Not right". The Right or Wrong mark and the Why show for every kind of question, including one right answer and true or false. See your answers shows the right answers too, after a pass or a fail.

@@ -798,7 +798,7 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
       <section v-if="detail.events?.length" class="who">
         <h2>{{ t.__('Coming up here', 'membuild-community') }}</h2>
         <RouterLink v-for="ev in detail.events" :key="ev.id" :to="{ name: 'event', params: { id: ev.id } }" class="up">
-          <span class="up-date"><small>{{ dateBadge(ev.event).month }}</small><strong>{{ dateBadge(ev.event).day }}</strong></span>
+          <span class="date-badge"><small>{{ dateBadge(ev.event).month }}</small><strong>{{ dateBadge(ev.event).day }}</strong></span>
           <span class="up-txt"><strong>{{ ev.event.title }}</strong><small>{{ dayShort(ev.event) }} · {{ startTime(ev.event) }} · {{ t.__('an event', 'membuild-community') }}</small></span>
           <Icon name="chevronRight" :size="18" />
         </RouterLink>
@@ -1618,35 +1618,6 @@ button.pc:hover {
   text-decoration: none;
 }
 
-.up-date {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  align-items: center;
-  width: 56px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  line-height: 1.1;
-}
-
-/* A little calendar page: the month on a red band, the day big below. */
-.up-date small {
-  width: 100%;
-  padding: 3px 0;
-  background: var(--live);
-  color: var(--on-color);
-  font-size: var(--fs-2xs);
-  font-weight: 800;
-  text-align: center;
-  text-transform: uppercase;
-}
-
-.up-date strong {
-  padding: 3px 0 5px;
-  font-size: var(--fs-4xl);
-}
 
 .up-txt {
   display: flex;

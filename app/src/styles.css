@@ -637,6 +637,80 @@ h4 {
   outline-offset: 2px;
 }
 
+/* Date badge, a little calendar tile: <span class="date-badge"><small>Nov</small><strong>18</strong></span>.
+   One look on every screen (#69). Add .raised (a white tile with a shadow) on a cover picture or a coloured panel, .large for the
+   event page, .past for an event that's over. Pages only place it. The month is never under 13px
+   on a phone. */
+.date-badge {
+  display: inline-flex;
+  flex: none;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 48px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--border);
+  color: var(--text);
+  line-height: 1.1;
+  text-align: center;
+}
+
+.date-badge small {
+  padding: 3px 8px;
+  background: var(--date-month);
+  color: var(--date-month-text);
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.date-badge strong {
+  padding: 2px 8px 4px;
+  font-size: var(--fs-3xl);
+  font-weight: 700;
+}
+
+.date-badge.raised {
+  background: var(--paper);
+  box-shadow: var(--shadow-sm);
+  color: var(--ink);
+}
+
+.date-badge.past small {
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+
+.date-badge.large {
+  min-width: 72px;
+  border-radius: var(--radius);
+}
+
+.date-badge.large small {
+  padding: 5px 8px;
+  font-size: var(--fs-sm);
+}
+
+.date-badge.large strong {
+  padding: 6px 8px 8px;
+  font-size: var(--fs-8xl);
+}
+
+@media (max-width: 767px) {
+  .date-badge small {
+    font-size: var(--fs-sm); /* 13px: the smallest text on a phone */
+  }
+
+  .date-badge strong {
+    font-size: var(--fs-2xl);
+  }
+
+  .date-badge.large strong {
+    font-size: var(--fs-8xl);
+  }
+}
+
 /* A small icon button that keeps its look but gets a 44px tap area on phones (an invisible
    ring around it). Markup: add class="tap-44". A page that places the button itself keeps its
    own position; the ::after belongs to this class. */
