@@ -9,6 +9,8 @@ import Icon from './Icon.vue'
 import LessonPlayer from './LessonPlayer.vue'
 import RichEditor from './RichEditor.vue'
 import { t } from '../lib/i18n.js'
+import { askConfirm } from '../lib/confirm.js'
+import { showToast } from '../lib/toast.js'
 import { localToday, realDay } from '../lib/time.js'
 
 /**
@@ -20,7 +22,7 @@ const props = defineProps({
   lesson: { type: Object, required: true },
   course: { type: Object, required: true },
 })
-const emit = defineEmits(['saved', 'deleted', 'go', 'status', 'settings'])
+const emit = defineEmits(['saved', 'deleted', 'go', 'status', 'settings', 'quiz'])
 
 const title = ref('')
 const content = ref('')
@@ -242,6 +244,41 @@ const plusDays = (iso, n) => {
 const startsLine = computed(() => (byStart.value ? t.__('This course starts on %s.', 'membuild-community').split('%s') : []))
 const startDayText = computed(() => (byStart.value ? t.sprintf(/* translators: %s: a date */ t.__('Opens %s, when the course starts.', 'membuild-community'), longDate(props.course.starts_on)) : ''))
 const startExample = computed(() => (byStart.value ? t.__('Opens %s for everyone in this course.', 'membuild-community').split('%s') : []))
+/* ---------- The quiz: one per lesson, at the end ---------- */
+const quiz = computed(() => props.lesson.quiz || null)
+const quizTitle = computed(() => t.sprintf(/* translators: %s: lesson title */ t.__('Quiz: %s', 'membuild-community'), title.value || props.lesson.title))
+const quizLine = computed(() => {
+  const q = quiz.value
+  if (!q?.questions) return t.__('No questions yet. Members see the quiz once it has a question.', 'membuild-community')
+  const parts = [
+    t.sprintf(/* translators: %d: number of questions */ t._n('%d question', '%d questions', q.questions, 'membuild-community'), q.questions),
+    t.sprintf(/* translators: 1: pass mark, 2: number of questions */ t.__('Pass mark %1$d of %2$d', 'membuild-community'), q.pass_mark, q.questions),
+    q.on_fail === 'move_on' ? t.__('They can move on anyway', 'membuild-community') : t.__('They can try again', 'membuild-community'),
+  ]
+  return parts.join(' · ')
+})
+const removingQuiz = ref(false)
+async function removeQuiz() {
+  const n = quiz.value?.questions || 0
+  const ok = await askConfirm({
+    title: t.__('Remove this quiz?', 'membuild-community'),
+    text: t.sprintf(/* translators: %d: number of questions */ t._n('Its %d question and the results go away for good. Members who already finished this lesson keep it as done.', 'Its %d questions and the results go away for good. Members who already finished this lesson keep it as done.', n, 'membuild-community'), n),
+    confirm: t.__('Remove quiz', 'membuild-community'),
+    cancel: t.__('Keep the quiz', 'membuild-community'),
+    danger: true,
+  })
+  if (!ok) return
+  removingQuiz.value = true
+  try {
+    await api.deleteQuiz(props.lesson.id)
+    emit('quiz', 'removed')
+    showToast(t.__('Quiz removed', 'membuild-community'))
+  } catch (err) {
+    showToast(err.message)
+  } finally {
+    removingQuiz.value = false
+  }
+}
 const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */ t.__('Delete “%s”?', 'membuild-community'), props.lesson.title))
 </script>
 
@@ -389,6 +426,24 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
       </template>
     </section>
 
+    <section class="box">
+      <h3>{{ t.__('Quiz', 'membuild-community') }}</h3>
+      <template v-if="quiz">
+        <p class="sub">{{ t.__('Members answer it at the end of this lesson.', 'membuild-community') }}</p>
+        <div class="quiz-row">
+          <span class="quiz-icon"><Icon name="quiz" :size="20" /></span>
+          <span class="quiz-text"><strong>{{ quizTitle }}</strong><small>{{ quizLine }}</small></span>
+        </div>
+        <div class="quiz-btns">
+          <button class="btn btn-ghost" type="button" @click="emit('quiz', 'open')"><Icon name="pencil" :size="18" /> {{ t.__('Edit quiz', 'membuild-community') }}</button>
+          <button class="btn btn-ghost" type="button" :disabled="removingQuiz" @click="removeQuiz"><Icon name="trash" :size="18" /> {{ t.__('Remove quiz', 'membuild-community') }}</button>
+        </div>
+      </template>
+      <template v-else>
+        <p class="sub">{{ t.__('Optional. Questions at the end of this lesson. Members answer them before moving on.', 'membuild-community') }}</p>
+        <button class="btn btn-ghost quiz-add" type="button" @click="emit('quiz', 'open')"><Icon name="plus" :size="18" /> {{ t.__('Add a quiz', 'membuild-community') }}</button>
+      </template>
+    </section>
     <footer class="nav">
       <button class="btn btn-lg btn-ghost" :disabled="!prev || uploading" @click="go(prev)"><Icon name="arrowRight" :size="18" class="flip" /> {{ t.__('Previous lesson', 'membuild-community') }}</button>
       <span class="grow" />
@@ -411,6 +466,48 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
 </template>
 
 <style scoped>
+.quiz-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.quiz-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.quiz-text {
+  min-width: 0;
+}
+.quiz-text strong {
+  display: block;
+  font-size: var(--fs-lg);
+}
+.quiz-text small {
+  display: block;
+  color: var(--text-2);
+  font-size: var(--fs-md);
+}
+.quiz-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+@media (max-width: 600px) {
+  .quiz-btns .btn,
+  .quiz-add {
+    width: 100%;
+  }
+}
 .ble {
   display: flex;
   flex-direction: column;

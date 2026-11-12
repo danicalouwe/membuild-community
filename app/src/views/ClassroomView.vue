@@ -113,6 +113,9 @@ const linkTo = (c) =>
 const editCourse = (c) => router.push({ name: 'course', params: { courseId: c.id }, query: { edit: 1 } })
 const lessonOf = (c) => t.sprintf(/* translators: 1: lesson number, 2: number of lessons */ t.__('Lesson %1$d of %2$d', 'membuild-community'), c.next_lesson.number, c.lessons_count)
 const lessonsLabel = (n) => t.sprintf(/* translators: %d: number of lessons */ t._n('%d lesson', '%d lessons', n, 'membuild-community'), n)
+const quizzesLabel = (n) => t.sprintf(/* translators: %d: number of quizzes in a course */ t._n('%d quiz', '%d quizzes', n, 'membuild-community'), n)
+// Before a member starts: "3 lessons · 1 quiz", so they know a quiz is coming. Once started, progress shows instead.
+const countsLabel = (c) => (c.quizzes_count ? `${lessonsLabel(c.lessons_count)} · ${quizzesLabel(c.quizzes_count)}` : lessonsLabel(c.lessons_count))
 const startsOn = (iso) => t.sprintf(/* translators: %s: a date, e.g. "Nov 16" */ t.__('Starts %s', 'membuild-community'), new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))
 const doneOf = (c) => t.sprintf(/* translators: 1: lessons finished, 2: lessons in the course */ t.__('%1$d of %2$d lessons', 'membuild-community'), c.completed_count, c.lessons_count)
 const membersLabel = (n) => t.sprintf(/* translators: %d: members taking the course */ t._n('%d member', '%d members', n, 'membuild-community'), n)
@@ -227,7 +230,7 @@ const lockFoot = (lock) => (lock.reason === 'level' ? t.sprintf(/* translators: 
               <span class="btn btn-ghost edit" role="button" tabindex="0" @click.prevent.stop="editCourse(c)" @keydown.enter.prevent.stop="editCourse(c)"><Icon name="pencil" :size="18" /> {{ t.__('Edit', 'membuild-community') }}</span>
             </template>
             <template v-else>
-              <span class="foot-left">{{ !c.lock && stateOf(c) !== 'new' ? doneOf(c) : c.lessons_count ? lessonsLabel(c.lessons_count) : '' }}</span>
+              <span class="foot-left">{{ !c.lock && stateOf(c) !== 'new' ? doneOf(c) : c.lessons_count ? countsLabel(c) : '' }}</span>
               <span v-if="c.lock" class="state locked-state"><Icon name="lock" :size="15" /> {{ lockFoot(c.lock) }}</span>
               <span v-else-if="stateOf(c) === 'done'" class="state done-state"><Icon name="check" :size="16" /> {{ t.__('Completed', 'membuild-community') }}</span>
               <span v-else-if="c.starts_soon" class="state"><Icon name="calendar" :size="15" /> {{ startsOn(c.starts_soon) }}</span>

@@ -21,7 +21,7 @@ import { insertPost, updatePost } from '../stores/feed.js'
 
 export const DATA_FIELDS = {
   post: 'id, type, content, author { id, name, avatar, level }, media, topic { id, name, color } or null, created_at, reactions_count, top_reactions, my_reaction, comments_count, pinned, edited',
-  comment: 'id, content, author { id, name, avatar, level }, created_at, reactions_count, my_reaction, replies_count',
+  comment: 'id, content, author { id, name, avatar, level }, created_at, reactions_count, my_reaction, replies_count, edited_at (null until its author changes the words)',
   topic: 'id, name, color',
   course: 'id, title, description, cover, lock (null when it’s open), progress (0–100), lessons_count, completed_count',
   courseOutline: 'the course fields, plus modules: [{ id, title, lessons: [{ id, title, completed, locked, minutes, has_video }] }]',

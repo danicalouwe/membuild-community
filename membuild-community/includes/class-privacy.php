@@ -24,6 +24,13 @@ class Privacy {
 		add_filter( 'wp_privacy_personal_data_exporters', array( __CLASS__, 'exporters' ) );
 		add_filter( 'wp_privacy_personal_data_erasers', array( __CLASS__, 'erasers' ) );
 		add_action( 'admin_init', array( __CLASS__, 'policy_text' ) );
+		add_action( 'deleted_user', array( __CLASS__, 'on_user_deleted' ) );
+	}
+
+	/** An account deleted in WordPress: reports about them stay for the records, without the copies of their words, bio or name. */
+	public static function on_user_deleted( $user_id ) {
+		global $wpdb;
+		$wpdb->query( $wpdb->prepare( 'UPDATE %i SET reported_content = NULL, reported_name = NULL WHERE author_id = %d AND ( reported_content IS NOT NULL OR reported_name IS NOT NULL )', Install::table( 'reports' ), (int) $user_id ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 	}
 
 	public static function exporters( $list ) {
@@ -191,10 +198,12 @@ class Privacy {
 		// Last pass: messages (text removed, the conversation's shape kept for the other people), stories, reactions and the rest.
 		$removed += (int) $wpdb->query( $wpdb->prepare( "UPDATE %i SET content = NULL, media = NULL, story = NULL, status = 'unsent' WHERE user_id = %d AND status <> 'unsent'", Install::table( 'messages' ), $id ) );
 		$removed += (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE user_id = %d', Install::table( 'stories' ), $id ) );
-		foreach ( array( 'reactions', 'saved_posts', 'poll_votes', 'story_views', 'notifications', 'lesson_progress', 'course_starts', 'points', 'member_stats', 'group_members', 'place_news' ) as $table ) {
+		foreach ( array( 'reactions', 'saved_posts', 'poll_votes', 'story_views', 'notifications', 'lesson_progress', 'quiz_attempts', 'certificates', 'course_starts', 'points', 'member_stats', 'group_members', 'place_news' ) as $table ) {
 			$removed += (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE user_id = %d', Install::table( $table ), $id ) );
 		}
 		$removed += (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE reporter_id = %d', Install::table( 'reports' ), $id ) );
+		// Reports about them stay for the moderators' records, without the copies of their words, bio or name.
+		$removed += (int) $wpdb->query( $wpdb->prepare( 'UPDATE %i SET reported_content = NULL, reported_name = NULL WHERE author_id = %d AND ( reported_content IS NOT NULL OR reported_name IS NOT NULL )', Install::table( 'reports' ), $id ) );
 		$removed += (int) $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE user_id = %d OR blocked_id = %d', Install::table( 'blocks' ), $id, $id ) );
 		foreach ( array( 'mbcom_bio', 'mbcom_avatar_url', 'mbcom_cover_url', 'mbcom_location', Rest_Places::MAP_META, 'mbcom_seen_at', 'mbcom_hide_online', 'mbcom_email_prefs', 'mbcom_email_last', 'mbcom_last_active', Moderation::META ) as $key ) {
 			$removed += delete_user_meta( $id, $key ) ? 1 : 0;

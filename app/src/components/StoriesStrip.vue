@@ -11,7 +11,8 @@ const StoryViewer = defineAsyncComponent(() => import('./StoryViewer.vue'))
 const StoryCreator = defineAsyncComponent(() => import('./StoryCreator.vue'))
 
 // My Day / Stories row under the post form. Each author's photo sits in a
-// ring in the community's theme colour, like Facebook's blue story ring.
+// ring: the community's main colour while they have a story you haven't seen
+// (and always on your own), a thin grey one once you've seen them all.
 const track = ref(null)
 const canLeft = ref(false)
 const canRight = ref(false)
@@ -84,7 +85,7 @@ onBeforeUnmount(() => window.removeEventListener('resize', update))
           <video v-if="s.kind === 'video'" class="poster hover-video" :src="s.url" muted playsinline loop preload="none" />
           <span v-else-if="s.kind === 'text'" class="poster text" :style="storyBg(s.background)">{{ s.text }}</span>
         </template>
-        <span class="ring" :class="{ unseen: g.has_unseen }"><Avatar :user="g.author" :size="36" /></span>
+        <span class="ring" :class="{ unseen: g.has_unseen || g.is_me }"><Avatar :user="g.author" :size="36" /></span>
         <span class="name">{{ g.is_me ? t.__('Your story', 'membuild-community') : g.author.name }}</span>
       </button>
     </div>
@@ -181,7 +182,14 @@ onBeforeUnmount(() => window.removeEventListener('resize', update))
   display: flex;
   padding: 3px;
   border-radius: 50%;
+  /* All seen: a thin light-grey line on the story picture, the same in light and dark mode. 2px like every ring,
+     drawn inside the same 3px frame as the main-colour ring, so the picture keeps its size and nothing jumps. */
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--on-color) 72%, transparent);
+}
+
+.ring.unseen {
   background: var(--accent);
+  box-shadow: none;
 }
 
 .name {

@@ -13,6 +13,7 @@ defined( 'ABSPATH' ) || exit;
  *   GET    /posts/{id}/comments?sort=relevant|newest&page=n   top-level comments
  *   POST   /posts/{id}/comments   {content, parent_id?, reply_to_user_id?}
  *   GET    /comments/{id}/replies
+ *   PUT    /comments/{id}   {content}   the author changes the words (never the photo)
  *   DELETE /comments/{id}
  *   PUT    /comments/{id}/reaction  {type}   like|love|care|haha|wow|sad|angry|down
  *   DELETE /comments/{id}/reaction
@@ -64,6 +65,11 @@ class Rest_Comments {
 				array(
 					'methods'             => 'GET',
 					'callback'            => array( __CLASS__, 'one' ),
+					'permission_callback' => $auth,
+				),
+				array(
+					'methods'             => 'PUT',
+					'callback'            => array( __CLASS__, 'update' ),
 					'permission_callback' => $auth,
 				),
 				array(
@@ -227,6 +233,47 @@ class Rest_Comments {
 		$response = rest_ensure_response( self::format( array( self::get( $id ) ), (int) $post['user_id'] )[0] );
 		$response->set_status( 201 );
 		return $response;
+	}
+
+	/**
+	 * Only the person who wrote a comment can change its words, at any time, like Facebook.
+	 * Owners and moderators remove comments; they never edit someone else's. The photo or GIF stays.
+	 * No alert goes out: the reply's "Replying to" person was told when it was posted.
+	 */
+	public static function update( \WP_REST_Request $req ) {
+		global $wpdb;
+		$row  = self::get( (int) $req['id'] );
+		$post = $row ? Rest_Feed::row( (int) $row['post_id'] ) : null;
+		if ( ! $post ) {
+			return new \WP_Error( 'mbcom_not_found', __( 'Comment not found.', 'membuild-community' ), array( 'status' => 404 ) );
+		}
+		if ( (int) $row['user_id'] !== get_current_user_id() ) {
+			return new \WP_Error( 'mbcom_forbidden', __( 'You can only edit your own comments.', 'membuild-community' ), array( 'status' => 403 ) );
+		}
+		$blocked = Moderation::guard() ?? Helpers::throttle( 'comment_edit', 30, 10 * MINUTE_IN_SECONDS );
+		if ( $blocked ) {
+			return $blocked;
+		}
+		if ( ! isset( $req['content'] ) ) {
+			return new \WP_Error( 'mbcom_empty', __( 'Write a comment first.', 'membuild-community' ), array( 'status' => 400 ) ); // never wipe the words by leaving them out
+		}
+		$content = Helpers::clean_text( $req['content'], 2000 );
+		if ( '' === $content && ! $row['image_url'] ) {
+			return new \WP_Error( 'mbcom_empty', __( 'Write a comment first.', 'membuild-community' ), array( 'status' => 400 ) );
+		}
+		if ( $content !== (string) $row['content'] ) {
+			$wpdb->update( Install::table( 'comments' ), array( 'content' => $content, 'edited_at' => Helpers::now() ), array( 'id' => $row['id'] ) );
+			/**
+			 * A comment's author changed its words.
+			 *
+			 * @param int $comment_id The comment.
+			 * @param int $post_id    Its post.
+			 * @param int $user_id    Who wrote it.
+			 */
+			do_action( 'membuild_community/comment_edited', (int) $row['id'], (int) $post['id'], get_current_user_id() );
+		}
+		$out = self::format( array( self::get( (int) $row['id'] ) ), (int) $post['user_id'] )[0];
+		return $out + array( 'best' => (int) ( $post['best_comment_id'] ?? 0 ) === (int) $row['id'] );
 	}
 
 	public static function delete( \WP_REST_Request $req ) {
@@ -468,6 +515,7 @@ class Rest_Comments {
 						'content'         => $row['content'],
 						'image'           => $row['image_url'] ? array_filter( array( 'url' => $row['image_url'], 'width' => (int) $row['image_w'], 'height' => (int) $row['image_h'], 'mp4' => $row['image_mp4'] ?? null ) ) : null,
 						'created_at'      => Helpers::iso( $row['created_at'] ),
+						'edited_at'       => empty( $row['edited_at'] ) ? null : Helpers::iso( $row['edited_at'] ), // shown as "Edited"
 						'author'          => $users[ (int) $row['user_id'] ] ?? null,
 						'reply_to'        => $users[ (int) $row['reply_to_user_id'] ] ?? null,
 						'reactions_count' => (int) $row['reactions_count'],
@@ -478,6 +526,7 @@ class Rest_Comments {
 						'liked_by_author' => $by_author[ $id ] ?? null,
 						'staff_role'      => Helpers::staff_role( (int) $row['user_id'] ), // shown as "Instructor" in courses
 						'can_delete'      => (int) $row['user_id'] === $me || Helpers::can_moderate(),
+						'can_edit'        => (int) $row['user_id'] === $me, // only the person who wrote it
 					);
 				},
 				$rows

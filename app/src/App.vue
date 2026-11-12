@@ -50,6 +50,9 @@ const openPhoneMenu = () => window.dispatchEvent(new CustomEvent('mbcom:phone-me
 // Pages without the left sidebar: profiles, your settings pages, Messages (its own chat list is the side column), an event (its own two columns), Places and the Leaderboard.
 const onProfile = computed(() => ['member', 'me', 'profile-edit', 'privacy', 'two-step', 'billing', 'billing-item', 'emails', 'messages', 'event', 'places', 'leaderboard', 'levels', 'settings', 'search', 'moderation'].includes(route.name))
 const inLesson = computed(() => inCourse.value && !!route.params.lessonId && !route.query.tab)
+// A course's own pages without the lesson bar (taking a quiz, Your answers, Course finished):
+// phones keep the app's tabs, as on the canvas.
+const coursePage = computed(() => inCourse.value && !!(route.query.quiz || route.query.certificate))
 // Single-column pages sit at the exact centre of the window, as on Facebook: the right side
 // reserves the same width as the left column. Grids and maps use the full width beside it.
 const centred = computed(() => ['feed', 'notifications', 'saved'].includes(route.name))
@@ -223,7 +226,7 @@ const shellData = computed(() => ({
 </script>
 
 <template>
-  <div class="shell" :class="{ 'bars-hidden': barsHidden, immersive, 'in-course': inCourse, 'in-lesson': inLesson, building, 'on-profile': onProfile, 'no-tabbar': route.name === 'levels' || (route.name === 'settings' && !!route.params.section) || (route.name === 'messages' && !!route.params.threadId), 'phone-bare': route.name === 'search' || (route.name === 'messages' && !!route.params.threadId) }">
+  <div class="shell" :class="{ 'bars-hidden': barsHidden, immersive, 'in-course': inCourse, 'in-lesson': inLesson, 'course-page': coursePage, building, 'on-profile': onProfile, 'no-tabbar': route.name === 'levels' || (route.name === 'settings' && !!route.params.section) || (route.name === 'messages' && !!route.params.threadId), 'phone-bare': route.name === 'search' || (route.name === 'messages' && !!route.params.threadId) }">
     <a class="skip-link" href="#mbcom-main" @click.prevent="skipToMain">{{ t.__('Skip to content', 'membuild-community') }}</a>
     <!-- A theme's own frame: the muted notice stays the community's, above it. -->
     <div v-if="shellThemed && cfg.community.restriction" class="restricted" role="status">
@@ -689,6 +692,14 @@ const shellData = computed(() => ({
   display: none;
 }
 
+/* In a course the page brings its own bottom bar (the lesson's, or Continue) up to 899px wide,
+   tablets included, so the page ends above it. */
+@media (max-width: 899px) {
+  .in-course:not(.course-page) .main {
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+}
+
 @media (max-width: 767px) {
   .top-tabs {
     display: none;
@@ -782,12 +793,8 @@ const shellData = computed(() => ({
   }
 
   /* In a course the page brings its own bottom bar (the lesson's, or Continue). */
-  .in-course .tabbar {
+  .in-course:not(.course-page) .tabbar {
     display: none;
-  }
-
-  .in-course .main {
-    padding-bottom: calc(84px + env(safe-area-inset-bottom));
   }
 
   /* Reels take the whole screen, with a dark tab bar over the video. */

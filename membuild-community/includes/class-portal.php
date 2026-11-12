@@ -177,6 +177,7 @@ class Portal {
 		$path = trim( (string) get_query_var( 'mbcom_path' ), '/' );
 		App::maybe_serve( $path );
 		Login::maybe_handle( $path );
+		Certificates::maybe_check_page( $path ); // certificate/{code}: public, for anyone with the link
 		// Protected files answer with a status code (never a login page), since they load in <img> and <video>.
 		// file/12, or file/12/Its name.pdf (Preview: so the browser's viewer shows the name, not "12").
 		if ( preg_match( '#^file/(\d+)(?:/[^/]+)?$#', $path, $m ) ) {

@@ -88,6 +88,7 @@ function onVisibility() {
 }
 
 watch(active, async (i, prev) => {
+  stopScrub() // a drag on the bar belongs to the reel it started on
   paused.value = calm
   buffering.value = false
   const old = videos.get(prev)
@@ -122,10 +123,178 @@ function playCurrent() {
 // Progress bar runs on requestAnimationFrame and writes the style directly,
 // so it moves smoothly without re-rendering Vue every frame.
 function tick() {
-  const v = videos.get(active.value)
-  if (bar.value && activeIsEmbed.value) bar.value.style.transform = 'scaleX(0)'
-  else if (v && bar.value && v.duration) bar.value.style.transform = `scaleX(${v.currentTime / v.duration})`
+  const v = activeVideo()
+  if (v && bar.value && Number.isFinite(v.duration) && v.duration > 0) {
+    const at = scrubbing.value ? scrubAt : v.currentTime / v.duration
+    bar.value.style.transform = `scaleX(${at})`
+    if (knob.value) knob.value.style.left = `${at * 100}%`
+    paintTime(Math.floor(at * v.duration), Math.floor(v.duration))
+  } else if (bar.value) {
+    // Not ready yet (or a YouTube reel): an empty bar, not the last reel's place and time.
+    bar.value.style.transform = 'scaleX(0)'
+    if (knob.value) knob.value.style.left = '0%'
+    paintTime(0, 0)
+  }
   raf = requestAnimationFrame(tick)
+}
+
+/* ---------- The timeline: tap or drag the bar to skip (uploaded reels only) ---------- */
+
+// YouTube reels keep YouTube's own controls. The bar is the thin line on the video's bottom edge,
+// with a taller invisible strip around it to catch the tap. Only a press that starts on the bar
+// moves the time; a swipe anywhere else still changes reels, and a tap on the video still pauses.
+// The place and the times change many times a second, so they are written straight onto the elements
+// (like the bar's width); only "dragging" and "pointing at it" are Vue state, and those change rarely.
+const knob = ref(null)
+const progressEl = ref(null)
+const hoverTimeEl = ref(null)
+const scrubTimeEl = ref(null)
+const scrubbing = ref(false) // a finger or the mouse is down on the bar
+const hovering = ref(false) // computers: the pointer is over the bar
+let scrubPointer = null // the pointer dragging the bar
+let scrubAt = 0 // where along the bar, 0 to 1, while scrubbing
+let scrubRect = null
+let scrubWasPaused = false
+let seekQueued = 0
+let touchStart = null // phones: a finger is down on the bar, not yet a drag (it may be a swipe to the next reel)
+let shownNow = -1
+let shownTotal = -1
+
+const activeVideo = () => (activeIsEmbed.value ? null : videos.get(active.value))
+// A length the bar can use: some recordings say "endless" (Infinity) until they're fully read.
+const playable = (v) => !!v && Number.isFinite(v.duration) && v.duration > 0
+const clock = (sec) => {
+  const s = Math.max(0, Math.floor(sec || 0))
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+}
+const along = (e, rect) => Math.min(1, Math.max(0, (e.clientX - rect.left) / (rect.width || 1)))
+const durationNow = () => (Number.isFinite(activeVideo()?.duration) ? activeVideo().duration : 0)
+
+// Whole seconds only: the slider's numbers and words, and the big time while dragging.
+function paintTime(now, total) {
+  if (now === shownNow && total === shownTotal) return
+  shownNow = now
+  shownTotal = total
+  const el = progressEl.value
+  if (el) {
+    el.setAttribute('aria-valuenow', String(now))
+    el.setAttribute('aria-valuemax', String(total))
+    el.setAttribute('aria-valuetext', t.sprintf(/* translators: 1: time in the video like 0:16, 2: its length like 0:21 */ t.__('%1$s of %2$s', 'membuild-community'), clock(now), clock(total)))
+  }
+  if (scrubTimeEl.value) scrubTimeEl.value.textContent = `${clock(now)} / ${clock(total)}`
+}
+function paintHover(at) {
+  const el = hoverTimeEl.value
+  if (!el) return
+  el.style.left = `${at * 100}%`
+  el.textContent = clock(at * durationNow())
+}
+
+// While dragging, the video follows the finger at most once a frame.
+function seekSoon() {
+  if (seekQueued) return
+  seekQueued = requestAnimationFrame(() => {
+    seekQueued = 0
+    const v = activeVideo()
+    if (playable(v)) v.currentTime = scrubAt * v.duration
+  })
+}
+
+function beginScrub(e, el) {
+  const v = activeVideo()
+  if (!playable(v)) return
+  el.setPointerCapture?.(e.pointerId)
+  scrubPointer = e.pointerId
+  scrubRect = el.getBoundingClientRect()
+  scrubWasPaused = paused.value
+  scrubbing.value = true
+  hovering.value = false
+  v.pause()
+  scrubAt = along(e, scrubRect)
+  seekSoon()
+}
+function scrubStart(e) {
+  if (e.button > 0) return
+  if (e.pointerType === 'touch') {
+    // A finger: wait to see whether it slides along the bar (drag the time), lifts (tap to jump),
+    // or goes up or down (the next or previous reel, as a swipe anywhere else on the video does).
+    touchStart = { id: e.pointerId, x: e.clientX, y: e.clientY }
+    return
+  }
+  if (!playable(activeVideo())) return
+  e.preventDefault()
+  beginScrub(e, e.currentTarget)
+}
+// The bar is a slider for the keyboard too: its own keys, kept from the page's (where Up and Down change reels).
+function sliderKey(e) {
+  const v = activeVideo()
+  const step = { ArrowLeft: -5, ArrowDown: -5, ArrowRight: 5, ArrowUp: 5, PageDown: -15, PageUp: 15 }[e.key]
+  if (!step && e.key !== 'Home' && e.key !== 'End') return
+  e.preventDefault()
+  e.stopPropagation()
+  if (!playable(v)) return
+  if (e.key === 'Home') v.currentTime = 0
+  else if (e.key === 'End') v.currentTime = Math.max(0, v.duration - 0.1)
+  else skip(step)
+}
+function scrubMove(e) {
+  if (touchStart && e.pointerId === touchStart.id && !scrubbing.value) {
+    const dx = Math.abs(e.clientX - touchStart.x)
+    const dy = Math.abs(e.clientY - touchStart.y)
+    if (dx > 8 && dx > dy) {
+      touchStart = null
+      beginScrub(e, e.currentTarget)
+    } else if (dy > 24 && dy > dx) {
+      // The bar sits over the reels, not inside their scroll, so the swipe is passed on by hand.
+      const up = e.clientY < touchStart.y
+      touchStart = null
+      go(up ? 1 : -1)
+    }
+    return
+  }
+  if (scrubbing.value) {
+    scrubAt = along(e, scrubRect)
+    seekSoon()
+  } else if (e.pointerType === 'mouse') {
+    hovering.value = true
+    paintHover(along(e, e.currentTarget.getBoundingClientRect()))
+  }
+}
+function scrubEnd(e) {
+  if (touchStart) {
+    // A tap on the bar: jump there, and keep playing or paused as it was.
+    const tap = touchStart
+    touchStart = null
+    const v = activeVideo()
+    if (e?.type === 'pointerup' && e.pointerId === tap.id && playable(v)) v.currentTime = along(e, e.currentTarget.getBoundingClientRect()) * v.duration
+    return
+  }
+  if (!scrubbing.value) return
+  if (e?.type === 'pointerup') scrubAt = along(e, scrubRect)
+  cancelAnimationFrame(seekQueued)
+  seekQueued = 0
+  const v = activeVideo()
+  if (playable(v)) v.currentTime = scrubAt * v.duration
+  scrubbing.value = false
+  if (!scrubWasPaused) playCurrent() // let go: it plays on from there
+}
+function skip(seconds) {
+  const v = activeVideo()
+  if (!playable(v)) return
+  v.currentTime = Math.min(Math.max(0, v.currentTime + seconds), Math.max(0, v.duration - 0.1))
+}
+// The reel changed while the bar was in use (the wheel, a key, the next reel loading): the drag
+// ends without seeking anything, so the next reel starts from the beginning.
+watch(() => current.value?.id, stopScrub) // the same place in the list, but another reel (the list reloaded)
+function stopScrub() {
+  cancelAnimationFrame(seekQueued)
+  seekQueued = 0
+  const pointer = scrubbing.value ? scrubPointer : null
+  scrubPointer = null
+  scrubbing.value = false // first, so the lost capture below doesn't seek the new reel
+  if (pointer !== null && progressEl.value?.hasPointerCapture?.(pointer)) progressEl.value.releasePointerCapture(pointer)
+  hovering.value = false
+  touchStart = null
 }
 
 function onTap(e) {
@@ -177,6 +346,8 @@ function onKey(e) {
   if ((commentsFor.value && !wide.value) || composer.value || typing) return
   if (e.key === 'ArrowDown' || e.key === 'j') (e.preventDefault(), go(1))
   else if (e.key === 'ArrowUp' || e.key === 'k') (e.preventDefault(), go(-1))
+  // Left and right skip 5 seconds on an uploaded reel, unless a menu or the comments panel has the keys.
+  else if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !e.target.closest?.('[role="menu"], .sheet') && activeVideo()) (e.preventDefault(), skip(e.key === 'ArrowLeft' ? -5 : 5))
   else if (e.key === ' ') (e.preventDefault(), togglePause())
   else if (e.key === 'm') muted.value = !muted.value
 }
@@ -339,13 +510,14 @@ onBeforeUnmount(() => {
   document.removeEventListener('visibilitychange', onVisibility)
   cancelAnimationFrame(raf)
   cancelAnimationFrame(scrollRaf)
+  cancelAnimationFrame(seekQueued)
   videos.forEach((v) => v.pause())
 })
 const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ t._n('%d comment', '%d comments', n, 'membuild-community'), n)
 </script>
 
 <template>
-  <div class="stage" :class="{ 'comments-open': commentsFor && wide, 'on-youtube': activeIsEmbed }" :style="{ '--active-ar': activeRatio }">
+  <div class="stage" :class="{ 'comments-open': commentsFor && wide, 'on-youtube': activeIsEmbed, scrubbing, 'seek-hover': hovering }" :style="{ '--active-ar': activeRatio }">
     <h1 class="sr-only">{{ t.__('Reels', 'membuild-community') }}</h1>
     <div ref="scroller" class="reels" @scroll.passive="onScroll">
       <section v-for="(post, i) in list.items" :key="post.localKey || post.id" class="reel" :class="{ embed: isEmbed(post) }" :data-index="i">
@@ -488,7 +660,31 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
       </section>
     </div>
 
-    <div class="progress" aria-hidden="true"><i ref="bar" /></div>
+    <!-- The timeline: thin until you reach for it; bigger, with the time, while you use it. -->
+    <div
+      v-show="current && !activeIsEmbed"
+      ref="progressEl"
+      class="progress"
+      :class="{ hover: hovering, scrubbing }"
+      role="slider"
+      tabindex="0"
+      :aria-label="t.__('Video position', 'membuild-community')"
+      aria-valuemin="0"
+      aria-valuemax="0"
+      aria-valuenow="0"
+      @pointerdown="scrubStart"
+      @keydown="sliderKey"
+      @pointermove="scrubMove"
+      @pointerup="scrubEnd"
+      @pointercancel="scrubEnd"
+      @lostpointercapture.self="scrubEnd"
+      @pointerleave="hovering = false"
+    >
+      <span class="track"><i ref="bar" /></span>
+      <span ref="knob" class="knob" />
+      <span v-show="hovering && !scrubbing" ref="hoverTimeEl" class="hover-time" />
+      <span v-show="scrubbing" ref="scrubTimeEl" class="scrub-time" aria-hidden="true" />
+    </div>
 
     <!-- Computers: previous and next reel, big round buttons at the far right (like Facebook). -->
     <div v-if="list.items.length > 1" class="nav">
@@ -778,15 +974,48 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
 
 .progress {
   --pw: min(calc(100cqw - 168px), calc((var(--reel-h) - 24px) * var(--active-ar)));
+  --below: 10px; /* how far the tap strip reaches below the video's edge */
+  --th: 3px; /* the bar's thickness */
   position: absolute;
   left: 50%;
-  /* Sits on the bottom edge of the current frame, which is centred in the stage. */
-  bottom: calc((var(--reel-h) - var(--pw) / var(--active-ar)) / 2);
+  z-index: 2;
+  /* The bar sits on the bottom edge of the current frame, which is centred in the stage;
+     the strip around it (24px) is what catches the tap. */
+  bottom: calc((var(--reel-h) - var(--pw) / var(--active-ar)) / 2 - var(--below));
   width: var(--pw);
-  height: 2px;
+  height: 24px;
   transform: translateX(-50%);
+  cursor: pointer;
+  touch-action: none; /* the timeline decides: sideways moves the time, up or down changes reels */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.progress:focus-visible {
+  outline: none;
+}
+
+.progress:focus-visible .track {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.progress.hover {
+  --th: 6px;
+}
+
+.progress.scrubbing {
+  --th: 8px;
+}
+
+.progress .track {
+  position: absolute;
+  right: 0;
+  bottom: var(--below);
+  left: 0;
+  height: var(--th);
+  overflow: hidden;
   background: color-mix(in srgb, var(--on-color) 20%, transparent);
-  pointer-events: none;
+  transition: height 0.15s ease;
 }
 
 .progress i {
@@ -795,6 +1024,92 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   background: var(--on-color);
   transform-origin: left;
   transform: scaleX(0);
+}
+
+/* The round handle shows while pointing at the bar or dragging it. */
+.knob {
+  position: absolute;
+  bottom: calc(var(--below) + var(--th) / 2);
+  left: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--on-color);
+  box-shadow: var(--shadow-sm);
+  transform: translate(-50%, 50%) scale(0);
+  transition: transform 0.15s ease;
+  pointer-events: none;
+}
+
+.progress.hover .knob {
+  transform: translate(-50%, 50%) scale(1);
+}
+
+.progress.scrubbing .knob {
+  transform: translate(-50%, 50%) scale(1.35);
+}
+
+.hover-time,
+.scrub-time {
+  position: absolute;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Computers: a small time above the pointer. */
+.hover-time {
+  bottom: calc(var(--below) + 16px);
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--scrim) 70%, transparent);
+  font-size: var(--fs-xs);
+  transform: translateX(-50%);
+}
+
+/* While dragging: the time, large, over the video. */
+.scrub-time {
+  bottom: calc(var(--below) + 34px);
+  left: 50%;
+  font-size: var(--fs-7xl);
+  text-shadow: 0 1px 8px color-mix(in srgb, var(--scrim) 60%, transparent);
+  transform: translateX(-50%);
+}
+
+/* While dragging, the name, caption and buttons fade so the video shows; pointing at the
+   bar moves the caption up a little to make room for the time. */
+.overlay,
+.on-video,
+.create,
+.nav,
+.caption {
+  transition: opacity 0.2s ease, transform 0.15s ease;
+}
+
+.stage.scrubbing .overlay,
+.stage.scrubbing .on-video,
+.stage.scrubbing .create,
+.stage.scrubbing .nav,
+.stage.scrubbing .center-icon {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.stage.seek-hover .caption {
+  transform: translateY(-14px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress .track,
+  .knob,
+  .overlay,
+  .on-video,
+  .create,
+  .nav,
+  .caption {
+    transition: none;
+  }
 }
 
 .create {
@@ -833,6 +1148,7 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
 .sheet header {
   position: sticky;
   top: 0;
+  z-index: 5; /* above comments scrolling underneath it, like the comment box at the bottom */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1063,6 +1379,7 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   }
 
   .progress {
+    --below: 0px;
     width: 100%;
     bottom: 0;
   }
@@ -1108,7 +1425,7 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
   }
 
   .overlay {
-    padding-bottom: 18px;
+    padding-bottom: 24px; /* clear of the bar's tap strip */
   }
 
   .new-body {
@@ -1159,7 +1476,7 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
     flex-direction: column;
     gap: 18px;
     transform: translateY(-50%);
-    transition: right 0.2s;
+    transition: right 0.2s, opacity 0.2s ease;
   }
 
   .nav button {

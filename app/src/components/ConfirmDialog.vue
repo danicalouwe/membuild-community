@@ -99,6 +99,13 @@ h2 {
   font-size: var(--fs-lg);
 }
 
+/* A safe fact (the shared kit's grey note), sized like the yellow one. */
+.text :deep(.info-note) {
+  margin: 0;
+  padding: 12px 14px;
+  font-size: var(--fs-lg);
+}
+
 /* A few short lines in a grey box (askConfirm's points): what happens next, calmly. */
 .text :deep(.points) {
   display: flex;

@@ -20,6 +20,7 @@ import PointsSection from '../components/settings/PointsSection.vue'
 import EmailSection from '../components/settings/EmailSection.vue'
 import VideoSection from '../components/settings/VideoSection.vue'
 import GifsSection from '../components/settings/GifsSection.vue'
+import CertificatesSection from '../components/settings/CertificatesSection.vue'
 import JoiningSection from '../components/settings/JoiningSection.vue'
 import UpdatesSection from '../components/settings/UpdatesSection.vue'
 import AdvancedSection from '../components/settings/AdvancedSection.vue'
@@ -53,6 +54,7 @@ const COMPONENTS = {
   points: PointsSection,
   video: VideoSection,
   gifs: GifsSection,
+  certificates: CertificatesSection,
   import: ImportSection,
   addons: AddonsSection,
   updates: UpdatesSection,
@@ -127,6 +129,7 @@ const summary = (id) => {
     points: t.__('Level names and points', 'membuild-community'),
     video: f.video?.provider === 'bunny' ? 'Bunny Stream' : t.__('This site', 'membuild-community'),
     gifs: f.gifs?.key ? t.__('Set up', 'membuild-community') : t.__('Not set up', 'membuild-community'),
+    certificates: f.certificates?.on ? t.__('Given when a course is finished', 'membuild-community') : t.__('Off', 'membuild-community'),
     import: t.__('From another plugin or a spreadsheet', 'membuild-community'),
     addons: t.__('Extra features made by MemBuild', 'membuild-community'),
     updates: t.__('New features, usage', 'membuild-community'),

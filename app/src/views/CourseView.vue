@@ -13,6 +13,9 @@ import LessonDone from '../components/LessonDone.vue'
 import { popups } from '../lib/popups.js'
 import CourseOverview from '../components/CourseOverview.vue'
 import CourseBuilder from '../components/CourseBuilder.vue'
+import QuizTake from '../components/QuizTake.vue'
+import QuizAnswers from '../components/QuizAnswers.vue'
+import CourseFinished from '../components/CourseFinished.vue'
 import { fileSize, kindName, previewUrl } from '../lib/files.js'
 import FileTile from '../components/FileTile.vue'
 import { syncCourseCard } from '../lib/courseCards.js'
@@ -104,8 +107,23 @@ const orderWait = computed(() => {
   const l = allLessons.value.find((x) => x.id === Number(props.lessonId))
   return l?.after ? l : null
 })
-/** "This course goes in order. Finish [lesson] first, and this lesson opens.", split around the title so it can be bold. */
-const orderText = () => t.__('This course goes in order. Finish %s first, and this lesson opens.', 'membuild-community').split('%s')
+/** "This course goes in order. Finish [lesson] first, and this lesson opens.", split around the title so it can be bold.
+    After a lesson with a quiz: "Pass the quiz in [Lesson 4: …] first" (or "Finish the quiz" when members may move on anyway). */
+const orderText = (l) =>
+  (l?.after?.quiz === 'retry'
+    ? t.__('This course goes in order. Pass the quiz in %s first, and this lesson opens.', 'membuild-community')
+    : l?.after?.quiz
+      ? t.__('This course goes in order. Finish the quiz in %s first, and this lesson opens.', 'membuild-community')
+      : t.__('This course goes in order. Finish %s first, and this lesson opens.', 'membuild-community')
+  ).split('%s')
+const lessonName = (a) => (a.number ? t.sprintf(/* translators: 1: lesson number, 2: lesson title */ t.__('Lesson %1$d: %2$s', 'membuild-community'), a.number, a.title) : a.title)
+// Under a locked lesson in the outline: why it waits.
+const waitsLine = (l) =>
+  l.after?.quiz === 'retry'
+    ? t.sprintf(/* translators: %d: lesson number */ t.__('Pass the quiz in Lesson %d first', 'membuild-community'), l.after.number)
+    : l.after?.quiz
+      ? t.sprintf(/* translators: %d: lesson number */ t.__('Finish the quiz in Lesson %d first', 'membuild-community'), l.after.number)
+      : ''
 const opensDay = (iso) => siteDay(iso, { weekday: 'long', month: 'long', day: 'numeric' })
 const opensShort = (iso) => t.sprintf(/* translators: %s: a short date, e.g. "Thu, Oct 29" */ t.__('Opens %s', 'membuild-community'), siteDay(iso, { weekday: 'short', month: 'short', day: 'numeric' }))
 /** "This lesson opens on [date], 7 days after you started the course. …", split around the date so it can be bold. */
@@ -132,6 +150,79 @@ const phoneViewer = () => window.matchMedia('(max-width: 767px), (pointer: coars
 function preview(r) {
   if (r.mime === 'application/pdf' && phoneViewer()) return window.open(previewUrl(r), '_blank', 'noopener')
   previewing.value = r
+}
+
+/* ---------- Quizzes (canvas: Quizzes · Member) ---------- */
+// The lesson's quiz as this member stands with it; only for members (owners edit it in the builder).
+const lessonQuiz = computed(() => (lesson.value?.quiz?.questions > 0 && !ownerView.value ? lesson.value.quiz : null))
+// ?quiz=take or ?quiz=answers on a lesson: the quiz's own page, without the lesson bar.
+const quizMode = computed(() => (['take', 'answers'].includes(route.query.quiz) ? route.query.quiz : null))
+const certPage = computed(() => !!route.query.certificate)
+const quizPassedLabel = (q) => t.sprintf(/* translators: 1: right answers, 2: number of questions */ t.__('Passed %1$d of %2$d', 'membuild-community'), q.last?.passed ? q.last.score : q.pass_mark, q.questions)
+const quizDoneLabel = (q) => t.sprintf(/* translators: 1: right answers, 2: number of questions */ t.__('Done %1$d of %2$d', 'membuild-community'), q.last?.score ?? 0, q.questions)
+const quizCardTitle = (q) => t.sprintf(/* translators: %d: number of questions */ t._n('Quiz · %d question', 'Quiz · %d questions', q.questions, 'membuild-community'), q.questions)
+const quizNeedLine = (q) =>
+  q.on_fail === 'move_on'
+    ? t.sprintf(/* translators: 1: pass mark, 2: number of questions */ t.__('You need %1$d of %2$d to pass. If you don’t, you can still move on.', 'membuild-community'), q.pass_mark, q.questions)
+    : t.sprintf(/* translators: 1: pass mark, 2: number of questions */ t.__('You need %1$d of %2$d to pass. You can try again as many times as you like.', 'membuild-community'), q.pass_mark, q.questions)
+const quizAtLine = (q) => t.sprintf(/* translators: 1: question number, 2: number of questions */ t.__('You’re on question %1$d of %2$d', 'membuild-community'), q.at || 1, q.questions)
+const carryOnLabel = (q) => t.sprintf(/* translators: 1: question number, 2: number of questions */ t.__('Carry on (question %1$d of %2$d)', 'membuild-community'), q.at || 1, q.questions)
+const quizScoreLine = (q) => t.sprintf(/* translators: 1: right answers, 2: number of questions, 3: pass mark */ t.__('%1$d of %2$d. You need %3$d to pass.', 'membuild-community'), q.last?.score ?? 0, q.questions, q.pass_mark)
+function openQuiz(mode = 'take', id = props.lessonId) {
+  router.push({ name: 'course', params: { courseId: props.courseId, lessonId: id }, query: { quiz: mode } })
+}
+function closeQuiz() {
+  if (courseDone.value) return showCourseDone()
+  router.push({ name: 'course', params: { courseId: props.courseId, lessonId: props.lessonId }, query: {} })
+}
+// Back on the lesson after the quiz page: its card and button show where they stand now.
+watch(
+  () => route.query.quiz,
+  async (now, before) => {
+    if (!before || now || !lesson.value || lesson.value.id !== Number(props.lessonId)) return
+    try {
+      const fresh = await api.lesson(lesson.value.id)
+      if (lesson.value?.id === fresh.id) lesson.value.quiz = fresh.quiz
+    } catch {
+      // The card keeps what it had.
+    }
+  },
+)
+/** The last answer of a try: the course's progress moves when it counts (passed, or finished when members may move on). */
+function onQuizFinished(res) {
+  const l = lesson.value
+  if (res.quiz && l) l.quiz = res.quiz
+  pointsMayHaveChanged()
+  if (!res.progress || !l) return
+  const before = course.value.progress
+  applyProgress(res.progress)
+  l.completed = true
+  if (current.value) current.value.completed = true
+  if (course.value.in_order) {
+    const nx = allLessons.value.find((x) => x.id === l.next_id)
+    if (nx && !nx.unlock_at && !nx.completed) {
+      nx.after = null
+      nx.locked = false
+    }
+  }
+  // The course is finished, but the member first sees the last question's Why and their result:
+  // the result's button (or leaving the quiz) opens Course finished.
+  if (res.progress.progress === 100 && before < 100) courseDone.value = { cert: res.progress.certificate || null }
+}
+const finishedCert = ref(null)
+const courseDone = ref(null)
+function showCourseDone() {
+  const done = courseDone.value
+  courseDone.value = null
+  if (!done) return false
+  if (done.cert) {
+    finishedCert.value = done.cert
+    router.push({ name: 'course', params: { courseId: props.courseId }, query: { certificate: 1 } })
+  } else {
+    closeQuiz()
+    finished.value = true
+  }
+  return true
 }
 
 // Mark Complete keeps you on the lesson: the button turns into Next lesson (or Finish course).
@@ -313,7 +404,10 @@ async function toggleComplete(advance = true) {
     pointsMayHaveChanged()
     if (!done) return
     if (res.progress === 100 && before < 100) {
-      finished.value = true
+      if (res.certificate) {
+        finishedCert.value = res.certificate
+        router.push({ name: 'course', params: { courseId: props.courseId }, query: { certificate: 1 } })
+      } else finished.value = true
       return
     }
     const next = allLessons.value.find((x) => x.id === l.next_id)
@@ -334,6 +428,7 @@ async function toggleComplete(advance = true) {
 async function onVideoEnded() {
   if (!lesson.value) return
   const id = lesson.value.id
+  if (lessonQuiz.value && !lesson.value.completed) return // a quiz lesson is done by taking the quiz
   if (!lesson.value.completed) await toggleComplete(false)
   const next = allLessons.value.find((x) => x.id === lesson.value?.next_id)
   if (finished.value || !next || next.locked || lesson.value?.id !== id) return
@@ -396,7 +491,18 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
   </div>
 
   <!-- Editing (owners): the Version 2 course builder -->
-  <CourseBuilder v-else-if="course && editing" :course="course" :lesson-id="lessonId" @update:course="(c) => (course = c)" @exit="setEditing(false)" @preview="asMember = true; setEditing(false)" />
+  <CourseBuilder v-else-if="course && editing" :course="course" :lesson-id="lessonId" @update:course="(c) => (course = c)" :after-close="(c) => course?.id === c.id && (course = c)" @exit="setEditing(false)" @preview="asMember = true; setEditing(false)" />
+
+  <!-- Course finished, with the certificate (?certificate=1). -->
+  <CourseFinished v-else-if="course && certPage" :course="course" :cert="finishedCert" @none="router.replace({ query: {} }); finished = course.progress >= 100" />
+
+  <!-- A lesson's quiz, or Your answers (?quiz=take|answers): their own page, without the lesson bar. -->
+  <template v-else-if="course && quizMode && lessonId && !lessonError && (!lesson || lesson.quiz)">
+    <div v-if="!lesson || lesson.id !== lessonId" class="lv-quiz-wait"><div class="skeleton" style="height: 340px; border-radius: 16px" /></div>
+    <QuizTake v-else-if="quizMode === 'take'" :lesson="lesson" :in-order="!!course.in_order" @back="closeQuiz" @answers="openQuiz('answers')" @next="open(lesson.next_id)" @finished="onQuizFinished" :course-done="courseDone" @done="showCourseDone" />
+    <QuizAnswers v-else :lesson="lesson" @back="closeQuiz" @retry="openQuiz('take')" />
+    <ThemeSlot v-if="finished" name="course.finished" :data="{ course, onClose: () => (finished = false) }"><CourseComplete :course="course" @close="finished = false" /></ThemeSlot>
+  </template>
 
   <!-- Taking the course: Overview · Lesson · All posts, the course as its own space. -->
   <div v-else-if="course" class="lv" :class="`on-${tab}`">
@@ -450,7 +556,11 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
                     <Icon v-if="l.locked" name="lock" :size="13" />
                     <svg v-else-if="l.completed" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" stroke-linecap="round" stroke-linejoin="round" /></svg>
                   </span>
-                  <span class="lv-ltitle">{{ l.title }}</span>
+                  <span class="lv-lwrap">
+                    <span class="lv-ltitle">{{ l.title }}</span>
+                    <small v-if="l.locked && l.after?.quiz" class="lv-lsub">{{ waitsLine(l) }}</small>
+                    <small v-else-if="l.quiz" class="lv-lsub"><Icon name="quiz" :size="13" /> {{ t.__('Quiz', 'membuild-community') }}</small>
+                  </span>
                 </button>
               </li>
               <li v-if="!m.lessons.length" class="lv-none">{{ t.__('No lessons yet', 'membuild-community') }}</li>
@@ -464,7 +574,7 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
       <div class="lv-main">
         <!-- The bar: tabs, then previous / next and the one main button. Stays at the top while you scroll. -->
         <div class="lv-bar">
-          <ThemeSlot name="course.lesson-bar" :off="ownerView" :data="{ course, lesson, tab, setTab, open, markComplete, continueCourse }">
+          <ThemeSlot name="course.lesson-bar" :off="ownerView" :data="{ course, lesson, tab, setTab, open, markComplete, continueCourse, quiz: lessonQuiz, openQuiz }">
           <button v-if="withOutline" class="lv-contents" @click="outlineOpen = !outlineOpen">
             <Icon name="cap" :size="18" /> {{ contentsCount(course.completed_count, course.lessons_count) }}
           </button>
@@ -479,6 +589,15 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
               <button class="lv-round" :title="t.__('Previous lesson', 'membuild-community')" :aria-label="t.__('Previous lesson', 'membuild-community')" :disabled="!lesson.prev_id" @click="open(lesson.prev_id)"><Icon name="chevronLeft" :size="22" /></button>
               <button class="lv-round" :title="nextLocked ? t.__('The next lesson isn’t open yet', 'membuild-community') : t.__('Next lesson', 'membuild-community')" :aria-label="t.__('Next lesson', 'membuild-community')" :disabled="!nextOpen" @click="open(lesson.next_id)"><Icon name="chevronRight" :size="22" /></button>
               <button v-if="ownerView" class="btn btn-lg btn-dark lv-main-btn" @click="setEditing(true)"><Icon name="pencil" :size="18" /> {{ t.__('Edit this lesson', 'membuild-community') }}</button>
+              <!-- A quiz lesson: Take the quiz where Mark Complete is; it counts as done once passed (rule 1). -->
+              <template v-else-if="lessonQuiz && lessonQuiz.state !== 'new' || lessonQuiz && !lesson.completed">
+                <!-- Passed (or finished) but the lesson was un-marked: the usual Mark Complete marks it done again. -->
+                <button v-if="(lessonQuiz.state === 'passed' || lessonQuiz.state === 'done') && !lesson.completed" class="btn btn-lg btn-dark lv-main-btn" @click="toggleComplete()"><span class="lv-ring" /> {{ t.__('Mark Complete', 'membuild-community') }}</button>
+                <button v-else-if="lessonQuiz.state === 'passed'" class="btn btn-lg lv-done" @click="openQuiz('answers')"><Icon name="check" :size="18" /> {{ quizPassedLabel(lessonQuiz) }}</button>
+                <button v-else-if="lessonQuiz.state === 'done'" class="btn btn-lg lv-done" @click="openQuiz('answers')"><Icon name="check" :size="18" /> {{ quizDoneLabel(lessonQuiz) }}</button>
+                <button v-else-if="lessonQuiz.state === 'open'" class="btn btn-lg btn-primary lv-main-btn" @click="openQuiz()">{{ t.__('Carry on where you left off', 'membuild-community') }}</button>
+                <button v-else class="btn btn-lg btn-primary lv-main-btn" @click="openQuiz()"><Icon name="quiz" :size="18" /> {{ t.__('Take the quiz', 'membuild-community') }}</button>
+              </template>
               <template v-else-if="lesson.completed">
                 <!-- Done: one green Completed (press it to undo); the › arrow or the countdown moves on. -->
                 <button class="btn btn-lg lv-done" :title="t.__('Mark as not done', 'membuild-community')" @click="markComplete"><Icon name="check" :size="18" /> {{ t.__('Completed', 'membuild-community') }}</button>
@@ -521,8 +640,12 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
         <div v-else-if="orderWait" class="card locked lv-wait">
           <span class="lock-badge"><Icon name="lock" :size="28" /></span>
           <h2>{{ orderWait.title }}</h2>
-          <p>{{ orderText(orderWait)[0] }}<b>{{ orderWait.after.title }}</b>{{ orderText(orderWait)[1] }}</p>
-          <button class="btn btn-lg btn-primary cta" @click="open(orderWait.after.id)">{{ t.sprintf(/* translators: %s: lesson title */ t.__('Go to %s', 'membuild-community'), orderWait.after.title) }} <Icon name="arrowRight" :size="18" /></button>
+          <p>{{ orderText(orderWait)[0] }}<b>{{ orderWait.after.quiz ? lessonName(orderWait.after) : orderWait.after.title }}</b>{{ orderText(orderWait)[1] }}</p>
+          <span v-if="orderWait.after.quiz" class="lv-wait-btns">
+            <button class="btn btn-lg btn-primary" @click="openQuiz('take', orderWait.after.id)">{{ t.__('Go to the quiz', 'membuild-community') }}</button>
+            <button class="btn btn-lg btn-ghost" @click="open(orderWait.after.id)"><Icon name="chevronLeft" :size="18" /> {{ t.sprintf(/* translators: %d: lesson number */ t.__('Back to Lesson %d', 'membuild-community'), orderWait.after.number) }}</button>
+          </span>
+          <button v-else class="btn btn-lg btn-primary cta" @click="open(orderWait.after.id)">{{ t.sprintf(/* translators: %s: lesson title */ t.__('Go to %s', 'membuild-community'), orderWait.after.title) }} <Icon name="arrowRight" :size="18" /></button>
         </div>
 
         <div v-else-if="lessonError" class="card locked">
@@ -569,6 +692,47 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
                 </span>
               </div>
             </section>
+
+            <!-- The quiz at the end of the lesson (rule 14), as this member stands with it. -->
+            <section v-if="lessonQuiz" class="lv-quiz" :aria-label="t.__('Quiz', 'membuild-community')">
+              <template v-if="lessonQuiz.state === 'passed'">
+                <span class="lv-quiz-icon ok"><Icon name="check" :size="20" /></span>
+                <!-- Passed, then un-marked: Mark Complete shows, so the card doesn't say the lesson is done. -->
+                <span v-if="!lesson.completed" class="lv-quiz-text"><strong>{{ t.__('You passed.', 'membuild-community') }}</strong><small>{{ t.__('Mark it complete to carry on.', 'membuild-community') }}</small></span>
+                <span v-else class="lv-quiz-text"><strong>{{ t.sprintf(t.__('You passed: %1$d of %2$d', 'membuild-community'), lessonQuiz.last?.passed ? lessonQuiz.last.score : lessonQuiz.pass_mark, lessonQuiz.questions) }}</strong><small>{{ lesson.next_id ? t.__('This lesson is done. The next lesson is open.', 'membuild-community') : t.__('This lesson is done.', 'membuild-community') }}</small></span>
+                <span class="lv-quiz-btns">
+                  <button v-if="lesson.next_id && nextOpen" class="btn btn-lg btn-primary" @click="open(lesson.next_id)">{{ t.__('Next lesson', 'membuild-community') }} <Icon name="arrowRight" :size="18" /></button>
+                  <button class="btn btn-lg btn-ghost" @click="openQuiz('answers')">{{ t.__('See your answers', 'membuild-community') }}</button>
+                </span>
+              </template>
+              <template v-else-if="lessonQuiz.state === 'open'">
+                <span class="lv-quiz-icon"><Icon name="quiz" :size="20" /></span>
+                <span class="lv-quiz-text"><strong>{{ quizAtLine(lessonQuiz) }}</strong><small>{{ t.__('Your answers so far are saved, so you can carry on where you left off.', 'membuild-community') }}</small></span>
+                <span class="lv-quiz-btns"><button class="btn btn-lg btn-primary" @click="openQuiz()">{{ carryOnLabel(lessonQuiz) }}</button></span>
+              </template>
+              <template v-else-if="lessonQuiz.state === 'failed'">
+                <span class="lv-quiz-icon warn"><Icon name="retry" :size="20" /></span>
+                <span class="lv-quiz-text"><strong>{{ quizScoreLine(lessonQuiz) }}</strong><small>{{ quizNeedLine(lessonQuiz) }}</small></span>
+                <span class="lv-quiz-btns">
+                  <button class="btn btn-lg btn-primary" @click="openQuiz()"><Icon name="retry" :size="18" /> {{ t.__('Try again', 'membuild-community') }}</button>
+                  <button class="btn btn-lg btn-ghost" @click="openQuiz('answers')">{{ t.__('See your answers', 'membuild-community') }}</button>
+                </span>
+              </template>
+              <template v-else-if="lessonQuiz.state === 'done'">
+                <span class="lv-quiz-icon"><Icon name="check" :size="20" /></span>
+                <span class="lv-quiz-text"><strong>{{ t.sprintf(t.__('%1$d of %2$d. Saved.', 'membuild-community'), lessonQuiz.last?.score ?? 0, lessonQuiz.questions) }}</strong><small>{{ t.__('You can move on. Try again any time if you want a better score.', 'membuild-community') }}</small></span>
+                <span class="lv-quiz-btns">
+                  <button v-if="lesson.next_id && nextOpen" class="btn btn-lg btn-primary" @click="open(lesson.next_id)">{{ t.__('Next lesson', 'membuild-community') }} <Icon name="arrowRight" :size="18" /></button>
+                  <button class="btn btn-lg btn-ghost" @click="openQuiz()"><Icon name="retry" :size="18" /> {{ t.__('Try again', 'membuild-community') }}</button>
+                  <button class="btn btn-lg btn-ghost" @click="openQuiz('answers')">{{ t.__('See your answers', 'membuild-community') }}</button>
+                </span>
+              </template>
+              <template v-else>
+                <span class="lv-quiz-icon"><Icon name="quiz" :size="20" /></span>
+                <span class="lv-quiz-text"><strong>{{ quizCardTitle(lessonQuiz) }}</strong><small>{{ quizNeedLine(lessonQuiz) }}</small></span>
+                <span class="lv-quiz-btns"><button class="btn btn-lg btn-primary" @click="openQuiz()">{{ t.__('Take the quiz', 'membuild-community') }}</button></span>
+              </template>
+            </section>
           </div>
         </article>
         <LessonDiscussion v-if="lesson && tab === 'lesson' && !lessonError && course.questions !== 'off'" :key="lesson.id" class="lesson-talk" :course="course" :lesson="lesson" :focus-post="focusPost" @posted="onPosted" />
@@ -585,7 +749,14 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
     <div class="lv-dock">
       <template v-if="tab === 'lesson' && lesson && !ownerView">
         <button class="lv-round" :aria-label="t.__('Previous lesson', 'membuild-community')" :disabled="!lesson.prev_id" @click="open(lesson.prev_id)"><Icon name="chevronLeft" :size="22" /></button>
-        <template v-if="lesson.completed">
+        <template v-if="lessonQuiz && lessonQuiz.state !== 'new' || lessonQuiz && !lesson.completed">
+          <button v-if="(lessonQuiz.state === 'passed' || lessonQuiz.state === 'done') && !lesson.completed" class="btn btn-lg btn-dark lv-grow" @click="toggleComplete()"><span class="lv-ring" /> {{ t.__('Mark Complete', 'membuild-community') }}</button>
+          <button v-else-if="lessonQuiz.state === 'passed'" class="btn btn-lg lv-done lv-grow" @click="openQuiz('answers')"><Icon name="check" :size="18" /> {{ quizPassedLabel(lessonQuiz) }}</button>
+          <button v-else-if="lessonQuiz.state === 'done'" class="btn btn-lg lv-done lv-grow" @click="openQuiz('answers')"><Icon name="check" :size="18" /> {{ quizDoneLabel(lessonQuiz) }}</button>
+          <button v-else-if="lessonQuiz.state === 'open'" class="btn btn-lg btn-primary lv-grow" @click="openQuiz()">{{ carryOnLabel(lessonQuiz) }}</button>
+          <button v-else class="btn btn-lg btn-primary lv-grow" @click="openQuiz()">{{ t.__('Take the quiz', 'membuild-community') }}</button>
+        </template>
+        <template v-else-if="lesson.completed">
           <button class="btn btn-lg lv-done lv-grow" :title="t.__('Mark as not done', 'membuild-community')" @click="markComplete"><Icon name="check" :size="18" /> {{ t.__('Completed', 'membuild-community') }}</button>
         </template>
         <template v-else>
@@ -1217,6 +1388,78 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
 .lv-contents,
 .lv-dock {
   display: none;
+}
+
+/* The quiz at the end of a lesson */
+.lv-quiz {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 14px;
+  margin-top: 22px;
+  padding: 18px 20px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+.lv-quiz-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.lv-quiz-icon.ok {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.lv-quiz-icon.warn {
+  background: var(--warn-soft);
+  color: var(--warn-text);
+}
+.lv-quiz-text strong {
+  display: block;
+  font-size: var(--fs-lg);
+}
+.lv-quiz-text small {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-2);
+  font-size: var(--fs-base);
+  line-height: 1.45;
+}
+.lv-quiz-btns {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+.lv-quiz-wait {
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 60px 16px;
+}
+.lv-wait-btns {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+.lv-lwrap {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.lv-lsub {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 500;
 }
 
 /* The lesson */

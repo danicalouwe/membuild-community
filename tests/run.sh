@@ -9,6 +9,10 @@ node tests/check-styles.mjs || exit 1
 node tests/words-check.mjs || exit 1
 # Settings addresses: old links forward, any case works.
 node tests/settings-links-check.mjs || exit 1
+# The lesson and course editor keeps every typed line (Safari and Chrome HTML, in a headless Chrome).
+node tests/richtext-check.mjs || exit 1
+# The certificate PDF keeps the title, name and course above the signature, on A4 and Letter.
+node tests/quiz/certificate-pdf-check.mjs || exit 1
 # The add-on price says "a year" once, whatever tools.membuild.com sends.
 node tests/price-check.mjs || exit 1
 # The file is copied into the container (it's too long to pass on the command line).
@@ -28,6 +32,10 @@ status="${PIPESTATUS[0]}"
 bash tests/address-check.sh "$container" || status=1
 # Private uploads can't be found by a logged-out visitor, whichever way they ask.
 bash tests/private-files-check.sh "$container" || status=1
+# The public certificate check page: valid, wrong, removed, and with checking turned off.
+bash tests/quiz/certificate-check.sh "$container" || status=1
+# A member takes a quiz in a real Chrome, through to Course finished and the certificate.
+node tests/quiz/quiz-check.cjs "$container" || status=1
 # The login pages in a real Chrome, on the local site (port 8891), when it's up, built and this folder's own.
 if [ ! -f tests/login/login-check.cjs ]; then
   :

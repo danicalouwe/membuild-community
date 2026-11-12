@@ -17,6 +17,7 @@ import PostCard from '../components/PostCard.vue'
 import Composer from '../components/Composer.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import BaseDialog from '../components/BaseDialog.vue'
+import ProfileCertificates from '../components/ProfileCertificates.vue'
 const MemberGroupsDialog = defineAsyncComponent(() => import('../components/MemberGroupsDialog.vue'))
 import { around, t, locale } from '../lib/i18n.js'
 import { useLatest } from '../lib/useLatest.js'
@@ -328,6 +329,8 @@ const dailyCap = (n) => t.sprintf(/* translators: %d: how many times a day this 
             </ul>
           </section>
           </ThemeSlot>
+
+          <ProfileCertificates :member="member" class="certs" />
 
           <section class="card box">
             <h2>{{ levelLabel(member.level) }}</h2>
@@ -992,6 +995,11 @@ h1 {
 
 /* ---------- Phones: one column in the same order ---------- */
 @media (max-width: 899px) {
+  /* Phones: what they finished comes first, then About (canvas: Certificates on the profile). */
+  .left > .certs {
+    order: -1;
+  }
+
   .cover {
     height: 180px;
     border-radius: 0;

@@ -20,7 +20,7 @@ require_once __DIR__ . '/includes/class-install.php';
 function mbcom_uninstall_site() {
 	global $wpdb;
 
-	foreach ( array( MemBuild\Community\Install::CRON_HOOK, 'mbcom_send_emails', 'mbcom_migrate_private_files', 'mbcom_encrypt_messages', 'mbcom_usage_report', 'mbcom_search_index', 'mbcom_addon_updates' ) as $mbcom_hook ) {
+	foreach ( array( MemBuild\Community\Install::CRON_HOOK, 'mbcom_send_emails', 'mbcom_migrate_private_files', 'mbcom_encrypt_messages', 'mbcom_usage_report', 'mbcom_search_index', 'mbcom_certificates_catch_up', 'mbcom_addon_updates' ) as $mbcom_hook ) {
 		wp_clear_scheduled_hook( $mbcom_hook );
 	}
 
@@ -56,7 +56,7 @@ function mbcom_uninstall_site() {
 		wp_delete_file( $mbcom_key );
 	}
 
-	foreach ( array( 'mbcom_settings', 'mbcom_db_version', 'mbcom_message_key_refused', 'mbcom_problems', 'mbcom_files_migration', 'mbcom_key', 'mbcom_key_check', 'mbcom_key_saved', 'mbcom_search_index', 'mbcom_lessons_opened_at', 'mbcom_coming_soon', 'mbcom_plan_features', 'mbcom_old_addresses', 'mbcom_addon_keys', 'mbcom_addon_updates' ) as $mbcom_option ) {
+	foreach ( array( 'mbcom_settings', 'mbcom_db_version', 'mbcom_message_key_refused', 'mbcom_problems', 'mbcom_files_migration', 'mbcom_key', 'mbcom_key_check', 'mbcom_key_saved', 'mbcom_search_index', 'mbcom_lessons_opened_at', 'mbcom_coming_soon', 'mbcom_plan_features', 'mbcom_old_addresses', 'mbcom_certificates_catch_up_after', 'mbcom_addon_keys', 'mbcom_addon_updates' ) as $mbcom_option ) {
 		delete_option( $mbcom_option );
 	}
 	// Add-on keys and updates are kept once for the whole network (the site's own option on a single site).

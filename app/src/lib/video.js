@@ -56,7 +56,7 @@ export async function compressVideo(file, { maxSeconds = 60, onProgress, signal 
     input,
     output,
     trim: { start: 0, end },
-    video: { width, height, fit: 'contain', codec: 'avc', quality: new Quality(BITRATE), keyFrameInterval: 2, forceTranscode: true },
+    video: { width, height, fit: 'contain', codec: 'avc', quality: new Quality({ bitrate: BITRATE }), keyFrameInterval: 2, forceTranscode: true },
   })
   if (!conversion.isValid) {
     if (duration > maxSeconds + 0.5) {

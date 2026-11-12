@@ -2630,8 +2630,13 @@ mbcom_check( 'FluentCommunity: its local times become UTC, its photos come along
 $im_course = (int) $wpdb->get_var( $wpdb->prepare( "SELECT local_id FROM {$wpdb->prefix}mbcom_import_map WHERE source = 'fluentcommunity' AND kind = 'course' AND source_id = %s", (string) $im_fc ) );
 $im_cg     = json_decode( (string) $wpdb->get_var( $wpdb->prepare( "SELECT access_groups FROM {$wpdb->prefix}mbcom_courses WHERE id = %d", $im_course ) ), true );
 mbcom_check( '…its course goes into the Classroom with progress, private as a membership', $im_course && 1 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_lesson_progress WHERE course_id = %d AND user_id = %d", $im_course, $im_b ) ) && $im_cg && in_array( $im_b, array_map( 'intval', $wpdb->get_col( $wpdb->prepare( "SELECT user_id FROM {$wpdb->prefix}mbcom_group_members WHERE group_id = %d", $im_cg[0] ) ) ), true ) );
+$im_ql = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$wpdb->prefix}mbcom_lessons WHERE course_id = %d LIMIT 1", $im_course ) );
+list( , $im_q ) = mbcom_call( $im_admin, 'POST', "/lessons/{$im_ql}/quiz/edit" );
+$im_qid = (int) ( $im_q['quiz']['id'] ?? 0 );
+mbcom_call( $im_admin, 'POST', "/quizzes/{$im_qid}/questions", array( 'type' => 'truefalse', 'question' => 'Added after the import', 'answers' => array( array( 'id' => 1, 'right' => true ), array( 'id' => 2 ) ) ) );
 mbcom_call( $im_admin, 'POST', '/import/undo' );
 mbcom_check( '…and Undo takes the course away again', 0 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_courses WHERE id = %d", $im_course ) ) && 0 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$wpdb->prefix}mbcom_lessons WHERE course_id = %d", $im_course ) ) );
+mbcom_check( '…with a quiz added since, and its questions', $im_qid && ! $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM {$wpdb->prefix}mbcom_quizzes WHERE id = %d", $im_qid ) ) && ! $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM {$wpdb->prefix}mbcom_quiz_questions WHERE quiz_id = %d", $im_qid ) ) );
 update_option( 'timezone_string', '' );
 
 // A spreadsheet: columns guessed, bad rows found, people added, a plan matched to a membership.
@@ -4332,6 +4337,648 @@ delete_option( 'mbcom_addon_updates' );
 delete_transient( 'mbcom_addon_list' );
 wp_set_current_user( 0 );
 } // the add-on tests
+
+/* ---------------------------------------------------------------- */
+mbcom_section( 'Edit comment' );
+global $wpdb;
+$ec_comments = \MemBuild\Community\Install::table( 'comments' );
+$ec_author   = mbcom_user( 'mbct_ec_author' );
+$ec_other    = mbcom_user( 'mbct_ec_other' );
+$ec_mod      = mbcom_user( 'mbct_ec_mod' );
+$ec_saved    = \MemBuild\Community\Settings::get( 'moderators' );
+mbcom_call( $admin, 'PUT', '/settings', array( 'moderators' => array( $ec_mod ) ) );
+\MemBuild\Community\Settings::flush();
+list( , $ec_post ) = mbcom_call( $ana, 'POST', '/posts', array( 'content' => 'A post to edit comments on' ) );
+$ec_pid = (int) $ec_post['id'];
+list( , $ec_c ) = mbcom_call( $ec_author, 'POST', "/posts/{$ec_pid}/comments", array( 'content' => 'Frist comment' ) );
+$ec_id = (int) $ec_c['id'];
+mbcom_check( 'a new comment isn’t edited, and its author may edit it', array_key_exists( 'edited_at', $ec_c ) && null === $ec_c['edited_at'] && true === $ec_c['can_edit'] );
+list( $s, $ec_seen ) = mbcom_call( $ec_other, 'GET', "/comments/{$ec_id}" );
+mbcom_check( '…nobody else may', 200 === $s && false === $ec_seen['can_edit'] );
+$ec_alerts = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', \MemBuild\Community\Install::table( 'notifications' ) ) );
+list( $s, $ec_e ) = mbcom_call( $ec_author, 'PUT', "/comments/{$ec_id}", array( 'content' => 'First comment' ) );
+mbcom_check( 'the author can edit their comment', 200 === $s && 'First comment' === $ec_e['content'], (string) $s );
+mbcom_check( '…which gets an edited date', ! empty( $ec_e['edited_at'] ) && null !== $wpdb->get_var( $wpdb->prepare( 'SELECT edited_at FROM %i WHERE id = %d', $ec_comments, $ec_id ) ) );
+mbcom_check( '…and sends nobody an alert', $ec_alerts === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', \MemBuild\Community\Install::table( 'notifications' ) ) ) );
+list( , $ec_list ) = mbcom_call( $ec_other, 'GET', "/posts/{$ec_pid}/comments" );
+$ec_listed = array_values( array_filter( $ec_list['items'], fn( $x ) => (int) $x['id'] === $ec_id ) )[0] ?? null;
+mbcom_check( 'others see the new words and the edited date', $ec_listed && 'First comment' === $ec_listed['content'] && ! empty( $ec_listed['edited_at'] ) );
+list( $s ) = mbcom_call( $ec_other, 'PUT', "/comments/{$ec_id}", array( 'content' => 'hijacked' ) );
+mbcom_check( 'another member can’t edit it', 403 === $s, (string) $s );
+list( $s ) = mbcom_call( $ec_mod, 'PUT', "/comments/{$ec_id}", array( 'content' => 'moderated words' ) );
+mbcom_check( '…nor a moderator', 403 === $s, (string) $s );
+list( $s ) = mbcom_call( $admin, 'PUT', "/comments/{$ec_id}", array( 'content' => 'owner words' ) );
+mbcom_check( '…nor the owner', 403 === $s, (string) $s );
+list( $s ) = mbcom_call( 0, 'PUT', "/comments/{$ec_id}", array( 'content' => 'visitor words' ) );
+mbcom_check( '…nor a visitor', in_array( $s, array( 401, 403 ), true ), (string) $s );
+mbcom_check( '…so the words stay the author’s', 'First comment' === $wpdb->get_var( $wpdb->prepare( 'SELECT content FROM %i WHERE id = %d', $ec_comments, $ec_id ) ) );
+list( $s ) = mbcom_call( $ec_mod, 'DELETE', "/comments/{$ec_id}" );
+$ec_kept = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE id = %d', $ec_comments, $ec_id ) );
+mbcom_check( 'moderators can still remove a comment', 200 === $s && 0 === $ec_kept, (string) $s );
+list( , $ec_c ) = mbcom_call( $ec_author, 'POST', "/posts/{$ec_pid}/comments", array( 'content' => 'Second try' ) );
+$ec_id = (int) $ec_c['id'];
+list( $s, $ec_e ) = mbcom_call( $ec_author, 'PUT', "/comments/{$ec_id}", array( 'content' => '<script>alert(1)</script>Hello <b>there</b> https://example.test' ) );
+mbcom_check( 'edited words are cleaned like a new comment', 200 === $s && false === strpos( $ec_e['content'], '<' ) && false === strpos( $ec_e['content'], 'alert' ) && false !== strpos( $ec_e['content'], 'Hello there https://example.test' ), wp_json_encode( $ec_e['content'] ?? $s ) );
+list( $s, $ec_e ) = mbcom_call( $ec_author, 'PUT', "/comments/{$ec_id}", array( 'content' => str_repeat( 'a', 2500 ) ) );
+mbcom_check( '…and kept to the same 2,000 characters', 200 === $s && 2000 === mb_strlen( $ec_e['content'] ) );
+list( $s ) = mbcom_call( $ec_author, 'PUT', "/comments/{$ec_id}", array( 'content' => '   ' ) );
+mbcom_check( 'a comment can’t be emptied', 400 === $s, (string) $s );
+list( , $ec_n ) = mbcom_call( $ec_author, 'POST', "/posts/{$ec_pid}/comments", array( 'content' => 'Not changed' ) );
+list( $s, $ec_same ) = mbcom_call( $ec_author, 'PUT', "/comments/{$ec_n['id']}", array( 'content' => 'Not changed' ) );
+mbcom_check( 'saving the same words doesn’t mark it edited', 200 === $s && null === $ec_same['edited_at'] );
+$wpdb->update( $ec_comments, array( 'image_url' => 'https://example.test/photo.png', 'image_w' => 10, 'image_h' => 10 ), array( 'id' => (int) $ec_n['id'] ) );
+list( $s, $ec_pic ) = mbcom_call( $ec_author, 'PUT', "/comments/{$ec_n['id']}", array( 'content' => '', 'image_url' => 'https://example.test/other.png' ) );
+mbcom_check( 'a comment with a photo can lose its words, and the photo stays as it was', 200 === $s && '' === $ec_pic['content'] && 'https://example.test/photo.png' === ( $ec_pic['image']['url'] ?? '' ), wp_json_encode( $ec_pic['image'] ?? $s ) );
+list( $s ) = mbcom_call( $ec_author, 'PUT', "/comments/{$ec_id}", array( 'image_url' => 'https://example.test/other.png' ) );
+mbcom_check( 'leaving the words out of an edit changes nothing', 400 === $s && false !== strpos( (string) $wpdb->get_var( $wpdb->prepare( 'SELECT content FROM %i WHERE id = %d', $ec_comments, $ec_id ) ), 'aaaa' ), (string) $s );
+list( , $ec_r ) = mbcom_call( $ec_other, 'POST', "/posts/{$ec_pid}/comments", array( 'content' => 'A reply', 'parent_id' => $ec_id ) );
+list( $s, $ec_re ) = mbcom_call( $ec_other, 'PUT', "/comments/{$ec_r['id']}", array( 'content' => 'A better reply' ) );
+list( , $ec_reps ) = mbcom_call( $ec_author, 'GET', "/comments/{$ec_id}/replies" );
+mbcom_check( 'replies can be edited by their author too, and keep who they answer', 200 === $s && 'A better reply' === ( $ec_reps['items'][0]['content'] ?? '' ) && ! empty( $ec_reps['items'][0]['edited_at'] ) && (int) $ec_re['parent_id'] === $ec_id );
+mbcom_call( $admin, 'POST', "/members/{$ec_author}/restriction", array( 'status' => 'muted', 'days' => 1 ) );
+list( $s ) = mbcom_call( $ec_author, 'PUT', "/comments/{$ec_id}", array( 'content' => 'edited while muted' ) );
+mbcom_check( 'muted members can’t edit their comments', 403 === $s, (string) $s );
+delete_user_meta( $ec_author, 'mbcom_restriction' );
+
+// Moderation: a reported comment edited after the report says so, with the words it has now.
+list( $s ) = mbcom_call( $ec_other, 'POST', '/reports', array( 'object_type' => 'comment', 'object_id' => $ec_id, 'reason' => 'spam' ) );
+$ec_card = function () use ( $admin, $ec_id ) {
+	list( , $q ) = mbcom_call( $admin, 'GET', '/moderation/reports' );
+	return array_values( array_filter( $q['items'], fn( $it ) => 'comment' === $it['object_type'] && $ec_id === (int) $it['object_id'] ) )[0] ?? null;
+};
+$ec_before = $ec_card();
+mbcom_check( 'a reported comment isn’t flagged as edited after the report', in_array( $s, array( 200, 201 ), true ) && $ec_before && false === $ec_before['edited_after_report'], (string) $s );
+$ec_reports = \MemBuild\Community\Install::table( 'reports' );
+mbcom_check( 'the report keeps a copy of the words as they were', str_repeat( 'a', 2000 ) === $wpdb->get_var( $wpdb->prepare( "SELECT reported_content FROM %i WHERE object_type = 'comment' AND object_id = %d AND reporter_id = %d", $ec_reports, $ec_id, $ec_other ) ) );
+mbcom_check( '…and Moderation shows them (cut to 600 like the card)', $ec_before && str_repeat( 'a', 600 ) === $ec_before['reported_content'] );
+$wpdb->query( $wpdb->prepare( "UPDATE %i SET created_at = DATE_SUB(created_at, INTERVAL 1 HOUR) WHERE object_type = 'comment' AND object_id = %d", \MemBuild\Community\Install::table( 'reports' ), $ec_id ) );
+$wpdb->query( $wpdb->prepare( 'UPDATE %i SET edited_at = DATE_SUB(edited_at, INTERVAL 2 HOUR) WHERE id = %d', $ec_comments, $ec_id ) );
+$ec_before = $ec_card();
+mbcom_check( '…also when it was edited before the report came in', $ec_before && false === $ec_before['edited_after_report'] );
+mbcom_call( $ec_author, 'PUT', "/comments/{$ec_id}", array( 'content' => 'Nicer words now' ) );
+$ec_after = $ec_card();
+mbcom_check( 'edited after the report: Moderation says so, with the words it has now', $ec_after && true === $ec_after['edited_after_report'] && 'Nicer words now' === $ec_after['preview']['content'] );
+mbcom_check( '…and still the words that were reported', $ec_after && str_repeat( 'a', 600 ) === $ec_after['reported_content'] );
+// A second report after the edit: the card keeps the first report's words; the same member reporting again keeps theirs.
+$ec_third = mbcom_user( 'mbct_ec_third' );
+mbcom_call( $ec_third, 'POST', '/reports', array( 'object_type' => 'comment', 'object_id' => $ec_id, 'reason' => 'harassment' ) );
+mbcom_call( $ec_other, 'POST', '/reports', array( 'object_type' => 'comment', 'object_id' => $ec_id, 'reason' => 'harassment' ) );
+$ec_after = $ec_card();
+mbcom_check( 'a later report keeps its own copy, the card shows the first one', $ec_after && 2 === $ec_after['reports'] && str_repeat( 'a', 600 ) === $ec_after['reported_content'] && 'Nicer words now' === $wpdb->get_var( $wpdb->prepare( "SELECT reported_content FROM %i WHERE object_type = 'comment' AND object_id = %d AND reporter_id = %d", $ec_reports, $ec_id, $ec_third ) ), wp_json_encode( array( $ec_after['reports'] ?? null, $wpdb->get_results( $wpdb->prepare( "SELECT reporter_id, status, LEFT(reported_content, 20) AS c FROM %i WHERE object_type = 'comment' AND object_id = %d", $ec_reports, $ec_id ) ) ) ) );
+mbcom_check( '…and reporting again doesn’t replace the words first sent', str_repeat( 'a', 2000 ) === $wpdb->get_var( $wpdb->prepare( "SELECT reported_content FROM %i WHERE object_type = 'comment' AND object_id = %d AND reporter_id = %d", $ec_reports, $ec_id, $ec_other ) ) );
+mbcom_call( $admin, 'POST', "/moderation/reports/comment/{$ec_id}", array( 'action' => 'keep' ) );
+list( , $ec_done ) = mbcom_call( $admin, 'GET', '/moderation/reports', array( 'status' => 'resolved' ) );
+$ec_done = array_values( array_filter( $ec_done['items'] ?? array(), fn( $it ) => 'comment' === $it['object_type'] && $ec_id === (int) $it['object_id'] ) )[0] ?? null;
+mbcom_check( 'decided reports keep the reported words for the records', $ec_done && str_repeat( 'a', 600 ) === $ec_done['reported_content'] && true === $ec_done['edited_after_report'] );
+// Reported again after it was decided: a new report, with the words (and date) of now.
+mbcom_call( $ec_other, 'POST', '/reports', array( 'object_type' => 'comment', 'object_id' => $ec_id, 'reason' => 'spam' ) );
+$ec_again = $ec_card();
+mbcom_check( 'reported again after a decision: the copy is the words now, not flagged as edited', $ec_again && 'Nicer words now' === $ec_again['reported_content'] && false === $ec_again['edited_after_report'], wp_json_encode( $ec_again ) );
+mbcom_call( $admin, 'POST', "/moderation/reports/comment/{$ec_id}", array( 'action' => 'keep' ) );
+// A reported comment that was then deleted: Moderation still has the words that were reported.
+list( , $ec_gone ) = mbcom_call( $ec_author, 'POST', "/posts/{$ec_pid}/comments", array( 'content' => 'Something rude' ) );
+mbcom_call( $ec_other, 'POST', '/reports', array( 'object_type' => 'comment', 'object_id' => (int) $ec_gone['id'], 'reason' => 'harassment' ) );
+mbcom_call( $ec_author, 'DELETE', "/comments/{$ec_gone['id']}" );
+list( , $q ) = mbcom_call( $admin, 'GET', '/moderation/reports' );
+$ec_gc = array_values( array_filter( $q['items'], fn( $it ) => 'comment' === $it['object_type'] && (int) $ec_gone['id'] === (int) $it['object_id'] ) )[0] ?? null;
+mbcom_check( 'a reported comment deleted by its author still shows what was reported', $ec_gc && ! empty( $ec_gc['preview']['gone'] ) && 'Something rude' === $ec_gc['reported_content'], wp_json_encode( $ec_gc ) );
+mbcom_call( $admin, 'POST', "/moderation/reports/comment/{$ec_gone['id']}", array( 'action' => 'keep' ) );
+
+// Posts: the same copy, and the same "Edited after the report".
+list( , $ec_rp ) = mbcom_call( $ec_author, 'POST', '/posts', array( 'content' => 'A post that gets reported' ) );
+$ec_rpid = (int) $ec_rp['id'];
+$ec_post_card = function () use ( $admin, $ec_rpid ) {
+	list( , $q ) = mbcom_call( $admin, 'GET', '/moderation/reports' );
+	return array_values( array_filter( $q['items'], fn( $it ) => 'post' === $it['object_type'] && $ec_rpid === (int) $it['object_id'] ) )[0] ?? null;
+};
+list( $s ) = mbcom_call( $ec_other, 'POST', '/reports', array( 'object_type' => 'post', 'object_id' => $ec_rpid, 'reason' => 'spam' ) );
+$ec_pc = $ec_post_card();
+mbcom_check( 'a reported post keeps its words with the report, not flagged as edited', in_array( $s, array( 200, 201 ), true ) && $ec_pc && 'A post that gets reported' === $ec_pc['reported_content'] && false === $ec_pc['edited_after_report'], wp_json_encode( $ec_pc ) );
+$wpdb->query( $wpdb->prepare( "UPDATE %i SET created_at = DATE_SUB(created_at, INTERVAL 1 HOUR) WHERE object_type = 'post' AND object_id = %d", $ec_reports, $ec_rpid ) );
+list( $s ) = mbcom_call( $ec_author, 'PUT', "/posts/{$ec_rpid}", array( 'content' => 'Nothing to see here' ) );
+$ec_pc = $ec_post_card();
+mbcom_check( 'a post edited after the report: Moderation shows both, and says so', 200 === $s && $ec_pc && true === $ec_pc['edited_after_report'] && 'A post that gets reported' === $ec_pc['reported_content'] && 'Nothing to see here' === $ec_pc['preview']['content'], wp_json_encode( $ec_pc ) );
+// A new edit date with the same words (a feeling, a background, an event's details): not "edited after the report".
+list( , $ec_rp3 ) = mbcom_call( $ec_author, 'POST', '/posts', array( 'content' => 'Same words all along' ) );
+mbcom_call( $ec_other, 'POST', '/reports', array( 'object_type' => 'post', 'object_id' => (int) $ec_rp3['id'], 'reason' => 'spam' ) );
+$wpdb->query( $wpdb->prepare( "UPDATE %i SET created_at = DATE_SUB(created_at, INTERVAL 1 HOUR) WHERE object_type = 'post' AND object_id = %d", $ec_reports, (int) $ec_rp3['id'] ) );
+$wpdb->update( \MemBuild\Community\Install::table( 'posts' ), array( 'edited_at' => current_time( 'mysql', true ) ), array( 'id' => (int) $ec_rp3['id'] ) );
+list( , $q ) = mbcom_call( $admin, 'GET', '/moderation/reports' );
+$ec_same = array_values( array_filter( $q['items'], fn( $it ) => 'post' === $it['object_type'] && (int) $ec_rp3['id'] === (int) $it['object_id'] ) )[0] ?? null;
+mbcom_check( 'a newer edit date with the same words isn’t "edited after the report"', $ec_same && false === $ec_same['edited_after_report'] && ! array_key_exists( 'full', $ec_same['preview'] ), wp_json_encode( $ec_same ) );
+mbcom_call( $admin, 'POST', "/moderation/reports/post/{$ec_rp3['id']}", array( 'action' => 'keep' ) );
+// A report from before copies were kept (no copy), then an edit, then a new report: the edit still shows.
+list( , $ec_old_p ) = mbcom_call( $ec_author, 'POST', '/posts', array( 'content' => 'Old words' ) );
+$ec_op = (int) $ec_old_p['id'];
+mbcom_call( $ec_other, 'POST', '/reports', array( 'object_type' => 'post', 'object_id' => $ec_op, 'reason' => 'spam' ) );
+$wpdb->query( $wpdb->prepare( "UPDATE %i SET reported_content = NULL, created_at = DATE_SUB(created_at, INTERVAL 1 HOUR) WHERE object_type = 'post' AND object_id = %d", $ec_reports, $ec_op ) );
+mbcom_call( $ec_author, 'PUT', "/posts/{$ec_op}", array( 'content' => 'New words' ) );
+mbcom_call( $ec_other, 'POST', '/reports', array( 'object_type' => 'post', 'object_id' => $ec_op, 'reason' => 'harassment' ) );
+mbcom_call( $ec_third, 'POST', '/reports', array( 'object_type' => 'post', 'object_id' => $ec_op, 'reason' => 'spam' ) );
+list( , $q ) = mbcom_call( $admin, 'GET', '/moderation/reports' );
+$ec_oc = array_values( array_filter( $q['items'], fn( $it ) => 'post' === $it['object_type'] && $ec_op === (int) $it['object_id'] ) )[0] ?? null;
+mbcom_check( 'an open report from before copies keeps none when reported again, so the later edit still shows', $ec_oc && true === $ec_oc['edited_after_report'] && null === $ec_oc['reported_content'] && null === $wpdb->get_var( $wpdb->prepare( "SELECT reported_content FROM %i WHERE object_type = 'post' AND object_id = %d AND reporter_id = %d", $ec_reports, $ec_op, $ec_other ) ), wp_json_encode( $ec_oc ) );
+mbcom_call( $admin, 'POST', "/moderation/reports/post/{$ec_op}", array( 'action' => 'keep' ) );
+// A profile report keeps the bio as it was; a changed bio shows as edited after the report.
+update_user_meta( $ec_author, 'mbcom_bio', 'Buy followers at my site' );
+list( $s ) = mbcom_call( $ec_other, 'POST', '/reports', array( 'object_type' => 'member', 'object_id' => $ec_author, 'reason' => 'spam' ) );
+$ec_mcard = function () use ( $admin, $ec_author ) {
+	list( , $q ) = mbcom_call( $admin, 'GET', '/moderation/reports' );
+	return array_values( array_filter( $q['items'], fn( $it ) => 'member' === $it['object_type'] && $ec_author === (int) $it['object_id'] ) )[0] ?? null;
+};
+$ec_mc = $ec_mcard();
+mbcom_check( 'a profile report keeps a copy of the bio, not flagged as edited', in_array( $s, array( 200, 201 ), true ) && 'Buy followers at my site' === $wpdb->get_var( $wpdb->prepare( "SELECT reported_content FROM %i WHERE object_type = 'member' AND object_id = %d", $ec_reports, $ec_author ) ) && $ec_mc && 'Buy followers at my site' === $ec_mc['reported_content'] && false === $ec_mc['edited_after_report'] && ! array_key_exists( 'full', $ec_mc['preview'] ), wp_json_encode( $ec_mc ) );
+update_user_meta( $ec_author, 'mbcom_bio', 'Coach and gardener' );
+$ec_mc = $ec_mcard();
+mbcom_check( '…and a bio changed after the report shows both, flagged', $ec_mc && true === $ec_mc['edited_after_report'] && 'Buy followers at my site' === $ec_mc['reported_content'] && 'Coach and gardener' === $ec_mc['preview']['content'], wp_json_encode( $ec_mc ) );
+// The name too (not the photo): kept as it was, and a new name shows as changed after the report.
+$ec_name0 = get_userdata( $ec_author )->display_name;
+mbcom_check( 'a profile report keeps the name as it was, not flagged while it is the same', $ec_mc && $ec_name0 === $ec_mc['reported_name'] && false === $ec_mc['name_changed_after_report'] && $ec_name0 === $wpdb->get_var( $wpdb->prepare( "SELECT reported_name FROM %i WHERE object_type = 'member' AND object_id = %d", $ec_reports, $ec_author ) ), wp_json_encode( $ec_mc ) );
+wp_update_user( array( 'ID' => $ec_author, 'display_name' => 'Totally Different Name' ) );
+$ec_mc = $ec_mcard();
+mbcom_check( '…and a name changed after the report shows both, flagged', $ec_mc && $ec_name0 === $ec_mc['reported_name'] && true === $ec_mc['name_changed_after_report'] && 'Totally Different Name' === ( $ec_mc['author']['name'] ?? '' ), wp_json_encode( $ec_mc ) );
+wp_update_user( array( 'ID' => $ec_author, 'display_name' => $ec_name0 ) );
+list( , $q ) = mbcom_call( $admin, 'GET', '/moderation/reports' );
+$ec_pc2 = array_values( array_filter( $q['items'], fn( $it ) => 'post' === $it['object_type'] && $ec_rpid === (int) $it['object_id'] ) )[0] ?? null;
+mbcom_check( 'reports of posts keep no name', $ec_pc2 && null === $ec_pc2['reported_name'] && false === $ec_pc2['name_changed_after_report'] && null === $wpdb->get_var( $wpdb->prepare( "SELECT reported_name FROM %i WHERE object_type = 'post' AND object_id = %d LIMIT 1", $ec_reports, $ec_rpid ) ), wp_json_encode( $ec_pc2 ) );
+mbcom_call( $admin, 'POST', "/moderation/reports/post/{$ec_rpid}", array( 'action' => 'keep' ) );
+mbcom_call( $admin, 'POST', "/moderation/reports/member/{$ec_author}", array( 'action' => 'keep' ) );
+
+// The database step: a site from before 44 gets the edited date column, and its comments start unedited.
+$wpdb->query( "ALTER TABLE {$ec_comments} FORCE" ); // a dropped column stays in the table until a rebuild
+$wpdb->query( "ALTER TABLE {$ec_comments} DROP COLUMN edited_at" );
+update_option( 'mbcom_db_version', 43 );
+\MemBuild\Community\Install::maybe_upgrade();
+$ec_col = $wpdb->get_row( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $ec_comments, 'edited_at' ), ARRAY_A );
+mbcom_check( 'the upgrade to 44 adds comments.edited_at, empty by default', (int) MEMBUILD_COMMUNITY_DB_VERSION === (int) get_option( 'mbcom_db_version' ) && 44 <= (int) MEMBUILD_COMMUNITY_DB_VERSION && $ec_col && 'YES' === $ec_col['Null'] && null === $ec_col['Default'], wp_json_encode( $ec_col ) );
+mbcom_check( '…old comments stay as they were, not edited', null === $wpdb->get_var( $wpdb->prepare( 'SELECT edited_at FROM %i WHERE id = %d', $ec_comments, $ec_id ) ) && 'Nicer words now' === $wpdb->get_var( $wpdb->prepare( 'SELECT content FROM %i WHERE id = %d', $ec_comments, $ec_id ) ) );
+list( $s, $ec_e ) = mbcom_call( $ec_author, 'PUT', "/comments/{$ec_id}", array( 'content' => 'Edited after the upgrade' ) );
+mbcom_check( '…and editing works straight after', 200 === $s && ! empty( $ec_e['edited_at'] ), (string) $s );
+
+// The reports' copy, too: a site already on an earlier 44 build (or 43) gets reports.reported_content.
+$wpdb->query( "ALTER TABLE {$ec_reports} FORCE" );
+$wpdb->query( "ALTER TABLE {$ec_reports} DROP COLUMN reported_content, DROP COLUMN reported_name" );
+update_option( 'mbcom_db_version', 43 );
+\MemBuild\Community\Install::maybe_upgrade();
+$ec_col = $wpdb->get_row( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $ec_reports, 'reported_content' ), ARRAY_A );
+$ec_ncol = $wpdb->get_row( $wpdb->prepare( 'SHOW COLUMNS FROM %i LIKE %s', $ec_reports, 'reported_name' ), ARRAY_A );
+mbcom_check( '…and reports.reported_name', $ec_ncol && 'YES' === $ec_ncol['Null'], wp_json_encode( $ec_ncol ) );
+mbcom_check( 'the upgrade to 44 adds reports.reported_content, empty for old reports', $ec_col && 'YES' === $ec_col['Null'] && null === $wpdb->get_var( $wpdb->prepare( "SELECT reported_content FROM %i WHERE object_type = 'post' AND object_id = %d LIMIT 1", $ec_reports, $ec_rpid ) ), wp_json_encode( $ec_col ) );
+list( , $ec_done ) = mbcom_call( $admin, 'GET', '/moderation/reports', array( 'status' => 'resolved' ) );
+$ec_old = array_values( array_filter( $ec_done['items'] ?? array(), fn( $it ) => 'post' === $it['object_type'] && $ec_rpid === (int) $it['object_id'] ) )[0] ?? null;
+mbcom_check( '…and an old report without a copy shows only the words now', $ec_old && null === $ec_old['reported_content'] && 'Nothing to see here' === $ec_old['preview']['content'] );
+
+// Reported again after the decision: the bio of now is kept (the upgrade check above emptied the old copy).
+mbcom_call( $ec_other, 'POST', '/reports', array( 'object_type' => 'member', 'object_id' => $ec_author, 'reason' => 'spam' ) );
+$ec_bio_had = 'Coach and gardener' === $wpdb->get_var( $wpdb->prepare( "SELECT reported_content FROM %i WHERE object_type = 'member' AND object_id = %d", $ec_reports, $ec_author ) )
+	&& $ec_name0 === $wpdb->get_var( $wpdb->prepare( "SELECT reported_name FROM %i WHERE object_type = 'member' AND object_id = %d", $ec_reports, $ec_author ) );
+// Erasing the author's data clears the copies of their words; the reports stay for the records.
+list( , $ec_rp2 ) = mbcom_call( $ec_author, 'POST', '/posts', array( 'content' => 'Words to forget' ) );
+mbcom_call( $ec_other, 'POST', '/reports', array( 'object_type' => 'post', 'object_id' => (int) $ec_rp2['id'], 'reason' => 'spam' ) );
+$ec_copy = fn() => $wpdb->get_var( $wpdb->prepare( "SELECT reported_content FROM %i WHERE object_type = 'post' AND object_id = %d", $ec_reports, (int) $ec_rp2['id'] ) );
+$ec_had = 'Words to forget' === $ec_copy();
+wp_set_current_user( $admin );
+do {
+	$ec_res = \MemBuild\Community\Privacy::erase( 'mbct_ec_author@example.test', 1 );
+} while ( ! $ec_res['done'] );
+mbcom_check( 'erasing the author removes the copy of their words from reports about them', $ec_had && null === $ec_copy() && (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE object_type = 'post' AND object_id = %d", $ec_reports, (int) $ec_rp2['id'] ) ) === 1 );
+mbcom_check( '…including the copy of their bio and name from a profile report', $ec_bio_had && null === $wpdb->get_var( $wpdb->prepare( "SELECT reported_content FROM %i WHERE object_type = 'member' AND object_id = %d", $ec_reports, $ec_author ) ) && null === $wpdb->get_var( $wpdb->prepare( "SELECT reported_name FROM %i WHERE object_type = 'member' AND object_id = %d", $ec_reports, $ec_author ) ) );
+// The reporter's own erasure takes their reports, copy and all.
+do {
+	$ec_res = \MemBuild\Community\Privacy::erase( 'mbct_ec_third@example.test', 1 );
+} while ( ! $ec_res['done'] );
+mbcom_check( 'erasing a reporter deletes their reports, with the copy', 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE reporter_id = %d', $ec_reports, $ec_third ) ) );
+// No bio when reported, one written after: the card says it changed (an empty copy means "no bio then").
+$ec_nobio = mbcom_user( 'mbct_ec_nobio' );
+delete_user_meta( $ec_nobio, 'mbcom_bio' );
+mbcom_call( $ec_other, 'POST', '/reports', array( 'object_type' => 'member', 'object_id' => $ec_nobio, 'reason' => 'spam' ) );
+update_user_meta( $ec_nobio, 'mbcom_bio', 'Now with a bio' );
+list( , $q ) = mbcom_call( $admin, 'GET', '/moderation/reports' );
+$ec_nb = array_values( array_filter( $q['items'], fn( $it ) => 'member' === $it['object_type'] && $ec_nobio === (int) $it['object_id'] ) )[0] ?? null;
+mbcom_check( 'a profile reported with no bio, then given one: flagged, with an empty copy', $ec_nb && '' === $ec_nb['reported_content'] && true === $ec_nb['edited_after_report'] && 'Now with a bio' === $ec_nb['preview']['content'], wp_json_encode( $ec_nb ) );
+// Deleting the account in WordPress (not the eraser) clears the copies too; the reports stay.
+require_once ABSPATH . 'wp-admin/includes/user.php';
+$ec_nb_had = null !== $wpdb->get_var( $wpdb->prepare( 'SELECT reported_name FROM %i WHERE author_id = %d', $ec_reports, $ec_nobio ) );
+wp_delete_user( $ec_nobio );
+mbcom_check( 'deleting an account in WordPress clears the copies of their words and name from reports', $ec_nb_had && 1 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE author_id = %d', $ec_reports, $ec_nobio ) ) && null === $wpdb->get_var( $wpdb->prepare( 'SELECT reported_content FROM %i WHERE author_id = %d', $ec_reports, $ec_nobio ) ) && null === $wpdb->get_var( $wpdb->prepare( 'SELECT reported_name FROM %i WHERE author_id = %d', $ec_reports, $ec_nobio ) ) );
+$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE author_id = %d', $ec_reports, $ec_nobio ) );
+$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE author_id = %d OR reporter_id = %d', $ec_reports, $ec_author, $ec_author ) );
+
+mbcom_call( $ana, 'DELETE', "/posts/{$ec_pid}" );
+mbcom_call( $admin, 'PUT', '/settings', array( 'moderators' => $ec_saved ) );
+\MemBuild\Community\Settings::flush();
+
+/* ---------------------------------------------------------------- */
+mbcom_section( 'Quizzes' );
+$qz_admin = mbcom_user( 'mbct_admin', 'administrator' );
+$qz_mod   = mbcom_user( 'mbct_tp_mod', 'editor' );
+$qz_m     = mbcom_user( 'mbct_qz_member' );
+$qz_m2    = mbcom_user( 'mbct_qz_member2' );
+$qz_tbl   = fn( $n ) => \MemBuild\Community\Install::table( $n );
+foreach ( array( $qz_m, $qz_m2 ) as $u ) {
+	$wpdb->delete( $qz_tbl( 'quiz_attempts' ), array( 'user_id' => $u ) );
+	$wpdb->delete( $qz_tbl( 'certificates' ), array( 'user_id' => $u ) );
+}
+list( , $qz_c ) = mbcom_call( $qz_admin, 'POST', '/courses', array( 'title' => 'Own your community' ) );
+$qz_cid = (int) $qz_c['id'];
+$qz_mid = $qz_c['modules'][0]['id'];
+$qz_l   = array();
+foreach ( array( 'Welcome', 'Who owns your members?', 'Moving over' ) as $t ) {
+	list( , $l ) = mbcom_call( $qz_admin, 'POST', "/modules/{$qz_mid}/lessons", array( 'title' => $t ) );
+	$qz_l[]      = (int) $l['id'];
+}
+mbcom_call( $qz_admin, 'PUT', "/courses/{$qz_cid}", array( 'status' => 'published', 'in_order' => true ) );
+list( $s ) = mbcom_call( $qz_m, 'POST', "/lessons/{$qz_l[1]}/quiz/edit" );
+mbcom_check( 'members can’t add a quiz', in_array( $s, array( 401, 403 ), true ), (string) $s );
+list( $s, $qz ) = mbcom_call( $qz_admin, 'POST', "/lessons/{$qz_l[1]}/quiz/edit" );
+$qz_id = (int) ( $qz['quiz']['id'] ?? 0 );
+mbcom_check( 'an owner adds a quiz to a lesson, “They can try again” to start', 201 === $s && $qz_id && 'retry' === $qz['quiz']['on_fail'] && array() === $qz['quiz']['questions'], (string) $s );
+list( , $qz2 ) = mbcom_call( $qz_admin, 'POST', "/lessons/{$qz_l[1]}/quiz/edit" );
+mbcom_check( 'one quiz per lesson: adding again gives back the same one', $qz_id === (int) $qz2['quiz']['id'] && 1 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE lesson_id = %d', $qz_tbl( 'quizzes' ), $qz_l[1] ) ) );
+list( , $qz_o ) = mbcom_call( $qz_m, 'GET', "/courses/{$qz_cid}" );
+mbcom_check( 'a quiz with no questions doesn’t show for members', 0 === $qz_o['modules'][0]['lessons'][1]['quiz'] );
+// The question editor's checks.
+list( $s, $e ) = mbcom_call( $qz_admin, 'POST', "/quizzes/{$qz_id}/questions", array( 'type' => 'many', 'question' => '', 'answers' => array( array( 'text' => 'Your member list', 'right' => false ) ) ) );
+mbcom_check( 'a question needs words, two answers and a right one, each said under its field', 400 === $s && isset( $e['data']['fields']['question'], $e['data']['fields']['answers'], $e['data']['fields']['right'] ), wp_json_encode( $e['data']['fields'] ?? $e ) );
+list( $s, $e ) = mbcom_call( $qz_admin, 'POST', "/quizzes/{$qz_id}/questions", array( 'type' => 'one', 'question' => 'Pick', 'answers' => array( array( 'text' => 'A', 'right' => true ), array( 'text' => 'B', 'right' => true ) ) ) );
+mbcom_check( 'one right answer means exactly one', 400 === $s && isset( $e['data']['fields']['right'] ), (string) $s );
+// Three types.
+list( $s, $qz ) = mbcom_call( $qz_admin, 'POST', "/quizzes/{$qz_id}/questions", array( 'type' => 'one', 'question' => 'Who holds your member list on a hosted app?', 'answers' => array( array( 'text' => 'You do' ), array( 'text' => 'The app company', 'right' => true ), array( 'text' => 'Your members' ) ), 'why' => 'The company keeps it on its servers.' ) );
+$qz_q1 = $qz['quiz']['questions'][0] ?? null;
+list( $s, $qz_odd ) = mbcom_call( $qz_admin, 'POST', "/quizzes/{$qz_id}/questions", array( 'type' => 'one', 'question' => 'Odd list', 'answers' => array( 'not an answer', array( 'text' => 'A' ), array( 'text' => 'B', 'right' => true ) ) ) );
+$qz_oddq = end( $qz_odd['quiz']['questions'] );
+mbcom_check( 'the right answer stays with its answer when the list had something else in it', 201 === $s && array( false, true ) === array_column( $qz_oddq['answers'], 'right' ), wp_json_encode( $qz_oddq['answers'] ?? $qz_odd ) );
+mbcom_call( $qz_admin, 'DELETE', "/quiz-questions/{$qz_oddq['id']}" );
+mbcom_check( 'a One right answer question saves with its Why', 201 === $s && 'one' === $qz_q1['type'] && 'The company keeps it on its servers.' === $qz_q1['why'] && array( false, true, false ) === array_column( $qz_q1['answers'], 'right' ), (string) $s );
+list( , $qz ) = mbcom_call( $qz_admin, 'POST', "/quizzes/{$qz_id}/questions", array( 'type' => 'many', 'question' => 'Which stay yours on your own website?', 'answers' => array( array( 'text' => 'Your member list', 'right' => true ), array( 'text' => 'Your course videos', 'right' => true ), array( 'text' => 'The app’s design rules' ), array( 'text' => 'Your members’ emails', 'right' => true ) ) ) );
+$qz_q2 = $qz['quiz']['questions'][1];
+list( , $qz ) = mbcom_call( $qz_admin, 'POST', "/quizzes/{$qz_id}/questions", array( 'type' => 'truefalse', 'question' => 'Members on your own website can be moved.', 'answers' => array( array( 'id' => 1, 'text' => 'True', 'right' => true ), array( 'id' => 2, 'text' => 'False' ) ) ) );
+$qz_q3 = $qz['quiz']['questions'][2];
+mbcom_check( 'True or false always has the two answers, the owner picks the right one', 'truefalse' === $qz_q3['type'] && array( 1, 2 ) === array_column( $qz_q3['answers'], 'id' ) && array( true, false ) === array_column( $qz_q3['answers'], 'right' ) );
+mbcom_check( 'until the owner picks, the pass mark is about 80% (3 questions: 3)', 3 === $qz['quiz']['pass_mark'] );
+list( $s, $e ) = mbcom_call( $qz_admin, 'PUT', "/lessons/{$qz_l[1]}/quiz/edit", array( 'pass_mark' => 4 ) );
+mbcom_check( 'the pass mark can’t be more than the number of questions (rule 12)', 400 === $s && false !== strpos( $e['message'] ?? '', '3' ), wp_json_encode( $e ) );
+list( $s, $qz ) = mbcom_call( $qz_admin, 'PUT', "/lessons/{$qz_l[1]}/quiz/edit", array( 'pass_mark' => 2 ) );
+mbcom_check( 'a pass mark of 2 of 3 saves', 200 === $s && 2 === $qz['quiz']['pass_mark'] );
+
+// Members: the questions never carry the right answers.
+list( $s, $qz_t ) = mbcom_call( $qz_m, 'GET', "/lessons/{$qz_l[1]}/quiz" );
+mbcom_check( 'a lesson waiting in an in-order course can’t be quizzed yet', 403 === $s, (string) $s );
+mbcom_call( $qz_m, 'POST', "/lessons/{$qz_l[0]}/complete" );
+list( $s, $qz_t ) = mbcom_call( $qz_m, 'GET', "/lessons/{$qz_l[1]}/quiz" );
+$qz_raw = wp_json_encode( $qz_t );
+mbcom_check( 'members get the questions, never which answers are right', 200 === $s && 3 === count( $qz_t['questions'] ) && false === strpos( $qz_raw, '"right"' ) && false === strpos( $qz_raw, 'The company keeps it' ), (string) $s );
+list( , $qz_les ) = mbcom_call( $qz_m, 'GET', "/lessons/{$qz_l[1]}" );
+mbcom_check( 'the lesson says it has a quiz: 3 questions, 2 to pass, not started', 3 === ( $qz_les['quiz']['questions'] ?? 0 ) && 2 === $qz_les['quiz']['pass_mark'] && 'new' === $qz_les['quiz']['state'] );
+list( $s ) = mbcom_call( $qz_m, 'POST', "/lessons/{$qz_l[1]}/complete" );
+mbcom_check( 'a quiz lesson has no Mark Complete: the server refuses it', 403 === $s, (string) $s );
+list( $s ) = mbcom_call( $qz_m, 'GET', "/lessons/{$qz_l[2]}" );
+mbcom_check( 'in an in-order course, the next lesson waits for the quiz (rule 3)', 403 === $s, (string) $s );
+list( $s, $qz_e ) = mbcom_call( $qz_m, 'GET', "/lessons/{$qz_l[2]}" );
+mbcom_check( '…and says to pass the quiz in Lesson 2', 'retry' === ( $qz_e['data']['after']['quiz'] ?? '' ) && false !== strpos( $qz_e['message'], 'Pass the quiz in Lesson 2: Who owns your members?' ), wp_json_encode( $qz_e ) );
+list( , $qz_o ) = mbcom_call( $qz_m, 'GET', "/courses/{$qz_cid}" );
+mbcom_check( 'the outline marks the quiz lesson and what the locked one waits for', 3 === $qz_o['modules'][0]['lessons'][1]['quiz'] && 'retry' === ( $qz_o['modules'][0]['lessons'][2]['after']['quiz'] ?? '' ) && 2 === ( $qz_o['modules'][0]['lessons'][2]['after']['number'] ?? 0 ) );
+
+// Scoring: one right answer (wrong), then leave halfway (rule 9).
+list( $s, $a ) = mbcom_call( $qz_m, 'POST', "/lessons/{$qz_l[1]}/quiz/answer", array( 'question_id' => $qz_q1['id'], 'picked' => array( $qz_q1['answers'][0]['id'] ) ) );
+mbcom_check( 'a wrong answer is checked on the server: Wrong, the Why, only their own pick', 200 === $s && false === $a['right'] && 'The company keeps it on its servers.' === $a['why'] && array( $qz_q1['answers'][0]['id'] ) === $a['picked'] && ! isset( $a['answers'] ) && false === strpos( wp_json_encode( $a ), '"right":true' ), wp_json_encode( $a ) );
+list( , $a2 ) = mbcom_call( $qz_m, 'POST', "/lessons/{$qz_l[1]}/quiz/answer", array( 'question_id' => $qz_q1['id'], 'picked' => array( $qz_q1['answers'][1]['id'] ) ) );
+mbcom_check( 'an answer can’t be changed in the same try', false === $a2['right'] );
+list( $s ) = mbcom_call( $qz_m, 'POST', "/lessons/{$qz_l[1]}/quiz/answer", array( 'question_id' => $qz_q1['id'] + 999, 'picked' => array( 1 ) ) );
+mbcom_check( 'an answer to a question that isn’t in the quiz is refused', 409 === $s, (string) $s );
+list( $s ) = mbcom_call( $qz_m, 'POST', "/lessons/{$qz_l[1]}/quiz/answer", array( 'question_id' => $qz_q3['id'], 'picked' => array( 1, 2 ) ) );
+mbcom_check( 'true or false takes one answer only', 400 === $s, (string) $s );
+list( , $qz_les ) = mbcom_call( $qz_m, 'GET', "/lessons/{$qz_l[1]}" );
+mbcom_check( 'leaving halfway keeps the answers: carry on at question 2 of 3 (rule 9)', 'open' === $qz_les['quiz']['state'] && 2 === $qz_les['quiz']['at'] && 1 === $qz_les['quiz']['answered'] );
+list( , $qz_t ) = mbcom_call( $qz_m, 'GET', "/lessons/{$qz_l[1]}/quiz" );
+mbcom_check( '…and the quiz comes back with the answered question checked', false === ( (array) $qz_t['answers'] )[ $qz_q1['id'] ]['right'] );
+// More than one right answer: all of them and no wrong one.
+$qz_r2 = array_values( array_map( fn( $x ) => $x['id'], array_filter( $qz_q2['answers'], fn( $x ) => $x['right'] ) ) );
+list( , $a ) = mbcom_call( $qz_m, 'POST', "/lessons/{$qz_l[1]}/quiz/answer", array( 'question_id' => $qz_q2['id'], 'picked' => array( $qz_r2[0], $qz_r2[1] ) ) );
+mbcom_check( 'more than one right answer: missing one is wrong', false === $a['right'] && false === $a['finished'] );
+list( , $a ) = mbcom_call( $qz_m, 'POST', "/lessons/{$qz_l[1]}/quiz/answer", array( 'question_id' => $qz_q3['id'], 'picked' => array( 1 ) ) );
+mbcom_check( 'true or false: the right one is right, and the last answer finishes the try', true === $a['right'] && true === $a['finished'] && 1 === $a['result']['score'] && 3 === $a['result']['total'] && false === $a['result']['passed'], wp_json_encode( $a['result'] ?? $a ) );
+mbcom_check( '…not passed: the lesson isn’t done (rule 1)', ! isset( $a['progress'] ) && 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE user_id = %d AND lesson_id = %d', $qz_tbl( 'lesson_progress' ), $qz_m, $qz_l[1] ) ) );
+list( , $ya ) = mbcom_call( $qz_m, 'GET', "/lessons/{$qz_l[1]}/quiz/answers" );
+mbcom_check( 'See your answers after a fail: right or wrong and the Why, never the right answers (rule 11)', 3 === count( $ya['items'] ) && array( false, false, true ) === array_column( $ya['items'], 'right' ) && ! isset( $ya['items'][0]['right_answers'] ) && 'The company keeps it on its servers.' === $ya['items'][0]['why'] && array( 'You do' ) === $ya['items'][0]['picked'] && false === strpos( wp_json_encode( $ya ), 'The app company' ), wp_json_encode( $ya['items'][0] ) );
+list( $s ) = mbcom_call( $qz_m, 'GET', "/lessons/{$qz_l[2]}" );
+mbcom_check( 'still locked after a fail', 403 === $s, (string) $s );
+list( , $qz_les ) = mbcom_call( $qz_m, 'GET', "/lessons/{$qz_l[1]}" );
+mbcom_check( 'the lesson says not passed, with the score', 'failed' === $qz_les['quiz']['state'] && 1 === $qz_les['quiz']['last']['score'] );
+// Try again: a new try, passed.
+mbcom_call( $qz_m, 'POST', "/lessons/{$qz_l[1]}/quiz/answer", array( 'question_id' => $qz_q1['id'], 'picked' => array( $qz_q1['answers'][1]['id'] ) ) );
+mbcom_call( $qz_m, 'POST', "/lessons/{$qz_l[1]}/quiz/answer", array( 'question_id' => $qz_q2['id'], 'picked' => $qz_r2 ) );
+list( , $a ) = mbcom_call( $qz_m, 'POST', "/lessons/{$qz_l[1]}/quiz/answer", array( 'question_id' => $qz_q3['id'], 'picked' => array( 2 ) ) );
+mbcom_check( 'Try again: 2 of 3 passes, and the lesson is done', true === $a['result']['passed'] && 2 === $a['result']['score'] && isset( $a['progress'] ) && 2 === $a['progress']['completed_count'], wp_json_encode( $a['result'] ) );
+list( $s ) = mbcom_call( $qz_m, 'GET', "/lessons/{$qz_l[2]}" );
+mbcom_check( '…and the next lesson opens', 200 === $s, (string) $s );
+list( , $ya ) = mbcom_call( $qz_m, 'GET', "/lessons/{$qz_l[1]}/quiz/answers" );
+mbcom_check( 'after a pass, See your answers shows the right answers too', true === $ya['passed'] && array( 'The app company' ) === $ya['items'][0]['right_answers'] && array( 'True' ) === $ya['items'][2]['right_answers'] );
+// Un-marking after a pass, then marking again: earned stays earned (review fix 1).
+mbcom_call( $qz_m, 'DELETE', "/lessons/{$qz_l[1]}/complete" );
+list( $s ) = mbcom_call( $qz_m, 'GET', "/lessons/{$qz_l[2]}" );
+mbcom_check( 'un-marking a passed quiz lesson locks the next one again', 403 === $s, (string) $s );
+list( $s, $p ) = mbcom_call( $qz_m, 'POST', "/lessons/{$qz_l[1]}/complete" );
+mbcom_check( '…and Mark Complete takes it back, because the quiz was passed', 200 === $s && 2 === ( $p['completed_count'] ?? 0 ), (string) $s );
+list( $s ) = mbcom_call( $qz_m, 'GET', "/lessons/{$qz_l[2]}" );
+mbcom_check( '…so the next lesson opens again', 200 === $s, (string) $s );
+// Stats for the owner, and rule 5.
+list( , $qz ) = mbcom_call( $qz_admin, 'GET', "/lessons/{$qz_l[1]}/quiz/edit" );
+mbcom_check( 'How are members doing: 1 of 1 who tried passed, the hardest question named', 1 === $qz['quiz']['stats']['tried'] && 1 === $qz['quiz']['stats']['passed'] && null !== $qz['quiz']['stats']['hardest'], wp_json_encode( $qz['quiz']['stats'] ) );
+list( $s, $qz ) = mbcom_call( $qz_admin, 'PUT', "/quiz-questions/{$qz_q2['id']}", array( 'type' => 'many', 'question' => 'Which of these stay yours?', 'answers' => array( array( 'id' => $qz_q2['answers'][0]['id'], 'text' => 'Your member list', 'right' => true ), array( 'text' => 'A new answer' ) ) ) );
+$qz_q2b = $qz['quiz']['questions'][1];
+mbcom_check( 'editing a question keeps the answers’ ids that stay, its totals start fresh (rule 5)', 200 === $s && $qz_q2['answers'][0]['id'] === $qz_q2b['answers'][0]['id'] && 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT answered FROM %i WHERE id = %d', $qz_tbl( 'quiz_questions' ), $qz_q2['id'] ) ), (string) $s );
+mbcom_check( '…and past passes stay', 1 === $qz['quiz']['stats']['passed'] && \MemBuild\Community\Rest_Courses::is_done( $qz_l[1] ) === false ); // is_done is for the current user (the admin)
+wp_set_current_user( $qz_m );
+mbcom_check( '…the member’s lesson stays done', \MemBuild\Community\Rest_Courses::is_done( $qz_l[1] ) );
+$wpdb->query( $wpdb->prepare( 'UPDATE %i SET updated_at = updated_at + INTERVAL 1 MINUTE WHERE id = %d', $qz_tbl( 'quiz_questions' ), $qz_q2['id'] ) ); // edited a minute after the pass
+list( , $ya ) = mbcom_call( $qz_m, 'GET', "/lessons/{$qz_l[1]}/quiz/answers" );
+$ya_by = array_column( $ya['items'], null, 'id' );
+mbcom_check( 'a question changed since the pass doesn’t show its right answer; the others still do', ! isset( $ya_by[ $qz_q2['id'] ]['right_answers'] ) && isset( $ya_by[ $qz_q1['id'] ]['right_answers'] ), wp_json_encode( $ya['items'] ) );
+// Delete a question: the pass mark comes down to the new count.
+mbcom_call( $qz_admin, 'PUT', "/lessons/{$qz_l[1]}/quiz/edit", array( 'pass_mark' => 3 ) );
+list( , $qz ) = mbcom_call( $qz_admin, 'DELETE', "/quiz-questions/{$qz_q3['id']}" );
+mbcom_check( 'deleting a question brings a pass mark above the count down to it', 2 === count( $qz['quiz']['questions'] ) && 2 === $qz['quiz']['pass_mark'] && 1 === $qz['quiz']['stats']['passed'] );
+// Order.
+list( , $qz ) = mbcom_call( $qz_admin, 'PUT', "/quizzes/{$qz_id}/order", array( 'ids' => array( $qz_q2['id'], $qz_q1['id'] ) ) );
+mbcom_check( 'questions can be put in a new order', array( $qz_q2['id'], $qz_q1['id'] ) === array_column( $qz['quiz']['questions'], 'id' ) );
+list( $s ) = mbcom_call( $qz_m, 'PUT', "/quizzes/{$qz_id}/order", array( 'ids' => array() ) );
+mbcom_check( '…by owners only', in_array( $s, array( 401, 403 ), true ), (string) $s );
+// Not in order: the quiz holds back finishing the course, not the next lesson.
+mbcom_call( $qz_admin, 'PUT', "/courses/{$qz_cid}", array( 'in_order' => false ) );
+list( $s ) = mbcom_call( $qz_m2, 'GET', "/lessons/{$qz_l[2]}" );
+mbcom_check( 'a course in any order: the lesson after a quiz opens before passing (rule 3)', 200 === $s, (string) $s );
+mbcom_call( $qz_m2, 'POST', "/lessons/{$qz_l[0]}/complete" );
+list( , $p ) = mbcom_call( $qz_m2, 'POST', "/lessons/{$qz_l[2]}/complete" );
+mbcom_check( '…but the course isn’t finished until the quiz is passed', 67 === $p['progress'], (string) $p['progress'] );
+// Move on anyway: finishing is enough.
+mbcom_call( $qz_admin, 'PUT', "/lessons/{$qz_l[1]}/quiz/edit", array( 'on_fail' => 'move_on' ) );
+list( , $qz_t ) = mbcom_call( $qz_m2, 'GET', "/lessons/{$qz_l[1]}/quiz" );
+foreach ( $qz_t['questions'] as $q ) {
+	list( , $a ) = mbcom_call( $qz_m2, 'POST', "/lessons/{$qz_l[1]}/quiz/answer", array( 'question_id' => $q['id'], 'picked' => array( $q['answers'][ count( $q['answers'] ) - 1 ]['id'] ) ) );
+}
+mbcom_check( '“They can move on anyway”: a fail still finishes the lesson (rule 1)', false === $a['result']['passed'] && 'move_on' === $a['result']['on_fail'] && 100 === ( $a['progress']['progress'] ?? 0 ), wp_json_encode( $a['result'] ?? $a ) );
+list( , $qz_les ) = mbcom_call( $qz_m2, 'GET', "/lessons/{$qz_l[1]}" );
+mbcom_check( '…the lesson says done, with the score saved', 'done' === $qz_les['quiz']['state'] && $qz_les['completed'] );
+mbcom_call( $qz_admin, 'PUT', "/lessons/{$qz_l[1]}/quiz/edit", array( 'on_fail' => 'retry' ) );
+// See it as a member: tries don't count.
+$_COOKIE['mbcom_as_member'] = '1';
+list( , $qz_t ) = mbcom_call( $qz_admin, 'GET', "/lessons/{$qz_l[1]}/quiz" );
+foreach ( $qz_t['questions'] as $q ) {
+	mbcom_call( $qz_admin, 'POST', "/lessons/{$qz_l[1]}/quiz/answer", array( 'question_id' => $q['id'], 'picked' => array( $q['answers'][0]['id'] ) ) );
+}
+unset( $_COOKIE['mbcom_as_member'] );
+list( , $qz ) = mbcom_call( $qz_admin, 'GET', "/lessons/{$qz_l[1]}/quiz/edit" );
+mbcom_check( 'quiz tries in See it as a member don’t count in How are members doing', 2 === $qz['quiz']['stats']['tried'] && 1 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE quiz_id = %d AND user_id = %d AND preview = 1', $qz_tbl( 'quiz_attempts' ), $qz_id, $qz_admin ) ), wp_json_encode( $qz['quiz']['stats'] ) );
+// An owner or moderator taking it outside See it as a member works, but isn't counted either (review).
+list( , $qz_t ) = mbcom_call( $qz_mod, 'GET', "/lessons/{$qz_l[1]}/quiz" );
+foreach ( $qz_t['questions'] as $q ) {
+	mbcom_call( $qz_mod, 'POST', "/lessons/{$qz_l[1]}/quiz/answer", array( 'question_id' => $q['id'], 'picked' => array( $q['answers'][0]['id'] ) ) );
+}
+list( , $qz ) = mbcom_call( $qz_admin, 'GET', "/lessons/{$qz_l[1]}/quiz/edit" );
+mbcom_check( 'a moderator’s own try isn’t counted in How are members doing', 2 === $qz['quiz']['stats']['tried'] && 2 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT preview FROM %i WHERE quiz_id = %d AND user_id = %d ORDER BY id DESC LIMIT 1', $qz_tbl( 'quiz_attempts' ), $qz_id, $qz_mod ) ), wp_json_encode( $qz['quiz']['stats'] ) );
+// Rule 4: a quiz added later isn't asked of people who already finished.
+list( , $qz_late ) = mbcom_call( $qz_admin, 'POST', "/lessons/{$qz_l[0]}/quiz/edit" );
+mbcom_call( $qz_admin, 'POST', "/quizzes/{$qz_late['quiz']['id']}/questions", array( 'type' => 'truefalse', 'question' => 'Late question', 'answers' => array( array( 'id' => 1, 'right' => true ), array( 'id' => 2 ) ) ) );
+list( , $qz_les ) = mbcom_call( $qz_m2, 'GET', "/lessons/{$qz_l[0]}" );
+list( , $qz_o ) = mbcom_call( $qz_m2, 'GET', "/courses/{$qz_cid}" );
+mbcom_check( 'a quiz added later keeps the lesson done for those who finished it (rule 4)', $qz_les['completed'] && 100 === $qz_o['progress'] );
+// Remove quiz: questions and results go, finished lessons stay done.
+list( $s, $qz ) = mbcom_call( $qz_admin, 'DELETE', "/lessons/{$qz_l[0]}/quiz/edit" );
+mbcom_check( 'Remove quiz takes its questions and tries, the lesson stays done', 200 === $s && null === $qz['quiz'] && 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE quiz_id = %d', $qz_tbl( 'quiz_questions' ), $qz_late['quiz']['id'] ) ) && $wpdb->get_var( $wpdb->prepare( 'SELECT 1 FROM %i WHERE user_id = %d AND lesson_id = %d', $qz_tbl( 'lesson_progress' ), $qz_m2, $qz_l[0] ) ) );
+
+mbcom_check( 'a course is 100% only when every lesson is done: 199 of 200 is 99', 99 === \MemBuild\Community\Rest_Courses::percent( 199, 200 ) && 100 === \MemBuild\Community\Rest_Courses::percent( 200, 200 ) && 0 === \MemBuild\Community\Rest_Courses::percent( 0, 0 ) );
+
+/* ---------------------------------------------------------------- */
+mbcom_section( 'Certificates' );
+$ct_s = fn( $c ) => mbcom_call( $qz_admin, 'PUT', '/settings', array( 'certificates' => $c ) );
+mbcom_check( 'certificates start off', false === \MemBuild\Community\Certificates::settings()['on'] && 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE course_id = %d', $qz_tbl( 'certificates' ), $qz_cid ) ) );
+$qz_fin2 = $wpdb->get_var( $wpdb->prepare( 'SELECT MAX(completed_at) FROM %i WHERE user_id = %d AND course_id = %d', $qz_tbl( 'lesson_progress' ), $qz_m2, $qz_cid ) );
+$wpdb->query( $wpdb->prepare( 'UPDATE %i SET completed_at = %s WHERE user_id = %d AND course_id = %d', $qz_tbl( 'lesson_progress' ), '2026-10-20 15:00:00', $qz_m2, $qz_cid ) );
+list( $s, $ct_r ) = $ct_s( array( 'on' => true, 'which' => 'chosen', 'courses' => array(), 'title' => '', 'signed_by' => 'Danica Louwe', 'role' => 'Host' ) );
+mbcom_check( 'chosen courses with none ticked: saves, gives none', 200 === $s && 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE course_id = %d', $qz_tbl( 'certificates' ), $qz_cid ) ), (string) $s );
+$ct_s( array( 'which' => 'all' ) );
+$ct_row = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE user_id = %d AND course_id = %d', $qz_tbl( 'certificates' ), $qz_m2, $qz_cid ), ARRAY_A );
+mbcom_check( 'turning them on gives past finishers theirs, dated the day they really finished (rule 4)', $ct_row && '2026-10-20 15:00:00' === $ct_row['finished_at'] && 'valid' === $ct_row['status'] && 10 === strlen( $ct_row['code'] ), wp_json_encode( $ct_row ) );
+mbcom_check( '…only to members who finished every lesson (a fail in a try-again quiz holds it back, rule 2)', ! $wpdb->get_var( $wpdb->prepare( 'SELECT 1 FROM %i WHERE user_id = %d AND course_id = %d', $qz_tbl( 'certificates' ), $qz_m, $qz_cid ) ) );
+// The member who passed the quiz finishes the last lesson: the certificate comes with the finish.
+list( , $p ) = mbcom_call( $qz_m, 'POST', "/lessons/{$qz_l[2]}/complete" );
+mbcom_check( 'finishing the course gives the certificate, in the finish answer', 100 === $p['progress'] && ! empty( $p['certificate']['id'] ) && 'Own your community' === $p['certificate']['course'] && 'Danica Louwe' === $p['certificate']['signed_by'] && 'Certificate of completion' === $p['certificate']['title'], wp_json_encode( $p['certificate'] ) );
+mbcom_check( '…with the check link, for its own member', ! empty( $p['certificate']['check_url'] ) && preg_match( '#/certificate/[A-Z0-9]{5}-[A-Z0-9]{5}$#', $p['certificate']['check_url'] ) );
+$ct_code = $p['certificate']['code'];
+// Rule 6: un-marking a lesson keeps it.
+mbcom_call( $qz_m, 'DELETE', "/lessons/{$qz_l[2]}/complete" );
+list( , $ct_l ) = mbcom_call( $qz_m, 'GET', "/members/{$qz_m}/certificates" );
+mbcom_check( 'un-marking a lesson keeps an earned certificate (rule 6)', 1 === count( $ct_l['items'] ) );
+mbcom_call( $qz_m, 'POST', "/lessons/{$qz_l[2]}/complete" );
+mbcom_check( '…and finishing again doesn’t make a second one', 1 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE user_id = %d AND course_id = %d', $qz_tbl( 'certificates' ), $qz_m, $qz_cid ) ) );
+// Rule 7: the name follows, the date never changes.
+$ct_date = $ct_l['items'][0]['finished_at'];
+wp_update_user( array( 'ID' => $qz_m, 'display_name' => 'Brianna Lopez' ) );
+list( , $ct_l ) = mbcom_call( $qz_m, 'GET', "/members/{$qz_m}/certificates" );
+mbcom_check( 'a name change shows on the certificate; the date stays (rule 7)', 'Brianna Lopez' === $ct_l['items'][0]['name'] && $ct_date === $ct_l['items'][0]['finished_at'] );
+// Profiles.
+list( , $ct_o ) = mbcom_call( $qz_m2, 'GET', "/members/{$qz_m}/certificates" );
+mbcom_check( 'other members see certificates on profiles, without the check link', 1 === count( $ct_o['items'] ) && ! isset( $ct_o['items'][0]['check_url'] ) && false === $ct_o['items'][0]['mine'] );
+$ct_s( array( 'on_profiles' => false ) );
+list( , $ct_o ) = mbcom_call( $qz_m2, 'GET', "/members/{$qz_m}/certificates" );
+list( , $ct_own ) = mbcom_call( $qz_m, 'GET', "/members/{$qz_m}/certificates" );
+list( , $ct_staff ) = mbcom_call( $qz_mod, 'GET', "/members/{$qz_m}/certificates" );
+mbcom_check( 'Show on profiles off: hidden from others, still there for the member and staff', array() === $ct_o['items'] && 1 === count( $ct_own['items'] ) && 1 === count( $ct_staff['items'] ) );
+list( $s ) = mbcom_call( $qz_m2, 'GET', '/certificates/check/' . $ct_code );
+mbcom_check( '…and others can’t open it either', 404 === $s, (string) $s );
+$ct_s( array( 'on_profiles' => true ) );
+// Blocks hide certificates as they hide the profile (review fix 4).
+mbcom_call( $qz_m, 'PUT', "/members/{$qz_m2}/block" );
+$fresh_blocks->setValue( null, array() );
+list( , $ct_o ) = mbcom_call( $qz_m2, 'GET', "/members/{$qz_m}/certificates" );
+list( $s ) = mbcom_call( $qz_m2, 'GET', '/certificates/check/' . $ct_code );
+mbcom_check( 'someone they blocked sees none of their certificates, by list or by code', array() === $ct_o['items'] && 404 === $s, (string) $s );
+$fresh_blocks->setValue( null, array() );
+list( , $ct_own ) = mbcom_call( $qz_m, 'GET', "/members/{$qz_m}/certificates" );
+mbcom_check( '…and the member still sees their own', 1 === count( $ct_own['items'] ) );
+mbcom_call( $qz_m, 'DELETE', "/members/{$qz_m2}/block" );
+$fresh_blocks->setValue( null, array() );
+// The public check page.
+$ct_page = function ( $code ) {
+	wp_set_current_user( 0 ); // a visitor who isn't logged in
+	return \MemBuild\Community\Certificates::check_page( $code );
+};
+list( $s, $html ) = $ct_page( $ct_code );
+mbcom_check( 'the check page shows a real certificate to anyone, with no login', 200 === $s && false !== strpos( $html, 'This certificate is real' ) && false !== strpos( $html, 'Brianna Lopez' ) && false !== strpos( $html, 'Own your community' ), (string) $s );
+mbcom_check( '…and nothing more: no email, no login form, no app', false === strpos( $html, '@example.test' ) && false === strpos( $html, 'name="pwd"' ) && false === strpos( $html, 'restUrl' ) );
+list( $s, $html ) = $ct_page( strtolower( str_replace( '-', '', $ct_code ) ) );
+mbcom_check( '…typed in small letters without the dash, it still matches', 200 === $s && false !== strpos( $html, 'This certificate is real' ), (string) $s );
+// A site far ahead of UTC (New Zealand) shows the same day as the certificate, not the next one (review fix 2).
+$ct_tz = get_option( 'timezone_string' );
+update_option( 'timezone_string', 'Pacific/Auckland' );
+list( , $ct_nz ) = mbcom_call( $qz_m, 'GET', "/members/{$qz_m}/certificates" );
+list( , $html ) = $ct_page( $ct_code );
+$ct_day = gmdate( 'F j, Y', strtotime( $ct_nz['items'][0]['finished_on'] . ' 12:00:00 UTC' ) );
+mbcom_check( 'at UTC+13 the check page shows the day on the certificate', false !== strpos( $html, $ct_day ), $ct_day );
+update_option( 'timezone_string', $ct_tz );
+list( $s, $html ) = $ct_page( 'ZZZZ-ZZZZ' );
+mbcom_check( 'a wrong code: Not found or removed, no names', 404 === $s && false !== strpos( $html, 'Not found or removed' ) && false === strpos( $html, 'Brianna' ), (string) $s );
+// Guessing codes: 30 wrong ones an hour from one address, then wrong codes wait (review fix 7).
+// A real code is always answered, so bots behind the same proxy can't lock everyone out.
+$ct_miss = fn() => $wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE option_name LIKE %s', $wpdb->options, '%mbcom_certmiss_%' ) );
+$ct_miss();
+wp_cache_flush();
+for ( $i = 0; $i < 30; $i++ ) {
+	$ct_page( sprintf( 'ZZZZZ-%05d', $i ) );
+}
+list( $s, $html ) = $ct_page( 'ZZZZZ-99999' );
+mbcom_check( 'after 30 wrong codes from one address, the next wrong one says Too many tries', 429 === $s && false !== strpos( $html, 'Too many tries' ), (string) $s );
+list( $s ) = mbcom_call( $qz_m2, 'GET', '/certificates/check/ZZZZZ99999' );
+mbcom_check( '…and so does the check route', 429 === $s, (string) $s );
+list( $s, $html ) = $ct_page( $ct_code );
+mbcom_check( '…but a real code still opens, on the page', 200 === $s && false !== strpos( $html, 'Brianna Lopez' ), (string) $s );
+list( $s ) = mbcom_call( $qz_m2, 'GET', '/certificates/check/' . $ct_code );
+mbcom_check( '…and on the check route', 200 === $s, (string) $s );
+$ct_miss();
+wp_cache_flush();
+list( $s ) = $ct_page( 'ZZZZZ-99999' );
+mbcom_check( '…wrong codes say not found again once the hour is up', 404 === $s, (string) $s );
+$ct_miss();
+wp_cache_flush();
+// Whose address: REMOTE_ADDR, IPv6 by its /64, and a filter for sites behind a proxy.
+$ct_ra = $_SERVER['REMOTE_ADDR'] ?? null;
+$_SERVER['REMOTE_ADDR'] = '2001:db8:1:2:aaaa::1';
+$ct_v6a = \MemBuild\Community\Certificates::visitor_ip();
+$_SERVER['REMOTE_ADDR'] = '2001:db8:1:2:bbbb::9';
+$ct_v6b = \MemBuild\Community\Certificates::visitor_ip();
+$_SERVER['REMOTE_ADDR'] = '2001:db8:1:3::1';
+mbcom_check( 'IPv6 addresses count by their /64', $ct_v6a === $ct_v6b && '2001:db8:1:2::/64' === $ct_v6a && \MemBuild\Community\Certificates::visitor_ip() !== $ct_v6a, $ct_v6a );
+$_SERVER['REMOTE_ADDR']        = '203.0.113.7';
+$_SERVER['HTTP_X_FORWARDED_FOR'] = '198.51.100.1';
+mbcom_check( '…an IPv4 address is kept whole, and a typed-in X-Forwarded-For is ignored', '203.0.113.7' === \MemBuild\Community\Certificates::visitor_ip() );
+$ct_f = fn() => '198.51.100.20';
+add_filter( 'membuild_community/visitor_ip', $ct_f );
+mbcom_check( '…a site behind a proxy can hand over the real address with a filter', '198.51.100.20' === \MemBuild\Community\Certificates::visitor_ip() );
+remove_filter( 'membuild_community/visitor_ip', $ct_f );
+unset( $_SERVER['HTTP_X_FORWARDED_FOR'] );
+if ( null === $ct_ra ) {
+	unset( $_SERVER['REMOTE_ADDR'] );
+} else {
+	$_SERVER['REMOTE_ADDR'] = $ct_ra;
+}
+mbcom_check( 'new codes are 10 letters long (shown as two groups of 5), old 8-letter ones still work', 10 === strlen( str_replace( '-', '', $ct_code ) ) && 'ABCD-EFGH' === \MemBuild\Community\Certificates::pretty( 'ABCDEFGH' ) );
+$ct_s( array( 'checkable' => false ) );
+list( $s, $html ) = $ct_page( $ct_code );
+mbcom_check( 'Let anyone check off: the link says not found', 404 === $s && false !== strpos( $html, 'Not found or removed' ), (string) $s );
+list( , $ct_own ) = mbcom_call( $qz_m, 'GET', "/members/{$qz_m}/certificates" );
+mbcom_check( '…and the member’s own certificate has no check link', ! isset( $ct_own['items'][0]['check_url'] ) );
+$ct_s( array( 'checkable' => true ) );
+// Rule 8: turning off or unticking keeps earned ones and gives none.
+$ct_s( array( 'on' => false ) );
+list( , $ct_own ) = mbcom_call( $qz_m, 'GET', "/members/{$qz_m}/certificates" );
+mbcom_check( 'turning certificates off keeps the ones given (rule 8)', 1 === count( $ct_own['items'] ) );
+list( , $ct_c2 ) = mbcom_call( $qz_admin, 'POST', '/courses', array( 'title' => 'Second course' ) );
+list( , $ct_l2 ) = mbcom_call( $qz_admin, 'POST', "/modules/{$ct_c2['modules'][0]['id']}/lessons", array( 'title' => 'Only lesson' ) );
+mbcom_call( $qz_admin, 'PUT', "/courses/{$ct_c2['id']}", array( 'status' => 'published' ) );
+list( , $p ) = mbcom_call( $qz_m2, 'POST', "/lessons/{$ct_l2['id']}/complete" );
+mbcom_check( '…and gives no new ones while off', 100 === $p['progress'] && null === $p['certificate'] );
+$ct_s( array( 'on' => true, 'which' => 'chosen', 'courses' => array( $qz_cid ) ) );
+mbcom_check( 'chosen courses: an unticked course gives none, even to past finishers', ! $wpdb->get_var( $wpdb->prepare( 'SELECT 1 FROM %i WHERE course_id = %d', $qz_tbl( 'certificates' ), $ct_c2['id'] ) ) );
+$ct_s( array( 'courses' => array( $qz_cid, (int) $ct_c2['id'] ) ) );
+mbcom_check( '…ticking it gives past finishers theirs', (bool) $wpdb->get_var( $wpdb->prepare( 'SELECT 1 FROM %i WHERE user_id = %d AND course_id = %d', $qz_tbl( 'certificates' ), $qz_m2, $ct_c2['id'] ) ) );
+// Removing (owners and moderators).
+$ct_id = (int) $ct_own['items'][0]['id'];
+list( $s ) = mbcom_call( $qz_m2, 'DELETE', "/certificates/{$ct_id}" );
+mbcom_check( 'members can’t remove a certificate', in_array( $s, array( 401, 403 ), true ), (string) $s );
+list( $s ) = mbcom_call( $qz_mod, 'DELETE', "/certificates/{$ct_id}" );
+mbcom_check( 'a moderator removes a member’s certificate', 200 === $s, (string) $s );
+list( , $ct_own ) = mbcom_call( $qz_m, 'GET', "/members/{$qz_m}/certificates" );
+list( $s, $html ) = $ct_page( $ct_code );
+mbcom_check( '…it leaves the profile, and the check page says Not found or removed', array() === $ct_own['items'] && 404 === $s && false !== strpos( $html, 'Not found or removed' ) && false === strpos( $html, 'Brianna' ) );
+mbcom_check( '…with no alert to the member', ! $wpdb->get_var( $wpdb->prepare( "SELECT 1 FROM %i WHERE user_id = %d AND type LIKE %s", $qz_tbl( 'notifications' ), $qz_m, '%cert%' ) ) );
+mbcom_call( $qz_m, 'DELETE', "/lessons/{$qz_l[2]}/complete" );
+mbcom_call( $qz_m, 'POST', "/lessons/{$qz_l[2]}/complete" );
+$ct_s( array( 'on' => true ) );
+mbcom_check( '…and it doesn’t come back on its own: finishing again or saving Settings', 'removed' === $wpdb->get_var( $wpdb->prepare( 'SELECT status FROM %i WHERE user_id = %d AND course_id = %d', $qz_tbl( 'certificates' ), $qz_m, $qz_cid ) ) && 1 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE user_id = %d AND course_id = %d', $qz_tbl( 'certificates' ), $qz_m, $qz_cid ) ) );
+// Deleting the course keeps earned certificates, with the name it had.
+mbcom_call( $qz_admin, 'DELETE', "/courses/{$ct_c2['id']}" );
+list( , $ct_l ) = mbcom_call( $qz_m2, 'GET', "/members/{$qz_m2}/certificates" );
+mbcom_check( 'a deleted course’s certificates stay, with its name', in_array( 'Second course', array_column( $ct_l['items'], 'course' ), true ) );
+// Erasing a member takes their tries and certificates.
+$ct_er = mbcom_user( 'mbct_ct_erase' );
+\MemBuild\Community\Certificates::give( $qz_cid, $ct_er );
+do {
+	$ct_res = \MemBuild\Community\Privacy::erase( 'mbct_ct_erase@example.test', 1 );
+} while ( ! $ct_res['done'] );
+mbcom_check( 'erasing a member removes their certificates', ! $wpdb->get_var( $wpdb->prepare( 'SELECT 1 FROM %i WHERE user_id = %d', $qz_tbl( 'certificates' ), $ct_er ) ) );
+// Finishing a course in See it as a member never gives the owner a certificate (review).
+wp_set_current_user( $qz_admin );
+$_COOKIE['mbcom_as_member'] = '1';
+$ct_prev = \MemBuild\Community\Certificates::give( $qz_cid, $qz_admin );
+unset( $_COOKIE['mbcom_as_member'] );
+mbcom_check( 'finishing a course in See it as a member gives no certificate', false === $ct_prev && ! $wpdb->get_var( $wpdb->prepare( 'SELECT 1 FROM %i WHERE user_id = %d AND course_id = %d', $qz_tbl( 'certificates' ), $qz_admin, $qz_cid ) ) );
+// The catch-up runs only when who gets certificates changes, a batch at a time (review fix 5).
+$ct_b = array( mbcom_user( 'mbct_ct_b1' ), mbcom_user( 'mbct_ct_b2' ) );
+foreach ( $ct_b as $u ) {
+	$wpdb->delete( $qz_tbl( 'certificates' ), array( 'user_id' => $u ) );
+	foreach ( $qz_l as $l ) {
+		$wpdb->query( $wpdb->prepare( 'INSERT IGNORE INTO %i (user_id, lesson_id, course_id, completed_at) VALUES (%d, %d, %d, %s)', $qz_tbl( 'lesson_progress' ), $u, $l, $qz_cid, '2026-10-01 10:00:00' ) );
+	}
+}
+$ct_n = fn() => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE user_id IN (%d, %d)', $qz_tbl( 'certificates' ), $ct_b[0], $ct_b[1] ) );
+$ct_s( array( 'title' => 'Certificate of completion' ) );
+mbcom_check( 'saving only the words gives no past finishers theirs (no catch-up)', 0 === $ct_n() );
+wp_clear_scheduled_hook( \MemBuild\Community\Certificates::CATCH_UP );
+\MemBuild\Community\Certificates::$batch = 1;
+$ct_s( array( 'which' => 'chosen', 'courses' => array( $qz_cid ) ) );
+mbcom_check( 'changing which courses: one batch now, the rest booked for cron', 1 === $ct_n() && (bool) wp_next_scheduled( \MemBuild\Community\Certificates::CATCH_UP ), (string) $ct_n() );
+wp_clear_scheduled_hook( \MemBuild\Community\Certificates::CATCH_UP );
+do_action( \MemBuild\Community\Certificates::CATCH_UP );
+mbcom_check( '…the next batch gives the rest', 2 === $ct_n(), (string) $ct_n() );
+\MemBuild\Community\Certificates::$batch = 200;
+wp_clear_scheduled_hook( \MemBuild\Community\Certificates::CATCH_UP );
+$wpdb->delete( $qz_tbl( 'certificates' ), array( 'user_id' => $ct_b[0] ) );
+do_action( 'membuild_community/import_done', 0, 'csv' );
+mbcom_check( 'an import gives finished students their certificates', 2 === $ct_n(), (string) $ct_n() );
+// A finisher who can't be given one (here the owner, in See it as a member) is passed over, so
+// the catch-up still reaches the members after them, and still comes to an end (review).
+foreach ( $ct_b as $u ) {
+	$wpdb->delete( $qz_tbl( 'certificates' ), array( 'user_id' => $u ) );
+}
+foreach ( $qz_l as $l ) {
+	$wpdb->query( $wpdb->prepare( 'INSERT IGNORE INTO %i (user_id, lesson_id, course_id, completed_at) VALUES (%d, %d, %d, %s)', $qz_tbl( 'lesson_progress' ), $qz_admin, $l, $qz_cid, '2026-10-01 10:00:00' ) );
+}
+wp_set_current_user( $qz_admin );
+$_COOKIE['mbcom_as_member'] = '1';
+\MemBuild\Community\Certificates::$batch = 1;
+wp_clear_scheduled_hook( \MemBuild\Community\Certificates::CATCH_UP );
+\MemBuild\Community\Certificates::start_catch_up();
+for ( $i = 0; $i < 20 && wp_next_scheduled( \MemBuild\Community\Certificates::CATCH_UP ); $i++ ) {
+	wp_clear_scheduled_hook( \MemBuild\Community\Certificates::CATCH_UP );
+	do_action( \MemBuild\Community\Certificates::CATCH_UP );
+}
+unset( $_COOKIE['mbcom_as_member'] );
+mbcom_check( 'a finisher who can’t be given one is passed over: the members after them get theirs', 2 === $ct_n() && ! $wpdb->get_var( $wpdb->prepare( 'SELECT 1 FROM %i WHERE user_id = %d AND course_id = %d', $qz_tbl( 'certificates' ), $qz_admin, $qz_cid ) ), (string) $ct_n() );
+mbcom_check( '…and the catch-up comes to an end', $i < 20 && ! wp_next_scheduled( \MemBuild\Community\Certificates::CATCH_UP ) && false === get_option( \MemBuild\Community\Certificates::CATCH_UP_AFTER ), (string) $i );
+\MemBuild\Community\Certificates::$batch = 200;
+$wpdb->delete( $qz_tbl( 'lesson_progress' ), array( 'user_id' => $qz_admin, 'course_id' => $qz_cid ) );
+foreach ( $ct_b as $u ) {
+	$wpdb->delete( $qz_tbl( 'certificates' ), array( 'user_id' => $u ) );
+	$wpdb->delete( $qz_tbl( 'lesson_progress' ), array( 'user_id' => $u ) );
+}
+// Deleting a lesson removes its quiz.
+mbcom_call( $qz_admin, 'DELETE', "/lessons/{$qz_l[1]}" );
+mbcom_check( 'deleting a lesson removes its quiz, questions and tries', ! $wpdb->get_var( $wpdb->prepare( 'SELECT 1 FROM %i WHERE id = %d', $qz_tbl( 'quizzes' ), $qz_id ) ) && ! $wpdb->get_var( $wpdb->prepare( 'SELECT 1 FROM %i WHERE quiz_id = %d', $qz_tbl( 'quiz_questions' ), $qz_id ) ) && ! $wpdb->get_var( $wpdb->prepare( 'SELECT 1 FROM %i WHERE quiz_id = %d', $qz_tbl( 'quiz_attempts' ), $qz_id ) ) );
+mbcom_call( $qz_admin, 'DELETE', "/courses/{$qz_cid}" );
+// The upgrade to 45, clean from 42, 43 and 44.
+foreach ( array( 42, 43, 44 ) as $ct_from ) {
+	foreach ( array( 'quizzes', 'quiz_questions', 'quiz_attempts', 'certificates' ) as $ct_t ) {
+		$wpdb->query( 'DROP TABLE IF EXISTS ' . $qz_tbl( $ct_t ) );
+	}
+	update_option( 'mbcom_db_version', $ct_from );
+	\MemBuild\Community\Install::maybe_upgrade();
+	$ct_have = array_filter( array( 'quizzes', 'quiz_questions', 'quiz_attempts', 'certificates' ), fn( $t ) => (bool) $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $qz_tbl( $t ) ) ) );
+	mbcom_check( "the upgrade from {$ct_from} to 45 adds the quiz and certificate tables", 45 === (int) get_option( 'mbcom_db_version' ) && 4 === count( $ct_have ), wp_json_encode( array_values( $ct_have ) ) );
+}
+$ct_s( array( 'on' => false, 'which' => 'all', 'courses' => array(), 'signed_by' => '', 'role' => '' ) );
+wp_update_user( array( 'ID' => $qz_m, 'display_name' => 'Qz_member' ) );
+\MemBuild\Community\Settings::flush();
 
 /* ---------------------------------------------------------------- */
 echo "\n{$GLOBALS['mbcom_passed']} passed, {$GLOBALS['mbcom_failed']} failed\n";

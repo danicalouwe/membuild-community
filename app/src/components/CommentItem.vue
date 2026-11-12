@@ -1,5 +1,10 @@
+<script>
+// Shared by every comment on the page.
+let editFormats = null
+</script>
+
 <script setup>
-import { computed, defineAsyncComponent, ref, onMounted } from 'vue'
+import { computed, defineAsyncComponent, nextTick, ref, onBeforeUnmount, onMounted } from 'vue'
 import GifMedia from './GifMedia.vue'
 import { gifBox } from '../lib/gifBox.js'
 import { cfg } from '../config.js'
@@ -11,11 +16,15 @@ import Icon from './Icon.vue'
 import RichText from './RichText.vue'
 import ReactionButton from './ReactionButton.vue'
 import ReactionStack from './ReactionStack.vue'
-import { around, t } from '../lib/i18n.js'
+import ReactionPicker from './ReactionPicker.vue'
+import { api } from '../api.js'
+import { updatePost } from '../stores/feed.js'
+import { around, locale, t } from '../lib/i18n.js'
 import { useMenu } from '../lib/useMenu.js'
 import { useRouter } from 'vue-router'
 import { setShareDraft } from '../stores/messages.js'
 import { feature } from '../config.js'
+import { askConfirm } from '../lib/confirm.js'
 const ReportDialog = defineAsyncComponent(() => import('./ReportDialog.vue'))
 
 const props = defineProps({
@@ -83,6 +92,126 @@ async function copyLink() {
 function react(type) {
   if (!pendingOrFailed.value) setCommentReaction(c.value, type)
 }
+
+// Edit comment: only your own, and only the words (a photo or GIF stays as it is).
+// The comment turns into its edit box right where it is; Cancel or Escape puts it back.
+const canEdit = computed(() => isMine.value && !cfg.community.restriction && c.value.can_edit !== false)
+const editing = ref(false)
+const editText = ref('')
+const editInput = ref(null)
+const saving = ref(false)
+const editError = ref('')
+const showEmoji = ref(false)
+const emojiBtn = ref(null)
+const changed = computed(() => editText.value.trim() !== (c.value.content || '').trim())
+const canSave = computed(() => changed.value && (editText.value.trim() || c.value.image) && !saving.value)
+
+function startEdit() {
+  editText.value = c.value.content || ''
+  editError.value = ''
+  editing.value = true
+  nextTick(() => {
+    const el = editInput.value
+    if (!el) return
+    el.focus()
+    el.setSelectionRange(el.value.length, el.value.length)
+  })
+}
+// Back on the ⋯ button afterwards, so the keyboard carries on from the comment.
+function endEdit() {
+  editing.value = false
+  showEmoji.value = false
+  nextTick(() => menuButton()?.focus())
+}
+// Changed words are only thrown away when the owner says so, the same ask as editing a post.
+let asking = false
+async function cancelEdit() {
+  if (saving.value || asking) return
+  if (changed.value) {
+    asking = true
+    const discard = await askConfirm({ title: t.__('Discard your changes?', 'membuild-community'), confirm: t.__('Discard', 'membuild-community'), cancel: t.__('Keep editing', 'membuild-community'), danger: true })
+    asking = false
+    if (!discard) return editInput.value?.focus()
+  }
+  if (editing.value) endEdit()
+}
+// Escape in the edit box cancels just the edit. Like "cancel reply", the field claims Escape
+// first (layers.js), so the post or panel underneath stays open.
+function onEditEscape(e) {
+  e.preventDefault()
+  e.stopPropagation()
+  if (showEmoji.value) showEmoji.value = false // the emoji panel first
+  else cancelEdit()
+}
+const menuButton = () => el.value?.querySelector(':scope > .main .more')
+// The same comment can show in two places at once (a post's preview in Home and the opened post).
+function shareEdit(saved) {
+  updatePost(c.value.post_id, (p) => {
+    const pc = p.preview_comment
+    for (const x of pc ? [pc, ...(pc.replies || [])] : []) if (x.id === saved.id) Object.assign(x, { content: saved.content, edited_at: saved.edited_at })
+    return {}
+  })
+}
+async function saveEdit() {
+  if (!canSave.value) return
+  saving.value = true
+  editError.value = ''
+  try {
+    const saved = await api.updateComment(c.value.id, editText.value.trim())
+    Object.assign(c.value, { content: saved.content, edited_at: saved.edited_at })
+    shareEdit(saved)
+    saving.value = false
+    endEdit()
+  } catch (err) {
+    saving.value = false
+    editError.value = err.message
+  }
+}
+function onEditKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+    e.preventDefault()
+    saveEdit()
+  }
+}
+function toggleEmoji(e) {
+  emojiBtn.value = e.currentTarget
+  showEmoji.value = !showEmoji.value
+}
+function insertEmoji(em) {
+  const el = editInput.value
+  const at = el ? el.selectionStart : editText.value.length
+  editText.value = editText.value.slice(0, at) + em + editText.value.slice(el ? el.selectionEnd : at)
+  nextTick(() => {
+    el?.focus()
+    el?.setSelectionRange(at + em.length, at + em.length)
+  })
+}
+
+// "Edited" after the date; pointing at it (or a long press on a phone) shows when.
+// The formatters are made once, the first time any comment shows it was edited.
+const fmtWhen = (iso) => {
+  editFormats ??= [new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric' }), new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' })]
+  const d = new Date(iso)
+  return t.sprintf(/* translators: 1: a date like "Nov 11", 2: a time like "10:42 AM" */ t.__('Edited %1$s at %2$s', 'membuild-community'), editFormats[0].format(d), editFormats[1].format(d))
+}
+const editedWhen = computed(() => (c.value.edited_at ? fmtWhen(c.value.edited_at) : ''))
+const showWhen = ref(false)
+let pressTimer = 0
+let hideTimer = 0
+function pressEdited(e) {
+  if (e.pointerType === 'mouse') return
+  clearTimeout(pressTimer)
+  pressTimer = setTimeout(() => {
+    showWhen.value = true
+    clearTimeout(hideTimer)
+    hideTimer = setTimeout(() => (showWhen.value = false), 3000)
+  }, 450)
+}
+const releaseEdited = () => clearTimeout(pressTimer)
+onBeforeUnmount(() => {
+  clearTimeout(pressTimer)
+  clearTimeout(hideTimer)
+})
 </script>
 
 <template>
@@ -94,6 +223,10 @@ function react(type) {
         <span v-if="inCourse && c.staff_role" class="staff">{{ c.staff_role === 'instructor' ? t.__('Instructor', 'membuild-community') : t.__('Moderator', 'membuild-community') }}</span>
         <span class="dot">·</span>
         <span class="time">{{ c.failed ? t.__('Not sent', 'membuild-community') : c.pending ? t.__('Posting…', 'membuild-community') : timeAgo(c.created_at) }}</span>
+        <template v-if="c.edited_at && !pendingOrFailed">
+          <span class="dot">·</span>
+          <span class="edited" :title="editedWhen" @pointerdown="pressEdited" @pointerup="releaseEdited" @pointercancel="releaseEdited" @pointerleave="releaseEdited" @contextmenu.prevent>{{ showWhen ? editedWhen : t.__('Edited', 'membuild-community') }}</span>
+        </template>
         <template v-if="c.best">
           <span class="dot">·</span>
           <span class="best"><Icon name="check" :size="13" /> {{ t.__('Best answer', 'membuild-community') }}</span>
@@ -104,7 +237,31 @@ function react(type) {
         </template>
       </div>
 
-      <div v-if="c.content || c.reply_to" class="text">
+      <form v-if="editing" class="edit" @submit.prevent="saveEdit" @keydown.esc="onEditEscape">
+        <div class="edit-field">
+          <textarea
+            ref="editInput"
+            v-model="editText"
+            v-auto-grow
+            rows="1"
+            maxlength="2000"
+            :aria-label="t.__('Edit your comment', 'membuild-community')"
+            @keydown="onEditKey"
+          />
+          <div class="edit-tools">
+            <button ref="emojiBtn" type="button" class="tool" :class="{ on: showEmoji }" :aria-label="t.__('Insert an emoji', 'membuild-community')" :title="t.__('Emoji', 'membuild-community')" :aria-expanded="showEmoji" @click="toggleEmoji">
+              <Icon name="smile" :size="20" />
+            </button>
+            <ReactionPicker v-if="showEmoji && emojiBtn" mode="emoji" side="center" :anchor="emojiBtn.getBoundingClientRect()" :ignore="emojiBtn" @pick="insertEmoji" @close="showEmoji = false" />
+          </div>
+        </div>
+        <p v-if="editError" class="error-text" role="alert">{{ editError }}</p>
+        <div class="edit-buttons">
+          <button type="button" class="btn btn-ghost" :disabled="saving" @click="cancelEdit">{{ t.__('Cancel', 'membuild-community') }}</button>
+          <button type="submit" class="btn btn-primary" :disabled="!canSave">{{ saving ? t.__('Saving…', 'membuild-community') : t.__('Save', 'membuild-community') }}</button>
+        </div>
+      </form>
+      <div v-else-if="c.content || c.reply_to" class="text">
         <RouterLink v-if="c.reply_to" class="mention" :to="{ name: 'member', params: { id: c.reply_to.id } }">{{ c.reply_to.name }}</RouterLink>
         <RichText :text="c.content" class="inline" />
       </div>
@@ -114,7 +271,7 @@ function react(type) {
       </a>
       <p v-if="c.failed" class="failed">{{ c.failed }}</p>
 
-      <div class="actions">
+      <div v-if="!editing" class="actions">
         <ReactionButton :current="c.my_reaction" :size="20" @react="react" />
         <button class="act text-btn tap-44" @click="$emit('reply', c)">{{ t._x('Reply', 'verb: reply to a comment', 'membuild-community') }}</button>
         <button v-if="canChooseBest && !reply && !pendingOrFailed" class="act text-btn" :class="{ on: c.best }" :aria-pressed="!!c.best" @click="$emit('best', c)">
@@ -129,6 +286,7 @@ function react(type) {
             <button v-if="feature('messages')" role="menuitem" @click="closeMenu(); sendInMessage()"><Icon name="messenger" :size="16" /> {{ t.__('Send in a message', 'membuild-community') }}</button>
             <button v-if="canSheet" role="menuitem" @click="closeMenu(); shareSheet()"><Icon name="share" :size="16" /> {{ t.__('Share…', 'membuild-community') }}</button>
             <button v-if="!isMine" role="menuitem" @click="closeMenu(); reporting = true"><Icon name="flag" :size="16" /> {{ t.__('Report comment', 'membuild-community') }}</button>
+            <button v-if="canEdit" role="menuitem" @click="closeMenu(); startEdit()"><Icon name="pencil" :size="16" /> {{ t.__('Edit comment', 'membuild-community') }}</button>
             <button v-if="isMine" role="menuitem" class="danger" @click="closeMenu(); $emit('delete', c)"><Icon name="trash" :size="16" /> {{ t.__('Delete comment', 'membuild-community') }}</button>
             <button v-else-if="cfg.community.isStaff" role="menuitem" class="danger" @click="closeMenu(); $emit('delete', c)"><Icon name="trash" :size="16" /> {{ t.__('Remove comment', 'membuild-community') }}</button>
           </span>
@@ -141,6 +299,79 @@ function react(type) {
 </template>
 
 <style scoped>
+/* Edit comment: the comment's words in a box like the comment box, Cancel and Save under it. */
+.edit {
+  margin-top: 4px;
+}
+
+.edit-field {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-2);
+  border-radius: var(--radius-xl);
+  padding: 2px 6px 4px 14px;
+}
+
+.edit-field:focus-within {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.edit-field textarea {
+  width: 100%;
+  resize: none;
+  border: 0;
+  background: transparent;
+  min-height: 36px;
+  max-height: 220px;
+  padding: 9px 8px 2px 0;
+  font-size: var(--fs-base);
+  line-height: 1.4;
+  field-sizing: content;
+}
+
+.edit-field textarea:focus {
+  outline: none;
+}
+
+.edit-tools {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-left: -8px;
+}
+
+.tool {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--text-3);
+}
+
+.tool:hover,
+.tool.on {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  color: var(--text-2);
+}
+
+.edit .error-text {
+  margin: 6px 0 0;
+}
+
+.edit-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.edited {
+  cursor: default;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
 /* A shared link lands here: a short glow that fades. */
 .comment.highlight {
   animation: flash 2.5s ease-out;

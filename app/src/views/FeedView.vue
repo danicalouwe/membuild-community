@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onActivated, onBeforeUnmount, onDeactivated, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onActivated, onBeforeUnmount, onDeactivated, onMounted, ref, watch } from 'vue'
 import { cfg, feature } from '../config.js'
 import { lists, loadMore, refresh, topicList } from '../stores/feed.js'
 import { topicById, topics, topicsShown } from '../lib/topics.js'
@@ -43,6 +43,40 @@ const closeSort = (e) => {
 }
 onMounted(() => document.addEventListener('click', closeSort))
 onBeforeUnmount(() => document.removeEventListener('click', closeSort))
+
+// The topic pills scroll sideways. On computers, ‹ › at the ends show while there is more that way
+// (like the stories and reels rows); phones just swipe.
+const pills = ref(null)
+const pillsLeft = ref(false)
+const pillsRight = ref(false)
+function pillsEdges() {
+  const el = pills.value
+  if (!el) return
+  pillsLeft.value = el.scrollLeft > 4
+  pillsRight.value = el.scrollLeft + el.clientWidth < el.scrollWidth - 4
+}
+function pillsPage(direction) {
+  const el = pills.value
+  el?.scrollBy({ left: direction * Math.max(el.clientWidth - 120, 120), behavior: 'smooth' })
+}
+let pillsObserver = null
+watch(pills, (el) => {
+  pillsObserver?.disconnect()
+  pillsObserver = null
+  if (!el) return
+  pillsEdges()
+  if (typeof ResizeObserver === 'function') {
+    // The row's own width (window, side column) and its pills' widths (topics added, fonts loaded).
+    pillsObserver = new ResizeObserver(pillsEdges)
+    pillsObserver.observe(el)
+    for (const child of el.children) pillsObserver.observe(child)
+  }
+})
+watch(() => topics.items.length, () => nextTick(() => {
+  if (pills.value && pillsObserver) for (const child of pills.value.children) pillsObserver.observe(child)
+  pillsEdges()
+}))
+onBeforeUnmount(() => pillsObserver?.disconnect())
 const postsIn = (n) => t.sprintf(/* translators: %d: number of posts */ t._n('%d post', '%d posts', n, 'membuild-community'), n)
 const noneIn = (name) => t.sprintf(/* translators: %s: a topic's name */ t.__('No posts in %s yet. Be the first.', 'membuild-community'), name)
 const sentinel = ref(null)
@@ -177,9 +211,14 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
 
     <!-- With topics: All plus a pill per topic, and Latest / Popular in a small Sort menu. -->
     <div v-if="topicsShown" class="topic-row">
-      <div class="topic-pills" role="radiogroup" :aria-label="t.__('Topics', 'membuild-community')">
+      <div class="topic-scroll">
+      <div ref="pills" class="topic-pills" :class="{ 'fade-left': pillsLeft, 'fade-right': pillsRight }" role="radiogroup" :aria-label="t.__('Topics', 'membuild-community')" @scroll.passive="pillsEdges">
         <button class="filter-pill" role="radio" :aria-checked="!topic" :class="{ on: !topic }" @click="setTopic(0)">{{ t.__('All', 'membuild-community') }}</button>
         <button v-for="x in topics.items" :key="x.id" class="filter-pill" role="radio" :aria-checked="topic === x.id" :class="{ on: topic === x.id }" @click="setTopic(x.id)"><span class="topic-dot" :style="{ background: x.color }" />{{ x.name }}</button>
+      </div>
+      <!-- Not in the Tab order: Tab already reaches every pill, and the row scrolls to it. -->
+      <button v-if="pillsLeft" type="button" class="topic-arrow left" tabindex="-1" :aria-label="t.__('Previous topics', 'membuild-community')" @click="pillsPage(-1)"><Icon name="chevronLeft" :size="20" /></button>
+      <button v-if="pillsRight" type="button" class="topic-arrow right" tabindex="-1" :aria-label="t.__('More topics', 'membuild-community')" @click="pillsPage(1)"><Icon name="chevronRight" :size="20" /></button>
       </div>
       <span class="sort-wrap">
         <button class="filter-pill sort-btn" aria-haspopup="menu" :aria-expanded="sortOpen" :aria-label="t.__('Sort posts', 'membuild-community')" @click="sortOpen = !sortOpen"><Icon name="sort" :size="16" /><span class="sort-word">{{ sort === 'hot' ? t.__('Popular', 'membuild-community') : t.__('Latest', 'membuild-community') }}</span></button>
@@ -370,6 +409,63 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
 
 .topic-pills::-webkit-scrollbar {
   display: none;
+}
+
+.topic-scroll {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+}
+
+.topic-arrow {
+  display: none;
+}
+
+/* Computers: no fade or arrow at an end that has nothing more; ‹ › sit over the fade, like the stories row's arrows. */
+@media (min-width: 768px) {
+  .topic-pills {
+    -webkit-mask-image: none;
+    mask-image: none;
+    padding-right: 0;
+  }
+
+  .topic-pills.fade-right {
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 64px), transparent); /* exempt: mask shape, not a colour */
+    mask-image: linear-gradient(90deg, #000 calc(100% - 64px), transparent); /* exempt: mask shape, not a colour */
+  }
+
+  .topic-pills.fade-left {
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 64px); /* exempt: mask shape, not a colour */
+    mask-image: linear-gradient(90deg, transparent, #000 64px); /* exempt: mask shape, not a colour */
+  }
+
+  .topic-pills.fade-left.fade-right {
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 64px, #000 calc(100% - 64px), transparent); /* exempt: mask shape, not a colour */
+    mask-image: linear-gradient(90deg, transparent, #000 64px, #000 calc(100% - 64px), transparent); /* exempt: mask shape, not a colour */
+  }
+
+  .topic-arrow {
+    position: absolute;
+    top: 50%;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    margin-top: -18px;
+    border-radius: 50%;
+    color: var(--on-color);
+    background: color-mix(in srgb, var(--player-surface) 92%, transparent);
+    box-shadow: 0 2px 10px color-mix(in srgb, var(--shadow-color) 35%, transparent);
+  }
+
+  .topic-arrow.left {
+    left: 0;
+  }
+
+  .topic-arrow.right {
+    right: 0;
+  }
 }
 
 .topic-pills .filter-pill {

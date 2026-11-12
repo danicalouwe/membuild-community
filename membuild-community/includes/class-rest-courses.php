@@ -93,19 +93,28 @@ class Rest_Courses {
 			),
 			OBJECT_K
 		);
+		// Quizzes the card counts ("3 lessons · 1 quiz"): only ones with questions, on lessons still there.
+		$quizzes = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT q.course_id, COUNT(DISTINCT q.id) n FROM %i q JOIN %i a ON a.quiz_id = q.id JOIN %i l ON l.id = q.lesson_id WHERE q.course_id IN (' . implode( ',', array_fill( 0, count( $ids ), '%d' ) ) . ') GROUP BY q.course_id',
+				array_merge( array( Install::table( 'quizzes' ), Install::table( 'quiz_questions' ), Install::table( 'lessons' ) ), $ids )
+			),
+			OBJECT_K
+		);
 		$journey = self::journeys( $ids );
 		$life    = self::activity( $ids );
 		return array(
 			'items'      => array_map(
-				function ( $row ) use ( $totals, $done, $journey, $life ) {
+				function ( $row ) use ( $totals, $done, $quizzes, $journey, $life ) {
 					$total     = (int) ( $totals[ $row['id'] ]->n ?? 0 );
 					$completed = min( $total, (int) ( $done[ $row['id'] ]->n ?? 0 ) );
 					$course    = self::format_course( $row );
 					$mine      = $journey[ (int) $row['id'] ] ?? array();
 					return $course + array(
 						'lessons_count'   => $total,
+						'quizzes_count'   => (int) ( $quizzes[ $row['id'] ]->n ?? 0 ),
 						'completed_count' => $completed,
-						'progress'        => $total ? (int) round( 100 * $completed / $total ) : 0,
+						'progress'        => self::percent( $completed, $total ),
 						// Where "Continue" goes: the first lesson not done yet (not while the course is locked).
 						'next_lesson'     => $course['lock'] ? null : ( $mine['next'] ?? null ),
 						'last_activity'   => $mine['last'] ?? null,
@@ -152,8 +161,12 @@ class Rest_Courses {
 		}
 		$before = $unlock ? null : self::order_block( $lesson, $course );
 		if ( $before ) {
-			/* translators: %s: the lesson before it */
-			return new \WP_Error( 'mbcom_order_locked', sprintf( __( 'This course goes in order. Finish %s first, and this lesson opens.', 'membuild-community' ), $before['title'] ), array( 'status' => 403, 'after' => $before ) );
+			$message = isset( $before['quiz'] )
+				/* translators: %s: the lesson before it, e.g. "Lesson 4: Who owns your members?" */
+				? sprintf( 'retry' === $before['quiz'] ? __( 'This course goes in order. Pass the quiz in %s first, and this lesson opens.', 'membuild-community' ) : __( 'This course goes in order. Finish the quiz in %s first, and this lesson opens.', 'membuild-community' ), self::lesson_name( $before ) )
+				/* translators: %s: the lesson before it */
+				: sprintf( __( 'This course goes in order. Finish %s first, and this lesson opens.', 'membuild-community' ), $before['title'] );
+			return new \WP_Error( 'mbcom_order_locked', $message, array( 'status' => 403, 'after' => $before ) );
 		}
 		if ( $unlock ) {
 			return new \WP_Error(
@@ -169,12 +182,31 @@ class Rest_Courses {
 	/* ---------- Progress ---------- */
 
 	public static function complete( \WP_REST_Request $req ) {
-		global $wpdb;
 		$lesson = self::lesson_row( (int) $req['id'] );
 		$course = $lesson ? self::course_row( (int) $lesson['course_id'] ) : null;
 		if ( ! $lesson || ! $course || Access::lock( $course ) || self::drip_until( $lesson ) || self::order_block( $lesson, $course ) ) {
 			return new \WP_Error( 'mbcom_not_available', __( 'This lesson is not available.', 'membuild-community' ), array( 'status' => 403 ) );
 		}
+		// A lesson with a quiz is done by taking it (passing it, or finishing it when members may move on anyway).
+		// Earned once stays earned: un-marking it after a pass can be undone with Mark Complete.
+		if ( Quizzes::active_for( (int) $lesson['id'] ) && ! self::is_done( (int) $lesson['id'] ) && ! Quizzes::earned( (int) $lesson['id'] ) ) {
+			return new \WP_Error( 'mbcom_quiz_lesson', __( 'Take the quiz to finish this lesson.', 'membuild-community' ), array( 'status' => 403 ) );
+		}
+		return self::record_done( $lesson );
+	}
+
+	/** Whether the current member has this lesson done. */
+	public static function is_done( $lesson_id ) {
+		global $wpdb;
+		return (bool) $wpdb->get_var( $wpdb->prepare( 'SELECT 1 FROM %i WHERE user_id = %d AND lesson_id = %d', Install::table( 'lesson_progress' ), get_current_user_id(), $lesson_id ) );
+	}
+
+	/**
+	 * Marks a lesson done for the current member (Mark Complete, or a quiz they passed), fires
+	 * the lesson and course hooks the first time, and answers with the course's progress.
+	 */
+	public static function record_done( array $lesson ) {
+		global $wpdb;
 		self::mark_started( (int) $lesson['course_id'] );
 		$me       = get_current_user_id();
 		$inserted = $wpdb->query(
@@ -209,6 +241,8 @@ class Rest_Courses {
 		}
 		// The course bonus really given now (0 when they had it already), for "+20 points".
 		$progress['points_awarded'] = 100 === $progress['progress'] ? Points::just_given( $me, 'course', (int) $lesson['course_id'] ) : 0;
+		// The finished course's certificate, for the Course finished window (null when none is given).
+		$progress['certificate'] = 100 === $progress['progress'] ? Certificates::mine( (int) $lesson['course_id'] ) : null;
 		return $progress;
 	}
 
@@ -332,6 +366,7 @@ class Rest_Courses {
 		$id     = (int) $req['id'];
 		$course = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', Install::table( 'courses' ), $id ), ARRAY_A );
 		Discussions::remove_for( 'course_id', array( $id ) );
+		Quizzes::remove_for( array_map( 'intval', $wpdb->get_col( $wpdb->prepare( 'SELECT id FROM %i WHERE course_id = %d', Install::table( 'lessons' ), $id ) ) ) ); // earned certificates stay
 		self::delete_media( $wpdb->get_results( $wpdb->prepare( 'SELECT id, media_id, resources FROM %i WHERE course_id = %d', Install::table( 'lessons' ), $id ), ARRAY_A ), $course['cover_url'] ?? null );
 		foreach ( array( 'lesson_progress' => 'course_id', 'course_starts' => 'course_id', 'lessons' => 'course_id', 'modules' => 'course_id', 'courses' => 'id' ) as $table => $col ) {
 			$wpdb->delete( Install::table( $table ), array( $col => $id ) );
@@ -400,6 +435,7 @@ class Rest_Courses {
 		$lesson_ids = array_map( 'intval', array_column( $lessons, 'id' ) );
 		if ( $lesson_ids ) {
 			Discussions::remove_for( 'lesson_id', $lesson_ids );
+			Quizzes::remove_for( $lesson_ids );
 			self::delete_media( $lessons );
 			$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE lesson_id IN (' . implode( ',', array_fill( 0, count( $lesson_ids ), '%d' ) ) . ')', array_merge( array( Install::table( 'lesson_progress' ) ), $lesson_ids ) ) );
 			$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE id IN (' . implode( ',', array_fill( 0, count( $lesson_ids ), '%d' ) ) . ')', array_merge( array( Install::table( 'lessons' ) ), $lesson_ids ) ) );
@@ -486,6 +522,7 @@ class Rest_Courses {
 			return new \WP_Error( 'mbcom_not_found', __( 'Lesson not found.', 'membuild-community' ), array( 'status' => 404 ) );
 		}
 		Discussions::remove_for( 'lesson_id', array( (int) $lesson['id'] ) );
+		Quizzes::remove_for( array( (int) $lesson['id'] ) );
 		self::delete_media( array( $lesson ) );
 		$wpdb->delete( Install::table( 'lesson_progress' ), array( 'lesson_id' => $lesson['id'] ) );
 		$wpdb->delete( Install::table( 'lessons' ), array( 'id' => $lesson['id'] ) );
@@ -516,11 +553,8 @@ class Rest_Courses {
 			return null;
 		}
 		$me    = get_current_user_id();
-		$order = $wpdb->get_results(
-			$wpdb->prepare( 'SELECT l.id, l.title FROM %i l JOIN %i m ON m.id = l.module_id WHERE l.course_id = %d ORDER BY m.sort_order ASC, m.id ASC, l.sort_order ASC, l.id ASC', Install::table( 'lessons' ), Install::table( 'modules' ), $course['id'] ),
-			ARRAY_A
-		);
-		$pos = array_search( (string) $lesson['id'], array_column( $order, 'id' ), true );
+		$order = self::order_of( (int) $course['id'] );
+		$pos   = array_search( (string) $lesson['id'], array_column( $order, 'id' ), true );
 		if ( ! $pos ) {
 			return null; // the first lesson, or not in an outline
 		}
@@ -529,14 +563,52 @@ class Rest_Courses {
 		if ( isset( $done[ (int) $lesson['id'] ] ) || isset( $done[ (int) $prev['id'] ] ) ) {
 			return null;
 		}
-		return array( 'id' => (int) $prev['id'], 'title' => $prev['title'] );
+		return self::waits_for( $prev, $pos );
 	}
 
+	/**
+	 * The lesson a locked one waits for, as the outline and the lesson page show it: {id, title},
+	 * plus its number and quiz ('retry': pass it, 'move_on': finish it) when it has a quiz.
+	 */
+	private static function waits_for( array $prev, $pos, $quizzes = null ) {
+		$quiz = null === $quizzes ? Quizzes::active_for( (int) $prev['id'] ) : ( $quizzes[ (int) $prev['id'] ] ?? null );
+		$out  = array( 'id' => (int) $prev['id'], 'title' => $prev['title'] );
+		if ( $quiz ) {
+			$out['quiz']   = $quiz['on_fail'];
+			$out['number'] = (int) $pos; // the lesson before is number $pos (1-based)
+		}
+		return $out;
+	}
+
+	/** "Lesson 4: Who owns your members?" */
+	public static function lesson_name( array $l ) {
+		/* translators: 1: lesson number, 2: lesson title */
+		return sprintf( __( 'Lesson %1$d: %2$s', 'membuild-community' ), (int) $l['number'], $l['title'] );
+	}
 
 	/** Whether the current member may open a course: visible to them and not locked. */
 	public static function can_open_course( $course_id ) {
 		$course = self::course_row( (int) $course_id );
 		return $course && ! Access::hidden( $course ) && ! Access::lock( $course );
+	}
+
+	/** A lesson's row, or null (no checks: callers decide who may see it). */
+	public static function lesson( $id ) {
+		return self::lesson_row( (int) $id );
+	}
+
+	/** A course's row the current visitor may see (published, or a draft for admins), or null. */
+	public static function course( $id ) {
+		return self::course_row( (int) $id );
+	}
+
+	/** The course's lessons in outline order (modules, then lessons): id and title. */
+	public static function order_of( $course_id ) {
+		global $wpdb;
+		return $wpdb->get_results(
+			$wpdb->prepare( 'SELECT l.id, l.title FROM %i l JOIN %i m ON m.id = l.module_id WHERE l.course_id = %d ORDER BY m.sort_order ASC, m.id ASC, l.sort_order ASC, l.id ASC', Install::table( 'lessons' ), Install::table( 'modules' ), $course_id ),
+			ARRAY_A
+		);
 	}
 
 	/** Published courses for everyone; drafts only for admins. */
@@ -905,7 +977,7 @@ class Rest_Courses {
 	}
 
 	/** Uses an upload the admin made (image, video, embed or file) and marks it as taken. */
-	private static function claim_media( $media_id, array $kinds ) {
+	public static function claim_media( $media_id, array $kinds ) {
 		global $wpdb;
 		$media = Media::get( $media_id );
 		// Never another chat's photo: those stay with the people in the chat.
@@ -916,6 +988,14 @@ class Rest_Courses {
 		return $media;
 	}
 
+	/** A course's progress in whole percent: 100 only when every lesson is done, never rounded up to it. */
+	public static function percent( $done, $total ) {
+		if ( ! $total ) {
+			return 0;
+		}
+		return $done >= $total ? 100 : min( 99, (int) round( 100 * $done / $total ) );
+	}
+
 	private static function progress( $course_id ) {
 		global $wpdb;
 		$total = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE course_id = %d', Install::table( 'lessons' ), $course_id ) );
@@ -923,11 +1003,12 @@ class Rest_Courses {
 			$wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE course_id = %d AND user_id = %d', Install::table( 'lesson_progress' ), $course_id, get_current_user_id() )
 		);
 		$done  = min( $total, $done );
+		// 100 only when every lesson is done: 199 of 200 is 99, never rounded up to "finished".
 		return array(
 			'course_id'       => $course_id,
 			'lessons_count'   => $total,
 			'completed_count' => $done,
-			'progress'        => $total ? (int) round( 100 * $done / $total ) : 0,
+			'progress'        => self::percent( $done, $total ),
 		);
 	}
 
@@ -1001,6 +1082,7 @@ class Rest_Courses {
 		);
 		$by_module    = array();
 		$level_locked = (bool) Access::lock( $course );
+		$quizzes      = Quizzes::for_lessons( array_map( 'intval', wp_list_pluck( $lessons, 'id' ) ) ); // lesson id => its quiz, when it has questions
 		// One after another: walk the outline in order; a lesson waits for the one before it.
 		$after = array();
 		if ( ! empty( $course['in_order'] ) && ! Helpers::can_moderate() ) {
@@ -1015,7 +1097,7 @@ class Rest_Courses {
 			foreach ( $walk as $i => $l ) {
 				$prev = $walk[ $i - 1 ] ?? null;
 				if ( $prev && ! isset( $done[ (int) $l['id'] ] ) && ! isset( $done[ (int) $prev['id'] ] ) ) {
-					$after[ (int) $l['id'] ] = array( 'id' => (int) $prev['id'], 'title' => $prev['title'] );
+					$after[ (int) $l['id'] ] = self::waits_for( $prev, $i, $quizzes );
 				}
 			}
 		}
@@ -1039,6 +1121,7 @@ class Rest_Courses {
 				'minutes'   => self::minutes( (int) $l['chars'], $l['media_id'] ? $l : null ),
 				'files'     => $files,
 				'posts'     => (int) ( $talk[ $l['id'] ]->n ?? 0 ),
+				'quiz'      => (int) ( $quizzes[ (int) $l['id'] ]['questions'] ?? 0 ), // how many questions its quiz has (0: no quiz)
 			);
 		}
 		$life  = self::activity( array( (int) $course['id'] ) )[ (int) $course['id'] ];
@@ -1047,7 +1130,7 @@ class Rest_Courses {
 		return self::format_course( $course ) + array(
 			'lessons_count'   => $total,
 			'completed_count' => $count,
-			'progress'        => $total ? (int) round( 100 * $count / $total ) : 0,
+			'progress'        => self::percent( $count, $total ),
 			'posts_count'     => array_sum( array_map( fn( $r ) => (int) $r->n, $talk ) ),
 			'files_count'     => $files_total,
 			// For the course overview: who teaches it and who's taking it.
@@ -1101,6 +1184,7 @@ class Rest_Courses {
 			'drip_days'    => (int) $lesson['drip_days'],
 			'open_on'      => self::valid_day( $lesson['open_on'] ) ? $lesson['open_on'] : null,
 			'completed'    => $completed,
+			'quiz'         => Quizzes::summary( (int) $lesson['id'] ), // the quiz at the end, as this member stands with it (null: none)
 			'prev_id'   => false !== $pos && $pos > 0 ? (int) $order[ $pos - 1 ] : null,
 			'next_id'      => false !== $pos && $pos < count( $order ) - 1 ? (int) $order[ $pos + 1 ] : null,
 		);

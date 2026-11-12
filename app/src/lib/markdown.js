@@ -1,10 +1,16 @@
 /**
  * A tiny, safe Markdown subset for lesson text: ## headings, paragraphs,
  * - and 1. lists, **bold**, *italic*, `code`, links and ![pictures](https://…). Everything is
- * HTML-escaped first, and links only allow http(s), so stored text can never
+ * HTML-escaped first, and links only allow http(s) (any capitals), so stored text can never
  * inject markup or scripts.
  */
 const escape = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
+// Bold and italic, also one inside the other: ***both***, **bold *italic* bold**, *italic **bold***.
+// It runs on text that is already escaped, so it only adds <strong> and <em>.
+const italic = (s) => s.replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>')
+const emphasis = (s) =>
+  italic(s.replace(/\*\*\*([^*\s][^*]*?)\*\*\*/g, '<strong><em>$1</em></strong>').replace(/\*\*((?:[^*]|\*[^*\s][^*]*\*)+?)\*\*/g, (_, t) => `<strong>${italic(t)}</strong>`))
 
 // Links are built first and set aside as placeholders, so no later step can
 // touch the inside of an <a> tag (a link written inside another link's href
@@ -12,14 +18,19 @@ const escape = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/
 function inline(text) {
   const links = []
   const keep = (html) => `\u0000${links.push(html) - 1}\u0000`
-  const anchor = (href, label) => keep(`<a href="${href}" target="_blank" rel="noopener nofollow">${label}</a>`)
+  // http or https in any capitals, written small in the address.
+  const small = (url) => url.replace(/^https?/i, (m) => m.toLowerCase())
+  const anchor = (href, label) => keep(`<a href="${small(href)}" target="_blank" rel="noopener nofollow">${label}</a>`)
   return escape(text.replace(/\u0000/g, ''))
-    .replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/g, (_, alt, src) => keep(`<img src="${src}" alt="${alt}" loading="lazy">`))
-    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, label, href) => anchor(href, label))
-    .replace(/(^|[\s(])(https?:\/\/[^\s<\u0000]+[^\s<.,:;"')\]!?\u0000])/g, (_, pre, href) => pre + anchor(href, href))
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>')
+    .replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+)\)/gi, (_, alt, src) => keep(`<img src="${small(src)}" alt="${alt}" loading="lazy">`))
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gi, (_, label, href) => anchor(href, emphasis(label)))
+    // A bare address, also right after bold or italic marks. It stops at a *, the mark that closes them
+    // (addresses with a * in them are rare; bold right after an address is not).
+    // The text is escaped already, so a typed " is &quot; and ends the address too.
+    .replace(/(^|[\s(*])(https?:\/\/(?:(?!&quot;)[^\s<*\u0000])*(?!&quot;)[^\s<.,:;"')\]!?*\u0000])/gi, (_, pre, href) => pre + anchor(href, href))
+    // Code is set aside too, so a * inside it is never read as bold or italic.
+    .replace(/`([^`]+)`/g, (_, code) => keep(`<code>${code}</code>`))
+    .replace(/[\s\S]+/, emphasis)
     .replace(/\u0000(\d+)\u0000/g, (_, i) => links[Number(i)])
 }
 

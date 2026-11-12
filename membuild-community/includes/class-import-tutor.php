@@ -432,7 +432,7 @@ class Import_Tutor extends Import_Source {
 				)
 			);
 			/* translators: %s: e.g. "14 quizzes and 5 assignments" */
-			$notes[] = array( 'title' => sprintf( _n( '%s stays in Tutor', '%s stay in Tutor', $quiz + $task, 'membuild-community' ), $what ), 'sub' => __( 'The Classroom has no quizzes. Finished courses still show as finished.', 'membuild-community' ), 'tag' => 'left_out' );
+			$notes[] = array( 'title' => sprintf( _n( '%s stays in Tutor', '%s stay in Tutor', $quiz + $task, 'membuild-community' ), $what ), 'sub' => __( 'Quizzes aren’t brought over, so add them again in the lesson editor if you want them. Finished courses still show as finished.', 'membuild-community' ), 'tag' => 'left_out' );
 		}
 		$live = $count( 'tutor_zoom_meeting' ) + $count( 'tutor-google-meet' );
 		if ( $live ) {

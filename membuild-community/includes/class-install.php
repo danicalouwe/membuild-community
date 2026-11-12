@@ -20,7 +20,7 @@ defined( 'ABSPATH' ) || exit;
 class Install {
 
 	/** Every table the plugin owns, without the "{prefix}mbcom_" part. */
-	const TABLES = array( 'posts', 'media', 'comments', 'reactions', 'stories', 'story_views', 'courses', 'groups', 'group_members', 'modules', 'lessons', 'lesson_progress', 'course_starts', 'points', 'member_stats', 'threads', 'thread_members', 'messages', 'notifications', 'reports', 'blocks', 'places', 'place_news', 'topics', 'import_map', 'waitlist', 'saved_posts', 'polls', 'poll_options', 'poll_votes' );
+	const TABLES = array( 'posts', 'media', 'comments', 'reactions', 'stories', 'story_views', 'courses', 'groups', 'group_members', 'modules', 'lessons', 'lesson_progress', 'course_starts', 'points', 'member_stats', 'threads', 'thread_members', 'messages', 'notifications', 'reports', 'blocks', 'places', 'place_news', 'topics', 'import_map', 'waitlist', 'saved_posts', 'polls', 'poll_options', 'poll_votes', 'quizzes', 'quiz_questions', 'quiz_attempts', 'certificates' );
 
 	/** Data migrations: the version each one brings a site to => method. */
 	const STEPS = array(
@@ -57,6 +57,7 @@ class Install {
 		wp_clear_scheduled_hook( Usage::HOOK );
 		wp_clear_scheduled_hook( Usage::HOOK . '_now' );
 		wp_clear_scheduled_hook( Search::INDEX_HOOK );
+		wp_clear_scheduled_hook( Certificates::CATCH_UP );
 		wp_clear_scheduled_hook( Addons::CRON );
 		flush_rewrite_rules();
 	}
@@ -270,6 +271,10 @@ class Install {
 		$polls    = self::table( 'polls' ); // the post's words are the question
 		$choices  = self::table( 'poll_options' );
 		$votes    = self::table( 'poll_votes' ); // one per member per poll; only totals ever leave the server
+		$quizzes  = self::table( 'quizzes' ); // one per lesson, at its end
+		$asks     = self::table( 'quiz_questions' ); // the right answers never leave the server before a member's answer is checked
+		$tries    = self::table( 'quiz_attempts' ); // a member's go at a quiz; an open one keeps their answers so far
+		$certs    = self::table( 'certificates' ); // one per member per course; the name is read live, the date never changes
 
 		// dbDelta needs two spaces before PRIMARY KEY and one field per line.
 		dbDelta(
@@ -403,6 +408,7 @@ class Install {
 			image_mp4 varchar(500) NULL,
 			reactions_count int(10) unsigned NOT NULL DEFAULT 0,
 			replies_count int(10) unsigned NOT NULL DEFAULT 0,
+			edited_at datetime NULL,
 			created_at datetime NOT NULL,
 			PRIMARY KEY  (id),
 			KEY post_id (post_id, id),
@@ -650,6 +656,8 @@ class Install {
 			reporter_id bigint(20) unsigned NOT NULL,
 			reason varchar(20) NOT NULL,
 			note varchar(500) NULL,
+			reported_content text NULL,
+			reported_name varchar(250) NULL,
 			status varchar(10) NOT NULL DEFAULT 'open',
 			resolved_by bigint(20) unsigned NULL,
 			resolved_at datetime NULL,
@@ -741,6 +749,70 @@ class Install {
 			PRIMARY KEY  (id),
 			UNIQUE KEY post_user (post_id, user_id),
 			KEY user_id (user_id)
+			) {$charset};
+
+			CREATE TABLE {$quizzes} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			lesson_id bigint(20) unsigned NOT NULL,
+			course_id bigint(20) unsigned NOT NULL,
+			pass_mark smallint(5) unsigned NULL,
+			on_fail varchar(10) NOT NULL DEFAULT 'retry',
+			created_at datetime NOT NULL,
+			updated_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY lesson_id (lesson_id),
+			KEY course_id (course_id)
+			) {$charset};
+
+			CREATE TABLE {$asks} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			quiz_id bigint(20) unsigned NOT NULL,
+			type varchar(10) NOT NULL DEFAULT 'one',
+			question text NOT NULL,
+			answers text NULL,
+			why text NULL,
+			media_id bigint(20) unsigned NULL,
+			sort_order int(10) NOT NULL DEFAULT 0,
+			answered int(10) unsigned NOT NULL DEFAULT 0,
+			answered_right int(10) unsigned NOT NULL DEFAULT 0,
+			created_at datetime NOT NULL,
+			updated_at datetime NOT NULL,
+			PRIMARY KEY  (id),
+			KEY quiz_order (quiz_id, sort_order)
+			) {$charset};
+
+			CREATE TABLE {$tries} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			quiz_id bigint(20) unsigned NOT NULL,
+			user_id bigint(20) unsigned NOT NULL,
+			answers text NULL,
+			score smallint(5) unsigned NOT NULL DEFAULT 0,
+			total smallint(5) unsigned NOT NULL DEFAULT 0,
+			passed tinyint(1) NOT NULL DEFAULT 0,
+			preview tinyint(1) NOT NULL DEFAULT 0,
+			started_at datetime NOT NULL,
+			finished_at datetime NULL,
+			PRIMARY KEY  (id),
+			KEY quiz_user (quiz_id, user_id),
+			KEY user_id (user_id)
+			) {$charset};
+
+			CREATE TABLE {$certs} (
+			id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+			user_id bigint(20) unsigned NOT NULL,
+			course_id bigint(20) unsigned NOT NULL,
+			code varchar(12) NOT NULL,
+			course_title varchar(200) NOT NULL DEFAULT '',
+			lessons smallint(5) unsigned NOT NULL DEFAULT 0,
+			finished_at datetime NOT NULL,
+			status varchar(10) NOT NULL DEFAULT 'valid',
+			created_at datetime NOT NULL,
+			removed_at datetime NULL,
+			removed_by bigint(20) unsigned NOT NULL DEFAULT 0,
+			PRIMARY KEY  (id),
+			UNIQUE KEY user_course (user_id, course_id),
+			UNIQUE KEY code (code),
+			KEY course_id (course_id)
 			) {$charset};"
 		);
 	}

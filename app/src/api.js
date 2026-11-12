@@ -94,6 +94,7 @@ function failure(res, data) {
   const err = new ApiError(data?.message || t.sprintf(generic, res.status), res.status, data?.code)
   if (data?.data?.details) err.details = data.data.details // the raw cause, for a "details" link
   if (data?.data?.media_ids) err.mediaIds = data.data.media_ids // which photos can't be used
+  if (data?.data?.fields) err.fields = data.data.fields // field → what to fix, shown under each field
   return err
 }
 
@@ -115,6 +116,19 @@ export async function request(path, options = {}) {
   if (!res.ok) throw failure(res, data)
   return data
 }
+
+/**
+ * Course saves still on their way (the course builder sends what's waiting when it closes):
+ * loading a course, or the list of them, waits for them first, so nothing (a page, a theme's
+ * page, the next-course card) shows the name from before.
+ */
+const courseSaves = {} // course id → its saves on their way
+export function noteCourseSave(id, p) {
+  const all = Promise.all([courseSaves[id], p.catch(() => {})])
+  courseSaves[id] = all
+  all.then(() => courseSaves[id] === all && delete courseSaves[id])
+}
+const courseSavesDone = (id) => Promise.all(id ? [courseSaves[id]] : Object.values(courseSaves))
 
 export const api = {
   feed: (params, signal) => request('/feed', { params, signal }),
@@ -174,8 +188,8 @@ export const api = {
   memberGroups: (userId) => request(`/members/${userId}/groups`),
   setMemberGroups: (userId, groupIds) => request(`/members/${userId}/groups`, { method: 'PUT', body: { group_ids: groupIds } }),
 
-  courses: () => request('/courses'),
-  course: (id) => request(`/courses/${id}`),
+  courses: () => courseSavesDone().then(() => request('/courses')),
+  course: (id) => courseSavesDone(id).then(() => request(`/courses/${id}`)),
   privacy: () => request('/me/privacy'),
   savePrivacy: (body) => request('/me/privacy', { method: 'PUT', body }),
   twoStep: () => request('/me/two-step'),
@@ -197,6 +211,22 @@ export const api = {
   completeLesson: (id) => request(`/lessons/${id}/complete`, { method: 'POST' }),
   uncompleteLesson: (id) => request(`/lessons/${id}/complete`, { method: 'DELETE' }),
   courseResources: (id) => request(`/courses/${id}/resources`),
+  // Quizzes: one per lesson. Members take it (right answers are checked on the server); admins edit it.
+  quiz: (lessonId) => request(`/lessons/${lessonId}/quiz`),
+  answerQuiz: (lessonId, body) => request(`/lessons/${lessonId}/quiz/answer`, { method: 'POST', body }),
+  quizAnswers: (lessonId) => request(`/lessons/${lessonId}/quiz/answers`),
+  quizEdit: (lessonId) => request(`/lessons/${lessonId}/quiz/edit`),
+  createQuiz: (lessonId) => request(`/lessons/${lessonId}/quiz/edit`, { method: 'POST' }),
+  updateQuiz: (lessonId, body) => request(`/lessons/${lessonId}/quiz/edit`, { method: 'PUT', body }),
+  deleteQuiz: (lessonId) => request(`/lessons/${lessonId}/quiz/edit`, { method: 'DELETE' }),
+  addQuestion: (quizId, body) => request(`/quizzes/${quizId}/questions`, { method: 'POST', body }),
+  orderQuestions: (quizId, ids) => request(`/quizzes/${quizId}/order`, { method: 'PUT', body: { ids } }),
+  updateQuestion: (id, body) => request(`/quiz-questions/${id}`, { method: 'PUT', body }),
+  deleteQuestion: (id) => request(`/quiz-questions/${id}`, { method: 'DELETE' }),
+  // Certificates: given when a course is finished (Settings › Certificates).
+  memberCertificates: (memberId) => request(`/members/${memberId}/certificates`),
+  courseCertificate: (courseId) => request(`/courses/${courseId}/certificate`),
+  removeCertificate: (id) => request(`/certificates/${id}`, { method: 'DELETE' }),
   // Events: a live call, a Q&A, a workshop. Each one is also a post.
   events: (params) => request('/events', { params }),
   createEvent: (body) => request('/events', { method: 'POST', body }),
@@ -220,6 +250,7 @@ export const api = {
       method: 'POST',
       body: { content, parent_id: parentId || undefined, reply_to_user_id: replyToUserId || undefined, media_id: mediaId || undefined },
     }),
+  updateComment: (id, content) => request(`/comments/${id}`, { method: 'PUT', body: { content } }),
   deleteComment: (id) => request(`/comments/${id}`, { method: 'DELETE' }),
   reactComment: (id, type) => request(`/comments/${id}/reaction`, { method: 'PUT', body: { type } }),
   unreactComment: (id) => request(`/comments/${id}/reaction`, { method: 'DELETE' }),

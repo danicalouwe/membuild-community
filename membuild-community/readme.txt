@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.21.0
+Stable tag: 1.22.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -228,9 +228,9 @@ The plugin shows no ads and sends nothing else to the plugin's authors.
 
 Each part of the plugin is a class in `includes/` that registers its own hooks; `includes/class-plugin.php` wires them up. Data lives in custom tables (`{prefix}mbcom_*`) described in `includes/class-install.php`.
 
-**Actions** (all prefixed `membuild_community/`): `post_created`, `post_deleted`, `comment_created`, `comment_deleted`, `reaction_changed`, `reported`, `member_restricted`, `level_up`, `message_sent`, `lesson_completed`, `lesson_uncompleted`, `course_completed`, `story_created`, `story_reacted`, `place_created`, `notification_created`, `access_group_added`, `access_group_removed`, `member_blocked`, `login_after` (under the login form, for other ways to sign in), `app_footer` (the end of the community page, which has no theme or wp_footer). Points and notifications are themselves built on these actions.
+**Actions** (all prefixed `membuild_community/`): `post_created`, `post_deleted`, `comment_created`, `comment_edited` (a member changed the words of their own comment), `comment_deleted`, `reaction_changed`, `reported`, `member_restricted`, `level_up`, `message_sent`, `lesson_completed`, `lesson_uncompleted`, `course_completed`, `story_created`, `story_reacted`, `place_created`, `notification_created`, `access_group_added`, `access_group_removed`, `member_blocked`, `quiz_finished` (a member answered a quiz's last question: lesson id, member id, score, number of questions, passed), `certificate_given` (course id, member id), `certificate_removed` (course id, member id, who removed it), `login_after` (under the login form, for other ways to sign in), `app_footer` (the end of the community page, which has no theme or wp_footer). Points and notifications are themselves built on these actions.
 
-**Filters**: `membuild_community/points_rules` (points per action and daily caps), `membuild_community/level_thresholds` (points needed per level), `membuild_community/in_access_group` (decide access-group membership your own way, e.g. from a membership plugin), `membuild_community/send_protected_file` (let your server send protected files, e.g. with X-Accel-Redirect), `membuild_community/daily_upload_bytes` (how much a member may upload per day; 2 GB by default, no limit for admins and moderators), `membuild_community/github_updates` (return false to stop checking GitHub for updates), `membuild_community/usage_reports` (return false to send no reports to MemBuild), `membuild_community/map_tiles` and `membuild_community/geocode_url` (Places' map tiles and address lookup).
+**Filters**: `membuild_community/points_rules` (points per action and daily caps), `membuild_community/level_thresholds` (points needed per level), `membuild_community/in_access_group` (decide access-group membership your own way, e.g. from a membership plugin), `membuild_community/send_protected_file` (let your server send protected files, e.g. with X-Accel-Redirect), `membuild_community/daily_upload_bytes` (how much a member may upload per day; 2 GB by default, no limit for admins and moderators), `membuild_community/github_updates` (return false to stop checking GitHub for updates), `membuild_community/usage_reports` (return false to send no reports to MemBuild), `membuild_community/map_tiles` and `membuild_community/geocode_url` (Places' map tiles and address lookup), `membuild_community/certificate` (what a certificate says, in the app and its PDF).
 
 **WP-CLI**: `wp mbcom recount-points` (recount totals and levels from the points ledger), `wp mbcom rebuild-points` (replay all activity into points), and `wp mbcom seed` for demo content.
 
@@ -266,6 +266,29 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.22.0 =
+* New: quizzes. Add one to any lesson from the lesson editor: questions with one right answer, more than one, or true or false, an optional picture and an optional "Why this is the answer". Choose the pass mark and whether members can move on without passing.
+* New: members take a quiz one question at a time and see right or wrong with the Why after each answer. Answers are checked on your server, and the right answers show only once they pass. Courses in order wait for the quiz to be passed before the next lesson opens.
+* New: How are members doing shows on each quiz once someone has tried it: how many passed and the hardest question. Tries from See as member aren't counted.
+* New: certificates. Settings → Certificates gives members one when they finish a course (all courses or chosen ones), with your logo, main color, title and signature. Members download it as a PDF, share it on Home, and get a private link anyone can use to check it's real.
+* New: certificates show on profiles. Owners and moderators can remove one; its check link then says "Not found or removed".
+* New: guessing certificate check codes is limited to 30 wrong codes an hour from one address. A real code always opens. Sites behind Cloudflare or another proxy can pass the visitor's real address with the membuild_community/visitor_ip filter.
+* New: the question editor asks "Leave without saving?" before you lose changes.
+* New: course cards say how many quizzes a course has before a member starts, like "3 lessons · 1 quiz".
+* New: edit your own comment in place. It shows an "Edited" label.
+* New: uploaded reels have a timeline. Tap or drag the bar to skip ahead or back.
+* New: Moderation keeps the words that were reported. If a post, comment or profile bio changed after the report, the card shows "Edited after the report" with the words now.
+* Changed: importing from LearnDash or Tutor LMS says quizzes aren't brought over and can be added again in the lesson editor.
+* Changed: the story ring shows only while someone has a story you haven't seen, and always on your own.
+* Changed: on computers, the Home topics row gets round arrows at its ends when there's more to scroll.
+* Changed: uploaded reels are made at the intended 2 Mbps, so they load faster.
+* Fixed: the course and lesson editor keeps every typed line, bold and lists stay whole, and typing back to the saved words saves them.
+* Fixed: bold with italic, or ending in a web address, shows no stray *, and a link typed as HTTPS:// in capitals stays a link.
+* Fixed: course settings save to the course they were changed in, one save at a time.
+* Fixed: "Not yet" on the course builder's publish question puts the tick back on Draft.
+* Fixed: on tablets, a course page ends above its pinned Continue bar.
+* Fixed: on phones, reel comments scroll under the comments bar, not over it.
 
 = 1.21.0 =
 * New: Settings → Add-ons lists MemBuild's paid add-ons, starting with CRM Connect. Paste the key from your purchase email and install the add-on in one click; every download is checked before it goes on your site.

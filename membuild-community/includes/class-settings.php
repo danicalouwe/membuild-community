@@ -86,6 +86,7 @@ class Settings {
 			'email'       => array(), // see Email::defaults()
 			'video'       => array(), // see Bunny::defaults()
 			'gifs'        => array( 'key' => '', 'rating' => 'pg' ), // GIPHY; no key, no GIF button (see Giphy)
+			'certificates' => Certificates::defaults(), // Settings › Certificates; see Certificates
 			'delete_data' => false, // uninstall.php removes everything only when this is on
 		);
 	}
@@ -99,7 +100,7 @@ class Settings {
 			$defaults    = self::defaults();
 			self::$cache = array_merge( $defaults, $saved );
 			// Nested maps merge key by key, so a new feature or rule gets its default.
-			foreach ( array( 'features', 'points', 'courses' ) as $key ) {
+			foreach ( array( 'features', 'points', 'courses', 'certificates' ) as $key ) {
 				self::$cache[ $key ] = array_merge( $defaults[ $key ], is_array( $saved[ $key ] ?? null ) ? $saved[ $key ] : array() );
 			}
 		}
@@ -214,6 +215,7 @@ class Settings {
 			'mapTiles'    => self::feature( 'places' ) ? Rest_Places::tiles() : null,
 			'giphy'       => Giphy::config(), // a browser key: GIPHY's terms have members' browsers search them directly
 			'twoStep'     => Two_Step::active(), // two-step login is on: members get Edit profile › Two-step login
+			'certificates' => (bool) $s['certificates']['on'], // certificates are given (the profile's Certificates, the Course finished window)
 		);
 	}
 
@@ -310,6 +312,9 @@ class Settings {
 			'suggested_levels' => array_map( fn( $n ) => Points::suggested( $n ), array_combine( range( 3, 9 ), range( 3, 9 ) ) ),
 			// Courses that unlock at a level, so the form can warn before a level they need goes away.
 			'level_courses' => self::level_courses(),
+			// Settings › Certificates' "Chosen courses" list.
+			'course_choices' => self::course_choices(),
+			'certificate_look' => Certificates::look(), // the preview's community name, logo and default signer
 			// WordPress editors and admins moderate already; shown so the form isn't misleading.
 			'built_in_staff' => array_values( Helpers::users( get_users( array( 'capability' => 'moderate_comments', 'fields' => 'ID', 'number' => 50 ) ) ) ),
 		);
@@ -496,8 +501,46 @@ class Settings {
 			$s['gifs'] = $gifs;
 		}
 
+		$old_signature = (int) ( $s['certificates']['signature']['id'] ?? 0 );
+		$old_giving    = Certificates::giving_key( array_merge( Certificates::defaults(), (array) $s['certificates'] ) ); // with the defaults, like the new one below
+		if ( isset( $in['certificates'] ) && is_array( $in['certificates'] ) ) {
+			$c  = $in['certificates'];
+			$cs = array_merge( Certificates::defaults(), (array) $s['certificates'] );
+			foreach ( array( 'on', 'on_profiles', 'checkable' ) as $key ) {
+				if ( array_key_exists( $key, $c ) ) {
+					$cs[ $key ] = (bool) $c[ $key ];
+				}
+			}
+			if ( array_key_exists( 'which', $c ) ) {
+				$cs['which'] = 'chosen' === $c['which'] ? 'chosen' : 'all';
+			}
+			if ( array_key_exists( 'courses', $c ) && is_array( $c['courses'] ) ) {
+				$cs['courses'] = array_values( array_unique( array_filter( array_map( 'intval', $c['courses'] ) ) ) );
+			}
+			foreach ( array( 'title' => 80, 'signed_by' => 80, 'role' => 60 ) as $key => $max ) {
+				if ( array_key_exists( $key, $c ) ) {
+					$cs[ $key ] = mb_substr( sanitize_text_field( (string) $c[ $key ] ), 0, $max );
+				}
+			}
+			if ( array_key_exists( 'signature', $c ) ) {
+				$cs['signature'] = null === $c['signature'] ? null : self::claim_logo( (int) ( $c['signature']['id'] ?? 0 ), $cs['signature'] ?? null );
+				if ( is_wp_error( $cs['signature'] ) ) {
+					return $cs['signature'];
+				}
+			}
+			$s['certificates'] = $cs;
+		}
+
 		update_option( self::OPTION, $s, true );
 		self::$cache = null;
+		// Rule 4: members who finished already get theirs, dated the day they finished. Only when who
+		// gets certificates changed (on, which, the chosen courses); a new title or signature changes nothing.
+		if ( isset( $in['certificates'] ) && Certificates::giving_key( (array) $s['certificates'] ) !== $old_giving ) {
+			Certificates::start_catch_up();
+		}
+		if ( $old_signature && $old_signature !== (int) ( $s['certificates']['signature']['id'] ?? 0 ) ) {
+			Media::delete( $old_signature );
+		}
 		if ( $relevel ) {
 			self::apply_level_count();
 		}
@@ -541,6 +584,15 @@ class Settings {
 			&& preg_match( '/^[\p{L}\p{N}-]+(\.[\p{L}\p{N}-]+)*$/u', $host )
 			&& ( str_contains( $host, '.' ) || 'localhost' === $host );
 		return $ok ? esc_url_raw( $url, array( 'http', 'https' ) ) : null;
+	}
+
+	/** Every course, drafts too, for Settings › Certificates' Chosen courses: id, title, status. */
+	private static function course_choices() {
+		global $wpdb;
+		return array_map(
+			fn( $r ) => array( 'id' => (int) $r['id'], 'title' => $r['title'], 'status' => $r['status'] ),
+			$wpdb->get_results( $wpdb->prepare( 'SELECT id, title, status FROM %i ORDER BY sort_order ASC, id ASC', Install::table( 'courses' ) ), ARRAY_A )
+		);
 	}
 
 	private static function level_courses() {

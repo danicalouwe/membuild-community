@@ -989,6 +989,8 @@ class Import {
 		$ids = array_filter( array_map( 'intval', $ids ) );
 		foreach ( array_chunk( $ids, 500 ) as $chunk ) {
 			$in = implode( ',', $chunk );
+			// Quizzes added since the import: their questions, pictures and tries go with the lessons.
+			Quizzes::remove_for( $wpdb->get_col( $wpdb->prepare( "SELECT id FROM %i WHERE course_id IN ({$in})", Install::table( 'lessons' ) ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- integers
 			$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE object_type = 'lesson' AND object_id IN (SELECT id FROM %i WHERE course_id IN ({$in}))", Install::table( 'points' ), Install::table( 'lessons' ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- integers
 			$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE object_type = 'course' AND object_id IN ({$in})", Install::table( 'points' ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- integers
 			$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE post_id = 0 AND scope = 'lesson' AND scope_id IN (SELECT id FROM %i WHERE course_id IN ({$in}))", Install::table( 'media' ), Install::table( 'lessons' ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- integers; rows only, never files
@@ -1300,6 +1302,8 @@ class Import {
 					$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE thread_id IN ({$in})", Install::table( 'thread_members' ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- integers
 				}
 				if ( 'course' === $kind || 'course_wip' === $kind ) {
+					// Quizzes added since the import (questions, pictures, tries) go with its lessons.
+					Quizzes::remove_for( $wpdb->get_col( $wpdb->prepare( "SELECT id FROM %i WHERE course_id IN ({$in})", Install::table( 'lessons' ) ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- integers
 					// Points for its lessons and for finishing it go with it.
 					$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE object_type = 'lesson' AND object_id IN (SELECT id FROM %i WHERE course_id IN ({$in}))", Install::table( 'points' ), Install::table( 'lessons' ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- integers
 					$wpdb->query( $wpdb->prepare( "DELETE FROM %i WHERE object_type = 'course' AND object_id IN ({$in})", Install::table( 'points' ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- integers

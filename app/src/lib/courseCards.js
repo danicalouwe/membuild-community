@@ -33,6 +33,13 @@ export function syncCourseCard(course) {
   Object.assign(card, { progress: course.progress, completed_count: course.completed_count, lessons_count: course.lessons_count })
 }
 
+/** A course's settings were saved (its name, cover…): the cards show what was saved. */
+export function syncCourseSaved(course) {
+  const card = course && courseCards.byId[course.id]
+  if (!card) return
+  for (const key of Object.keys(card)) if (key in course && !['progress', 'completed_count'].includes(key)) card[key] = course[key]
+}
+
 /**
  * For a post's words: the course its link points at (once the courses have loaded) and
  * the words to show, with that link taken out and the course's name unquoted (it shows

@@ -591,7 +591,7 @@ class Import_Learndash extends Import_Source {
 			$notes[] = array(
 				/* translators: %s: e.g. "23 quizzes, 6 assignments and 2 certificates" */
 				'title' => sprintf( _n( '%s stays in LearnDash', '%s stay in LearnDash', array_sum( $left ), 'membuild-community' ), $what ),
-				'sub'   => __( 'The Classroom has no quizzes. Students who finished a course still show it as finished, even when a quiz was the last step.', 'membuild-community' ),
+				'sub'   => __( 'Quizzes aren’t brought over, so add them again in the lesson editor if you want them. Students who finished a course still show it as finished, even when a quiz was the last step.', 'membuild-community' ),
 				'tag'   => 'left_out',
 			);
 		}

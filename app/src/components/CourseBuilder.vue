@@ -1,11 +1,12 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { api } from '../api.js'
+import { api, noteCourseSave } from '../api.js'
 import { startAttachment } from '../lib/attachments.js'
 import { cfg, levelLabel } from '../config.js'
 import BaseDialog from './BaseDialog.vue'
 import BuilderLessonEditor from './BuilderLessonEditor.vue'
+import QuizEditor from './QuizEditor.vue'
 import ConfirmDialog from './ConfirmDialog.vue'
 import CourseMap from './CourseMap.vue'
 import RichEditor from './RichEditor.vue'
@@ -13,6 +14,8 @@ import Icon from './Icon.vue'
 import { t } from '../lib/i18n.js'
 import { localToday, realDay } from '../lib/time.js'
 import { offerButton } from '../lib/offer.js'
+import { showToast } from '../lib/toast.js'
+import { syncCourseSaved } from '../lib/courseCards.js'
 
 /**
  * The course builder (Version 2), for owners: Lessons (sections and lessons,
@@ -22,6 +25,8 @@ import { offerButton } from '../lib/offer.js'
 const props = defineProps({
   course: { type: Object, required: true },
   lessonId: { type: Number, default: null },
+  // Told about a course save that answers after the builder has closed (the page shows that course again).
+  afterClose: { type: Function, default: null },
 })
 const emit = defineEmits(['update:course', 'exit', 'preview'])
 
@@ -235,6 +240,15 @@ function onSaved(updated) {
   const l = allLessons.value.find((x) => x.id === updated.id)
   if (l) Object.assign(l, { title: updated.title, has_video: !!updated.media, drip_days: updated.drip_days, open_on: updated.open_on, files: updated.resources?.length || 0 })
 }
+// The lesson editor's Quiz card: open the quiz editor, or the quiz was removed.
+async function onLessonQuiz(action) {
+  if (action === 'open') {
+    if (editor.value && !(await editor.value.flush())) return
+    router.push({ name: 'course', params: { courseId: props.course.id, lessonId: props.lessonId }, query: { edit: 1, quiz: 1 } })
+  } else if (action === 'removed') {
+    onQuizChanged({ quiz: null })
+  }
+}
 function onDeleted(outline) {
   emit('update:course', outline)
   router.replace({ name: 'course', params: { courseId: props.course.id }, query: { edit: 1 } })
@@ -251,28 +265,130 @@ const form = ref({})
 function fill() {
   const c = props.course
   form.value = { title: c.title, description: c.description || '', about: c.about || '' }
+  for (const key in asked) delete asked[key]
 }
-watch(() => props.course.id, fill, { immediate: true })
+// The newest words of each box sent to the server or waiting to go, so typing back to the
+// saved words still saves them when a newer version is on its way (it would win otherwise).
+const asked = {}
+const differs = (key, v) => v !== (key in asked ? asked[key] : props.course[key] || '')
+// Settings save a moment after the last change, one save at a time, always to the course they
+// were made in: opening another course sends the waiting changes to their own course at once,
+// and a later answer never overwrites a newer change.
 let settingsTimer = null
 let pendingPatch = {}
+let pendingFor = null // the course the waiting changes belong to
+let sending = Promise.resolve() // saves go one after another, in the order they were made
+let unsent = 0 // saves made but not answered yet
+const coverUploading = ref(false)
+// Saves that failed and can't be sent again from here (the owner had opened another course, or
+// come back to it, by then), by course: { message, keys }. That course says Couldn't save, with
+// the reason, until a later save of the same boxes works.
+const failedFor = {}
+const retryable = ref(false) // the failed change is still waiting here, so Try again sends it
+let closed = false // the builder has closed; answers go to the page and failures to a toast
+let settingsError = false // the error showing is a settings save's, so a later good save clears it
+let deletedId = null // the course just deleted here: nothing more is sent to it
+const titles = {} // each course's name, for a toast about a save that failed after closing
+watch(
+  () => props.course.id,
+  (id, oldId) => {
+    titles[id] = props.course.title
+    if (oldId && pendingFor === oldId) sendSettings()
+    if (oldId) {
+      retryable.value = false
+      error.value = failedFor[id]?.message || ''
+      settingsError = false
+      settingsStatus.value = coverUploading.value ? 'saving' : failedFor[id] ? 'error' : 'saved' // this course has nothing waiting yet
+    }
+    fill()
+  },
+  { immediate: true },
+)
+onBeforeUnmount(() => {
+  closed = true
+  sendSettings() // leaving the builder sends what's waiting straight away
+})
+// Saved once nothing for this course is waiting or on its way, and nothing of it failed.
+function settled() {
+  if (unsent || settingsTimer || coverUploading.value || Object.keys(pendingPatch).length) return
+  settingsStatus.value = failedFor[props.course.id] ? 'error' : 'saved'
+}
 function saveCourse(patch, wait = 0) {
+  if (pendingFor !== null && pendingFor !== props.course.id) sendSettings() // changes left for another course go there first
+  pendingFor = props.course.id
   Object.assign(pendingPatch, patch)
+  Object.assign(asked, patch)
   settingsStatus.value = 'saving'
   clearTimeout(settingsTimer)
-  settingsTimer = setTimeout(async () => {
-    const body = pendingPatch
-    pendingPatch = {}
-    try {
-      emit('update:course', await api.updateCourse(props.course.id, body))
-      settingsStatus.value = 'saved'
-    } catch (err) {
-      settingsStatus.value = 'error'
-      error.value = err.message
-      Object.assign(pendingPatch, body)
-    }
-  }, wait)
+  settingsTimer = setTimeout(sendSettings, wait)
 }
-const retrySettings = () => saveCourse({}, 0)
+function sendSettings() {
+  clearTimeout(settingsTimer)
+  settingsTimer = null
+  if (!Object.keys(pendingPatch).length) return settingsStatus.value === 'saving' && settled()
+  const id = pendingFor
+  const body = pendingPatch
+  pendingPatch = {}
+  pendingFor = null
+  send(id, body)
+}
+function send(id, body) {
+  if (id === deletedId) return
+  unsent++
+  sending = sending.then(() =>
+    api
+      .updateCourse(id, body)
+      .then((course) => {
+        unsent--
+        const failed = failedFor[id]
+        if (failed) {
+          failed.keys = failed.keys.filter((key) => !(key in body))
+          if (!failed.keys.length) delete failedFor[id]
+        }
+        titles[id] = course.title
+        syncCourseSaved(course) // the course cards in posts show the new name and cover too
+        if (closed) return props.afterClose?.(course)
+        if (id !== props.course.id) return settled() // an earlier course's answer
+        if (!failedFor[id] && (failed || settingsError)) {
+          error.value = ''
+          settingsError = false
+        }
+        emit('update:course', course)
+        settled() // also clears an earlier Couldn't save once nothing is left over from it
+      })
+      .catch((err) => {
+        unsent--
+        if (id === deletedId) return settled()
+        if (closed) {
+          const name = body.title || titles[id] || props.course.title
+          return showToast(t.sprintf(/* translators: 1: course name, 2: the reason */ t.__('Couldn’t save your last change to %1$s. %2$s', 'membuild-community'), name, err.message))
+        }
+        // Kept for Try again while the owner is still on this course, unless something newer
+        // was asked for since (it's on its way).
+        const here = id === props.course.id
+        const lost = []
+        for (const key in body) {
+          if (here && asked[key] === body[key]) {
+            if (!(key in pendingPatch)) pendingPatch[key] = body[key]
+          } else if (!(key in asked) || !here) lost.push(key) // nothing newer for it: this change is gone
+        }
+        if (lost.length) failedFor[id] = { message: err.message, keys: [...new Set([...(failedFor[id]?.keys || []), ...lost])] }
+        if (!here) return settled()
+        error.value = err.message
+        settingsError = true
+        if (Object.keys(pendingPatch).length) {
+          pendingFor = id
+          retryable.value = true
+          settingsStatus.value = 'error'
+        } else settled()
+      }),
+  )
+  noteCourseSave(id, sending)
+}
+function retrySettings() {
+  retryable.value = false
+  saveCourse({}, 0)
+}
 // The start date saves when the owner leaves the box (or presses Enter), once it's a real day:
 // saving while they type would cut the year short.
 const startDraft = ref('')
@@ -283,9 +399,9 @@ function saveStart() {
 }
 const todayIso = localToday()
 const startPassed = computed(() => props.course.opens === 'date' && !!props.course.starts_on && props.course.starts_on < todayIso)
-watch(() => form.value.title, (v, old) => old !== undefined && v.trim() && v !== props.course.title && saveCourse({ title: v.trim() }, 900))
-watch(() => form.value.description, (v, old) => old !== undefined && v !== props.course.description && saveCourse({ description: v }, 900))
-watch(() => form.value.about, (v, old) => old !== undefined && v !== (props.course.about || '') && saveCourse({ about: v }, 1200))
+watch(() => form.value.title, (v, old) => old !== undefined && v.trim() && differs('title', v.trim()) && saveCourse({ title: v.trim() }, 900))
+watch(() => form.value.description, (v, old) => old !== undefined && differs('description', v) && saveCourse({ description: v }, 900))
+watch(() => form.value.about, (v, old) => old !== undefined && differs('about', v) && saveCourse({ about: v }, 1200))
 
 const groups = ref(null)
 async function loadGroups() {
@@ -322,28 +438,50 @@ const shown = computed(() => chosenGroups.value.find((g) => g.offer) || chosenGr
 const alsoOpens = computed(() => (shown.value?.courses || []).filter((c) => c.id !== props.course.id).map((c) => c.title))
 
 const coverInput = ref(null)
-const coverUploading = ref(false)
 function pickCover(e) {
   const file = e.target.files[0]
   e.target.value = ''
   if (!file) return
+  const id = props.course.id // the picture belongs to this course, even if another opens meanwhile
   const item = startAttachment(file)
   coverUploading.value = true
   settingsStatus.value = 'saving'
   item.promise
-    .then(() => (item.media ? saveCourse({ cover_media_id: item.media.id }) : ((settingsStatus.value = 'error'), (error.value = item.error))))
-    .finally(() => (coverUploading.value = false))
+    .catch(() => null)
+    .then(() => {
+      coverUploading.value = false
+      if (!item.media) {
+        error.value = item.error // nothing to send again: the owner picks the picture again
+        return settled()
+      }
+      if (id === props.course.id) saveCourse({ cover_media_id: item.media.id })
+      else send(id, { cover_media_id: item.media.id })
+    })
 }
 
-const publishing = ref(false)
+const publishing = ref(false) // the publish confirm is open
+// Draft or Published as the owner last picked it, until the server has it: Published while the
+// confirm is open, and whichever they picked while a save is waiting or failed (Try again sends it).
+// "Not yet" goes back to the saved one. Both radios follow it, so they never both look picked.
+const wanted = ref(null)
+const shownStatus = computed(() => wanted.value || props.course.status)
 function setReady(ready) {
+  const status = ready ? 'published' : 'draft'
+  if (status === shownStatus.value) return
+  wanted.value = status === props.course.status ? null : status // back to the saved one: nothing to wait for
   if (ready && props.course.status !== 'published') publishing.value = true
-  else if (!ready && props.course.status === 'published') saveCourse({ status: 'draft' })
+  else saveCourse({ status })
 }
 function publish() {
   publishing.value = false
   saveCourse({ status: 'published' })
 }
+function notYet() {
+  publishing.value = false
+  wanted.value = null
+}
+watch(() => props.course.status, (status) => status === wanted.value && (wanted.value = null))
+watch(() => props.course.id, () => (wanted.value = null))
 
 const deletingCourse = ref(false)
 const deleteBusy = ref(false)
@@ -351,6 +489,13 @@ async function deleteCourse() {
   deleteBusy.value = true
   try {
     await api.deleteCourse(props.course.id)
+    deletedId = props.course.id
+    if (pendingFor === deletedId) {
+      clearTimeout(settingsTimer)
+      settingsTimer = null
+      pendingPatch = {}
+      pendingFor = null
+    }
     router.push({ name: 'classroom' })
   } catch (err) {
     error.value = err.message
@@ -372,6 +517,14 @@ const onDate = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString(undefined
 // In-order courses: a lesson with no wait of its own opens after the one before (as the Course map says).
 // One at a time comes first (as the Course map says): a lesson with no wait of its own opens after the one before.
 const opensLabel = (l) => (props.course.in_order && numberOf(l) > 1 && (props.course.opens === 'all' || (!l.open_on && !(l.drip_days > 0))) ? t.sprintf(/* translators: %d: lesson number */ t.__('After lesson %d', 'membuild-community'), numberOf(l) - 1) : props.course.opens === 'all' ? t.__('Right away', 'membuild-community') : props.course.opens === 'date' && !l.open_on ? (l.drip_days > 0 ? t.sprintf(/* translators: %s: a date */ t.__('On %s', 'membuild-community'), onDate(startPlus(l.drip_days))) : t.__('On the start day', 'membuild-community')) : props.course.in_order && numberOf(l) > 1 && !l.open_on && !(l.drip_days > 0) ? t.sprintf(/* translators: %d: lesson number */ t.__('After lesson %d', 'membuild-community'), numberOf(l) - 1) : l.open_on ? t.sprintf(/* translators: %s: a date */ t.__('On %s', 'membuild-community'), onDate(l.open_on)) : l.drip_days > 0 ? t.sprintf(/* translators: %d: days */ t._n('After %d day', 'After %d days', l.drip_days, 'membuild-community'), l.drip_days) : t.__('Right away', 'membuild-community'))
+const quizLabel = (n) => t.sprintf(/* translators: %d: number of questions */ t._n('Quiz · %d question', 'Quiz · %d questions', n, 'membuild-community'), n)
+// The quiz editor (?quiz=1 on a lesson) fills the builder's place; its back link returns to the lesson.
+const quizOpen = computed(() => !!props.lessonId && !!route.query.quiz)
+function onQuizChanged(v) {
+  const l = allLessons.value.find((x) => x.id === props.lessonId)
+  if (l) l.quiz = v.quiz?.questions?.length || 0
+  if (lesson.value?.id === props.lessonId) lesson.value = { ...lesson.value, quiz: v.quiz ? { ...(lesson.value.quiz || {}), id: v.quiz.id, questions: v.quiz.questions.length, pass_mark: v.quiz.pass_mark, on_fail: v.quiz.on_fail } : null }
+}
 const filesLabel = (n) => t.sprintf(/* translators: %d: number of files */ t._n('%d file', '%d files', n, 'membuild-community'), n)
 const allNow = (m) => m.lessons.length && (props.course.opens === 'all' || (props.course.opens !== 'date' && m.lessons.every((l) => !(l.drip_days > 0) && !l.open_on)))
 const moveToLabel = (m) => t.sprintf(/* translators: %s: section name */ t.__('Move to “%s”', 'membuild-community'), m.title)
@@ -388,7 +541,10 @@ const counter = computed(() => `${form.value.description.length} / 160`)
 </script>
 
 <template>
-  <div class="cb">
+  <div v-if="quizOpen" class="cb">
+    <QuizEditor :lesson-id="lessonId" :course-id="course.id" @changed="onQuizChanged" />
+  </div>
+  <div v-else class="cb">
     <RouterLink to="/classroom" class="cb-back"><Icon name="chevronLeft" :size="18" /> {{ t.__('Classroom', 'membuild-community') }}</RouterLink>
     <!-- The name, labels and tabs stay pinned under the top bar while you scroll. -->
     <div class="cb-top">
@@ -400,7 +556,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
         <span class="cb-status" :class="{ live: course.status === 'published' }">{{ course.status === 'published' ? t.__('Published', 'membuild-community') : t.__('Draft', 'membuild-community') }}</span>
         <span v-if="part === 'settings' || (part === 'lessons' && lessonId)" class="saved" :class="saveState" role="status">
           <template v-if="saveState === 'saving'"><span class="spin" /> {{ t.__('Saving…', 'membuild-community') }}</template>
-          <template v-else-if="saveState === 'error'"><Icon name="flag" :size="18" /> {{ t.__('Couldn’t save', 'membuild-community') }} <button v-if="part === 'settings'" class="retry" @click="retrySettings">{{ t.__('Try again', 'membuild-community') }}</button></template>
+          <template v-else-if="saveState === 'error'"><Icon name="flag" :size="18" /> {{ t.__('Couldn’t save', 'membuild-community') }} <button v-if="part === 'settings' && retryable" class="retry" @click="retrySettings">{{ t.__('Try again', 'membuild-community') }}</button></template>
           <template v-else><Icon name="check" :size="18" /> {{ t.__('Saved', 'membuild-community') }}</template>
         </span>
         <a class="btn btn-lg btn-ghost cb-exit" :href="courseHref" target="_blank" rel="noopener" :aria-label="t.__('See the course (opens in a new tab)', 'membuild-community')" :title="t.__('See the course in a new tab', 'membuild-community')"><Icon name="external" :size="20" /></a>
@@ -424,7 +580,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
     <!-- Lessons -->
     <template v-else-if="part === 'lessons'">
       <template v-if="lessonId">
-        <BuilderLessonEditor v-if="lesson" ref="editor" :lesson="lesson" :course="course" @saved="onSaved" @deleted="onDeleted" @go="editLesson" @status="(s) => (lessonStatus = s)" @settings="toOpens" />
+        <BuilderLessonEditor v-if="lesson" ref="editor" :lesson="lesson" :course="course" @quiz="onLessonQuiz" @saved="onSaved" @deleted="onDeleted" @go="editLesson" @status="(s) => (lessonStatus = s)" @settings="toOpens" />
         <p v-else-if="lessonError" class="cb-error">{{ lessonError }}</p>
         <div v-else class="card cb-loading"><div class="skeleton" style="height: 24px; width: 50%" /></div>
       </template>
@@ -486,6 +642,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
             <span class="ltitle">{{ l.title }}</span>
             <span class="chip"><Icon name="clock" :size="14" /> {{ opensLabel(l) }}</span>
             <span v-if="l.files" class="chip"><Icon name="paperclip" :size="14" /> {{ filesLabel(l.files) }}</span>
+            <span v-if="l.quiz" class="chip"><Icon name="quiz" :size="14" /> {{ quizLabel(l.quiz) }}</span>
             <button v-if="!ordering" class="btn btn-ghost edit" @click="editLesson(l.id)"><Icon name="pencil" :size="18" /> {{ t.__('Edit', 'membuild-community') }}</button>
           </div>
           <p v-if="!m.lessons.length" class="cb-none">{{ t.__('No lessons in this section yet.', 'membuild-community') }}</p>
@@ -679,12 +836,12 @@ const counter = computed(() => `${form.value.description.length} / 160`)
         <fieldset class="field">
           <legend>{{ t.__('Can members see it?', 'membuild-community') }}</legend>
           <div class="pick-row">
-            <label class="choice pick-card" :class="{ on: course.status !== 'published' }">
-              <input type="radio" :checked="course.status !== 'published'" @change="setReady(false)" />
+            <label class="choice pick-card" :class="{ on: shownStatus !== 'published' }">
+              <input type="radio" name="cb-status" :checked="shownStatus !== 'published'" @change="setReady(false)" />
               <span><strong>{{ t.__('Draft', 'membuild-community') }}</strong></span>
             </label>
-            <label class="choice pick-card" :class="{ on: course.status === 'published' }">
-              <input type="radio" :checked="course.status === 'published'" @change="setReady(true)" />
+            <label class="choice pick-card" :class="{ on: shownStatus === 'published' }">
+              <input type="radio" name="cb-status" :checked="shownStatus === 'published'" @change="setReady(true)" />
               <span><strong>{{ t.__('Published', 'membuild-community') }}</strong></span>
             </label>
           </div>
@@ -712,7 +869,7 @@ const counter = computed(() => `${form.value.description.length} / 160`)
       </form>
     </BaseDialog>
 
-    <ConfirmDialog v-if="publishing" :title="publishTitle" :confirm="t.__('Publish course', 'membuild-community')" :cancel="t.__('Not yet', 'membuild-community')" @confirm="publish" @close="publishing = false">
+    <ConfirmDialog v-if="publishing" :title="publishTitle" :confirm="t.__('Publish course', 'membuild-community')" :cancel="t.__('Not yet', 'membuild-community')" @confirm="publish" @close="notYet">
       <p>{{ t.__('Members will see it in the Classroom right away.', 'membuild-community') }}</p>
     </ConfirmDialog>
     <ConfirmDialog v-if="removing" danger :title="deleteSectionTitle" :confirm="t.__('Delete section', 'membuild-community')" :cancel="t.__('Keep it', 'membuild-community')" :busy="busy" @confirm="removeSection" @close="removing = null">

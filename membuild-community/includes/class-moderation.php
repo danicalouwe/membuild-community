@@ -142,24 +142,29 @@ class Moderation {
 
 	/* ---------- Reporting ---------- */
 
-	/** The reported thing: array( author_id, post_id, status ) or null. */
+	/** The reported thing: array( author_id, post_id, status, content[, name] ) or null. content = its words right now (a profile's bio); name = a profile's name now. */
 	private static function target( $type, $id ) {
 		global $wpdb;
 		if ( 'member' === $type ) {
 			// A profile: the member themselves. Staff profiles can't be reported here.
-			return get_userdata( $id ) && ! Settings::is_staff( $id ) ? array( 'author_id' => (int) $id, 'post_id' => 0, 'status' => 'published' ) : null;
+			return get_userdata( $id ) && ! Settings::is_staff( $id ) ? array( 'author_id' => (int) $id, 'post_id' => 0, 'status' => 'published', 'content' => self::bio( $id ), 'name' => get_userdata( $id )->display_name ) : null;
 		}
 		// Only what the reporter can see: not a post in a course they can't open, a group-only event,
 		// or something by a member they blocked or who blocked them (so three accounts can't hide it).
 		if ( 'post' === $type ) {
 			$row = Rest_Feed::row( $id );
-			return $row ? array( 'author_id' => (int) $row['user_id'], 'post_id' => (int) $row['id'], 'status' => $row['status'] ) : null;
+			return $row ? array( 'author_id' => (int) $row['user_id'], 'post_id' => (int) $row['id'], 'status' => $row['status'], 'content' => (string) $row['content'] ) : null;
 		}
-		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT id, user_id, post_id FROM %i WHERE id = %d', Install::table( 'comments' ), $id ), ARRAY_A );
+		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT id, user_id, post_id, content FROM %i WHERE id = %d', Install::table( 'comments' ), $id ), ARRAY_A );
 		if ( ! $row || Blocks::hides( (int) $row['user_id'] ) || ! Rest_Feed::row( (int) $row['post_id'] ) ) {
 			return null;
 		}
-		return array( 'author_id' => (int) $row['user_id'], 'post_id' => (int) $row['post_id'], 'status' => 'published' );
+		return array( 'author_id' => (int) $row['user_id'], 'post_id' => (int) $row['post_id'], 'status' => 'published', 'content' => (string) $row['content'] );
+	}
+
+	/** A profile's bio: the words a profile report keeps, and compares with later ("" = no bio then). */
+	private static function bio( $user_id ) {
+		return (string) get_user_meta( $user_id, 'mbcom_bio', true );
 	}
 
 	public static function report( \WP_REST_Request $req ) {
@@ -186,11 +191,18 @@ class Moderation {
 
 		$table = Install::table( 'reports' );
 		// One report per member per item; reporting again just updates the reason.
+		// The words are kept as they were when it was reported, so an edit can't hide what was sent; reporting
+		// again while the report is open keeps what it had (a report from before copies were kept stays without
+		// one, so its edit date still counts), and a report that was decided starts over with the words (and
+		// date) of now. The copy goes when the report goes (Privacy also clears it when the author's
+		// data is erased). A profile report also keeps the member's name as it was (not the photo), the same way.
+		// In MySQL these run left to right, so the IFs read the old status before it's reset.
+		$name = $target['name'] ?? null;
 		$wpdb->query(
 			$wpdb->prepare(
-				"INSERT INTO %i (object_type, object_id, post_id, author_id, reporter_id, reason, note, status, created_at)
-				VALUES (%s, %d, %d, %d, %d, %s, %s, 'open', %s)
-				ON DUPLICATE KEY UPDATE reason = VALUES(reason), note = VALUES(note), status = 'open', resolved_by = NULL, resolved_at = NULL",
+				"INSERT INTO %i (object_type, object_id, post_id, author_id, reporter_id, reason, note, reported_content, reported_name, status, created_at)
+				VALUES (%s, %d, %d, %d, %d, %s, %s, " . ( null === $target['content'] ? 'NULL' : '%s' ) . ', ' . ( null === $name ? 'NULL' : '%s' ) . ", 'open', %s)
+				ON DUPLICATE KEY UPDATE reported_content = IF(status = 'open', reported_content, VALUES(reported_content)), reported_name = IF(status = 'open', reported_name, VALUES(reported_name)), created_at = IF(status = 'open', created_at, VALUES(created_at)), reason = VALUES(reason), note = VALUES(note), status = 'open', resolved_by = NULL, resolved_at = NULL",
 				$table,
 				$type,
 				$id,
@@ -198,8 +210,12 @@ class Moderation {
 				$target['author_id'],
 				$me,
 				$reason,
-				Helpers::clean_text( $req['note'] ?? '', 500 ),
-				Helpers::now()
+				...array_merge(
+					array( Helpers::clean_text( $req['note'] ?? '', 500 ) ),
+					null === $target['content'] ? array() : array( $target['content'] ),
+					null === $name ? array() : array( $name ),
+					array( Helpers::now() )
+				)
 			)
 		);
 
@@ -251,7 +267,7 @@ class Moderation {
 			$groups = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT object_type, object_id, MAX(post_id) AS post_id, MAX(author_id) AS author_id, COUNT(*) AS reports,
-						MAX(created_at) AS last_at, MAX(resolved_at) AS resolved_at, MAX(resolved_by) AS resolved_by, MAX(status) AS status
+						MAX(created_at) AS last_at, MIN(created_at) AS first_at, MAX(resolved_at) AS resolved_at, MAX(resolved_by) AS resolved_by, MAX(status) AS status
 					FROM %i WHERE status = 'open' GROUP BY object_type, object_id ORDER BY reports DESC, last_at DESC LIMIT %d OFFSET %d",
 					$table,
 					$limit,
@@ -263,7 +279,7 @@ class Moderation {
 			$groups = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT object_type, object_id, MAX(post_id) AS post_id, MAX(author_id) AS author_id, COUNT(*) AS reports,
-						MAX(created_at) AS last_at, MAX(resolved_at) AS resolved_at, MAX(resolved_by) AS resolved_by, MAX(status) AS status
+						MAX(created_at) AS last_at, MIN(created_at) AS first_at, MAX(resolved_at) AS resolved_at, MAX(resolved_by) AS resolved_by, MAX(status) AS status
 					FROM %i WHERE status IN ('kept','removed','muted','banned') GROUP BY object_type, object_id ORDER BY resolved_at DESC LIMIT %d OFFSET %d",
 					$table,
 					$limit,
@@ -282,6 +298,23 @@ class Moderation {
 			arsort( $reasons );
 			$notes = array_values( array_filter( $rows, fn( $r ) => '' !== (string) $r['note'] ) );
 			$users = Helpers::users( array_merge( array( $g['author_id'], $g['resolved_by'] ), wp_list_pluck( $notes, 'reporter_id' ) ) );
+			$preview = self::preview( $g['object_type'], (int) $g['object_id'] );
+			$now     = $preview['full'] ?? null; // all of its words now, to compare with the copy
+			unset( $preview['full'] );
+			// The words (a profile's bio) as the first report saw them. A first report from before copies
+			// were kept has none: then the edit date decides, as before, even if later reports have a copy.
+			// Only that one copy is loaded, not every report's (get_row: get_var would read an empty bio as none).
+			$first = $wpdb->get_row( $wpdb->prepare( 'SELECT reported_content, reported_name FROM %i WHERE object_type = %s AND object_id = %d AND status IN (' . implode( ',', array_fill( 0, count( $statuses ), '%s' ) ) . ') ORDER BY created_at ASC, id ASC LIMIT 1', array_merge( array( $table, $g['object_type'], $g['object_id'] ), $statuses ) ), ARRAY_A );
+			$copy = isset( $first['reported_content'] ) ? (string) $first['reported_content'] : null;
+			// A profile's name as it was reported, and the name now (none once the account is gone).
+			$old_name = 'member' === $g['object_type'] && isset( $first['reported_name'] ) ? (string) $first['reported_name'] : null;
+			$member   = null !== $old_name ? get_userdata( (int) $g['object_id'] ) : null;
+			$edited = null !== $copy
+				// Changed words, not just a new edit date (a post's feeling, background or an event's details also set it).
+				? null !== $now && $copy !== $now
+				// No copy (a report from before copies were kept): fall back to the edit date.
+				: ! empty( $preview['edited_at'] ) && strtotime( $preview['edited_at'] ) > strtotime( $g['first_at'] . ' UTC' );
+			$reported = null !== $copy ? mb_substr( $copy, 0, 600 ) : null;
 
 			$items[] = array(
 				'object_type' => $g['object_type'],
@@ -294,7 +327,14 @@ class Moderation {
 				'author'      => ( $users[ (int) $g['author_id'] ] ?? null ),
 				'author_restriction' => self::restriction( (int) $g['author_id'] ) ? array_intersect_key( self::restriction( (int) $g['author_id'] ), array_flip( array( 'status', 'until' ) ) ) : null,
 				'author_is_staff'    => Settings::is_staff( (int) $g['author_id'] ),
-				'preview'     => self::preview( $g['object_type'], (int) $g['object_id'] ),
+				'preview'     => $preview,
+				// The words when it was first reported, and whether the post or comment was changed after that:
+				// the card then shows both, the reported words first.
+				'reported_content'    => $reported,
+				'edited_after_report' => $edited,
+				// A profile: the name when it was reported, and whether it has changed since (the card then shows both).
+				'reported_name'       => $old_name,
+				'name_changed_after_report' => $member && $member->display_name !== $old_name,
 				'resolution'  => $open ? null : array(
 					'action' => $g['status'],
 					'by'     => $users[ (int) $g['resolved_by'] ] ?? null,
@@ -311,30 +351,32 @@ class Moderation {
 		if ( 'member' === $type ) {
 			$user = get_userdata( $id );
 			return $user
-				? array( 'content' => (string) get_user_meta( $id, 'mbcom_bio', true ), 'thumb' => null, 'kind' => 'member', 'hidden' => false, 'gone' => false, 'created_at' => Helpers::iso( $user->user_registered ) )
+				? array( 'content' => self::bio( $id ), 'full' => self::bio( $id ), 'thumb' => null, 'kind' => 'member', 'hidden' => false, 'gone' => false, 'created_at' => Helpers::iso( $user->user_registered ) )
 				: array( 'gone' => true );
 		}
 		if ( 'post' === $type ) {
-			$row = $wpdb->get_row( $wpdb->prepare( 'SELECT content, type, status, course_id, created_at FROM %i WHERE id = %d', Install::table( 'posts' ), $id ), ARRAY_A );
+			$row = $wpdb->get_row( $wpdb->prepare( 'SELECT content, type, status, course_id, created_at, edited_at FROM %i WHERE id = %d', Install::table( 'posts' ), $id ), ARRAY_A );
 			if ( ! $row ) {
 				return array( 'gone' => true );
 			}
 			$media = $wpdb->get_row( $wpdb->prepare( 'SELECT kind, url, poster_url FROM %i WHERE post_id = %d ORDER BY sort_order LIMIT 1', Install::table( 'media' ), $id ), ARRAY_A );
 			return array(
 				'content'    => mb_substr( (string) $row['content'], 0, 600 ),
+				'full'       => (string) $row['content'],
 				'thumb'      => $media ? ( 'image' === $media['kind'] ? $media['url'] : $media['poster_url'] ) : null,
 				'kind'       => $row['type'],
 				'hidden'     => 'review' === $row['status'],
 				'gone'       => 'deleted' === $row['status'],
 				'created_at' => Helpers::iso( $row['created_at'] ),
+				'edited_at'  => $row['edited_at'] ? Helpers::iso( $row['edited_at'] ) : null,
 				// "in Home" or "in Launch in 30 Days": where it was posted
 				'course'     => (int) $row['course_id'] ? $wpdb->get_var( $wpdb->prepare( 'SELECT title FROM %i WHERE id = %d', Install::table( 'courses' ), $row['course_id'] ) ) : null,
 			);
 		}
-		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT c.content, c.image_url, c.created_at, p.user_id AS post_user, p.status AS post_status FROM %i c LEFT JOIN %i p ON p.id = c.post_id WHERE c.id = %d', Install::table( 'comments' ), Install::table( 'posts' ), $id ), ARRAY_A );
+		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT c.content, c.image_url, c.created_at, c.edited_at, p.user_id AS post_user, p.status AS post_status FROM %i c LEFT JOIN %i p ON p.id = c.post_id WHERE c.id = %d', Install::table( 'comments' ), Install::table( 'posts' ), $id ), ARRAY_A );
 		$on  = $row && $row['post_user'] ? get_userdata( (int) $row['post_user'] ) : null;
 		return $row
-			? array( 'content' => mb_substr( (string) $row['content'], 0, 600 ), 'thumb' => $row['image_url'], 'kind' => 'comment', 'hidden' => false, 'gone' => ! $row['post_status'] || 'deleted' === $row['post_status'], 'created_at' => Helpers::iso( $row['created_at'] ), 'on' => $on ? $on->display_name : null )
+			? array( 'content' => mb_substr( (string) $row['content'], 0, 600 ), 'full' => (string) $row['content'], 'thumb' => $row['image_url'], 'kind' => 'comment', 'hidden' => false, 'gone' => ! $row['post_status'] || 'deleted' === $row['post_status'], 'created_at' => Helpers::iso( $row['created_at'] ), 'edited_at' => $row['edited_at'] ? Helpers::iso( $row['edited_at'] ) : null, 'on' => $on ? $on->display_name : null )
 			: array( 'gone' => true );
 	}
 

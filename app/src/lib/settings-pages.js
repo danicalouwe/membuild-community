@@ -53,6 +53,10 @@ export const SETTINGS_PAGES = [
   },
   { id: 'video', slug: 'video', group: 'content', icon: 'video', label: t.__('Video', 'membuild-community'), find: ['Bunny Stream', t.__('Protect video links', 'membuild-community')] },
   { id: 'gifs', slug: 'gifs', group: 'content', icon: 'gif', label: t.__('GIFs', 'membuild-community'), find: [t.__('GIPHY key', 'membuild-community'), t.__('Which GIFs can show', 'membuild-community')] },
+  {
+    id: 'certificates', slug: 'certificates', group: 'content', icon: 'award', label: t.__('Certificates', 'membuild-community'),
+    find: [t.__('Give certificates', 'membuild-community'), t.__('Which courses give a certificate?', 'membuild-community'), t.__('Signed by', 'membuild-community'), t.__('Upload a signature', 'membuild-community'), t.__('Show certificates on profiles', 'membuild-community'), t.__('Let anyone check a certificate', 'membuild-community')],
+  },
   { id: 'security', slug: 'security', group: 'safety', icon: 'shieldCheck', label: t.__('Security', 'membuild-community'), find: [t.__('Two-step login', 'membuild-community')] },
   { id: 'import', slug: 'import', group: 'connections', icon: 'download', label: t.__('Import', 'membuild-community'), find: [t.__('Past imports', 'membuild-community')] },
   { id: 'addons', slug: 'add-ons', group: 'connections', icon: 'box', label: t.__('Add-ons', 'membuild-community'), find: [] },

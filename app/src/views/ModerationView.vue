@@ -84,6 +84,11 @@ watch(tab, () => {
 
 /* ---------- The words on a card ---------- */
 
+/** The words changed after the report (the server compares all of them) and a copy was kept: show both. */
+function bothWords(it) {
+  return !!it.edited_after_report && !!it.reported_content // an empty copy (no words then) shows just the words now
+}
+
 function title(it) {
   const name = it.author?.name || t.__('A member', 'membuild-community')
   if (it.object_type === 'member') return t.sprintf(/* translators: %s: a member's name */ t.__('Profile of %s', 'membuild-community'), name)
@@ -263,7 +268,7 @@ function personLine(p) {
           <Avatar :user="it.author" :size="48" link />
           <span class="who">
             <strong>{{ title(it) }}</strong>
-            <span v-if="it.preview.content" class="said">{{ it.preview.content }}</span>
+            <span v-if="it.preview.content || it.reported_content" class="said">{{ it.preview.content || it.reported_content }}</span>
             <small>{{ decidedLine(it) }}</small>
           </span>
           <span class="status-tag" :class="outcome(it).tone">{{ outcome(it).label }}</span>
@@ -297,8 +302,31 @@ function personLine(p) {
 
         <p class="why"><strong>{{ reportedBy(it) }}</strong> {{ reasonsText(it) }}{{ it.preview.hidden ? ' ' + t.__('A post reported by 3 members hides by itself.', 'membuild-community') : '' }}</p>
 
-        <div v-if="it.preview.content || it.preview.thumb" class="quote">
-          <p v-if="it.preview.content">{{ it.preview.content }}</p>
+        <!-- A profile whose name changed after it was reported: the name then, and the name now. -->
+        <div v-if="it.name_changed_after_report" class="quote">
+          <span class="q-label">{{ t.__('Name when reported', 'membuild-community') }}</span>
+          <p>{{ it.reported_name }}</p>
+          <span class="q-now"><span class="status-tag warn edited-tag"><Icon name="pencil" :size="14" /> {{ t.__('Name changed after the report', 'membuild-community') }}</span></span>
+          <p>{{ it.author?.name }}</p>
+        </div>
+        <div v-if="it.preview.content || it.preview.thumb || it.reported_content" class="quote">
+          <!-- Already deleted: the words that were reported are all there is to judge. -->
+          <template v-if="it.preview.gone && it.reported_content && !it.preview.content">
+            <span class="q-label">{{ t.__('What was reported', 'membuild-community') }}</span>
+            <p>{{ it.reported_content }}</p>
+          </template>
+          <!-- Changed after it was reported: the words that were reported first, then its words now. -->
+          <template v-else-if="bothWords(it)">
+            <span class="q-label">{{ t.__('What was reported', 'membuild-community') }}</span>
+            <p>{{ it.reported_content }}</p>
+            <span class="q-now"><span class="status-tag warn edited-tag"><Icon name="pencil" :size="14" /> {{ t.__('Edited after the report', 'membuild-community') }}</span></span>
+            <p v-if="it.preview.content">{{ it.preview.content }}</p>
+            <p v-else class="q-empty">{{ t.__('No words now.', 'membuild-community') }}</p>
+          </template>
+          <template v-else>
+            <span v-if="it.edited_after_report" class="status-tag warn edited-tag"><Icon name="pencil" :size="14" /> {{ t.__('Edited after the report', 'membuild-community') }}</span>
+            <p v-if="it.preview.content">{{ it.preview.content }}</p>
+          </template>
           <img v-if="it.preview.thumb" :src="it.preview.thumb" alt="" loading="lazy" />
         </div>
         <RouterLink v-if="it.object_type === 'member'" :to="{ name: 'member', params: { id: it.object_id } }" class="open">{{ t.__('Open the profile', 'membuild-community') }} <Icon name="chevronRight" :size="16" /></RouterLink>
@@ -510,6 +538,30 @@ function personLine(p) {
   line-height: 1.55;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.edited-tag {
+  margin-bottom: 8px;
+}
+
+.q-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--text-2);
+  font-size: var(--fs-base);
+  font-weight: 600;
+}
+
+/* A line between the reported words and the words now. */
+.q-now {
+  display: block;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.q-empty {
+  color: var(--text-2);
 }
 
 .quote img {
