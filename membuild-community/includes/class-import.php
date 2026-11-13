@@ -1435,7 +1435,7 @@ class Import {
 			return false;
 		}
 		$name  = Settings::name();
-		$first = $user->first_name ?: $user->display_name;
+		$first = Helpers::name( $user->first_name ?: $user->display_name );
 		if ( $new_account ) {
 			$key = get_password_reset_key( $user );
 			if ( is_wp_error( $key ) ) {

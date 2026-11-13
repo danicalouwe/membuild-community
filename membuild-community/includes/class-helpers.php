@@ -48,7 +48,7 @@ class Helpers {
 	public static function user( \WP_User $user, $level = null ) {
 		return array(
 			'id'     => (int) $user->ID,
-			'name'   => $user->display_name,
+			'name'   => self::name( $user->display_name ),
 			'avatar' => get_avatar_url( $user->ID, array( 'size' => 96 ) ),
 			'level'  => $level ?? Points::level_of( $user->ID ),
 			// When they were last really here, if the viewer may see it (the green dot, "Active now").
@@ -199,10 +199,51 @@ class Helpers {
 		return (int) $total;
 	}
 
-	/** Plain text only: tags are stripped, line breaks kept. */
+	/** Stands in for a "<" that can't start a tag while WordPress's cleaner runs (a character nobody types). */
+	const KEEP_LT = "\u{E000}";
+
+	/**
+	 * Plain text only: tags are stripped, line breaks kept. A "<" that can't start a tag ("<3",
+	 * "<-", "a < b") is kept as typed (#85): WordPress's cleaner would turn it, and the "&" and
+	 * quotes after it, into code like "&lt;3". The text is stored plain, so everything that prints
+	 * it escapes it (the app shows it as text, emails and admin pages use esc_html).
+	 */
 	public static function clean_text( $text, $max = 5000 ) {
-		$text = sanitize_textarea_field( (string) $text );
+		$text = str_replace( self::KEEP_LT, '', (string) $text );
+		// The same test WordPress uses (wp_pre_kses_less_than): a "<" with no ">" before the next "<" or the end isn't a tag.
+		$text = preg_replace_callback( '%<[^>]*?((?=<)|>|$)%', fn( $m ) => str_contains( $m[0], '>' ) ? $m[0] : self::KEEP_LT . substr( $m[0], 1 ), $text ) ?? '';
+		$text = str_replace( self::KEEP_LT, '<', sanitize_textarea_field( $text ) );
+		// What's left can never start a tag: stripping "<<b>script>" would otherwise leave "<script>".
+		// A "<" right before a letter, "/", "!" or "?" goes (a browser starts a tag only there).
+		do {
+			$before = $text;
+			$text   = preg_replace( '%<(?=[a-zA-Z/!?])%', '', $text ) ?? '';
+		} while ( $text !== $before );
 		return mb_substr( trim( $text ), 0, $max );
+	}
+
+	/** Swaps every "<" that can't start a tag for the stand-in, so WordPress's tag strippers keep it. */
+	private static function keep_lt( $text ) {
+		return preg_replace( '%<(?![a-zA-Z/!?])%', self::KEEP_LT, str_replace( self::KEEP_LT, '', (string) $text ) ) ?? '';
+	}
+
+	/** Text with any tags taken out, keeping "<3" and the words after it (wp_strip_all_tags cuts there). */
+	public static function strip( $text ) {
+		return str_replace( self::KEEP_LT, '<', wp_strip_all_tags( self::keep_lt( $text ) ) );
+	}
+
+	/** wp_trim_words, keeping "<3" and the words after it. */
+	public static function words( $text, $count, $more = null ) {
+		return str_replace( self::KEEP_LT, '<', wp_trim_words( self::keep_lt( $text ), $count, $more ) );
+	}
+
+	/**
+	 * A member's name as they typed it (#92). WordPress saves "&" in names as "&amp;", and the app
+	 * and email subjects print names as plain text, so "Ben &amp; Jerry's" showed. Anything that
+	 * prints it as HTML still escapes it.
+	 */
+	public static function name( $name ) {
+		return wp_specialchars_decode( (string) $name, ENT_QUOTES );
 	}
 
 	/** The site's time zone for the browser: its name, or Etc/GMT±N for a whole-hour offset, or '' for an offset like +05:30 (the app then uses siteOffset). */

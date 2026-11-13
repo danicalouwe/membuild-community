@@ -592,7 +592,7 @@ JS;
 				/* translators: %s: member name */
 				$text = sprintf( esc_html__( '%s joined', 'membuild-community' ), $name );
 			} else {
-				$quote = '<a href="' . esc_url( self::app_url( '?post=' . (int) $r['post_id'] ) ) . '">' . esc_html( wp_trim_words( wp_strip_all_tags( (string) $r['content'] ), 10, '…' ) ?: __( 'a photo or video', 'membuild-community' ) ) . '</a>';
+				$quote = '<a href="' . esc_url( self::app_url( '?post=' . (int) $r['post_id'] ) ) . '">' . esc_html( \MemBuild\Community\Helpers::words( (string) $r['content'], 10, '…' ) ?: __( 'a photo or video', 'membuild-community' ) ) . '</a>';
 				$text  = sprintf(
 					/* translators: 1: member name, 2: start of what they wrote, as a link */
 					'post' === $r['kind'] ? esc_html__( '%1$s posted %2$s', 'membuild-community' ) : esc_html__( '%1$s commented %2$s', 'membuild-community' ),

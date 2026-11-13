@@ -144,7 +144,9 @@ class Rest_Feed {
 		list( $seen, $seen_vals ) = Events::visible_sql();
 		list( $home, $home_vals ) = empty( $req['author'] ) ? Discussions::home_sql() : array( 'course_id = 0', array() );
 		list( $tops, $tops_vals ) = Topics::visible_sql(); // members-only topics stay with their membership
-		$where = "status = 'published' AND {$home} AND {$seen} AND {$tops}";
+		// A repeating event shows once, as its first date still up (#56): the later dates are in Events,
+		// instead of up to 13 cards at the top of Home, furthest date first. ($posts is our own table name.)
+		$where = "status = 'published' AND {$home} AND {$seen} AND {$tops} AND ( event_series = 0 OR id = ( SELECT MIN(s.id) FROM `{$posts}` s WHERE s.event_series = `{$posts}`.event_series AND s.status = 'published' ) )";
 		$args  = array_merge( array( $posts ), $home_vals, $seen_vals, $tops_vals );
 		if ( (int) $req['topic'] ) {
 			$where .= ' AND topic_id = %d'; // Home filtered to one topic
@@ -244,7 +246,7 @@ class Rest_Feed {
 	public static function new_count( \WP_REST_Request $req ) {
 		global $wpdb;
 		list( $tops, $tops_vals ) = Topics::visible_sql();
-		$where = "status = 'published' AND course_id = 0 AND id > %d AND {$tops}";
+		$where = "status = 'published' AND course_id = 0 AND id > %d AND {$tops} AND ( event_series = 0 OR event_series = id )"; // a repeating event counts once (#56)
 		$args  = array_merge( array( Install::table( 'posts' ), (int) $req['since'] ), $tops_vals );
 		if ( in_array( $req['type'], array( 'post', 'reel' ), true ) ) {
 			$where .= ' AND type = %s';

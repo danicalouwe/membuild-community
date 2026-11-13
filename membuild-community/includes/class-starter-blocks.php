@@ -328,7 +328,7 @@ class Starter_Blocks {
 			if ( $details ) {
 				$takers = array_map( 'intval', $wpdb->get_col( $wpdb->prepare( 'SELECT user_id FROM %i WHERE course_id = %d ORDER BY started_at DESC LIMIT 3', Install::table( 'course_starts' ), $c['id'] ) ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 				$taking = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE course_id = %d', Install::table( 'course_starts' ), $c['id'] ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
-				$body  .= '<span class="mbs-course-sum">' . esc_html( wp_trim_words( (string) $c['description'], 12 ) ) . '</span><span class="mbs-course-meta">' . esc_html( $meta ) . '</span>';
+				$body  .= '<span class="mbs-course-sum">' . esc_html( Helpers::words( (string) $c['description'], 12 ) ) . '</span><span class="mbs-course-meta">' . esc_html( $meta ) . '</span>';
 				/* translators: %d: number of members */
 				$body  .= $taking ? '<span class="mbs-taking">' . self::face_row( $takers, 24 ) . esc_html( sprintf( _n( '%d member taking it', '%d members taking it', $taking, 'membuild-community' ), $taking ) ) . '</span>' : '';
 				$body  .= '<span class="mbs-course-cta">' . esc_html( $cta ) . ' →</span>';
@@ -671,7 +671,7 @@ class Starter_Blocks {
 		$cards = '';
 		foreach ( array_slice( $team, 0, 3 ) as $i => $id ) {
 			$u      = get_userdata( $id );
-			$bio    = wp_trim_words( (string) get_user_meta( $id, 'mbcom_bio', true ), 10 );
+			$bio    = Helpers::words( (string) get_user_meta( $id, 'mbcom_bio', true ), 10 );
 			$cards .= '<div class="mbs-person"><img src="' . esc_url( self::photo( $id, 96 ) ) . '" alt="" width="96" height="96" loading="lazy"><b>' . esc_html( $u->display_name ) . '</b><span class="mbs-tag mbs-tag-role">' . esc_html( 0 === $i ? __( 'Host', 'membuild-community' ) : __( 'Moderator', 'membuild-community' ) ) . '</span>' . ( $bio ? '<span class="mbs-person-bio">' . esc_html( $bio ) . '</span>' : '' ) . '</div>';
 		}
 		return self::wrap( 'mbs-team', $cards, $attrs );

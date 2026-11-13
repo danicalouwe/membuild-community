@@ -138,7 +138,7 @@ class Email {
 	 */
 	public static function send( $to, $subject, $html, $text, array $headers = array() ) {
 		// Names come from WordPress with "&" stored as "&amp;": the subject and plain text are not HTML.
-		$subject   = html_entity_decode( wp_strip_all_tags( $subject ), ENT_QUOTES, 'UTF-8' );
+		$subject   = html_entity_decode( Helpers::strip( $subject ), ENT_QUOTES, 'UTF-8' );
 		$text      = html_entity_decode( $text, ENT_QUOTES, 'UTF-8' );
 		$e         = self::settings();
 		$from_mail = $e['from_email'] ?: get_option( 'admin_email' );
@@ -405,7 +405,7 @@ class Email {
 			return false;
 		}
 		$name  = Settings::name();
-		$first = $user->first_name ?: $user->display_name;
+		$first = Helpers::name( $user->first_name ?: $user->display_name );
 		$about = Settings::get( 'login_text' ) ?: Settings::get( 'description' );
 		$steps = array_filter(
 			array(
@@ -699,7 +699,7 @@ class Email {
 		$name    = Settings::name();
 		$count   = array_sum( array_column( $sections, 'count' ) );
 		$subject = 1 === count( $sections )
-			? wp_strip_all_tags( $sections[0]['title'] )
+			? Helpers::strip( $sections[0]['title'] )
 			/* translators: 1: number of updates, 2: community name */
 			: sprintf( _n( '%1$d new update in %2$s', '%1$d new updates in %2$s', $count, 'membuild-community' ), $count, $name );
 
@@ -710,7 +710,7 @@ class Email {
 		}
 		$html = self::layout(
 			/* translators: %s: member's first name */
-			sprintf( __( 'Hi %s, here’s what you missed', 'membuild-community' ), ( $user->first_name ?: $user->display_name ) ),
+			sprintf( __( 'Hi %s, here’s what you missed', 'membuild-community' ), Helpers::name( $user->first_name ?: $user->display_name ) ),
 			$body,
 			$base . '/',
 			/* translators: %s: community name */

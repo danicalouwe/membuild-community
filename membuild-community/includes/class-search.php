@@ -178,7 +178,7 @@ class Search {
 
 	/** Text as people read it: no tags, and no Markdown marks (**bold**, ## headings, [links](…), list dashes). */
 	public static function plain( $text ) {
-		$text = wp_strip_all_tags( html_entity_decode( (string) $text, ENT_QUOTES, 'UTF-8' ) );
+		$text = Helpers::strip( html_entity_decode( (string) $text, ENT_QUOTES, 'UTF-8' ) );
 		$text = preg_replace( '/!?\[([^\]]*)\]\([^)]*\)/u', '$1', $text );       // [text](url) and images
 		$text = preg_replace( '/^\s{0,3}(#{1,6}|>|[-*+]|\d+[.)])\s+/mu', '', $text ); // headings, quotes, list marks
 		$text = preg_replace( '/(\*\*|__|~~|`)/u', '', $text );                     // bold, strike, code
@@ -349,7 +349,7 @@ class Search {
 		if ( ! $courses ) {
 			return array();
 		}
-		$has_all = fn( $text ) => ! array_filter( $words, fn( $w ) => false === mb_stripos( wp_strip_all_tags( (string) $text ), $w ) );
+		$has_all = fn( $text ) => ! array_filter( $words, fn( $w ) => false === mb_stripos( Helpers::strip( (string) $text ), $w ) );
 		// Lesson counts for every course in one query (not one per course).
 		$counts = wp_list_pluck( $wpdb->get_results( $wpdb->prepare( 'SELECT course_id, COUNT(*) AS n FROM %i GROUP BY course_id', Install::table( 'lessons' ) ), ARRAY_A ), 'n', 'course_id' );
 		$out    = array();

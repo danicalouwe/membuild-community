@@ -323,7 +323,7 @@ class Certificates {
 			'course_id'   => (int) $row['course_id'],
 			'course'      => $course['title'] ?? $row['course_title'], // the course's name today, or as it was if it was deleted
 			'lessons'     => (int) $row['lessons'],
-			'name'        => $user ? $user->display_name : '', // rule 7: the name as it is today
+			'name'        => $user ? Helpers::name( $user->display_name ) : '', // rule 7: the name as it is today
 			'member_id'   => (int) $row['user_id'],
 			'finished_at' => Helpers::iso( $row['finished_at'] ),
 			'finished_on' => wp_date( 'Y-m-d', strtotime( $row['finished_at'] . ' UTC' ) ), // the site's calendar day, the same everywhere

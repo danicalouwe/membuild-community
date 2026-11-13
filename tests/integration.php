@@ -229,6 +229,18 @@ list( $s ) = mbcom_call( $ana, 'PUT', '/me/profile', array( 'name' => '   ' ) );
 mbcom_check( "an empty name isn't allowed", 400 === $s, (string) $s );
 list( $s, $prof ) = mbcom_call( $ana, 'PUT', '/me/profile', array( 'bio' => 'Testing things' ) );
 mbcom_check( 'members can update their bio', 200 === $s && 'Testing things' === $prof['bio'] );
+// #85 and #92: a "<" that can't start a tag, and an "&" in a name, stay as typed; real tags still go.
+$ana_name = get_userdata( $ana )->display_name;
+list( , $prof ) = mbcom_call( $ana, 'PUT', '/me/profile', array( 'bio' => 'I <3 this & "that" <b>x</b>', 'name' => 'Ana & Co' ) );
+mbcom_check( 'a heart, an & and quotes in the bio stay as typed, tags go', 'I <3 this & "that" x' === ( $prof['bio'] ?? '' ), wp_json_encode( $prof['bio'] ?? $prof ) );
+mbcom_check( 'an & in a name shows as typed', 'Ana & Co' === ( $prof['name'] ?? '' ), wp_json_encode( $prof['name'] ?? $prof ) );
+list( , $lt ) = mbcom_call( $ana, 'POST', '/posts', array( 'content' => "under <50 people <-\n<script>alert(1)</script><img src=x onerror=alert(1)>ok" ) );
+mbcom_check( 'a post keeps "<50" and "<-", and drops script and img tags', "under <50 people <-\nok" === ( $lt['content'] ?? '' ), wp_json_encode( $lt['content'] ?? $lt ) );
+mbcom_call( $ana, 'DELETE', '/posts/' . (int) ( $lt['id'] ?? 0 ) );
+$tricks = array( '<<b>script>alert(1)<</b>/script>', '<<b>img src=x onerror=alert(1)>', '<scr<script>ipt>', '<<<b>b>x' );
+mbcom_check( "stripping a tag can't leave a working one behind", ! array_filter( $tricks, fn( $t ) => preg_match( '%<[a-zA-Z/!?]%', MemBuild\Community\Helpers::clean_text( $t ) ) ) );
+mbcom_check( 'search snippets and admin lists keep the words after a "<3"', 'I <3 you so much' === MemBuild\Community\Helpers::strip( 'I <3 you so much' ) );
+wp_update_user( array( 'ID' => $ana, 'display_name' => $ana_name ) );
 
 /* ---------------------------------------------------------------- */
 mbcom_section( 'Email notifications' );
@@ -1752,6 +1764,14 @@ global $wpdb;
 $series = (int) ( $ev['event']['series'] ?? 0 );
 mbcom_check( 'an in-person event keeps its place and time zone', 201 === $s && 'Hall' === ( $ev['event']['place']['name'] ?? '' ) && 'America/Chicago' === ( $ev['event']['tz'] ?? '' ), wp_json_encode( $ev['event'] ?? $ev ) );
 mbcom_check( '…every week makes 13 (about three months)', 13 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE event_series = %d', $wpdb->prefix . 'mbcom_posts', $series ) ) );
+list( , $hf ) = mbcom_call( $admin, 'GET', '/feed' );
+$in_home = array_values( array_filter( $hf['items'] ?? array(), fn( $i ) => (int) ( $i['event']['series'] ?? 0 ) === $series ) );
+mbcom_check( '…and Home shows the series once, as its first date (#56)', 1 === count( $in_home ) && (int) $in_home[0]['id'] === $series, (string) count( $in_home ) );
+$wpdb->update( $wpdb->prefix . 'mbcom_posts', array( 'status' => 'deleted' ), array( 'id' => $series ) );
+list( , $hf ) = mbcom_call( $admin, 'GET', '/feed' );
+$in_home = array_values( array_filter( $hf['items'] ?? array(), fn( $i ) => (int) ( $i['event']['series'] ?? 0 ) === $series ) );
+mbcom_check( '…and with its first date deleted, the next one takes its place', 1 === count( $in_home ) && (int) $in_home[0]['id'] !== $series, (string) count( $in_home ) );
+$wpdb->update( $wpdb->prefix . 'mbcom_posts', array( 'status' => 'published' ), array( 'id' => $series ) );
 mbcom_call( $admin, 'POST', "/events/{$ev['id']}/cancel", array( 'which' => 'all' ) );
 mbcom_check( '…and Cancel all cancels them all', 13 === (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE event_series = %d AND event_status = 'cancelled'", $wpdb->prefix . 'mbcom_posts', $series ) ) );
 list( $s ) = mbcom_call( $admin, 'POST', '/events', array( 'title' => 'x', 'at' => gmdate( 'c', strtotime( '+3 days' ) ), 'where' => 'person' ) );

@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.23.0
+Stable tag: 1.23.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -267,6 +267,12 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.23.1 =
+* Fixed: a typed heart "<3", and things like "<-" or "<50", show as typed in posts, comments, chat, bios and everywhere else members write, instead of as code like "&lt;3". The words after them now show in search, email subjects and the WordPress admin lists too. Code that could run in a page is still taken out.
+* Fixed: a name with "&" in it, like "Ben & Jerry's", shows as typed in the community, in emails and on certificates, instead of "Ben &amp; Jerry's". This works for names saved before too.
+* Fixed: editing an online event from another time zone no longer moves it. The form shows an online event in your own time, and only sends a new time when you change it, so fixing a title doesn't tell everyone going about a new time. Switching between online and in person keeps the same moment.
+* Fixed: a repeating event shows once on Home, as its first date, instead of up to 13 cards at the top. The later dates are in Events, and the "new posts" count counts it once.
 
 = 1.23.0 =
 * New: certificates have a QR code for their check link. On the PDF it sits in the bottom right with "Scan to check" under it, in place of the written "Check it at" link. Under your own certificate, the Check link box shows the same code beside the link. Anyone can scan it with a phone camera to open the page that says the certificate is real. It shows only when you let anyone check a certificate, and it's made in the browser, so the link never goes to an outside service.

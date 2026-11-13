@@ -1,5 +1,5 @@
 <script setup>
-import { computed, defineAsyncComponent, onMounted, ref } from 'vue'
+import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
 import { api } from '../api.js'
 import { cfg, feature } from '../config.js'
 import Icon from './Icon.vue'
@@ -31,7 +31,9 @@ function startOf(iso, tz) {
   return { date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`, time: '13:00' }
 }
 const tz0 = e?.tz || myZone
-const s0 = startOf(e?.at, tz0)
+// The form shows an online event in your own time and an in-person one in the time where it's held (#55):
+// the same zone the time is read back in when you save, so opening and saving never moves it.
+const s0 = startOf(e?.at, (e?.where || 'online') === 'online' ? myZone : tz0)
 const form = ref({
   title: e?.title || '',
   description: props.event?.content || '',
@@ -84,6 +86,12 @@ const zones = (() => {
 })()
 const inPerson = computed(() => form.value.where !== 'online')
 const online = computed(() => form.value.where !== 'person')
+// Switching between online (your time) and in person (the time where it's held) keeps the same moment (#55).
+watch(inPerson, (now) => {
+  const f = form.value
+  const at = zonedToDate(f.date, f.time, now ? myZone : f.tz)
+  if (!Number.isNaN(at.getTime())) Object.assign(f, dateInZone(at.toISOString(), now ? f.tz : myZone))
+})
 const place = computed(() => places.value.find((p) => p.id === Number(form.value.placeId)) || null)
 const pinAt = computed(() => (form.value.lat !== null && form.value.lng !== null ? { lat: form.value.lat, lng: form.value.lng } : null))
 const zoneName = computed(() => zoneLabel(form.value.tz, inPerson.value && form.value.tz !== myZone ? cityOfAddress(place.value?.address || form.value.address) : ''))
@@ -177,10 +185,13 @@ async function save() {
   if (Number.isNaN(at.getTime())) return (error.value = t.__('Pick a date and time.', 'membuild-community'))
   if (inPerson.value && !f.placeId && !f.venue.trim()) return (error.value = t.__('Say where it is: the name of the place.', 'membuild-community'))
   saving.value = true
+  // An edit sends the time only when it really changed, so fixing a title never moves the event or tells
+  // everyone going about a new time; and it keeps the online event's own time zone, for reminders (#55).
+  const sameTime = editing.value && e?.at && at.getTime() === new Date(e.at).getTime()
   const body = {
     title: f.title.trim(),
     description: f.description.trim(),
-    at: at.toISOString(),
+    at: sameTime ? undefined : at.toISOString(),
     minutes: Number(f.minutes),
     where: f.where,
     url: online.value ? f.url.trim() : '',
@@ -189,7 +200,7 @@ async function save() {
     address: inPerson.value ? f.address.trim() : '',
     lat: inPerson.value ? f.lat : null,
     lng: inPerson.value ? f.lng : null,
-    tz,
+    tz: editing.value && !inPerson.value ? undefined : tz,
     group: cfg.community.canManage ? (who.value === 'members' ? Number(f.group) : 0) : undefined,
     recording: editing.value ? f.recording.trim() : undefined,
     repeat: editing.value ? undefined : f.repeat || undefined,

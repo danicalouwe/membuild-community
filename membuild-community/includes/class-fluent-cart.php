@@ -375,7 +375,7 @@ class Fluent_Cart {
 			'number'   => (string) ( $order->invoice_no ?: $order->receipt_number ?: $order->id ),
 			'date'     => Helpers::iso( $t->created_at ),
 			'state'    => $item['payments'][ array_search( $trx, array_column( $item['payments'], 'id' ), true ) ]['state'],
-			'name'     => $user->display_name,
+			'name'     => Helpers::name( $user->display_name ),
 			'email'    => $user->user_email,
 			'price'    => $item['amount'],
 			'interval' => $item['interval'],

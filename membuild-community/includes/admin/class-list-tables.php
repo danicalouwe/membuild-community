@@ -445,7 +445,7 @@ class Posts_Table extends Base_Table {
 
 	protected function column_content( $item ) {
 		$id      = (int) $item['id'];
-		$text    = wp_trim_words( wp_strip_all_tags( (string) $item['content'] ), 24, '…' );
+		$text    = \MemBuild\Community\Helpers::words( (string) $item['content'], 24, '…' );
 		$media   = Media::for_posts( array( $id ) )[ $id ] ?? array();
 		$src     = $media ? ( 'image' === $media[0]['kind'] ? $media[0]['url'] : $media[0]['poster'] ) : '';
 		// Every row gets a tile, so text-only posts line up with the ones that have a photo.
@@ -546,7 +546,7 @@ class Comments_Table extends Base_Table {
 	}
 
 	protected function column_content( $item ) {
-		$text    = wp_trim_words( wp_strip_all_tags( (string) $item['content'] ), 30, '…' );
+		$text    = \MemBuild\Community\Helpers::words( (string) $item['content'], 30, '…' );
 		$actions = array(
 			'view'   => '<a href="' . esc_url( Admin::app_url( '?post=' . (int) $item['post_id'] ) ) . '">' . esc_html__( 'View in post', 'membuild-community' ) . '</a>',
 			'delete' => $this->action_link( __( 'Delete', 'membuild-community' ), 'comments_delete', (int) $item['id'], __( 'Delete this comment and its replies?', 'membuild-community' ), 'submitdelete' ),

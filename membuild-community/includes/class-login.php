@@ -551,7 +551,7 @@ class Login {
 				exit;
 			}
 		}
-		self::render( 'reset', array( 'error' => $error, 'login' => $login, 'key' => $key, 'name' => $user->display_name, 'email' => $user->user_email ) );
+		self::render( 'reset', array( 'error' => $error, 'login' => $login, 'key' => $key, 'name' => Helpers::name( $user->display_name ), 'email' => $user->user_email ) );
 	}
 
 	/** Why a new password can't be used, or '' when it can. Password-policy plugins add rules through the core hook. */
@@ -713,7 +713,7 @@ class Login {
 			$photo = (string) get_user_meta( $user->ID, 'mbcom_avatar_url', true );
 		}
 		return array(
-			'name'  => $user ? ( $user->first_name ?: $user->display_name ) : '',
+			'name'  => $user ? Helpers::name( $user->first_name ?: $user->display_name ) : '',
 			/* translators: %s: community name */
 			'role'  => sprintf( __( 'Host of %s', 'membuild-community' ), Settings::name() ),
 			'line'  => $line,

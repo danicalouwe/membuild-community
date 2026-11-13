@@ -333,7 +333,7 @@ class Moderation {
 				'reported_content'    => $reported,
 				'edited_after_report' => $edited,
 				// A profile: the name when it was reported, and whether it has changed since (the card then shows both).
-				'reported_name'       => $old_name,
+				'reported_name'       => null === $old_name ? null : Helpers::name( $old_name ),
 				'name_changed_after_report' => $member && $member->display_name !== $old_name,
 				'resolution'  => $open ? null : array(
 					'action' => $g['status'],
