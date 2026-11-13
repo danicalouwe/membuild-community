@@ -1,10 +1,12 @@
 import { t } from './i18n.js'
+import { fileName } from './fileName.js'
+import { qrRuns } from './qr.js'
 
 /**
  * A certificate as a real PDF file, landscape (Letter in the US and Canada, A4 elsewhere),
  * saved straight to the member's computer ("Membership Makers – Certificate – Own your community.pdf").
  * The owner's logo and main color, the member's name as it is today, the day they really
- * finished, who signed it, and the check link when there is one. jsPDF loads only when someone
+ * finished, who signed it, and the check link as a QR code when there is one. jsPDF loads only when someone
  * presses Download PDF, like the receipts (lib/receiptPdf.js).
  *
  * cert: a certificate from the server (Certificates::format). accent: the main color as a hex
@@ -140,10 +142,31 @@ export async function saveCertificatePdf(cert, { accent } = {}) {
   text(cert.role, y + 33, { size: 10, minSize: 8, rgb: grey })
 
   if (cert.check_url) {
-    text(`${t.__('Check it at', 'membuild-community')} ${cert.check_url.replace(/^https?:\/\//, '')}`, H - 56, { size: 9, minSize: 7, rgb: grey })
+    // The check link as a QR code in the bottom right, inside the frame: 64 points, dark on
+    // white whatever the main color, with "Scan to check" under it.
+    const { n, runs } = qrRuns(cert.check_url)
+    const side = 64
+    const cell = side / n
+    const qx = W - 40 - 16 - side
+    const qy = H - 40 - 30 - side
+    doc.setFillColor(255, 255, 255)
+    doc.rect(qx - cell * 2, qy - cell * 2, side + cell * 4, side + cell * 4, 'F')
+    doc.setFillColor(...ink)
+    runs.forEach(({ r, c, len }) => doc.rect(qx + c * cell, qy + r * cell, len * cell, cell, 'F'))
+    const scan = t.__('Scan to check', 'membuild-community')
+    if (WESTERN.test(scan)) {
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8)
+      doc.setTextColor(...grey)
+      doc.text(scan, qx + side / 2, qy + side + 13, { align: 'center' })
+    } else {
+      const pic = lineImage(scan, 8, false, grey)
+      const fit = Math.min(1, (side + 24) / pic.w)
+      doc.addImage(pic.url, 'PNG', qx + side / 2 - (pic.w * fit) / 2, qy + side + 13 - 8 * 0.92 * fit, pic.w * fit, pic.h * fit)
+    }
   }
 
-  const file = `${cert.community} - ${t.__('Certificate', 'membuild-community')} - ${cert.course}.pdf`.replace(/[\\/:*?"<>|]+/g, '')
+  const file = fileName([cert.community, t.__('Certificate', 'membuild-community'), cert.course])
   doc.save(file)
   return file
 }

@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.22.2
+Stable tag: 1.23.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -251,7 +251,8 @@ The community app is built with these open-source libraries, bundled in `assets/
 * Mediabunny, for compressing videos in the browser (MPL-2.0)
 * Leaflet and Leaflet.markercluster, for the Places map (BSD-2-Clause, MIT)
 * Emoji names and categories from emojibase-data (MIT)
-* jsPDF, for saving receipts as PDF files (MIT; loaded only when someone saves one)
+* jsPDF, for saving receipts and certificates as PDF files (MIT; loaded only when someone saves one)
+* qrcode-generator, for the QR code on certificates, made in the browser so the link never goes to an outside service (MIT)
 
 == Source code ==
 
@@ -266,6 +267,10 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.23.0 =
+* New: certificates have a QR code for their check link. On the PDF it sits in the bottom right with "Scan to check" under it, in place of the written "Check it at" link. Under your own certificate, the Check link box shows the same code beside the link. Anyone can scan it with a phone camera to open the page that says the certificate is real. It shows only when you let anyone check a certificate, and it's made in the browser, so the link never goes to an outside service.
+* Changed: downloaded certificate and receipt PDFs have tidy file names, like "Membership Makers - Certificate - Start Here.pdf". Characters that computers and phones won't take in a file name are changed or left out ("A/B" becomes "A-B", "Course: Basics" becomes "Course - Basics"), and very long titles are cut at a word.
 
 = 1.22.2 =
 * Fixed: on phones, the month on an event's little calendar date is easier to read everywhere it shows: search, the Places list and a course's start date now match event cards and the Events list. Every date tile now has the same look on every screen, and past events in search have a grey month.

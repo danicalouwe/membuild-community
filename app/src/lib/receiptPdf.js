@@ -1,4 +1,5 @@
 import { t } from './i18n.js'
+import { fileName } from './fileName.js'
 
 /**
  * A receipt as a real PDF file, saved straight to the member's computer
@@ -97,7 +98,7 @@ export async function saveReceiptPdf(r, { when, every, logo, accent, stateLabel 
   row(r.state === 'refunded' ? t.__('Refunded', 'membuild-community') : t.__('Total paid', 'membuild-community'), r.total, true)
   row(t.__('Paid with', 'membuild-community'), r.paid)
 
-  const file = `${r.store} - ${t.__('Receipt', 'membuild-community')} ${r.number}.pdf`.replace(/[\\/:*?"<>|]+/g, '')
+  const file = fileName([r.store, `${t.__('Receipt', 'membuild-community')} ${r.number}`])
   doc.save(file)
   return file
 }

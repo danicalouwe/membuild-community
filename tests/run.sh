@@ -13,6 +13,8 @@ node tests/settings-links-check.mjs || exit 1
 node tests/richtext-check.mjs || exit 1
 # The certificate PDF keeps the title, name and course above the signature, on A4 and Letter.
 node tests/quiz/certificate-pdf-check.mjs || exit 1
+# Download file names (certificate and receipt PDFs) are tidy and safe on every system.
+node tests/filename-check.mjs || exit 1
 # The add-on price says "a year" once, whatever tools.membuild.com sends.
 node tests/price-check.mjs || exit 1
 # The file is copied into the container (it's too long to pass on the command line).

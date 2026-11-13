@@ -5,6 +5,7 @@ import { saveCertificatePdf } from '../lib/certificatePdf.js'
 import { showToast } from '../lib/toast.js'
 import { t } from '../lib/i18n.js'
 import Icon from './Icon.vue'
+import QrCode from './QrCode.vue'
 const CreatePostDialog = defineAsyncComponent(() => import('./CreatePostDialog.vue'))
 
 /**
@@ -62,6 +63,11 @@ const shown = (url) => url.replace(/^https?:\/\//, '')
       <button class="btn btn-lg btn-ghost" type="button" @click="share"><Icon name="share" :size="20" /> {{ t.__('Share on Home', 'membuild-community') }}</button>
     </div>
     <div v-if="checkLink && cert.check_url" class="ca-check">
+      <span class="ca-qr">
+        <QrCode :value="cert.check_url" :size="96" class="ca-qr-code" />
+        <small>{{ t.__('Scan to check', 'membuild-community') }}</small>
+      </span>
+      <span class="ca-link">
       <label class="ca-label" :for="`ca-link-${cert.id}`">{{ t.__('Check link', 'membuild-community') }}</label>
       <span class="ca-row">
         <input :id="`ca-link-${cert.id}`" class="ca-input" type="text" readonly :value="shown(cert.check_url)" @focus="$event.target.select()" />
@@ -70,6 +76,7 @@ const shown = (url) => url.replace(/^https?:\/\//, '')
         </button>
       </span>
       <small class="ca-help">{{ t.__('Anyone with this link can see that your certificate is real. Handy for an employer or a client.', 'membuild-community') }}</small>
+      </span>
     </div>
     <CreatePostDialog v-if="sharing" :draft="sharing" @close="sharing = null; emit('shared')" />
   </div>
@@ -88,10 +95,30 @@ const shown = (url) => url.replace(/^https?:\/\//, '')
 }
 .ca-check {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: flex-start;
+  gap: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--border);
+}
+/* The QR code opens the same check page, for holding your phone up to someone. */
+.ca-qr {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+.ca-qr-code {
+  box-shadow: 0 0 0 1px var(--border);
+}
+.ca-link {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
 }
 .ca-label {
   font-weight: 700;
@@ -123,6 +150,18 @@ const shown = (url) => url.replace(/^https?:\/\//, '')
 }
 @media (max-width: 600px) {
   .ca-btns .btn {
+    flex: 1 1 100%;
+  }
+  .ca-qr-code {
+    width: 80px;
+    height: 80px;
+  }
+  /* Beside the QR code there's room for the link or the button, not both: Copy goes under it. */
+  .ca-row {
+    flex-wrap: wrap;
+  }
+  .ca-input,
+  .ca-row .btn {
     flex: 1 1 100%;
   }
 }
