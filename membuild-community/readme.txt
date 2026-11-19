@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.24.0
+Stable tag: 1.24.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -219,8 +219,8 @@ The plugin works without any outside service. These are only contacted when you 
 * Always, once a week: a random ID made on your site (not its address), the plugin, WordPress and PHP versions, the site's language and whether it's a multisite, sent to `https://tools.membuild.com/api.php`. Our server also notes the country the request comes from (two letters) and keeps no IP address. This is how we count active installs.
 * If "Share usage" is on (ticked by default on the card the Community overview shows once, and changeable in Community settings → News from MemBuild): what the community is about and how big it expects to be, which features are on, how sign-up and video are set up, rough counts in ranges ("51-200 members", "11-50 posts"), and the errors caught in the plugin's own code (file, line, a scrubbed message, how often; see Community → Problems), still under the random ID. Never names, email addresses, the site's address, posts, comments, messages or stack traces.
 * Only if an admin presses "Keep me updated" (on that card, or in Settings → News from MemBuild): the email address they typed, the site's address and name, and the plugin, WordPress and PHP versions, so we can email about new features. While "Share usage" is also on, the community's exact counts (members, members active in the last 30 days, posts, courses, events, which features are on, the last day a member was active) go with it and are refreshed weekly. Never member names, emails, posts, comments or messages. "Stop" removes the email and everything with it from our server.
-* Only when an admin sends a message from Community → Help: the message, its kind (a problem, an idea or kind words), an optional Loom link, up to 3 screenshots, the admin's name and email, the site's name and address, the plugin, WordPress and PHP versions, and a random key made on your site so it can read MemBuild's answers. Screenshots go straight to MemBuild and are never saved on your site. The Help tab then asks our server for this site's messages and answers. If the message was "Problems caught" text, it carries that problem's stack, never the site's addresses in it.
-* Settings → News from MemBuild shows exactly what is sent, and "Delete this site's data at MemBuild" removes all of it from our server. The weekly report is not sent from sites whose environment type is local or development. The `membuild_community/usage_reports` filter turns everything off.
+* Only when an admin sends a message from Community → Help: the message, its kind (a problem, an idea or kind words), an optional Loom link, up to 3 screenshots, the admin's name and email, the site's name and address, the plugin, WordPress and PHP versions, and a random key made on your site so it can read MemBuild's answers. Screenshots go straight to MemBuild and are never saved on your site. The Help tab then asks our server for this site's messages and answers. If the message was "Problems caught" text, it carries that problem's stack, never the site's addresses in it. This works even where the weekly report is turned off; the `membuild_community/help` filter turns the Help tab's messages off.
+* Settings → News from MemBuild shows exactly what is sent, and "Delete this site's data at MemBuild" removes all of it from our server. The weekly report is not sent from sites whose environment type is local or development. The `membuild_community/usage_reports` filter turns all of this off except Help messages an admin sends; the `membuild_community/help` filter turns those off.
 * Privacy: https://membuild.com/privacy
 
 The plugin shows no ads and sends nothing else to the plugin's authors.
@@ -231,7 +231,7 @@ Each part of the plugin is a class in `includes/` that registers its own hooks; 
 
 **Actions** (all prefixed `membuild_community/`): `post_created`, `post_deleted`, `comment_created`, `comment_edited` (a member changed the words of their own comment), `comment_deleted`, `reaction_changed`, `reported`, `member_restricted`, `level_up`, `message_sent`, `lesson_completed`, `lesson_uncompleted`, `course_completed`, `story_created`, `story_reacted`, `place_created`, `notification_created`, `access_group_added`, `access_group_removed`, `member_blocked`, `quiz_finished` (a member answered a quiz's last question: lesson id, member id, score, number of questions, passed), `certificate_given` (course id, member id), `certificate_removed` (course id, member id, who removed it), `login_after` (under the login form, for other ways to sign in), `app_footer` (the end of the community page, which has no theme or wp_footer). Points and notifications are themselves built on these actions.
 
-**Filters**: `membuild_community/points_rules` (points per action and daily caps), `membuild_community/level_thresholds` (points needed per level), `membuild_community/in_access_group` (decide access-group membership your own way, e.g. from a membership plugin), `membuild_community/send_protected_file` (let your server send protected files, e.g. with X-Accel-Redirect), `membuild_community/daily_upload_bytes` (how much a member may upload per day; 2 GB by default, no limit for admins and moderators), `membuild_community/github_updates` (return false to stop checking GitHub for updates), `membuild_community/usage_reports` (return false to send no reports to MemBuild), `membuild_community/map_tiles` and `membuild_community/geocode_url` (Places' map tiles and address lookup), `membuild_community/certificate` (what a certificate says, in the app and its PDF).
+**Filters**: `membuild_community/points_rules` (points per action and daily caps), `membuild_community/level_thresholds` (points needed per level), `membuild_community/in_access_group` (decide access-group membership your own way, e.g. from a membership plugin), `membuild_community/send_protected_file` (let your server send protected files, e.g. with X-Accel-Redirect), `membuild_community/daily_upload_bytes` (how much a member may upload per day; 2 GB by default, no limit for admins and moderators), `membuild_community/github_updates` (return false to stop checking GitHub for updates), `membuild_community/usage_reports` (return false to send no reports to MemBuild), `membuild_community/help` (return false so the Help tab never contacts MemBuild), `membuild_community/map_tiles` and `membuild_community/geocode_url` (Places' map tiles and address lookup), `membuild_community/certificate` (what a certificate says, in the app and its PDF).
 
 **WP-CLI**: `wp mbcom recount-points` (recount totals and levels from the points ledger), `wp mbcom rebuild-points` (replay all activity into points), and `wp mbcom seed` for demo content.
 
@@ -268,6 +268,9 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.24.1 =
+* Fixed: Help said "This site is set not to contact MemBuild" on sites that turned off the weekly usage report. Sending a message is something you ask for, so it now works there too. The `membuild_community/help` filter turns it off.
 
 = 1.24.0 =
 * New: the Community pages in the WordPress admin have a new, calmer look, in WordPress's own font and blue: tabs across the top, one title row per page, flat cards, and lists that work on a phone. "Version x · by MemBuild" sits at the top right.

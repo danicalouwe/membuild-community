@@ -72,7 +72,13 @@ class Help {
 	 * Returns the decoded answer, or array( ok => false, message ) when it can't be reached.
 	 */
 	private static function call( $action, array $fields, array $files = array(), $raw = false ) {
-		if ( ! Usage::allowed() ) {
+		/**
+		 * Whether the Help tab may reach MemBuild. Separate from the weekly reports
+		 * (membuild_community/usage_reports): an admin sending a message asked for it.
+		 *
+		 * @param bool $allowed Default true.
+		 */
+		if ( ! apply_filters( 'membuild_community/help', true ) ) {
 			return array( 'ok' => false, 'message' => __( 'This site is set not to contact MemBuild.', 'membuild-community' ) );
 		}
 		$fields += array( 'install_id' => Usage::state()['id'], 'secret' => self::secret() );
