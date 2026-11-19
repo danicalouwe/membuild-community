@@ -23,6 +23,9 @@ class Admin {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
 		add_action( 'admin_post_mbcom_admin', array( __CLASS__, 'handle_action' ) );
 		add_action( 'admin_post_mbcom_export', array( __CLASS__, 'handle_export' ) );
+		add_action( 'admin_post_mbcom_hide_guide', array( __CLASS__, 'hide_guide' ) );
+		Help::register_hooks();
+		add_action( 'current_screen', array( __CLASS__, 'quiet_core_update' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'styles' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'menu_icon' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'menu_links' ) );
@@ -31,12 +34,12 @@ class Admin {
 	}
 
 	/**
-	 * The "Community" menu, last in the sidebar (after the final separator) with
-	 * the MemBuild logo. "Open community" and "Settings" go to the app.
+	 * The "MB Community" menu, last in the sidebar, with the MemBuild person mark
+	 * (an SVG WordPress paints in the menu's own colors). "Settings ↗" goes to the app.
 	 */
 	public static function menu() {
-		add_menu_page( __( 'Community', 'membuild-community' ), __( 'Community', 'membuild-community' ), self::CAP, 'membuild-community', array( __CLASS__, 'page_overview' ), 'none', 1000 );
-		add_submenu_page( 'membuild-community', __( 'Community overview', 'membuild-community' ), __( 'Overview', 'membuild-community' ), self::CAP, 'membuild-community', array( __CLASS__, 'page_overview' ) );
+		add_menu_page( __( 'MB Community', 'membuild-community' ), __( 'MB Community', 'membuild-community' ), self::CAP, 'membuild-community', array( __CLASS__, 'page_overview' ), self::menu_icon_uri(), 1000 );
+		add_submenu_page( 'membuild-community', __( 'Overview', 'membuild-community' ), __( 'Overview', 'membuild-community' ), self::CAP, 'membuild-community', array( __CLASS__, 'page_overview' ) );
 		$tables = array(
 			'members'  => __( 'Members', 'membuild-community' ),
 			'posts'    => __( 'Posts', 'membuild-community' ),
@@ -48,10 +51,16 @@ class Admin {
 			$hook = add_submenu_page( 'membuild-community', $label, $label, self::CAP, 'membuild-community-' . $key, fn() => self::page_table( $key ) );
 			add_action( "load-{$hook}", fn() => add_screen_option( 'per_page', array( 'default' => 20, 'option' => "mbcom_{$key}_per_page" ) ) );
 		}
-		add_submenu_page( 'membuild-community', __( 'Export community data', 'membuild-community' ), __( 'Export', 'membuild-community' ), self::CAP, 'membuild-community-export', array( __CLASS__, 'page_export' ) );
+		add_submenu_page( 'membuild-community', __( 'Export', 'membuild-community' ), __( 'Export', 'membuild-community' ), self::CAP, 'membuild-community-export', array( __CLASS__, 'page_export' ) );
 		add_submenu_page( 'membuild-community', __( 'Problems', 'membuild-community' ), __( 'Problems', 'membuild-community' ), self::CAP, 'membuild-community-problems', array( Problems::class, 'page' ) );
+		add_submenu_page( 'membuild-community', __( 'Help', 'membuild-community' ), __( 'Help', 'membuild-community' ), self::CAP, 'membuild-community-help', array( Help::class, 'page' ) );
 		add_submenu_page( 'membuild-community', __( 'Community settings', 'membuild-community' ), __( 'Settings ↗', 'membuild-community' ), self::CAP, 'membuild-community-settings', '__return_null' );
-		add_submenu_page( 'membuild-community', __( 'Open community', 'membuild-community' ), __( 'Open community ↗', 'membuild-community' ), self::CAP, 'membuild-community-open', '__return_null' );
+	}
+
+	/** The person mark as a data address, so WordPress colors it like every other menu icon. */
+	private static function menu_icon_uri() {
+		$svg = (string) file_get_contents( MEMBUILD_COMMUNITY_DIR . 'assets/admin/menu-icon.svg' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- a file of this plugin
+		return 'data:image/svg+xml;base64,' . base64_encode( $svg ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- WordPress's own way to give a menu an SVG icon
 	}
 
 	/** "Built by MemBuild" at the foot of the Community pages, in place of "Thank you for creating with WordPress". */
@@ -61,9 +70,9 @@ class Admin {
 			return $text;
 		}
 		return sprintf(
-			/* translators: 1: plugin name and version, e.g. "MemBuild - Community 1.2.0", 2: "MemBuild", linked */
+			/* translators: 1: plugin name and version, e.g. "MB Community 1.23.1", 2: "MemBuild", linked */
 			esc_html__( '%1$s · Built by %2$s', 'membuild-community' ),
-			esc_html( 'MemBuild - Community ' . MEMBUILD_COMMUNITY_VERSION ),
+			esc_html( 'MB Community ' . MEMBUILD_COMMUNITY_VERSION ),
 			'<a href="https://membuild.com/community" target="_blank" rel="noopener">MemBuild</a>'
 		);
 	}
@@ -76,79 +85,85 @@ class Admin {
 			return;
 		}
 		// The MemBuild Product System: one handle shared by every MemBuild plugin, so a
-		// site running two of them loads it once, and the newest copy wins.
+		// site running two of them loads it once, and the newest copy wins. Pages not yet
+		// on the WP admin look (below) still use its cards and tables.
 		if ( ! wp_style_is( 'membuild-admin', 'registered' ) || version_compare( (string) wp_styles()->registered['membuild-admin']->ver, self::SYSTEM_VERSION, '<' ) ) {
 			wp_deregister_style( 'membuild-admin' );
 			wp_register_style( 'membuild-admin', MEMBUILD_COMMUNITY_URL . 'assets/admin/membuild-admin.css', array(), self::SYSTEM_VERSION );
 		}
 		wp_enqueue_style( 'membuild-admin' );
-		wp_register_style( 'mbcom-admin', false, array( 'membuild-admin' ), MEMBUILD_COMMUNITY_VERSION );
+		// The MemBuild WP Admin design system, scoped to these pages (.mbcom-admin.mbwa).
+		wp_enqueue_style( 'mbcom-wpa', MEMBUILD_COMMUNITY_URL . 'assets/admin/mbwa.css', array( 'membuild-admin' ), MEMBUILD_COMMUNITY_VERSION );
+		wp_register_style( 'mbcom-admin', false, array( 'mbcom-wpa' ), MEMBUILD_COMMUNITY_VERSION );
 		wp_enqueue_style( 'mbcom-admin' );
 		wp_add_inline_style( 'mbcom-admin', self::css() );
 		wp_register_script( 'mbcom-admin', false, array(), MEMBUILD_COMMUNITY_VERSION, true );
 		wp_enqueue_script( 'mbcom-admin' );
 		wp_add_inline_script( 'mbcom-admin', self::js() );
+		wp_enqueue_script( 'mbcom-lists', MEMBUILD_COMMUNITY_URL . 'assets/admin/lists.js', array(), MEMBUILD_COMMUNITY_VERSION, true );
+		wp_localize_script(
+			'mbcom-lists',
+			'mbcomLists',
+			array(
+				'one'    => __( '1 selected', 'membuild-community' ),
+				/* translators: {n} stays as it is: it becomes how many */
+				'many'   => __( '{n} selected', 'membuild-community' ),
+				'cancel' => __( 'Cancel', 'membuild-community' ),
+				'close'  => __( 'Close', 'membuild-community' ),
+				/* translators: {name} stays as it is: it becomes a file name */
+				'shotType' => __( '“{name}” wasn’t added. Only pictures can be sent: PNG, JPG or WebP', 'membuild-community' ),
+				/* translators: {name} stays as it is: it becomes a file name. %s: size limit, e.g. 5 MB */
+				'shotBig'  => sprintf( __( '“{name}” is too big to send. Screenshots can be up to %s each.', 'membuild-community' ), size_format( Help::max_shot() ) ),
+				'shotMax'  => __( 'Up to 3 screenshots can be sent.', 'membuild-community' ),
+				/* translators: {name} stays as it is: it becomes a file name */
+				'remove'   => __( 'Remove {name}', 'membuild-community' ),
+			)
+		);
 	}
 
-	/** The chart's hover card: one for the page, moved to whichever day is under the pointer or focused. */
+	/** A tab that was pressed dims the old page after a moment (the design system's is-loading). */
 	private static function js() {
 		return <<<'JS'
 (function () {
-	document.querySelectorAll('.mbcom-chart-wrap').forEach(function (wrap) {
-		var tip = wrap.querySelector('.mbcom-tip');
-		var svg = wrap.querySelector('svg');
-		if (!tip || !svg) return;
-		function show(day) {
-			['date', 'posts', 'comments', 'joined'].forEach(function (k) {
-				tip.querySelector('[data-tip="' + k + '"]').textContent = day.getAttribute('data-' + k);
-			});
-			tip.hidden = false;
-			var box = day.querySelector('.hit').getBoundingClientRect();
-			var host = wrap.getBoundingClientRect();
-			// Just above the day's bar (its tallest piece), never off the card's sides.
-			var top = box.bottom;
-			day.querySelectorAll('rect.p, rect.c').forEach(function (r) { if (r.getBBox().height > 0) top = Math.min(top, r.getBoundingClientRect().top); });
-			var left = box.left - host.left + box.width / 2;
-			left = Math.max(tip.offsetWidth / 2 + 4, Math.min(left, host.width - tip.offsetWidth / 2 - 4));
-			tip.style.left = left + 'px';
-			tip.style.top = Math.max(0, top - host.top - 8) + 'px';
-			svg.querySelectorAll('.day.is-on').forEach(function (d) { d.classList.remove('is-on'); });
-			day.classList.add('is-on');
-		}
-		function hide() {
-			tip.hidden = true;
-			svg.querySelectorAll('.day.is-on').forEach(function (d) { d.classList.remove('is-on'); });
-		}
-		svg.addEventListener('pointerover', function (e) { var day = e.target.closest('.day'); if (day) show(day); });
-		svg.addEventListener('pointerleave', hide);
-		svg.addEventListener('focusin', function (e) { var day = e.target.closest('.day'); if (day) show(day); });
-		svg.addEventListener('focusout', hide);
+	document.querySelectorAll('.mbcom-admin .mbwa-tab:not([target]), .mbcom-admin .mbwa-seg a').forEach(function (a) {
+		a.addEventListener('click', function (e) {
+			if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return;
+			var root = a.closest('.mbwa');
+			if (root) root.classList.add('is-loading');
+		});
+	});
+	window.addEventListener('pageshow', function () {
+		document.querySelectorAll('.mbcom-admin.is-loading').forEach(function (r) { r.classList.remove('is-loading'); });
 	});
 })();
 JS;
 	}
 
-	/** "Settings" and "Open community ↗" in the WP submenu lead to the community itself, so they open a new tab. */
+	/** "Settings ↗" in the WP submenu leads to the community itself, so it opens a new tab. */
 	public static function menu_links() {
 		wp_add_inline_script(
 			'common',
-			'document.querySelectorAll(\'#toplevel_page_membuild-community a[href$="page=membuild-community-settings"], #toplevel_page_membuild-community a[href$="page=membuild-community-open"]\').forEach(function (a) { a.target = "_blank"; a.rel = "noopener"; a.href = a.href.indexOf("-settings") > -1 ? ' . wp_json_encode( self::app_url( 'settings' ) ) . ' : ' . wp_json_encode( self::app_url() ) . '; });',
+			'document.querySelectorAll(\'#toplevel_page_membuild-community a[href$="page=membuild-community-settings"]\').forEach(function (a) { a.target = "_blank"; a.rel = "noopener"; a.href = ' . wp_json_encode( self::app_url( 'settings' ) ) . '; });',
 			'after'
 		);
 	}
 
 	/**
-	 * Always the MemBuild logo: it says which plugin this is, whatever the community's own logo
-	 * or color. Done in CSS because WordPress repaints menu icons gray.
+	 * WordPress's "WordPress x.y is available" line stays off our pages; it still shows on the
+	 * Dashboard, on Updates and as the count in the top bar. Other notices are left alone.
 	 */
+	public static function quiet_core_update( $screen ) {
+		if ( $screen && false !== strpos( (string) $screen->id, 'membuild-community' ) ) {
+			remove_action( 'admin_notices', 'update_nag', 3 );
+			remove_action( 'network_admin_notices', 'update_nag', 3 );
+			// No Screen Options tab: lists show 20 rows (a number set there before still counts),
+			// and its floating tab would squeeze the page beside it.
+			add_filter( 'screen_options_show_screen', '__return_false' );
+		}
+	}
+
+	/** Kept for older hooks: the menu icon is now the SVG given to add_menu_page. */
 	public static function menu_icon() {
-		$image = 'url("' . esc_url_raw( MEMBUILD_COMMUNITY_URL . 'assets/admin/menu-icon.png' ) . '")';
-		wp_add_inline_style(
-			'admin-menu',
-			"#adminmenu #toplevel_page_membuild-community .wp-menu-image{background:{$image} center/20px 20px no-repeat;border-radius:5px}"
-			. '#adminmenu #toplevel_page_membuild-community .wp-menu-image::before{content:none}'
-			. '.folded #adminmenu #toplevel_page_membuild-community .wp-menu-image{background-size:22px 22px}'
-		);
 	}
 
 	public static function url( $page = '', array $args = array() ) {
@@ -164,9 +179,11 @@ JS;
 		return wp_nonce_url( add_query_arg( array( 'action' => 'mbcom_admin', 'do' => $do, 'id' => (int) $id, 'back' => rawurlencode( $back ) ), admin_url( 'admin-post.php' ) ), "mbcom_admin_{$do}_{$id}" );
 	}
 
-	/* ---------- The panel every page sits in ---------- */
+	/* ---------- The frame every page sits in ---------- */
 
-	/** The tabs across the top of the panel: what members make, then admin. */
+	const EXT = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3H3v10h10v-3M9 3h4v4M13 3L7 9"/></svg>';
+
+	/** The tabs across the top: what members make, then the owner's tools. */
 	private static function tabs() {
 		return array(
 			array( '', __( 'Overview', 'membuild-community' ) ),
@@ -175,394 +192,432 @@ JS;
 			array( 'comments', __( 'Comments', 'membuild-community' ) ),
 			array( 'files', __( 'Files', 'membuild-community' ) ),
 			array( 'courses', __( 'Courses', 'membuild-community' ) ),
-			array( '|', '' ),
 			array( 'export', __( 'Export', 'membuild-community' ) ),
 			array( 'problems', __( 'Problems', 'membuild-community' ) ),
+			array( 'help', __( 'Help', 'membuild-community' ) ),
 			array( 'settings', __( 'Settings', 'membuild-community' ) ),
 		);
 	}
 
-	/**
-	 * "v1.8.3 · up to date", or the newer version on offer. Reads only what the
-	 * update check already cached: a page never waits on GitHub.
-	 */
-	private static function version_badge() {
+	/** The newer version on offer, from what the update check already cached (a page never waits on GitHub). */
+	public static function newer_version() {
 		$latest = get_site_transient( Updater::CACHE );
-		$newer  = is_array( $latest ) && ! empty( $latest['version'] ) && version_compare( $latest['version'], MEMBUILD_COMMUNITY_VERSION, '>' );
-		if ( $newer ) {
-			/* translators: 1: installed version, 2: newer version */
-			return '<a class="mb-badge mb-badge--warn" href="' . esc_url( admin_url( 'plugins.php' ) ) . '"><span class="mb-dot"></span>' . esc_html( sprintf( __( 'v%1$s · %2$s available', 'membuild-community' ), MEMBUILD_COMMUNITY_VERSION, $latest['version'] ) ) . '</a>';
-		}
-		/* translators: %s: the installed version */
-		return '<span class="mb-badge mb-badge--ok"><span class="mb-dot"></span>' . esc_html( sprintf( __( 'v%s · up to date', 'membuild-community' ), MEMBUILD_COMMUNITY_VERSION ) ) . '</span>';
+		return is_array( $latest ) && ! empty( $latest['version'] ) && version_compare( $latest['version'], MEMBUILD_COMMUNITY_VERSION, '>' ) ? (string) $latest['version'] : '';
+	}
+
+	/** The MemBuild mark: the person on its dark square. */
+	public static function mark() {
+		$svg = (string) file_get_contents( MEMBUILD_COMMUNITY_DIR . 'assets/admin/mark.svg' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- a file of this plugin
+		return str_replace( '<svg ', '<svg aria-hidden="true" focusable="false" ', $svg );
+	}
+
+	/** A plain text link in the accent color. */
+	public static function link( $href, $text, $external = false, $class = 'mbcom-lnk' ) {
+		return sprintf(
+			'<a class="%s" href="%s"%s>%s%s</a>',
+			esc_attr( $class ),
+			esc_url( $href ),
+			$external ? ' target="_blank" rel="noopener"' : '',
+			esc_html( $text ),
+			$external ? ' ' . self::EXT : ''
+		);
+	}
+
+	/** A status pill: action, watch, fine or note. */
+	public static function pill( $kind, $word ) {
+		$k = 'note' === $kind ? '' : ' mbwa-pill-' . $kind;
+		$d = 'note' === $kind ? '' : ' mbwa-dot-' . $kind;
+		return '<span class="mbwa-pill' . $k . '"><span class="mbwa-dot' . $d . '"></span>' . esc_html( $word ) . '</span>';
 	}
 
 	/**
-	 * Opens the panel: tile and name, version, the tabs, then the page's title,
-	 * its one line and its actions. $current is the tab key ('' = overview).
+	 * Opens the frame: the tabs, "Version · by MemBuild" on the right, then the page's
+	 * title row with its one main action. $current is the tab key ('' = overview).
+	 * $desc is a short line under the title, for pages that still need one.
 	 */
 	public static function shell_open( $current, $title, $desc = '', $actions = '', $before_head = '' ) {
-		$ext = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3H3v10h10v-3M9 3h4v4M13 3L7 9"/></svg>';
-		echo '<div class="wrap mbcom-admin ' . esc_attr( $current ?: 'overview' ) . '"><div class="mb-panel">';
-		printf(
-			'<div class="mb-head"><div class="mb-brand"><img class="mb-tile" src="%s" alt="" width="32" height="32"><span class="mb-brand__name">%s</span></div><div>%s</div></div>',
-			esc_url( MEMBUILD_COMMUNITY_URL . 'assets/admin/menu-icon.png' ),
-			esc_html__( 'MemBuild Community', 'membuild-community' ),
-			self::version_badge() // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped there
-		);
-		echo '<nav class="mb-tabs" aria-label="' . esc_attr__( 'Community pages', 'membuild-community' ) . '">';
+		echo '<div class="wrap mbcom-admin mbwa ' . esc_attr( $current ?: 'overview' ) . '">';
+		echo '<div class="mbwa-header"><nav class="mbwa-tabs" aria-label="' . esc_attr__( 'MB Community pages', 'membuild-community' ) . '">';
 		foreach ( self::tabs() as list( $key, $label ) ) {
-			if ( '|' === $key ) {
-				echo '<span class="mb-tabs__sep" aria-hidden="true"></span>';
-				continue;
-			}
 			if ( 'settings' === $key ) {
-				printf( '<a class="mb-tab" href="%s" target="_blank" rel="noopener">%s %s</a>', esc_url( self::app_url( 'settings' ) ), esc_html( $label ), $ext ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static svg
+				printf( '<a class="mbwa-tab" href="%s" target="_blank" rel="noopener">%s%s</a>', esc_url( self::app_url( 'settings' ) ), esc_html( $label ), self::EXT ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static svg
 				continue;
 			}
-			printf( '<a class="mb-tab" href="%s"%s>%s</a>', esc_url( self::url( $key ) ), $key === $current ? ' aria-current="page"' : '', esc_html( $label ) );
+			printf( '<a class="mbwa-tab" href="%s"%s>%s</a>', esc_url( self::url( $key ) ), $key === $current ? ' aria-current="page"' : '', esc_html( $label ) );
 		}
-		echo '</nav>';
+		printf(
+			'</nav><span class="mbwa-by"><span>%s</span><span aria-hidden="true">·</span><span>%s</span>%s</span></div>',
+			/* translators: %s: the plugin's version, e.g. 1.23.1 */
+			esc_html( sprintf( __( 'Version %s', 'membuild-community' ), MEMBUILD_COMMUNITY_VERSION ) ),
+			esc_html__( 'by MemBuild', 'membuild-community' ),
+			self::mark() // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- the plugin's own svg file
+		);
+		echo '<hr class="wp-header-end">'; // WordPress puts its notices here, not inside the title row
+		echo '<div class="mbwa-page">';
+		self::notice();
 		echo $before_head; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the caller
-		if ( '' !== $title ) { // the setup guide brings its own heading
+		if ( '' !== $title ) {
 			printf(
-				'<div class="mb-page__head"><div><h1 class="mb-page__title">%s</h1>%s</div>%s</div>',
+				'<div class="mbwa-title-row"><h1 class="mbwa-title">%s%s</h1>%s</div>',
 				esc_html( $title ),
-				$desc ? '<p class="mb-page__desc">' . wp_kses( $desc, array( 'a' => array( 'href' => array() ), 'strong' => array() ) ) . '</p>' : '',
-				$actions ? '<div class="mb-page__actions">' . $actions . '</div>' : '' // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the caller
+				$desc ? '<span class="mbwa-muted" style="display:block;font-size:13px;font-weight:400;margin-top:4px">' . wp_kses( $desc, array( 'a' => array( 'href' => array() ), 'strong' => array() ) ) . '</span>' : '',
+				$actions // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped by the caller
 			);
 		}
-		self::notice();
 	}
 
-	/** Closes the panel with the one-line footer. */
+	/** Closes the frame. */
 	public static function shell_close() {
-		printf(
-			'<div class="mb-foot"><span>%s</span><span>%s</span></div></div></div>',
-			sprintf(
-				/* translators: %s: "MemBuild", linked */
-				esc_html__( 'Made by %s · the team that runs membership sites.', 'membuild-community' ),
-				'<a href="https://membuild.com" target="_blank" rel="noopener">MemBuild</a>'
-			),
-			sprintf(
-				/* translators: %s: a link to membuild.com */
-				esc_html__( 'Need a hand? %s', 'membuild-community' ),
-				'<a href="https://membuild.com/community" target="_blank" rel="noopener">membuild.com</a>'
-			)
-		);
+		echo '</div></div>';
 	}
 
-	/** A quiet "Open community ↗" button for the page's actions. */
+	/** "Open community ↗", the Overview's one button. */
 	private static function open_button() {
-		return '<a class="mb-btn mb-btn--quiet" href="' . esc_url( self::app_url() ) . '" target="_blank" rel="noopener">' . esc_html__( 'Open community', 'membuild-community' ) . ' <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3H3v10h10v-3M9 3h4v4M13 3L7 9"/></svg></a>';
+		return '<a class="mbwa-btn" href="' . esc_url( self::app_url() ) . '" target="_blank" rel="noopener">' . esc_html__( 'Open community', 'membuild-community' ) . self::EXT . '</a>';
 	}
 
 	/* ---------- Overview ---------- */
 
-	/**
-	 * The overview's totals. Counting big tables is slow on small hosts, so they're
-	 * reused for a few minutes; reports waiting are always live.
-	 */
-	private static function totals() {
-		global $wpdb;
-		$totals = get_transient( 'mbcom_admin_totals' );
-		if ( is_array( $totals ) && isset( $totals['week'] ) ) { // saved by this version (older ones had no weekly counts)
-			return $totals;
-		}
-		$posts  = Install::table( 'posts' );
-		$totals = array(
-			'members'  => Helpers::member_total(),
-			'active'   => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i s JOIN %i u ON u.ID = s.user_id WHERE s.last_active >= %s', Install::table( 'member_stats' ), $wpdb->users, gmdate( 'Y-m-d', time() - 7 * DAY_IN_SECONDS ) ) ), // accounts that still exist
-			'posts'    => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status = 'published' AND type = 'post'", $posts ) ),
-			'reels'    => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status = 'published' AND type = 'reel'", $posts ) ),
-			'comments' => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', Install::table( 'comments' ) ) ),
-			'messages' => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status = 'sent'", Install::table( 'messages' ) ) ),
-			'storage'  => self::storage_bytes(),
-		);
-		// The same counts for the last seven days, shown under each number.
-		$week            = gmdate( 'Y-m-d H:i:s', time() - 7 * DAY_IN_SECONDS );
-		$totals['week']  = array(
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- site_members_sql() returns a prepared fragment.
-			'members'  => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i u WHERE u.user_registered >= %s' . Helpers::site_members_sql(), $wpdb->users, $week ) ),
-			'posts'    => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE status = 'published' AND created_at >= %s", $posts, $week ) ),
-			'comments' => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE created_at >= %s', Install::table( 'comments' ), $week ) ),
-		);
-		set_transient( 'mbcom_admin_totals', $totals, 5 * MINUTE_IN_SECONDS );
-		return $totals;
+	/** 7 or 30, from the period buttons. */
+	private static function period() {
+		return isset( $_GET['days'] ) && '30' === $_GET['days'] ? 30 : 7; // phpcs:ignore WordPress.Security.NonceVerification -- a view choice
 	}
 
-	/** The six steps, one main button on the next one, a thin progress bar (see First_Run). */
+	/**
+	 * The overview's numbers for a period and the one before it. Counting big tables is slow on
+	 * small hosts, so they're reused for a few minutes; reports waiting are always live.
+	 */
+	private static function numbers( $days ) {
+		global $wpdb;
+		$cache = get_transient( 'mbcom_admin_numbers_' . $days );
+		if ( is_array( $cache ) && isset( $cache['v'] ) && 3 === $cache['v'] ) {
+			return $cache;
+		}
+		$now = time();
+		// Whole days in the site's time zone, today included, the same days the chart shows.
+		$start  = ( new \DateTimeImmutable( 'today', wp_timezone() ) )->modify( '-' . ( $days - 1 ) . ' days' )->getTimestamp();
+		$from   = gmdate( 'Y-m-d H:i:s', $start );
+		$before = gmdate( 'Y-m-d H:i:s', $start - $days * DAY_IN_SECONDS );
+		$posts  = Install::table( 'posts' );
+		$pair   = function ( $sql, ...$args ) use ( $wpdb, $from, $before ) {
+			// $sql has two %s at the end: the start and the end of the window.
+			return array(
+				(int) $wpdb->get_var( $wpdb->prepare( $sql, array_merge( $args, array( $from, gmdate( 'Y-m-d H:i:s', time() + DAY_IN_SECONDS ) ) ) ) ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- built from fixed strings below
+				(int) $wpdb->get_var( $wpdb->prepare( $sql, array_merge( $args, array( $before, $from ) ) ) ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			);
+		};
+		$n = array(
+			'v'        => 3,
+			'all'      => Helpers::member_total(),
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- site_members_sql() returns a prepared fragment.
+			'joined'   => $pair( 'SELECT COUNT(*) FROM %i u WHERE 1=1' . Helpers::site_members_sql() . ' AND u.user_registered >= %s AND u.user_registered < %s', $wpdb->users ),
+			'active'   => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i s JOIN %i u ON u.ID = s.user_id WHERE s.last_active >= %s', Install::table( 'member_stats' ), $wpdb->users, wp_date( 'Y-m-d', $start ) ) ),
+			'quiet'    => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i s JOIN %i u ON u.ID = s.user_id WHERE s.last_active < %s', Install::table( 'member_stats' ), $wpdb->users, gmdate( 'Y-m-d', $now - 30 * DAY_IN_SECONDS ) ) ),
+			'posts'    => $pair( "SELECT COUNT(*) FROM %i WHERE status = 'published' AND created_at >= %s AND created_at < %s", $posts ),
+			'comments' => $pair( 'SELECT COUNT(*) FROM %i WHERE created_at >= %s AND created_at < %s', Install::table( 'comments' ) ),
+			'lessons'  => $pair( 'SELECT COUNT(*) FROM %i WHERE completed_at >= %s AND completed_at < %s', Install::table( 'lesson_progress' ) ),
+			'quizzes'  => $pair( 'SELECT COUNT(*) FROM %i WHERE passed = 1 AND preview = 0 AND finished_at >= %s AND finished_at < %s', Install::table( 'quiz_attempts' ) ),
+			'certs'    => $pair( "SELECT COUNT(*) FROM %i WHERE status = 'valid' AND created_at >= %s AND created_at < %s", Install::table( 'certificates' ) ),
+			'courses'  => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', Install::table( 'courses' ) ) ),
+			'storage'  => self::storage_bytes(),
+		);
+		$event = $wpdb->get_row( $wpdb->prepare( "SELECT id, event_at FROM %i WHERE status = 'published' AND event_at IS NOT NULL AND event_at >= %s ORDER BY event_at ASC LIMIT 1", $posts, gmdate( 'Y-m-d H:i:s', $now ) ), ARRAY_A );
+		$n['event'] = $event ? array(
+			'at'    => strtotime( $event['event_at'] . ' UTC' ),
+			'id'    => (int) $event['id'],
+			'going' => (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM %i WHERE object_type = 'event' AND object_id = %d AND type = 'going'", Install::table( 'reactions' ), $event['id'] ) ),
+		) : null;
+		// The chart: posts and comments per day, in the site's time zone.
+		$chart = array();
+		for ( $i = $days - 1; $i >= 0; $i-- ) {
+			$chart[ wp_date( 'Y-m-d', $start + ( $days - 1 - $i ) * DAY_IN_SECONDS + 12 * HOUR_IN_SECONDS ) ] = array( 0, 0 );
+		}
+		$offset = sprintf( '%+d:%02d', (int) ( wp_timezone()->getOffset( new \DateTime() ) / 3600 ), abs( (int) ( wp_timezone()->getOffset( new \DateTime() ) % 3600 / 60 ) ) );
+		foreach ( array( 0 => array( "SELECT DATE(CONVERT_TZ(created_at, '+00:00', %s)) d, COUNT(*) c FROM %i WHERE status = 'published' AND created_at >= %s GROUP BY d", $posts ), 1 => array( "SELECT DATE(CONVERT_TZ(created_at, '+00:00', %s)) d, COUNT(*) c FROM %i WHERE created_at >= %s GROUP BY d", Install::table( 'comments' ) ) ) as $k => list( $sql, $table ) ) {
+			foreach ( (array) $wpdb->get_results( $wpdb->prepare( $sql, $offset, $table, $from ), ARRAY_A ) as $r ) { // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- fixed strings above
+				if ( isset( $chart[ $r['d'] ] ) ) {
+					$chart[ $r['d'] ][ $k ] = (int) $r['c'];
+				}
+			}
+		}
+		$n['chart'] = $chart;
+		set_transient( 'mbcom_admin_numbers_' . $days, $n, 5 * MINUTE_IN_SECONDS );
+		return $n;
+	}
+
+	/** "Up from 5", "Down from 27" or "Same as before". */
+	private static function compared( array $pair ) {
+		list( $now, $before ) = $pair;
+		if ( $now === $before ) {
+			return __( 'Same as before', 'membuild-community' );
+		}
+		/* translators: %s: the number in the period before */
+		return sprintf( $now > $before ? __( 'Up from %s', 'membuild-community' ) : __( 'Down from %s', 'membuild-community' ), number_format_i18n( $before ) );
+	}
+
+	/** The 7 days / 30 days buttons. */
+	private static function period_buttons( $days ) {
+		$out = '<div class="mbwa-seg" role="group" aria-label="' . esc_attr__( 'Period', 'membuild-community' ) . '">';
+		foreach ( array( 7 => __( '7 days', 'membuild-community' ), 30 => __( '30 days', 'membuild-community' ) ) as $d => $label ) {
+			$out .= '<a href="' . esc_url( self::url( '', 7 === $d ? array() : array( 'days' => $d ) ) ) . '"' . ( $d === $days ? ' aria-current="true"' : '' ) . '>' . esc_html( $label ) . '</a>';
+		}
+		return $out . '</div>';
+	}
+
+	/** Number tiles: label, number, a quiet line under it. */
+	private static function tiles( array $tiles ) {
+		$out = '<div class="mbwa-stats">';
+		foreach ( $tiles as list( $label, $value, $note ) ) {
+			$out .= '<div><div class="mbwa-muted">' . esc_html( $label ) . '</div><div class="mbwa-stat-number">' . esc_html( $value ) . '</div><div class="mbwa-muted">' . esc_html( $note ) . '</div></div>';
+		}
+		return $out . '</div>';
+	}
+
+	/** The six steps: what's left first, each with a quiet button; done ones below with a Done pill. */
 	private static function setup_guide() {
 		$done  = First_Run::owner_steps();
 		$steps = array(
-			'look'   => array( __( 'Name, logo and color', 'membuild-community' ), __( 'How your community looks to members.', 'membuild-community' ), __( 'Choose', 'membuild-community' ), self::app_url( 'settings/community' ), 'M4 20l4-1 10-10-3-3L5 16zM14 7l3 3' ),
-			'email'  => array( __( 'Choose how emails are sent', 'membuild-community' ), __( 'So sign-up and password emails arrive, not land in spam.', 'membuild-community' ), __( 'Choose', 'membuild-community' ), self::app_url( 'settings/email' ), 'M3 6h18v12H3zM3 7l9 7 9-7' ),
-			'key'    => array( __( 'Save your safety key', 'membuild-community' ), __( 'Keeps private messages readable if your site ever moves to a new host.', 'membuild-community' ), __( 'Save the key', 'membuild-community' ), self::app_url( 'settings/address#s-key' ), 'M15 7a4 4 0 1 1-3.9 5H7v3H4v-3H3v-3h8.1A4 4 0 0 1 15 7z' ),
-			'course' => array( __( 'Add your first course', 'membuild-community' ), __( 'Skip this if you only want a community for now.', 'membuild-community' ), __( 'Create a course', 'membuild-community' ), self::app_url( 'classroom' ), 'M2 9l10-5 10 5-10 5zM6 11v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5' ),
-			'post'   => array( __( 'Write a welcome post', 'membuild-community' ), __( 'The first thing new members see. Say hello and what to expect.', 'membuild-community' ), __( 'Write it', 'membuild-community' ), self::app_url( '?write=1' ), 'M4 20l4-1 10-10-3-3L5 16z' ),
-			'invite' => array( __( 'Invite your members', 'membuild-community' ), __( 'Share your join link. People with an account on your site can already log in.', 'membuild-community' ), __( 'Invite', 'membuild-community' ), self::app_url( '?invite=1' ), 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21a7 7 0 0 1 14 0M16 3.5a4 4 0 0 1 0 7.5M18 14.5a7 7 0 0 1 4 6.5' ),
+			'look'   => array( __( 'Name, logo and color', 'membuild-community' ), __( 'How your community looks to members', 'membuild-community' ), __( 'Choose', 'membuild-community' ), self::app_url( 'settings/community' ) ),
+			'email'  => array( __( 'Choose how emails are sent', 'membuild-community' ), __( 'So sign-up and password emails arrive', 'membuild-community' ), __( 'Choose', 'membuild-community' ), self::app_url( 'settings/email' ) ),
+			'key'    => array( __( 'Save your safety key', 'membuild-community' ), __( 'Keeps private messages readable after a move', 'membuild-community' ), __( 'Save the key', 'membuild-community' ), self::app_url( 'settings/address#s-key' ) ),
+			'course' => array( __( 'Add your first course', 'membuild-community' ), __( 'Optional, skip it if you only want a community', 'membuild-community' ), __( 'Create a course', 'membuild-community' ), self::app_url( 'classroom' ) ),
+			'post'   => array( __( 'Write a welcome post', 'membuild-community' ), __( 'The first thing new members see', 'membuild-community' ), __( 'Write it', 'membuild-community' ), self::app_url( '?write=1' ) ),
+			'invite' => array( __( 'Invite your members', 'membuild-community' ), __( 'Share your join link', 'membuild-community' ), __( 'Invite', 'membuild-community' ), self::app_url( '?invite=1' ) ),
 		);
 		$count = count( array_filter( $done ) );
-		$next  = '';
-		foreach ( $steps as $key => $st ) {
-			if ( empty( $done[ $key ] ) && 'course' !== $key ) {
-				$next = $key;
-				break;
-			}
-		}
-		echo '<section class="mb-card mbcom-guide">';
+		$hide  = wp_nonce_url( add_query_arg( array( 'action' => 'mbcom_hide_guide' ), admin_url( 'admin-post.php' ) ), 'mbcom_hide_guide' );
+		echo '<section class="mbwa-card">';
 		printf(
-			'<div class="mbcom-guide-head"><div><h1>%s</h1><p>%s</p></div>%s</div>',
-			esc_html__( 'Welcome! Let’s get your community ready', 'membuild-community' ),
-			wp_kses(
-				sprintf(
-					/* translators: %s: the community's address */
-					__( 'Your community is already live at %s. These six steps take about 10 minutes. You can stop and come back any time.', 'membuild-community' ),
-					'<a href="' . esc_url( self::app_url() ) . '"><strong>' . esc_html( wp_parse_url( self::app_url(), PHP_URL_HOST ) . '/' . Settings::slug() ) . '</strong></a>'
-				),
-				array( 'a' => array( 'href' => true ), 'strong' => array() )
-			),
-			self::open_button() // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped there
+			'<div class="mbwa-card-bar"><h2 class="mbwa-card-title">%s<span class="mbwa-card-note">%s</span></h2>%s</div>',
+			esc_html__( 'Get your community ready', 'membuild-community' ),
+			/* translators: 1: steps done, 2: all steps */
+			esc_html( sprintf( __( '%1$d of %2$d done', 'membuild-community' ), $count, count( $steps ) ) ),
+			self::link( $hide, __( 'Hide', 'membuild-community' ), false, 'mbcom-lnk mbcom-lnk-quiet' ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped there
 		);
-		/* translators: 1: steps done, 2: all steps */
-		printf( '<div class="mbcom-guide-bar"><span><i style="width:%d%%"></i></span><b>%s</b></div>', (int) round( 100 * $count / count( $steps ) ), esc_html( sprintf( __( '%1$d of %2$d done', 'membuild-community' ), $count, count( $steps ) ) ) );
-		echo '<ol class="mbcom-guide-steps">';
-		$n = 0;
-		foreach ( $steps as $key => $st ) {
+		printf( '<div style="padding:0 var(--space-24) var(--space-16)"><div class="mbwa-bar" style="margin:0"><span style="width:%d%%"></span></div></div>', (int) round( 100 * $count / count( $steps ) ) );
+		$order = array_merge( array_keys( array_filter( $done, fn( $d ) => ! $d ) ), array_keys( array_filter( $done ) ) );
+		$n     = 0;
+		foreach ( $order as $key ) {
+			if ( ! isset( $steps[ $key ] ) ) {
+				continue;
+			}
 			++$n;
+			$st      = $steps[ $key ];
 			$is_done = ! empty( $done[ $key ] );
-			$tag     = 'email' === $key && ! $is_done ? '<span class="mbcom-guide-tag warn">' . esc_html__( 'Do this before inviting anyone', 'membuild-community' ) . '</span>' : ( 'course' === $key ? '<span class="mbcom-guide-tag">' . esc_html__( 'Optional', 'membuild-community' ) . '</span>' : '' );
 			printf(
-				'<li class="%s"><span class="mbcom-guide-n">%s</span><svg class="mbcom-guide-ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="%s"/></svg><span class="mbcom-guide-words"><strong>%s</strong>%s<small>%s</small></span>%s</li>',
-				$is_done ? 'done' : ( $key === $next ? 'next' : '' ),
-				$is_done ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' : (int) $n,
-				esc_attr( $st[4] ),
+				'<div class="mbcom-step"><span class="mbcom-num%s">%s</span><div><div class="mbwa-strong">%s</div>%s</div>%s</div>',
+				$is_done ? ' done' : '',
+				$is_done ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-label="' . esc_attr__( 'Done', 'membuild-community' ) . '"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' : (int) $n,
 				esc_html( $st[0] ),
-				$tag, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped above
-				esc_html( $st[1] ),
-				$is_done ? '<span class="mbcom-guide-done">' . esc_html__( 'Done', 'membuild-community' ) . '</span>' : '<a class="mbcom-guide-btn' . ( $key === $next ? ' main' : '' ) . '" href="' . esc_url( $st[3] ) . '">' . esc_html( $st[2] ) . '</a>'
+				$is_done ? '' : '<div class="mbwa-muted">' . esc_html( $st[1] ) . '</div>',
+				$is_done ? self::pill( 'fine', __( 'Done', 'membuild-community' ) ) : '<a class="mbwa-btn" href="' . esc_url( $st[3] ) . '">' . esc_html( $st[2] ) . '</a>' // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped there
 			);
 		}
-		echo '</ol></section>';
+		echo '</section>';
+	}
+
+	/** The setup guide shows until its steps are done or the owner hides it. */
+	private static function guide_showing() {
+		return Helpers::can_manage() && ! First_Run::owner_done() && ! get_option( 'mbcom_guide_hidden' );
+	}
+
+	/** Hides the setup guide for good (Hide on its card). */
+	public static function hide_guide() {
+		if ( ! current_user_can( self::CAP ) ) {
+			wp_die( esc_html__( 'You don’t have permission to do that.', 'membuild-community' ), 403 );
+		}
+		check_admin_referer( 'mbcom_hide_guide' );
+		update_option( 'mbcom_guide_hidden', 1, false );
+		wp_safe_redirect( self::url() );
+		exit;
 	}
 
 	public static function page_overview() {
-		$t       = self::totals();
-		$week    = $t['week'];
-		$reports = Moderation::open_count();
-		/* translators: %s: a number */
-		$this_week = fn( $n ) => $n ? sprintf( __( '+%s this week', 'membuild-community' ), number_format_i18n( $n ) ) : __( 'None this week', 'membuild-community' );
-		$share     = $t['members'] ? (int) round( 100 * $t['active'] / $t['members'] ) : 0;
-		/* translators: %s: share of all members who were active this week, e.g. "38" */
-		$active_share = sprintf( __( '%s%% of members', 'membuild-community' ), number_format_i18n( $share ) );
-		/* translators: %s: number of reels */
-		$reels = $t['reels'] ? sprintf( _n( '%s is a reel', '%s are reels', $t['reels'], 'membuild-community' ), number_format_i18n( $t['reels'] ) ) : '';
-		$cards = array(
-			// label, value, chip, note after the chip, link, chip is good news
-			array( __( 'Members', 'membuild-community' ), $t['members'], $this_week( $week['members'] ), '', self::url( 'members' ), (bool) $week['members'] ),
-			array( __( 'Active this week', 'membuild-community' ), $t['active'], $active_share, '', self::url( 'members', array( 'orderby' => 'last_active', 'order' => 'desc' ) ), $t['active'] > 0 ),
-			array( __( 'Posts', 'membuild-community' ), $t['posts'] + $t['reels'], $this_week( $week['posts'] ), $reels, self::url( 'posts' ), (bool) $week['posts'] ),
-			array( __( 'Comments', 'membuild-community' ), $t['comments'], $this_week( $week['comments'] ), '', self::url( 'comments' ), (bool) $week['comments'] ),
+		$days = self::period();
+		$n    = self::numbers( $days );
+		/* translators: %s: number of days, 7 or 30 */
+		$last = sprintf( __( 'Last %s days', 'membuild-community' ), $days );
+
+		self::shell_open( '', __( 'Overview', 'membuild-community' ), '', self::open_button() );
+		if ( self::guide_showing() ) {
+			self::setup_guide();
+		}
+
+		// Activity.
+		/* translators: 1: comparison, e.g. "Up from 5", 2: all members */
+		$joined_note = sprintf( __( '%1$s · %2$s in all', 'membuild-community' ), self::compared( $n['joined'] ), number_format_i18n( $n['all'] ) );
+		/* translators: %s: share of all members, e.g. "21" */
+		$active_note = sprintf( __( '%s%% of members', 'membuild-community' ), number_format_i18n( $n['all'] ? (int) round( 100 * $n['active'] / $n['all'] ) : 0 ) );
+		printf(
+			'<section class="mbwa-card"><div class="mbwa-card-bar"><h2 class="mbwa-card-title">%s</h2>%s</div><div class="mbcom-pad">%s</div></section>',
+			esc_html__( 'Activity', 'membuild-community' ),
+			self::period_buttons( $days ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped there
+			self::tiles( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped there
+				array(
+					array( __( 'New members', 'membuild-community' ), number_format_i18n( $n['joined'][0] ), $joined_note ),
+					array( __( 'Active members', 'membuild-community' ), number_format_i18n( $n['active'] ), $active_note ),
+					array( __( 'Posts', 'membuild-community' ), number_format_i18n( $n['posts'][0] ), self::compared( $n['posts'] ) ),
+					array( __( 'Comments', 'membuild-community' ), number_format_i18n( $n['comments'][0] ), self::compared( $n['comments'] ) ),
+				)
+			)
 		);
 
-		// A new community: the six-step setup guide comes first, then Keep me updated.
-		// The numbers show once people have joined; nothing is blurred.
-		$guide = Helpers::can_manage() && ! First_Run::owner_done();
-		$staff = count( get_users( array( 'capability' => 'moderate_comments', 'fields' => 'ID', 'number' => 50 ) ) );
-		$quiet = $guide && $t['members'] <= $staff; // nobody but the team yet
-		$gated = false;
-		if ( $guide ) {
-			self::shell_open( '', '', '', '' );
-			self::setup_guide();
-		} else {
-			self::shell_open(
-				'',
-				Settings::name(),
-				sprintf(
-					/* translators: %s: the community's address, linked */
-					__( 'Your community page is live at %s. Here is what happened in it.', 'membuild-community' ),
-					'<a href="' . esc_url( self::app_url() ) . '">/' . esc_html( Settings::slug() ) . '/</a>'
-				),
-				self::open_button(),
-				Health::key_card()
-			);
-		}
-		Usage::setup_card();
-		if ( $quiet ) {
-			printf( '<p class="mbcom-guide-note"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg> %s</p>', esc_html__( 'Your numbers (members, posts, activity) show here once people join. This guide hides itself when all six steps are done.', 'membuild-community' ) );
-			self::shell_close();
-			return;
-		}
-		if ( $gated ) {
-			$urgent = array();
-			if ( Problems::strip_item() ) {
-				$urgent[] = Problems::strip_item();
-			}
-			if ( $reports ) {
-				/* translators: %s: number of reports */
-				$urgent[] = '<a class="mb-badge mb-badge--danger" href="' . esc_url( self::app_url( 'moderation' ) ) . '">' . esc_html( sprintf( _n( '%s report waiting', '%s reports waiting', $reports, 'membuild-community' ), number_format_i18n( $reports ) ) ) . ' · ' . esc_html__( 'Review', 'membuild-community' ) . '</a>';
-			}
-			foreach ( array( 'permalinks', 'cron', 'https', 'images', 'uploads', 'email' ) as $key ) {
-				if ( 'critical' === Health::check( $key )[0] ) {
-					$urgent[] = '<a class="mb-badge mb-badge--danger" href="' . esc_url( admin_url( 'site-health.php' ) ) . '">' . esc_html__( 'Something on your hosting needs fixing', 'membuild-community' ) . ' · ' . esc_html__( 'Open Site Health', 'membuild-community' ) . '</a>';
-					break;
-				}
-			}
-			if ( $urgent ) {
-				echo '<div class="mbcom-strip mbcom-urgent">' . implode( '', $urgent ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built above from escaped parts
-			}
-			echo '<div class="mbcom-gated" inert aria-hidden="true">';
-		}
-
-		echo '<div class="mbcom-stats">';
-		foreach ( $cards as list( $label, $value, $chip, $note, $link, $up ) ) {
+		// Courses and events, once there is a course or an event coming.
+		if ( $n['courses'] || $n['event'] ) {
+			$event = $n['event']
+				/* translators: %s: number of members going */
+				? array( __( 'Next event', 'membuild-community' ), wp_date( 'D j M', $n['event']['at'] ), sprintf( _n( '%s going', '%s going', $n['event']['going'], 'membuild-community' ), number_format_i18n( $n['event']['going'] ) ) )
+				: array( __( 'Next event', 'membuild-community' ), __( 'None planned', 'membuild-community' ), '' );
 			printf(
-				'<a class="mb-stat" href="%s"><span class="mb-label">%s</span><span class="mb-stat__n">%s</span><span class="mb-stat__l"><span class="mb-badge %s">%s</span>%s</span></a>',
-				esc_url( $link ),
-				esc_html( $label ),
-				esc_html( number_format_i18n( $value ) ),
-				$up ? 'mb-badge--ok' : 'mb-badge--neutral',
-				esc_html( $chip ),
-				$note ? '<span>' . esc_html( $note ) . '</span>' : ''
+				'<section class="mbwa-card"><div class="mbwa-card-bar"><h2 class="mbwa-card-title">%s<span class="mbwa-card-note">%s</span></h2>%s</div><div class="mbcom-pad">%s</div></section>',
+				esc_html__( 'Courses and events', 'membuild-community' ),
+				esc_html( $last ),
+				self::link( self::url( 'courses' ), __( 'View courses', 'membuild-community' ) ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped there
+				self::tiles( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped there
+					array(
+						array( __( 'Lessons finished', 'membuild-community' ), number_format_i18n( $n['lessons'][0] ), self::compared( $n['lessons'] ) ),
+						array( __( 'Quizzes passed', 'membuild-community' ), number_format_i18n( $n['quizzes'][0] ), self::compared( $n['quizzes'] ) ),
+						array( __( 'Certificates earned', 'membuild-community' ), number_format_i18n( $n['certs'][0] ), self::compared( $n['certs'] ) ),
+						$event,
+					)
+				)
 			);
 		}
-		echo '</div>';
 
-		// The quieter numbers as pills; reports get attention only when there are some.
-		echo '<div class="mbcom-strip">';
-		echo Problems::strip_item(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped there
-		if ( $reports ) {
-			/* translators: %s: number of reports */
-			printf( '<a class="mb-badge mb-badge--danger" href="%s">%s · %s</a>', esc_url( self::app_url( 'moderation' ) ), esc_html( sprintf( _n( '%s report waiting', '%s reports waiting', $reports, 'membuild-community' ), number_format_i18n( $reports ) ) ), esc_html__( 'Review', 'membuild-community' ) );
-		} else {
-			printf( '<span class="mb-badge mb-badge--neutral"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3 3 7-7"/></svg> %s</span>', esc_html__( 'No reports waiting', 'membuild-community' ) );
-		}
-		/* translators: %s: number of private messages */
-		printf( '<span class="mb-badge mb-badge--neutral">%s</span>', esc_html( sprintf( _n( '%s private message, never shown', '%s private messages, never shown', $t['messages'], 'membuild-community' ), number_format_i18n( $t['messages'] ) ) ) );
-		/* translators: %s: storage size, e.g. "68 MB" */
-		printf( '<a class="mb-badge mb-badge--neutral" href="%s">%s</a>', esc_url( self::url( 'files' ) ), esc_html( sprintf( __( '%s of files', 'membuild-community' ), size_format( $t['storage'] ) ) ) );
-		echo '</div>';
+		self::activity_chart( $n['chart'], $last );
 
-		echo '<div class="mbcom-grid"><div class="mbcom-column"><section class="mb-card mbcom-chart-card">';
-		self::activity_chart();
-		echo '</section>';
-		self::health_banner();
-		echo '</div><section class="mb-card mbcom-activity-card">';
-		printf( '<div class="mb-card__head"><h2 class="mb-card__title">%s</h2><a class="mb-link" href="%s">%s</a></div>', esc_html__( 'Latest activity', 'membuild-community' ), esc_url( self::url( 'posts' ) ), esc_html__( 'All posts', 'membuild-community' ) );
+		echo '<div class="mbcom-two">';
+		self::checks( $n );
+		echo '<section class="mbwa-card">';
+		printf( '<div class="mbwa-card-bar"><h2 class="mbwa-card-title">%s</h2>%s</div>', esc_html__( 'Latest activity', 'membuild-community' ), self::link( self::url( 'posts' ), __( 'View all', 'membuild-community' ) ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped there
 		self::recent_activity();
 		echo '</section></div>';
 
-		printf(
-			'<div class="mb-inset">%s</div>',
-			sprintf(
-				/* translators: %s: "mbcom_" in a code chip */
-				esc_html__( 'All of this is stored in your own WordPress database, in tables that start with %s. Private messages are counted here but never shown; reported messages and posts reach moderators in the community’s Moderation page.', 'membuild-community' ),
-				'<span class="mb-code">mbcom_</span>'
-			)
-		);
-		if ( $gated ) {
-			echo '</div>';
-		}
+		Usage::setup_card();
 		self::shell_close();
 	}
 
-	/** Problems Site Health found, with a link there. */
-	private static function health_banner() {
-		$issues = array();
+	/**
+	 * Checks: one row each for what may need the owner. Name, the fact, a pill, one link.
+	 * The version row shows only when an update is out; the safety key only until it's saved.
+	 */
+	private static function checks( array $n ) {
+		$rows    = array();
+		$reports = Moderation::open_count();
+		$rows[]  = $reports
+			/* translators: %s: number of reports */
+			? array( __( 'Reports from members', 'membuild-community' ), sprintf( _n( '%s waiting', '%s waiting', $reports, 'membuild-community' ), number_format_i18n( $reports ) ), 'action', __( 'Action', 'membuild-community' ), self::app_url( 'moderation' ), __( 'View reports', 'membuild-community' ), true )
+			: array( __( 'Reports from members', 'membuild-community' ), __( 'None waiting', 'membuild-community' ), 'fine', __( 'Fine', 'membuild-community' ), '', '', false );
+		if ( '' !== Health::key_card() && ! self::guide_showing() ) {
+			$rows[] = array( __( 'Safety key', 'membuild-community' ), __( 'No spare copy saved', 'membuild-community' ), 'action', __( 'Action', 'membuild-community' ), Health::key_settings_url(), __( 'Save the key', 'membuild-community' ), true );
+		}
+		$issues = 0;
+		$bad    = false;
 		foreach ( array( 'permalinks', 'cron', 'https', 'images', 'uploads', 'email' ) as $key ) {
-			list( $status, $text ) = Health::check( $key );
+			$status = Health::check( $key )[0];
 			if ( 'good' !== $status ) {
-				$issues[] = array( $status, $text );
+				++$issues;
+				$bad = $bad || 'critical' === $status;
 			}
 		}
-		if ( ! $issues ) {
-			return;
+		$rows[] = $issues
+			/* translators: %s: number of things */
+			? array( __( 'Hosting', 'membuild-community' ), sprintf( _n( '%s thing to fix', '%s things to fix', $issues, 'membuild-community' ), number_format_i18n( $issues ) ), $bad ? 'action' : 'watch', $bad ? __( 'Action', 'membuild-community' ) : __( 'Watch', 'membuild-community' ), admin_url( 'site-health.php' ), __( 'Open Site Health', 'membuild-community' ), false )
+			: array( __( 'Hosting', 'membuild-community' ), __( 'Nothing to fix', 'membuild-community' ), 'fine', __( 'Fine', 'membuild-community' ), '', '', false );
+		$rows[] = $n['quiet']
+			/* translators: %s: number of members */
+			? array( __( 'Quiet members', 'membuild-community' ), sprintf( _n( '%s not seen in 30 days', '%s not seen in 30 days', $n['quiet'], 'membuild-community' ), number_format_i18n( $n['quiet'] ) ), 'watch', __( 'Watch', 'membuild-community' ), self::url( 'members', array( 'status' => 'quiet' ) ), __( 'View members', 'membuild-community' ), false )
+			: array( __( 'Quiet members', 'membuild-community' ), __( 'Everyone seen lately', 'membuild-community' ), 'fine', __( 'Fine', 'membuild-community' ), '', '', false );
+		$errors = Problems::recent_count();
+		$rows[] = $errors
+			/* translators: %s: number of errors */
+			? array( __( 'Plugin errors', 'membuild-community' ), sprintf( _n( '%s in 7 days', '%s in 7 days', $errors, 'membuild-community' ), number_format_i18n( $errors ) ), 'watch', __( 'Watch', 'membuild-community' ), self::url( 'problems' ), __( 'View problems', 'membuild-community' ), false )
+			: array( __( 'Plugin errors', 'membuild-community' ), __( 'None caught', 'membuild-community' ), 'fine', __( 'Fine', 'membuild-community' ), self::url( 'problems' ), __( 'View problems', 'membuild-community' ), false );
+		$newer = self::newer_version();
+		if ( $newer ) {
+			/* translators: %s: the newer version */
+			$rows[] = array( __( 'Plugin version', 'membuild-community' ), sprintf( __( '%s is out', 'membuild-community' ), $newer ), 'watch', __( 'Watch', 'membuild-community' ), admin_url( 'plugins.php' ), __( 'Update', 'membuild-community' ), false );
 		}
-		// Folded into one line unless something is broken: most of these are worth fixing, not urgent.
-		$critical = (bool) array_filter( $issues, fn( $i ) => 'critical' === $i[0] );
+		echo '<section class="mbwa-card mbcom-checks">';
 		printf(
-			'<details class="mb-notice %s mbcom-checks"%s><summary><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M8 7v4M8 5v.01"/></svg> %s</summary><ul>',
-			$critical ? 'mb-notice--danger' : 'mb-notice--warn',
-			$critical ? ' open' : '',
-			/* translators: %s: number of things to check */
-			esc_html( sprintf( _n( '%s thing to check on your hosting', '%s things to check on your hosting', count( $issues ), 'membuild-community' ), number_format_i18n( count( $issues ) ) ) )
+			'<div class="mbwa-card-bar"><h2 class="mbwa-card-title">%s</h2></div><div class="mbwa-thead"><span>%s</span><span>%s</span><span>%s</span><span></span></div>',
+			esc_html__( 'Checks', 'membuild-community' ),
+			esc_html__( 'Check', 'membuild-community' ),
+			esc_html__( 'Fact', 'membuild-community' ),
+			esc_html__( 'Status', 'membuild-community' )
 		);
-		foreach ( $issues as list( $status, $text ) ) {
-			echo '<li class="' . esc_attr( $status ) . '">' . wp_kses_post( $text ) . '</li>';
+		foreach ( $rows as list( $name, $fact, $kind, $word, $href, $link, $app ) ) {
+			printf(
+				'<div class="mbwa-trow"><div class="mbwa-strong">%s</div><div class="mbwa-muted">%s</div><div>%s</div><div>%s</div></div>',
+				esc_html( $name ),
+				esc_html( $fact ),
+				self::pill( $kind, $word ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped there
+				$href ? self::link( $href, $link, $app ) : '' // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped there
+			);
 		}
-		echo '</ul><p><a class="mb-link" href="' . esc_url( admin_url( 'site-health.php' ) ) . '">' . esc_html__( 'Open Site Health', 'membuild-community' ) . '</a></p></details>';
+		echo '</section>';
 	}
 
-	/** Daily posts, comments and new members, as a simple bar chart (no scripts, no outside services). */
-	private static function activity_chart() {
-		global $wpdb;
-		$since = gmdate( 'Y-m-d', time() - 29 * DAY_IN_SECONDS );
-		$days  = array();
-		for ( $i = 29; $i >= 0; $i-- ) {
-			$days[ gmdate( 'Y-m-d', time() - $i * DAY_IN_SECONDS ) ] = array( 0, 0, 0 );
+	/** Posts and comments per day as two lines, drawn on the server (no scripts, no outside services). */
+	private static function activity_chart( array $days, $last ) {
+		$posts = array_column( $days, 0 );
+		$comms = array_column( $days, 1 );
+		$wide  = self::chart_svg( $days, $posts, $comms, 1186, 220, 1 );
+		$small = self::chart_svg( $days, $posts, $comms, 340, 200, count( $days ) > 7 ? 2 : 1 );
+		$keys  = array_keys( $days );
+		$summary = array();
+		foreach ( $keys as $i => $day ) {
+			/* translators: 1: date, 2: posts, 3: comments */
+			$summary[] = sprintf( __( '%1$s: %2$d posts, %3$d comments', 'membuild-community' ), wp_date( 'j M', strtotime( $day . ' 12:00 ' . wp_timezone_string() ) ), $posts[ $i ], $comms[ $i ] );
 		}
-		$series = array(
-			0 => $wpdb->get_results( $wpdb->prepare( "SELECT DATE(created_at) d, COUNT(*) n FROM %i WHERE status = 'published' AND created_at >= %s GROUP BY d", Install::table( 'posts' ), $since ), ARRAY_A ),
-			1 => $wpdb->get_results( $wpdb->prepare( 'SELECT DATE(created_at) d, COUNT(*) n FROM %i WHERE created_at >= %s GROUP BY d', Install::table( 'comments' ), $since ), ARRAY_A ),
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- site_members_sql() returns a prepared fragment.
-			2 => $wpdb->get_results( $wpdb->prepare( 'SELECT DATE(u.user_registered) d, COUNT(*) n FROM %i u WHERE u.user_registered >= %s' . Helpers::site_members_sql() . ' GROUP BY d', $wpdb->users, $since ), ARRAY_A ),
+		printf(
+			'<section class="mbwa-card"><div class="mbwa-card-bar"><h2 class="mbwa-card-title">%s<span class="mbwa-card-note">%s</span></h2><div class="mbcom-legend"><span><svg width="22" height="8" aria-hidden="true"><line x1="0" x2="22" y1="4" y2="4" stroke="var(--accent)" stroke-width="2"/></svg>%s</span><span><svg width="22" height="8" aria-hidden="true"><line x1="0" x2="22" y1="4" y2="4" stroke="var(--ink-2)" stroke-width="2" stroke-dasharray="5 4"/></svg>%s</span></div></div><div style="padding:0 var(--space-24) var(--space-20)" role="img" aria-label="%s"><div class="mbcom-chart-wide">%s</div><div class="mbcom-chart-small">%s</div></div></section>',
+			esc_html__( 'Posts and comments by day', 'membuild-community' ),
+			esc_html( $last ),
+			esc_html__( 'Posts', 'membuild-community' ),
+			esc_html__( 'Comments', 'membuild-community' ),
+			esc_attr( implode( '; ', $summary ) ),
+			$wide, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- numbers and escaped labels only
+			$small // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- numbers and escaped labels only
 		);
-		foreach ( $series as $k => $rows ) {
-			foreach ( $rows as $r ) {
-				if ( isset( $days[ $r['d'] ] ) ) {
-					$days[ $r['d'] ][ $k ] = (int) $r['n'];
+	}
+
+	/** One drawing of the chart at a given size; $thin keeps every $thin-th label on small screens. */
+	private static function chart_svg( array $days, array $posts, array $comms, $w, $h, $thin ) {
+		$count = count( $days );
+		$top   = max( 1, max( $posts ), max( $comms ) );
+		$step  = max( 1, (int) ceil( $top / 3 ) );
+		$top   = $step * 3;
+		list( $pl, $pr, $pt, $pb ) = array( 36, 16, 10, 28 );
+		$x = fn( $i ) => round( $pl + ( $w - $pl - $pr ) * ( $count > 1 ? $i / ( $count - 1 ) : 0.5 ), 1 );
+		$y = fn( $v ) => round( $pt + ( $h - $pt - $pb ) * ( 1 - $v / $top ), 1 );
+		$svg = '';
+		for ( $v = 0; $v <= $top; $v += $step ) {
+			$svg .= '<line x1="' . $pl . '" x2="' . ( $w - $pr ) . '" y1="' . $y( $v ) . '" y2="' . $y( $v ) . '" stroke="var(--chart-grid)"/><text x="' . ( $pl - 8 ) . '" y="' . ( $y( $v ) + 4 ) . '" text-anchor="end" font-size="12" fill="var(--ink-3)">' . (int) $v . '</text>';
+		}
+		$keys  = array_keys( $days );
+		$every = ( $count > 7 ? 5 : 1 ) * $thin;
+		foreach ( $keys as $i => $day ) {
+			$is_last = $i === $count - 1;
+			if ( ( $count - 1 - $i ) % $every ) {
+				continue;
+			}
+			$label = $is_last ? __( 'Today', 'membuild-community' ) : wp_date( 0 === $i || $count > 7 ? 'j M' : 'j', strtotime( $day . ' 12:00 ' . wp_timezone_string() ) );
+			$svg  .= '<text x="' . $x( $i ) . '" y="' . ( $h - 6 ) . '" text-anchor="middle" font-size="12" fill="var(--ink-3)">' . esc_html( $label ) . '</text>';
+		}
+		foreach ( array( array( $posts, 'var(--accent)', '' ), array( $comms, 'var(--ink-2)', ' stroke-dasharray="6 5"' ) ) as list( $series, $color, $dash ) ) {
+			$pts  = implode( ' ', array_map( fn( $i, $v ) => $x( $i ) . ',' . $y( $v ), array_keys( $series ), $series ) );
+			$svg .= '<polyline points="' . $pts . '" fill="none" stroke="' . $color . '" stroke-width="2"' . $dash . '/>';
+			if ( $count <= 7 && 1 === $thin && $w > 400 ) {
+				foreach ( $series as $i => $v ) {
+					$svg .= '<circle cx="' . $x( $i ) . '" cy="' . $y( $v ) . '" r="4" fill="' . ( $i === $count - 1 ? 'var(--surface)' : $color ) . '" stroke="' . $color . '" stroke-width="2"/>';
 				}
 			}
 		}
-		$sum = fn( $k ) => array_sum( array_column( $days, $k ) );
-		// The totals double as the legend: each pill carries its series' colour.
-		printf(
-			'<div class="mb-card__head"><div><h2 class="mb-card__title">%s</h2><p class="mb-card__sub">%s</p></div></div><div class="mbcom-legend"><span class="mbcom-pill"><i class="p"></i>%s</span><span class="mbcom-pill"><i class="c"></i>%s</span><span class="mbcom-pill"><i class="j"></i>%s</span></div>',
-			esc_html__( 'Last 30 days', 'membuild-community' ),
-			esc_html__( 'Posts and comments per day; a dot is a day someone joined.', 'membuild-community' ),
-			/* translators: %s: number of posts */
-			esc_html( sprintf( _n( '%s post', '%s posts', $sum( 0 ), 'membuild-community' ), number_format_i18n( $sum( 0 ) ) ) ),
-			/* translators: %s: number of comments, e.g. "12" or "1.2K" */
-			esc_html( sprintf( _n( '%s comment', '%s comments', $sum( 1 ), 'membuild-community' ), number_format_i18n( $sum( 1 ) ) ) ),
-			/* translators: %s: number of new members */
-			esc_html( sprintf( _n( '%s new member', '%s new members', $sum( 2 ), 'membuild-community' ), number_format_i18n( $sum( 2 ) ) ) )
-		);
-		$max = max( 1, max( array_map( fn( $v ) => $v[0] + $v[1], $days ) ) );
-		$w   = 18;
-		$h   = 140;
-		$svg = '';
-		$x   = 0;
-		foreach ( $days as $day => list( $posts, $comments, $joined ) ) {
-			$hp   = round( $posts / $max * $h );
-			$hc   = round( $comments / $max * $h );
-			/* translators: 1: date, 2: posts, 3: comments, 4: new members */
-			$tip  = sprintf( __( '%1$s: %2$d posts, %3$d comments, %4$d new members', 'membuild-community' ), date_i18n( get_option( 'date_format' ), strtotime( $day ) ), $posts, $comments, $joined );
-			$svg .= '<g class="day" tabindex="0" role="img" aria-label="' . esc_attr( $tip ) . '" data-date="' . esc_attr( date_i18n( 'D, M j', strtotime( $day ) ) ) . '" data-posts="' . (int) $posts . '" data-comments="' . (int) $comments . '" data-joined="' . (int) $joined . '">';
-			$svg .= '<rect x="' . $x . '" y="-14" width="' . $w . '" height="' . ( $h + 28 ) . '" class="hit"/>';
-			$svg .= '<rect x="' . $x . '" y="' . ( $h - $hp - $hc ) . '" width="' . ( $w - 4 ) . '" height="' . $hc . '" class="c"/>';
-			$svg .= '<rect x="' . $x . '" y="' . ( $h - $hp ) . '" width="' . ( $w - 4 ) . '" height="' . $hp . '" class="p"/>';
-			if ( $joined ) {
-				$svg .= '<circle cx="' . ( $x + ( $w - 4 ) / 2 ) . '" cy="' . ( $h + 8 ) . '" r="3" class="j"/>';
-			}
-			$svg .= '</g>';
-			$x   += $w;
-		}
-		// A faint line at the busiest day, labelled, so the bars have a scale.
-		$grid = '<line x1="0" x2="' . ( 30 * $w ) . '" y1="0.5" y2="0.5" class="g"/><text x="' . ( 30 * $w ) . '" y="-4" class="t" text-anchor="end">' . (int) $max . '</text>';
-		echo '<div class="mbcom-chart-wrap"><svg class="mbcom-chart" viewBox="0 -14 ' . ( 30 * $w ) . ' ' . ( $h + 28 ) . '" role="group" aria-label="' . esc_attr__( 'Posts and comments per day for the last 30 days', 'membuild-community' ) . '">' . $grid . $svg . '</svg>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- numbers and escaped titles only
-		printf(
-			'<div class="mbcom-tip" role="tooltip" hidden><strong data-tip="date"></strong><span><i class="p"></i><b data-tip="posts"></b> %s</span><span><i class="c"></i><b data-tip="comments"></b> %s</span><span><i class="j"></i><b data-tip="joined"></b> %s</span></div></div>',
-			esc_html__( 'posts', 'membuild-community' ),
-			esc_html__( 'comments', 'membuild-community' ),
-			esc_html__( 'new members', 'membuild-community' )
-		);
-		printf(
-			'<div class="mbcom-axis"><span>%s</span><span>%s</span></div>',
-			esc_html( date_i18n( 'M j', strtotime( array_key_first( $days ) ) ) ),
-			esc_html__( 'Today', 'membuild-community' )
-		);
+		return '<svg class="mbcom-chart" viewBox="0 0 ' . (int) $w . ' ' . (int) $h . '" aria-hidden="true">' . $svg . '</svg>';
 	}
 
+	/** The latest posts, comments and new members, grouped by day. */
 	private static function recent_activity() {
 		global $wpdb;
 		// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- site_members_sql() returns a prepared fragment.
@@ -571,7 +626,7 @@ JS;
 				"(SELECT 'post' AS kind, id, user_id, content, created_at, id AS post_id FROM %i WHERE status = 'published' ORDER BY id DESC LIMIT 8)
 				UNION ALL (SELECT 'comment', id, user_id, content, created_at, post_id FROM %i ORDER BY id DESC LIMIT 8)
 				UNION ALL (SELECT 'join', u.ID, u.ID, '', u.user_registered, 0 FROM %i u WHERE 1=1" . Helpers::site_members_sql() . " ORDER BY u.ID DESC LIMIT 4)
-				ORDER BY created_at DESC LIMIT 8",
+				ORDER BY created_at DESC LIMIT 7",
 				Install::table( 'posts' ),
 				Install::table( 'comments' ),
 				$wpdb->users
@@ -579,36 +634,46 @@ JS;
 			ARRAY_A
 		);
 		// phpcs:enable
+		echo '<div class="mbcom-activity">';
 		if ( ! $rows ) {
-			echo '<p>' . esc_html__( 'Nothing yet.', 'membuild-community' ) . '</p>';
+			echo '<p class="mbwa-muted" style="margin:var(--space-14) 0 0">' . esc_html__( 'Nothing yet.', 'membuild-community' ) . '</p></div>';
 			return;
 		}
 		$users = Helpers::users( wp_list_pluck( $rows, 'user_id' ) );
-		echo '<ul class="mbcom-activity">';
+		$today = wp_date( 'Y-m-d' );
+		$yday  = wp_date( 'Y-m-d', time() - DAY_IN_SECONDS );
+		$open  = '';
 		foreach ( $rows as $r ) {
-			$user = $users[ (int) $r['user_id'] ] ?? null;
-			$name = '<strong>' . esc_html( $user['name'] ?? __( 'Someone', 'membuild-community' ) ) . '</strong>';
+			$at  = strtotime( $r['created_at'] . ' UTC' );
+			$day = wp_date( 'Y-m-d', $at );
+			if ( $day !== $open ) {
+				if ( '' !== $open ) {
+					echo '</div>';
+				}
+				$open = $day;
+				echo '<div class="mbcom-day">' . esc_html( $today === $day ? __( 'Today', 'membuild-community' ) : ( $yday === $day ? __( 'Yesterday', 'membuild-community' ) : wp_date( 'j M', $at ) ) ) . '</div><div class="mbwa-changes">';
+			}
+			$name = $users[ (int) $r['user_id'] ]['name'] ?? __( 'Someone', 'membuild-community' );
 			if ( 'join' === $r['kind'] ) {
 				/* translators: %s: member name */
-				$text = sprintf( esc_html__( '%s joined', 'membuild-community' ), $name );
+				$what = sprintf( __( '%s joined', 'membuild-community' ), $name );
+				$text = __( 'New member', 'membuild-community' );
+				$href = self::url( 'members' );
 			} else {
-				$quote = '<a href="' . esc_url( self::app_url( '?post=' . (int) $r['post_id'] ) ) . '">' . esc_html( \MemBuild\Community\Helpers::words( (string) $r['content'], 10, '…' ) ?: __( 'a photo or video', 'membuild-community' ) ) . '</a>';
-				$text  = sprintf(
-					/* translators: 1: member name, 2: start of what they wrote, as a link */
-					'post' === $r['kind'] ? esc_html__( '%1$s posted %2$s', 'membuild-community' ) : esc_html__( '%1$s commented %2$s', 'membuild-community' ),
-					$name,
-					$quote
-				);
+				/* translators: %s: member name */
+				$what = sprintf( 'post' === $r['kind'] ? __( '%s posted', 'membuild-community' ) : __( '%s commented', 'membuild-community' ), $name );
+				$text = Helpers::words( (string) $r['content'], 12, '…' ) ?: __( 'A photo or video', 'membuild-community' );
+				$href = self::app_url( '?post=' . (int) $r['post_id'] );
 			}
 			printf(
-				'<li><span class="mb-av"><img src="%s" width="32" height="32" alt=""></span><span>%s<span class="mbcom-muted">%s</span></span></li>',
-				esc_url( $user['avatar'] ?? get_avatar_url( 0, array( 'size' => 56 ) ) ),
-				$text, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from escaped parts above
-				/* translators: %s: time, e.g. "5 mins" */
-				esc_html( sprintf( __( '%s ago', 'membuild-community' ), human_time_diff( strtotime( $r['created_at'] . ' UTC' ) ) ) )
+				'<span class="mbwa-muted">%s</span><span class="mbwa-dot" aria-hidden="true"></span><a href="%s" style="min-width:0"><div class="mbwa-strong mbcom-one">%s</div><div class="mbwa-muted mbcom-one">%s</div></a>',
+				esc_html( wp_date( get_option( 'time_format' ), $at ) ),
+				esc_url( $href ),
+				esc_html( $what ),
+				esc_html( $text )
 			);
 		}
-		echo '</ul>';
+		echo '</div></div>';
 	}
 
 	/** Disk space of community uploads, recomputed at most hourly. */
@@ -636,29 +701,14 @@ JS;
 		$table = new $class();
 		$table->init_columns();
 		$table->prepare_items();
-
-		ob_start();
-		$table->intro();
-		$intro = trim( wp_strip_all_tags( ob_get_clean() ) );
-		self::shell_open( $key, $table->title(), $intro, $table->title_actions() );
-		echo '<div class="mb-card mbcom-table-card">';
-		$table->views();
-		echo '<form method="get">';
-		printf( '<input type="hidden" name="page" value="%s">', esc_attr( 'membuild-community-' . $key ) );
-		foreach ( array( 'status', 'type', 'course' ) as $keep ) {
-			if ( isset( $_GET[ $keep ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification -- keeps the current filter in the search form
-				printf( '<input type="hidden" name="%s" value="%s">', esc_attr( $keep ), esc_attr( sanitize_key( wp_unslash( $_GET[ $keep ] ) ) ) ); // phpcs:ignore WordPress.Security.NonceVerification
-			}
-		}
-		if ( $table->searchable() ) {
-			$table->search_box( $table->search_label(), 'mbcom-search' );
-		}
-		echo '</form><form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
-		wp_nonce_field( 'mbcom_bulk_' . $key );
-		printf( '<input type="hidden" name="action" value="mbcom_admin"><input type="hidden" name="table" value="%s"><input type="hidden" name="back" value="%s">', esc_attr( $key ), esc_attr( self::current_url() ) );
-		$table->display();
-		echo '</form></div>';
+		self::shell_open( $key, '', '', '', $table->title_html() );
+		$table->render();
 		self::shell_close();
+	}
+
+	/** A page's title row: the title (already escaped), a short quiet fact, and its one button. */
+	public static function title_row( $title_html, $note = '', $button = '' ) {
+		return '<div class="mbwa-title-row"><h1 class="mbwa-title">' . $title_html . '</h1>' . ( '' !== $note ? '<span class="mbwa-muted">' . esc_html( $note ) . '</span>' : '' ) . ( '' !== $button ? '<span class="mbcom-grow"></span>' . $button : '' ) . '</div>';
 	}
 
 	public static function current_url() {
@@ -679,6 +729,8 @@ JS;
 			'restored' => _n( '%d post is live again.', '%d posts are live again.', $count, 'membuild-community' ),
 			/* translators: %d: how many */
 			'deleted'  => _n( '%d item deleted.', '%d items deleted.', $count, 'membuild-community' ),
+			/* translators: %d: how many */
+			'kept'     => _n( '%d kept. Its reports are closed.', '%d kept. Their reports are closed.', $count, 'membuild-community' ),
 			/* translators: %d: how many */
 			'pinned'   => _n( '%d post pinned.', '%d posts pinned.', $count, 'membuild-community' ),
 			/* translators: %d: how many */
@@ -728,6 +780,10 @@ JS;
 				return (bool) $wpdb->query( $wpdb->prepare( "UPDATE %i SET status = 'published' WHERE id = %d AND status <> 'deleted'", $posts, $id ) );
 			case 'posts:delete':
 				return Rest_Feed::remove_post( $id );
+			case 'posts:keep':
+				return self::rest( 'POST', "/moderation/reports/post/{$id}", array( 'action' => 'keep' ) );
+			case 'comments:keep':
+				return self::rest( 'POST', "/moderation/reports/comment/{$id}", array( 'action' => 'keep' ) );
 			case 'posts:pin':
 				return self::rest( 'PUT', "/posts/{$id}/pin" );
 			case 'posts:unpin':
@@ -735,6 +791,9 @@ JS;
 			case 'comments:delete':
 				return self::rest( 'DELETE', "/comments/{$id}" );
 			case 'members:mute':
+				if ( 'banned' === ( Moderation::restriction( $id )['status'] ?? '' ) ) {
+					return false; // a banned member stays banned
+				}
 				return self::rest( 'POST', "/members/{$id}/restriction", array( 'status' => 'muted', 'days' => 7 ) );
 			case 'members:ban':
 				return self::rest( 'POST', "/members/{$id}/restriction", array( 'status' => 'banned' ) );
@@ -754,7 +813,7 @@ JS;
 		}
 		$back = isset( $_REQUEST['back'] ) ? esc_url_raw( wp_unslash( $_REQUEST['back'] ) ) : self::url(); // phpcs:ignore WordPress.Security.NonceVerification -- checked below per action
 		$back = wp_validate_redirect( rawurldecode( $back ), self::url() ); // only ever back into this site
-		$done = array( 'hide' => 'hidden', 'restore' => 'restored', 'delete' => 'deleted', 'pin' => 'pinned', 'unpin' => 'unpinned', 'mute' => 'muted', 'ban' => 'banned', 'lift' => 'lifted', 'groupadd' => 'grouped', 'groupremove' => 'ungrouped' );
+		$done = array( 'keep' => 'kept', 'hide' => 'hidden', 'restore' => 'restored', 'delete' => 'deleted', 'pin' => 'pinned', 'unpin' => 'unpinned', 'mute' => 'muted', 'ban' => 'banned', 'lift' => 'lifted', 'groupadd' => 'grouped', 'groupremove' => 'ungrouped' );
 
 		if ( isset( $_POST['table'] ) ) {
 			// Bulk action from a table.
@@ -784,40 +843,51 @@ JS;
 
 	/* ---------- Export ---------- */
 
+	/** The downloads, in the order the Export page lists them: key => array( name, a fact to add ). */
 	public static function datasets() {
 		return array(
-			'members'  => array( __( 'Members', 'membuild-community' ), __( 'Name, email, join date, level, points, streak, posts, comments, message and chat counts, and status.', 'membuild-community' ) ),
-			'posts'    => array( __( 'Posts and reels', 'membuild-community' ), __( 'Every post with its author, text, reactions, comments, status and date.', 'membuild-community' ) ),
-			'comments' => array( __( 'Comments', 'membuild-community' ), __( 'Every comment with its author, the post it’s on, and date.', 'membuild-community' ) ),
-			'progress' => array( __( 'Course progress', 'membuild-community' ), __( 'Which member finished which lesson, and when.', 'membuild-community' ) ),
-			'points'   => array( __( 'Points history', 'membuild-community' ), __( 'Every point earned or taken back, and why.', 'membuild-community' ) ),
-			'files'    => array( __( 'Files', 'membuild-community' ), __( 'Every uploaded file, its size, who uploaded it and its address.', 'membuild-community' ) ),
+			'members'      => array( __( 'Members', 'membuild-community' ), __( 'message counts only, never message text', 'membuild-community' ) ),
+			'posts'        => array( __( 'Posts and reels', 'membuild-community' ), '' ),
+			'comments'     => array( __( 'Comments', 'membuild-community' ), '' ),
+			'progress'     => array( __( 'Course progress', 'membuild-community' ), '' ),
+			'quizzes'      => array( __( 'Quiz results', 'membuild-community' ), '' ),
+			'certificates' => array( __( 'Certificates', 'membuild-community' ), '' ),
+			'events'       => array( __( 'Event sign-ups', 'membuild-community' ), '' ),
+			'points'       => array( __( 'Points history', 'membuild-community' ), '' ),
+			'files'        => array( __( 'Files', 'membuild-community' ), '' ),
 		);
 	}
 
 	public static function page_export() {
-		self::shell_open( 'export', __( 'Export community data', 'membuild-community' ), __( 'Download your community’s data as spreadsheets (CSV files open in Excel, Numbers and Google Sheets). Private message text is never exported; message counts are included with members.', 'membuild-community' ) );
-		echo '<div class="mbcom-exports">';
-		foreach ( self::datasets() as $key => list( $label, $desc ) ) {
+		self::shell_open( 'export', __( 'Export', 'membuild-community' ) );
+		$counts = Export::counts();
+		echo '<div class="mbwa-card"><div class="mbwa-card-bar"><h2 class="mbwa-card-title">' . esc_html__( 'Spreadsheets', 'membuild-community' ) . '</h2></div>';
+		foreach ( self::datasets() as $key => list( $label, $note ) ) {
 			$url = wp_nonce_url( add_query_arg( array( 'action' => 'mbcom_export', 'dataset' => $key ), admin_url( 'admin-post.php' ) ), 'mbcom_export_' . $key );
+			/* translators: %s: how many rows */
+			$fact = sprintf( _n( '%s row', '%s rows', $counts[ $key ] ?? 0, 'membuild-community' ), number_format_i18n( $counts[ $key ] ?? 0 ) ) . ( '' !== $note ? ' · ' . $note : '' );
 			printf(
-				'<div class="mb-card mbcom-export"><strong class="mbcom-export-title">%s</strong><span class="mb-help">%s</span><a class="mb-btn mb-btn--quiet mb-btn--sm" href="%s"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8M4.5 6.5L8 10l3.5-3.5M3 13h10"/></svg> %s</a></div>',
+				'<div class="mbwa-setting mbcom-export-row"><div><div class="mbwa-strong">%s</div><div class="mbwa-muted">%s</div></div><a class="mbwa-btn" href="%s">%s</a></div>',
 				esc_html( $label ),
-				esc_html( $desc ),
+				esc_html( $fact ),
 				esc_url( $url ),
 				esc_html__( 'Download CSV', 'membuild-community' )
 			);
 		}
 		echo '</div>';
-		printf(
-			'<section class="mb-card mbcom-privacy"><h2 class="mb-card__title">%s</h2><p class="mbcom-privacy-text">%s</p><p class="mbcom-privacy-actions"><a class="mb-btn mb-btn--quiet mb-btn--sm" href="%s">%s</a> <a class="mb-btn mb-btn--quiet mb-btn--sm" href="%s">%s</a></p></section>',
-			esc_html__( 'A member asked for their data?', 'membuild-community' ),
-			esc_html__( 'The community is part of WordPress’s privacy tools. Exporting a member’s personal data includes their profile, posts, comments, points and course progress. Erasing it removes their posts, comments, messages, stories, reactions and uploads.', 'membuild-community' ),
-			esc_url( admin_url( 'export-personal-data.php' ) ),
-			esc_html__( 'Export personal data', 'membuild-community' ),
-			esc_url( admin_url( 'erase-personal-data.php' ) ),
-			esc_html__( 'Erase personal data', 'membuild-community' )
-		);
+		echo '<div class="mbwa-card"><div class="mbwa-card-bar"><h2 class="mbwa-card-title">' . esc_html__( 'Personal data', 'membuild-community' ) . '</h2></div>';
+		foreach ( array(
+			array( __( 'Export their data', 'membuild-community' ), __( 'Profile, posts, comments, points and course progress', 'membuild-community' ), admin_url( 'export-personal-data.php' ), __( 'Open WordPress export', 'membuild-community' ) ),
+			array( __( 'Erase their data', 'membuild-community' ), __( 'Posts, comments, messages, stories, reactions and uploads', 'membuild-community' ), admin_url( 'erase-personal-data.php' ), __( 'Open WordPress erase', 'membuild-community' ) ),
+		) as list( $label, $what, $href, $link ) ) {
+			printf(
+				'<div class="mbwa-setting mbcom-export-row"><div><div class="mbwa-strong">%s</div><div class="mbwa-muted">%s</div></div>%s</div>',
+				esc_html( $label ),
+				esc_html( $what ),
+				self::link( $href, $link ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped there
+			);
+		}
+		echo '</div>';
 		self::shell_close();
 	}
 
@@ -1037,16 +1107,9 @@ JS;
 .mbcom-admin .mbcom-person img{border-radius:50%;flex:none}
 .mbcom-admin .mbcom-person>span{display:flex;flex-direction:column;min-width:0}
 .mbcom-admin .mbcom-person a.mbcom-muted{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:none;font-weight:500;font-size:13px}
-.mbcom-admin .mbcom-who{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;font-weight:600}
-.mbcom-admin .mbcom-who img{border-radius:50%}
-.mbcom-admin .mbcom-thumb{width:44px;height:44px;object-fit:cover;border-radius:var(--radius-sm);background:var(--surface-200);border:1px solid var(--line-100);display:grid;place-items:center;flex:none;color:var(--ink-mute);font-weight:700;font-size:12px}
-.mbcom-admin .mbcom-thumb-wide{width:72px;height:44px}
 .mbcom-admin .mbcom-tag{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:var(--radius-sm);background:var(--surface-200);color:var(--ink-body);font:700 12px/16px var(--font-sans);white-space:nowrap}
 .mbcom-admin .mbcom-tag .dashicons{font-size:13px;width:13px;height:13px}
 .mbcom-admin .mbcom-tag.warn{background:var(--warn-tint);color:var(--warn)}.mbcom-admin .mbcom-tag.bad{background:var(--danger-tint);color:var(--danger)}.mbcom-admin .mbcom-tag.ok{background:var(--ok-tint);color:var(--ok)}
-.mbcom-admin .mbcom-name{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}
-.mbcom-admin .mbcom-bar{height:6px;background:var(--surface-200);border-radius:3px;overflow:hidden;width:120px;display:inline-block;vertical-align:middle;margin-right:6px}
-.mbcom-admin .mbcom-bar i{display:block;height:100%;background:var(--brand)}
 /*
  * Column widths: the first column (the post, file, member or course) takes whatever
  * room is left; the small columns keep a fixed width and never break mid-word.

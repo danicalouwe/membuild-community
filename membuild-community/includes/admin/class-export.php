@@ -113,6 +113,53 @@ class Export {
 		);
 	}
 
+	private static function quizzes( $out ) {
+		global $wpdb;
+		self::row( $out, array( 'Member ID', 'Member', 'Course', 'Lesson', 'Score', 'Out of', 'Percent', 'Passed', 'Finished' ) );
+		self::walk(
+			'SELECT t.user_id, u.display_name, c.title course, l.title lesson, t.score, t.total, t.passed, t.finished_at FROM %i t JOIN %i q ON q.id = t.quiz_id LEFT JOIN %i u ON u.ID = t.user_id LEFT JOIN %i c ON c.id = q.course_id LEFT JOIN %i l ON l.id = q.lesson_id WHERE t.preview = 0 AND t.finished_at IS NOT NULL ORDER BY t.id',
+			array( Install::table( 'quiz_attempts' ), Install::table( 'quizzes' ), $wpdb->users, Install::table( 'courses' ), Install::table( 'lessons' ) ),
+			fn( $r ) => self::row( $out, array( $r['user_id'], $r['display_name'], $r['course'], $r['lesson'], $r['score'], $r['total'], $r['total'] ? round( 100 * $r['score'] / $r['total'] ) : '', $r['passed'] ? 'yes' : 'no', self::iso( $r['finished_at'] ) ) )
+		);
+	}
+
+	private static function certificates( $out ) {
+		global $wpdb;
+		self::row( $out, array( 'Member ID', 'Member', 'Course', 'Code', 'Lessons', 'Finished', 'Status' ) );
+		self::walk(
+			'SELECT k.*, u.display_name FROM %i k LEFT JOIN %i u ON u.ID = k.user_id ORDER BY k.id',
+			array( Install::table( 'certificates' ), $wpdb->users ),
+			fn( $r ) => self::row( $out, array( $r['user_id'], $r['display_name'], $r['course_title'], $r['code'], $r['lessons'], self::iso( $r['finished_at'] ), $r['status'] ) )
+		);
+	}
+
+	private static function events( $out ) {
+		global $wpdb;
+		self::row( $out, array( 'Event', 'Starts', 'Member ID', 'Member', 'Email', 'Answer', 'When' ) );
+		self::walk(
+			"SELECT p.event_title, p.event_at, r.user_id, r.type, r.created_at, u.display_name, u.user_email FROM %i r JOIN %i p ON p.id = r.object_id LEFT JOIN %i u ON u.ID = r.user_id WHERE r.object_type = 'event' ORDER BY p.event_at, r.id",
+			array( Install::table( 'reactions' ), Install::table( 'posts' ), $wpdb->users ),
+			fn( $r ) => self::row( $out, array( $r['event_title'], self::iso( $r['event_at'] ), $r['user_id'], $r['display_name'], $r['user_email'], 'going' === $r['type'] ? 'Going' : 'Interested', self::iso( $r['created_at'] ) ) )
+		);
+	}
+
+	/** How many rows each download has, for the Export page. */
+	public static function counts() {
+		global $wpdb;
+		$n = fn( $sql, ...$args ) => (int) $wpdb->get_var( $wpdb->prepare( $sql, $args ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- fixed SQL below
+		return array(
+			'members'      => $n( 'SELECT COUNT(*) FROM %i u WHERE 1=1' . Helpers::site_members_sql(), $wpdb->users ),
+			'posts'        => $n( 'SELECT COUNT(*) FROM %i', Install::table( 'posts' ) ),
+			'comments'     => $n( 'SELECT COUNT(*) FROM %i', Install::table( 'comments' ) ),
+			'progress'     => $n( 'SELECT COUNT(*) FROM %i', Install::table( 'lesson_progress' ) ),
+			'quizzes'      => $n( 'SELECT COUNT(*) FROM %i WHERE preview = 0 AND finished_at IS NOT NULL', Install::table( 'quiz_attempts' ) ),
+			'certificates' => $n( 'SELECT COUNT(*) FROM %i', Install::table( 'certificates' ) ),
+			'events'       => $n( "SELECT COUNT(*) FROM %i WHERE object_type = 'event'", Install::table( 'reactions' ) ),
+			'points'       => $n( 'SELECT COUNT(*) FROM %i', Install::table( 'points' ) ),
+			'files'        => $n( "SELECT COUNT(*) FROM %i WHERE kind <> 'poster' AND ( scope IS NULL OR scope <> 'message' )", Install::table( 'media' ) ),
+		);
+	}
+
 	private static function points( $out ) {
 		global $wpdb;
 		$labels = Rest_Gamification::reason_labels();

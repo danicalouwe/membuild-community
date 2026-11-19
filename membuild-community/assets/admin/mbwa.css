@@ -1,0 +1,401 @@
+/* MemBuild WP Admin design system (membuild.com), scoped to MB Community's wp-admin pages. Built from tokens.json + bundle.css; regenerate rather than edit the first two parts. */
+.mbcom-admin.mbwa{--page:#f6f7f7;--surface:#ffffff;--line:#e2e4e7;--line-soft:#f0f0f1;--line-control:#c3c4c7;--line-pill:#dcdcde;--ink:#1d2327;--ink-2:#50575e;--ink-3:#646970;--accent:#2271b1;--accent-hover:#135e96;--accent-tint:#f0f6fc;--on-accent:#ffffff;--action-bg:#fcf0f1;--action-ink:#8a2424;--action-dot:#d63638;--watch-bg:#fcf9e8;--watch-ink:#5c4300;--watch-dot:#dba617;--fine-bg:#edfaef;--fine-ink:#005c12;--fine-dot:#00a32a;--note-bg:#f0f0f1;--note-ink:#3c434a;--note-dot:#8c8f94;--alert-ink:#b32d2e;--chart-grid:#eceded;--admin-bar:#1d2327;--admin-sub:#101517;--admin-ink:#f0f0f1;--admin-ink-2:#c3c4c7;--overlay:#1d232773;--tip-bg:#1d2327;--tip-ink:#f0f0f1;--tip-ink-2:#c3c4c7;--space-6:6px;--space-8:8px;--space-12:12px;--space-14:14px;--space-16:16px;--space-20:20px;--space-24:24px;--space-32:32px;--radius-bar:2px;--radius-control:4px;--radius-card:8px;--radius-pill:999px;--control-height:44px;--content-max:1280px;--settings-max:880px;--email-width:600px;--dialog-list:960px;--dialog-order:600px;--medium-max:959px;--narrow-max:599px;--font-sans:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif}
+/* MemBuild WP Admin. Component styles, built only from the tokens. By MemBuild by Danica Louwe (membuild.com). */
+.mbwa { font-family: var(--font-sans); font-size: 13px; line-height: 1.5; color: var(--ink); }
+.mbwa *, .mbwa *::before, .mbwa *::after { box-sizing: border-box; }
+.mbwa a { color: var(--accent); }
+.mbwa a:hover { color: var(--accent-hover); }
+.mbwa :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.mbwa-muted { color: var(--ink-3); }
+.mbwa-strong { font-weight: 600; }
+.mbwa-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-12); }
+
+/* Plugin header and tabs */
+.mbwa-header { display: flex; flex-wrap: wrap; align-items: center; gap: 0 36px; padding: 0 var(--space-32); background: var(--surface); border-bottom: 1px solid var(--line); }
+.mbwa-header-name { font-size: 16px; font-weight: 600; padding: 18px 0; }
+.mbwa-tabs { display: flex; flex-wrap: wrap; gap: 0 28px; }
+.mbwa .mbwa-tab { color: var(--ink-2); text-decoration: none; padding: 19px 0; border-bottom: 2px solid transparent; }
+.mbwa .mbwa-tab[aria-current="page"] { color: var(--ink); font-weight: 600; border-bottom-color: var(--accent); }
+/* WordPress draws a box around any focused link, also after a mouse click. A tab gets a ring from the keyboard only. */
+.mbwa .mbwa-tab:focus { box-shadow: none; }
+.mbwa .mbwa-tab:focus:not(:focus-visible) { outline: 0; }
+/* A tab was pressed and its page is on the way: after a short moment the old page dims, so a quick answer shows no flicker. */
+.mbwa.is-loading > :not(.mbwa-header) { opacity: 0.5; transition: opacity 0.15s linear 0.15s; }
+@media (prefers-reduced-motion: reduce) { .mbwa.is-loading > :not(.mbwa-header) { transition: none; } }
+.mbwa-by { margin-left: auto; display: flex; align-items: center; gap: var(--space-8); color: var(--ink-3); font-size: 12px; }
+
+/* Title row */
+.mbwa-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-16); min-height: var(--control-height); }
+.mbwa-title { margin: 0; flex-grow: 1; font-size: 22px; font-weight: 600; line-height: 1.3; }
+
+/* Card */
+.mbwa-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); }
+.mbwa-card-pad { padding: var(--space-24); }
+.mbwa-card-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-12); padding: var(--space-20) var(--space-24); }
+.mbwa-card-title { margin: 0; flex-grow: 1; font-size: 14px; font-weight: 600; }
+/* A quiet note right after a card's title, such as the days a chart shows. */
+.mbwa-card-note { margin-left: var(--space-8); font-size: 13px; font-weight: 400; color: var(--ink-3); }
+
+/* Buttons */
+.mbwa-btn { font: inherit; font-weight: 600; min-height: var(--control-height); padding: 0 18px; border: 1px solid var(--accent); border-radius: var(--radius-control); background: var(--surface); color: var(--accent); cursor: pointer; }
+.mbwa-btn:hover { border-color: var(--accent-hover); color: var(--accent-hover); }
+.mbwa-btn-primary { padding: 0 20px; background: var(--accent); color: var(--on-accent); }
+.mbwa-btn-primary:hover { background: var(--accent-hover); color: var(--on-accent); }
+/* A button while its press is on the way (is-busy) and just after it worked (is-done). */
+.mbwa-btn.is-busy, .mbwa-btn.is-done { cursor: default; pointer-events: none; }
+.mbwa-btn.is-busy { opacity: 0.6; }
+.mbwa-form-failed { color: var(--alert-ink); font-size: 13px; }
+
+/* Period filter */
+.mbwa-seg { display: inline-flex; border: 1px solid var(--line-control); border-radius: var(--radius-control); overflow: hidden; }
+.mbwa-seg button { font: inherit; min-height: var(--control-height); padding: 0 var(--space-16); border: 0; border-left: 1px solid var(--line-control); background: var(--surface); color: var(--ink); cursor: pointer; }
+.mbwa-seg button:first-child { border-left: 0; }
+.mbwa-seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+
+/* Status dot, pill and filter */
+.mbwa-dot { display: inline-block; flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--note-dot); }
+.mbwa-dot-action { background: var(--action-dot); }
+.mbwa-dot-watch { background: var(--watch-dot); }
+.mbwa-dot-fine { background: var(--fine-dot); }
+.mbwa-pill { display: inline-flex; align-items: center; gap: var(--space-6); padding: 3px 10px; border-radius: var(--radius-pill); background: var(--note-bg); color: var(--note-ink); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.mbwa-pill-action { background: var(--action-bg); color: var(--action-ink); }
+.mbwa-pill-watch { background: var(--watch-bg); color: var(--watch-ink); }
+.mbwa-pill-fine { background: var(--fine-bg); color: var(--fine-ink); }
+.mbwa-filter { display: inline-flex; align-items: center; gap: var(--space-8); font: inherit; min-height: var(--control-height); padding: 0 var(--space-16); border: 1px solid var(--line-pill); border-radius: var(--radius-pill); background: var(--surface); color: var(--ink); cursor: pointer; }
+.mbwa-filter[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-tint); color: var(--accent); font-weight: 600; }
+
+/* Form controls */
+.mbwa-select { position: relative; display: inline-flex; }
+.mbwa-select select { font: inherit; min-height: var(--control-height); padding: 0 40px 0 14px; border: 1px solid var(--line-control); border-radius: var(--radius-control); background: var(--surface); color: var(--ink); appearance: none; -webkit-appearance: none; -moz-appearance: none; }
+.mbwa-select svg { position: absolute; right: 16px; top: 50%; margin-top: -6px; pointer-events: none; stroke: var(--ink-2); }
+.mbwa-input { font: inherit; width: 84px; min-height: var(--control-height); padding: 0 var(--space-12); border: 1px solid var(--line-control); border-radius: var(--radius-control); background: var(--surface); color: var(--ink); }
+.mbwa-switch { position: relative; width: 44px; height: 24px; padding: 0; border: 0; border-radius: 12px; background: var(--note-dot); cursor: pointer; }
+.mbwa-switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: var(--on-accent); }
+.mbwa-switch[aria-checked="true"] { background: var(--accent); }
+.mbwa-switch[aria-checked="true"]::after { left: 23px; }
+.mbwa-chip { display: inline-flex; align-items: center; min-height: 32px; padding: 0 var(--space-12); border-radius: var(--radius-pill); background: var(--line-soft); }
+.mbwa-setting { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-12) var(--space-16); min-height: var(--control-height); padding: var(--space-8) var(--space-24); border-top: 1px solid var(--line-soft); }
+.mbwa-setting > :first-child { flex-grow: 1; }
+
+/* Numbers */
+.mbwa-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--space-24) var(--space-32); }
+.mbwa-stat-number { font-size: 28px; line-height: 1.3; }
+.mbwa-stat-alert { color: var(--alert-ink); }
+.mbwa-bar { height: 4px; margin: var(--space-8) 0; border-radius: var(--radius-bar); background: var(--line-soft); }
+.mbwa-bar > span { display: block; height: 4px; border-radius: var(--radius-bar); background: var(--accent); }
+
+/* Tables */
+.mbwa-thead, .mbwa-trow { display: grid; grid-template-columns: var(--mbwa-cols, minmax(0, 1fr) 120px 132px 150px 80px); gap: var(--space-16); align-items: center; }
+.mbwa-thead { padding: 10px var(--space-24); border-top: 1px solid var(--line); color: var(--ink-3); font-size: 12px; font-weight: 600; }
+.mbwa-trow { padding: var(--space-14) var(--space-24); border-top: 1px solid var(--line-soft); }
+/* A checks table with a Task column: one pasted link per row that shows the team has picked the problem up. */
+.mbwa-with-task > .mbwa-thead, .mbwa-with-task > .mbwa-trow { --mbwa-cols: minmax(0, 1fr) 110px 132px 110px 100px 76px; --mbwa-cols-medium: minmax(0, 1fr) 132px 110px 100px 76px; }
+a.mbwa-link-quiet, a.mbwa-link-quiet:hover { color: var(--ink-3); }
+
+/* Recent changes */
+.mbwa-changes { display: grid; grid-template-columns: 56px 8px minmax(0, 1fr); gap: var(--space-12) var(--space-8); align-items: start; }
+.mbwa-changes .mbwa-dot { margin-top: 6px; }
+
+/* Values box on a chart */
+.mbwa-tip { box-sizing: border-box; width: max-content; min-width: 176px; max-width: 240px; padding: 10px var(--space-12); border-radius: var(--radius-control); background: var(--tip-bg); color: var(--tip-ink); font-size: 13px; line-height: 1.5; pointer-events: none; }
+.mbwa-tip-day { margin: 0 0 var(--space-6); color: var(--tip-ink-2); font-size: 12px; font-weight: 600; }
+.mbwa-tip-row { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: center; gap: 0 var(--space-8); padding: 2px 0; }
+.mbwa-tip-row strong { font-weight: 600; font-variant-numeric: tabular-nums; }
+.mbwa-tip-row small { grid-column: 2 / -1; color: var(--tip-ink-2); font-size: 12px; }
+
+/* Pop-up */
+.mbwa-overlay { display: flex; align-items: center; justify-content: center; padding: var(--space-32); background: var(--overlay); }
+.mbwa-dialog { width: 100%; max-width: var(--dialog-order); background: var(--surface); border-radius: var(--radius-card); }
+.mbwa-dialog-head { display: flex; align-items: center; gap: var(--space-16); padding: var(--space-20) var(--space-24); }
+.mbwa-dialog-title { margin: 0; font-size: 16px; font-weight: 600; }
+.mbwa-close { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: var(--radius-control); background: var(--line-soft); color: var(--ink); cursor: pointer; }
+.mbwa-dialog-rows { padding: 0 var(--space-24); border-top: 1px solid var(--line); }
+.mbwa-dialog-rows > div { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: var(--space-16); padding: var(--space-12) 0; border-top: 1px solid var(--line-soft); }
+.mbwa-dialog-rows > div:first-child { border-top: 0; }
+.mbwa-dialog-foot { display: flex; justify-content: flex-end; align-items: center; gap: var(--space-12); padding: var(--space-20) var(--space-24); border-top: 1px solid var(--line); }
+.mbwa-dialog-form { padding: var(--space-20) var(--space-24); border-top: 1px solid var(--line); }
+.mbwa-dialog-form label { display: block; margin: 0 0 var(--space-6); font-weight: 600; }
+.mbwa-dialog-form p { margin: var(--space-8) 0 0; color: var(--ink-3); }
+.mbwa-input-wide { width: 100%; box-sizing: border-box; }
+.mbwa-btn-remove { margin-right: auto; font: inherit; min-height: var(--control-height); padding: 0; border: 0; background: none; color: var(--alert-ink); text-decoration: underline; cursor: pointer; }
+
+/* Daily email */
+.mbwa-email { width: 100%; max-width: var(--email-width); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); font-size: 14px; }
+.mbwa-email > section { padding: var(--space-20) var(--space-32) var(--space-12); border-top: 1px solid var(--line); }
+.mbwa-email > section:first-child { padding: 28px var(--space-32) var(--space-24); border-top: 0; }
+.mbwa-email-title { margin: 6px 0 14px; font-size: 24px; font-weight: 600; line-height: 1.25; }
+.mbwa-email-label { margin: 0 0 4px; font-size: 12px; font-weight: 600; color: var(--ink-3); }
+.mbwa-email-item { display: flex; align-items: center; gap: var(--space-16); padding: var(--space-12) 0; border-top: 1px solid var(--line-soft); }
+.mbwa-email-label + .mbwa-email-item { border-top: 0; }
+.mbwa-email-item > :first-child { flex-grow: 1; }
+.mbwa .mbwa-email-cta { display: inline-flex; align-items: center; min-height: var(--control-height); padding: 0 var(--space-20); border-radius: var(--radius-control); background: var(--accent); color: var(--on-accent); font-weight: 600; text-decoration: none; }
+
+/* Page wrapper, filter group and steps */
+.mbwa-page { display: flex; flex-direction: column; gap: var(--space-24); width: 100%; max-width: var(--content-max); padding: var(--space-32); }
+.mbwa-filters { display: flex; flex-wrap: wrap; gap: var(--space-8); }
+.mbwa-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--space-24) var(--space-32); }
+.mbwa-step { display: grid; }
+.mbwa-step-label, .mbwa-step-note { color: var(--ink-3); }
+
+/* Smaller screens. These follow the width of the plugin area (the .mbwa wrapper), not the window,
+   so they hold whether the WordPress menu is open, folded to icons or hidden. */
+.mbwa { container: mbwa / inline-size; }
+
+@container mbwa (max-width: 959px) {
+  .mbwa-by, .mbwa-hide-medium { display: none; }
+  .mbwa-header { flex-wrap: nowrap; }
+  .mbwa-header-name { white-space: nowrap; }
+  .mbwa-tabs { flex: 1 1 0; min-width: 0; flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+  .mbwa .mbwa-tab { flex: none; }
+  .mbwa-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mbwa-thead, .mbwa-trow { grid-template-columns: var(--mbwa-cols-medium, minmax(0, 1fr) 132px 150px 80px); }
+}
+
+@container mbwa (max-width: 599px) {
+  .mbwa > * { font-size: 14px; }
+  .mbwa-header { flex-wrap: wrap; padding: 0; }
+  .mbwa-header-name { flex-basis: 100%; padding: var(--space-14) var(--space-16) 2px; }
+  .mbwa-tabs { flex-basis: 100%; gap: 0 var(--space-24); padding: 0 var(--space-16); }
+  .mbwa .mbwa-tab { padding: var(--space-12) 0; }
+  .mbwa-page { gap: var(--space-16); padding: var(--space-16); }
+  .mbwa-title-row { gap: var(--space-12); }
+  .mbwa-card-pad, .mbwa-card-bar { padding: var(--space-16); }
+  .mbwa-card-title { font-size: 15px; }
+  .mbwa-seg button { padding: 0 var(--space-12); }
+  .mbwa-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+  .mbwa-filter { justify-content: center; padding: 0 var(--space-12); }
+  .mbwa-stats { gap: var(--space-20) var(--space-16); }
+  .mbwa-stat-number { font-size: 26px; }
+  .mbwa-steps { grid-template-columns: minmax(0, 1fr); gap: var(--space-16); }
+  .mbwa-step { grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; }
+  .mbwa-step-label { color: var(--ink); }
+  .mbwa-step .mbwa-stat-number { font-size: 16px; font-weight: 600; }
+  .mbwa-step .mbwa-bar { grid-column: 1 / -1; margin: var(--space-6) 0 0; }
+  .mbwa-step-note, .mbwa-hide-narrow, .mbwa-thead { display: none; }
+  .mbwa-trow { grid-template-columns: minmax(0, 1fr) auto; gap: 2px var(--space-12); align-items: start; padding: var(--space-14) var(--space-16); }
+  .mbwa-trow > :first-child { grid-row: 1 / span 2; }
+  .mbwa-trow > :not(:first-child) { justify-self: end; }
+  .mbwa-setting { padding: var(--space-8) var(--space-16); }
+  .mbwa-overlay { padding: var(--space-16); }
+  .mbwa-dialog-head { align-items: flex-start; gap: var(--space-12); padding: var(--space-16); }
+  .mbwa-dialog-rows { padding: 0 var(--space-16); }
+  .mbwa-dialog-rows > div { grid-template-columns: 88px minmax(0, 1fr); gap: var(--space-12); }
+  .mbwa-dialog-foot { padding: var(--space-16); }
+  .mbwa-dialog-foot > * { flex: 1 1 0; justify-content: center; }
+}
+
+/* ---------- MB Community on top of the system ---------- */
+/* Flush with the WordPress menu, like the drawings; WordPress gives #wpcontent 20px (10px on phones). */
+.mbcom-admin.mbwa{margin:0 0 0 -20px;background:var(--page);min-height:calc(100vh - 32px)}
+@media (max-width:782px){.mbcom-admin.mbwa{margin-left:-10px;min-height:0}}
+.mbcom-admin .wp-header-end{display:none}
+.mbcom-admin > .notice,.mbcom-admin > div.updated,.mbcom-admin > div.error{margin:16px 32px 0;border-radius:var(--radius-control)}
+.mbcom-admin h1,.mbcom-admin h2{padding:0}
+.mbcom-admin .mbwa-title{font-size:22px;font-weight:600;line-height:1.3;color:var(--ink)}
+.mbcom-admin .mbwa-header{padding-right:var(--space-24)}
+.mbcom-admin .mbwa-by svg{display:block}
+.mbcom-admin .mbwa-tab svg{vertical-align:-1px;margin-left:4px}
+.mbcom-admin a.mbwa-btn{display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+.mbcom-admin a.mbwa-btn-primary,.mbcom-admin button.mbwa-btn-primary{color:var(--on-accent)}
+.mbcom-admin .mbwa-btn svg{flex:none}
+.mbcom-admin .mbcom-lnk{color:var(--accent);font-weight:600;text-decoration:none}
+.mbcom-admin .mbcom-lnk:hover{color:var(--accent-hover);text-decoration:underline}
+.mbcom-admin .mbcom-lnk-quiet{color:var(--ink-3);font-weight:400}
+.mbcom-admin .mbcom-one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mbcom-admin .mbcom-pad{padding:0 var(--space-24) var(--space-24)}
+.mbcom-admin .mbcom-two{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:var(--space-24);align-items:start}
+@container mbwa (max-width:959px){.mbcom-admin .mbcom-two{grid-template-columns:minmax(0,1fr)}}
+.mbcom-admin .mbwa-seg a{display:inline-flex;align-items:center;min-height:var(--control-height);padding:0 var(--space-16);border-left:1px solid var(--line-control);background:var(--surface);color:var(--ink);text-decoration:none}
+.mbcom-admin .mbwa-seg a:first-child{border-left:0}
+.mbcom-admin .mbwa-seg a[aria-current="true"]{background:var(--accent);color:var(--on-accent);font-weight:600}
+/* Setup guide */
+.mbcom-admin .mbcom-step{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:var(--space-16);align-items:center;padding:var(--space-14) var(--space-24);border-top:1px solid var(--line-soft)}
+.mbcom-admin .mbcom-num{width:28px;height:28px;border-radius:50%;border:1px solid var(--line-control);display:grid;place-items:center;font-weight:600;color:var(--ink-2)}
+.mbcom-admin .mbcom-num.done{background:var(--fine-bg);border-color:var(--fine-bg);color:var(--fine-ink)}
+.mbcom-admin .mbcom-step .mbwa-btn{min-height:40px}
+@container mbwa (max-width:599px){.mbcom-admin .mbcom-step{grid-template-columns:28px minmax(0,1fr);padding:var(--space-14) var(--space-16)}.mbcom-admin .mbcom-step > :last-child{grid-column:2}}
+/* Chart */
+.mbcom-admin .mbcom-chart{display:block;width:100%;height:auto;overflow:visible}
+.mbcom-admin .mbcom-chart text{font-family:var(--font-sans)}
+.mbcom-admin .mbcom-legend{display:flex;gap:var(--space-16);color:var(--ink-3)}
+.mbcom-admin .mbcom-legend span{display:inline-flex;align-items:center;gap:6px}
+/* Checks */
+.mbcom-admin .mbcom-checks{--mbwa-cols:minmax(0,1fr) 170px 96px 130px;--mbwa-cols-medium:minmax(0,1fr) 170px 96px 130px}
+.mbcom-admin .mbcom-checks .mbwa-trow > :last-child{text-align:right}
+/* Activity */
+.mbcom-admin .mbcom-activity{padding:0 var(--space-24) var(--space-24);border-top:1px solid var(--line)}
+.mbcom-admin .mbcom-day{font-size:12px;font-weight:600;color:var(--ink-3);margin:var(--space-14) 0 var(--space-8)}
+.mbcom-admin .mbcom-activity a{color:inherit;text-decoration:none}
+.mbcom-admin .mbcom-activity a:hover .mbwa-strong{color:var(--accent)}
+/* Keep me updated */
+.mbcom-admin .mbcom-optin .mbwa-input{width:300px;max-width:100%}
+.mbcom-admin .mbcom-optin label.mbcom-share{display:flex;gap:8px;align-items:flex-start;margin-top:var(--space-12);color:var(--ink-2)}
+.mbcom-admin .mbcom-optin label.mbcom-share input{margin:2px 0 0}
+.mbcom-admin .mbcom-optin .mbcom-skip{font:inherit;background:none;border:0;padding:0 8px;min-height:var(--control-height);color:var(--ink-3);cursor:pointer}
+.mbcom-admin .mbcom-optin .mbcom-skip:hover{color:var(--ink);text-decoration:underline}
+.mbcom-admin .mbcom-optin label.mbcom-share input[type=checkbox]{appearance:auto;-webkit-appearance:checkbox;width:16px;height:16px;flex:none;accent-color:var(--accent);border:1px solid var(--line-control)}
+.mbcom-admin .mbcom-optin label.mbcom-share input[type=checkbox]::before{content:none}
+.mbcom-admin .mbcom-chart-small{display:none}
+@container mbwa (max-width:599px){.mbcom-admin .mbcom-chart-wide{display:none}.mbcom-admin .mbcom-chart-small{display:block}
+.mbcom-admin .mbcom-step > :last-child{justify-self:start}
+.mbcom-admin .mbcom-checks .mbwa-trow > :last-child{grid-column:2;text-align:right}
+.mbcom-admin .mbcom-checks .mbwa-trow > :last-child:empty{display:none}
+.mbcom-admin .mbcom-optin .mbcom-skip{padding:0 12px}}
+.mbcom-admin .mbcom-activity .mbwa-changes{grid-template-columns:auto 8px minmax(0,1fr)}
+.mbcom-admin .mbcom-activity .mbwa-changes > .mbwa-muted{white-space:nowrap}
+/* ---------- Lists: Members, Posts, Comments, Files, Courses ---------- */
+.mbcom-admin .mbcom-grow{flex:1 1 auto}
+.mbcom-admin .mbwa-title-row .mbwa-muted{font-size:14px}
+.mbcom-admin .mbwa-title .mbcom-lnk{font-weight:600}
+.mbcom-admin .mbcom-crumb{font-weight:400;margin:0 4px}
+.mbcom-admin .mbcom-list{overflow:visible}
+.mbcom-admin .mbcom-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-12);padding:var(--space-20) var(--space-24);margin:0}
+.mbcom-admin .mbcom-toolbar .mbwa-filters{flex:0 1 auto}
+.mbcom-admin a.mbwa-filter{text-decoration:none;box-sizing:border-box}
+.mbcom-admin a.mbwa-filter:hover{border-color:var(--accent);color:var(--accent)}
+.mbcom-admin a.mbwa-filter[aria-current="page"]{border-color:var(--accent);background:var(--accent-tint);color:var(--accent);font-weight:600}
+.mbcom-admin .mbwa-filter .mbcom-count{color:var(--ink-3);font-weight:400}
+.mbcom-admin .mbcom-search{display:flex;align-items:center;gap:8px;width:260px;max-width:100%;min-height:var(--control-height);padding:0 12px;margin-left:auto;border:1px solid var(--line-control);border-radius:var(--radius-control);background:var(--surface);color:var(--ink-3);box-sizing:border-box}
+.mbcom-admin .mbcom-search:focus-within{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.mbcom-admin .mbcom-search input{flex:1;min-width:0;border:0;box-shadow:none;background:none;padding:0;min-height:36px;font:inherit;color:var(--ink)}
+.mbcom-admin .mbcom-search input:focus{outline:0;box-shadow:none}
+.mbcom-admin .mbcom-toolbar .mbwa-select select{min-height:var(--control-height)}
+.mbcom-admin .mbcom-selbar{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-12);padding:10px var(--space-24);background:var(--accent-tint);border-top:1px solid var(--line)}
+.mbcom-admin .mbcom-selbar[hidden],.mbcom-admin .mbcom-selbar [hidden]{display:none}
+.mbcom-admin .mbcom-selbar .mbwa-btn{min-height:40px}
+.mbcom-admin .mbcom-selbar .mbwa-select select{min-height:40px}
+.mbcom-admin .mbcom-text-btn{font:inherit;background:none;border:0;padding:0 8px;min-height:40px;color:var(--accent);cursor:pointer}
+.mbcom-admin .mbcom-text-btn:hover{text-decoration:underline}
+.mbcom-admin .mbcom-list .mbwa-trow{min-height:68px;box-sizing:border-box}
+.mbcom-admin .mbcom-list .mbwa-trow.is-ticked{background:var(--accent-tint)}
+.mbcom-admin .mbcom-list .mbwa-thead a.mbcom-sort{color:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+.mbcom-admin .mbcom-list .mbwa-thead a.mbcom-sort:hover{color:var(--accent)}
+.mbcom-admin .mbcom-list input[type=checkbox]{appearance:auto;-webkit-appearance:checkbox;width:16px;height:16px;margin:0;accent-color:var(--accent);box-shadow:none;border:1px solid var(--line-control)}
+.mbcom-admin .mbcom-list input[type=checkbox]::before{content:none}
+.mbcom-admin .mbcom-list input[type=checkbox]:disabled{opacity:.35}
+.mbcom-admin .mbcom-list .mbwa-trow > div{min-width:0}
+.mbcom-admin .mbcom-who{display:flex;align-items:center;gap:12px;min-width:0}
+.mbcom-admin .mbcom-who > div{min-width:0}
+.mbcom-admin .mbcom-who img{width:32px;height:32px;border-radius:50%;flex:none;object-fit:cover;background:var(--line-soft)}
+.mbcom-admin .mbcom-name{display:flex;align-items:center;gap:8px;min-width:0}
+.mbcom-admin .mbcom-name .mbwa-pill{flex:none}
+.mbcom-admin .mbcom-thumb{width:40px;height:40px;border-radius:4px;background:var(--line-soft);flex:none;display:grid;place-items:center;color:var(--ink-3)}
+.mbcom-admin .mbcom-quiet-link{color:inherit;text-decoration:none}
+.mbcom-admin .mbcom-quiet-link:hover{color:var(--accent);text-decoration:underline}
+.mbcom-admin a.mbcom-one{display:block}
+.mbcom-admin .mbcom-acts{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+.mbcom-admin .mbcom-more{position:relative}
+.mbcom-admin .mbcom-more summary{list-style:none;width:44px;height:44px;border-radius:var(--radius-control);display:grid;place-items:center;color:var(--ink-2);border:1px solid transparent;cursor:pointer}
+.mbcom-admin .mbcom-more summary::-webkit-details-marker{display:none}
+.mbcom-admin .mbcom-more summary:hover,.mbcom-admin .mbcom-more[open] summary{border-color:var(--line-control);background:var(--surface)}
+.mbcom-admin .mbcom-menu{position:absolute;right:0;top:46px;z-index:20;width:220px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-card);padding:6px 0;box-shadow:0 8px 24px rgba(0,0,0,.08);text-align:left}
+.mbcom-admin .mbcom-menu-item{display:block;padding:10px 14px;color:var(--ink);text-decoration:none}
+.mbcom-admin .mbcom-menu-item:hover,.mbcom-admin .mbcom-menu-item:focus{background:var(--accent-tint);color:var(--accent);outline:0;box-shadow:none}
+.mbcom-admin .mbcom-menu-last{border-top:1px solid var(--line-soft);margin-top:6px;padding-top:12px}
+.mbcom-admin .mbcom-empty{padding:var(--space-32) var(--space-24);border-top:1px solid var(--line);color:var(--ink-3);text-align:center}
+.mbcom-admin .mbcom-pager{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-12);padding:var(--space-14) var(--space-24);border-top:1px solid var(--line)}
+.mbcom-admin .mbcom-pager-btns{display:flex;gap:var(--space-8)}
+.mbcom-admin .mbcom-pager .mbwa-btn{min-height:40px}
+.mbcom-admin .mbcom-pager span.mbwa-btn{opacity:.45;cursor:default}
+.mbcom-admin .mbcom-prog{display:flex;align-items:center;gap:10px}
+.mbcom-admin .mbcom-prog .mbwa-bar{flex:1;margin:0}
+.mbcom-admin .mbcom-prog-n{width:64px;text-align:right;flex:none}
+/* The pop-up that asks first */
+.mbcom-admin .mbcom-overlay{position:fixed;inset:0;z-index:100000}
+.mbcom-admin .mbcom-overlay .mbwa-dialog{max-width:520px;box-shadow:0 16px 48px rgba(0,0,0,.18)}
+.mbcom-admin .mbcom-overlay .mbwa-dialog-title{flex:1}
+.mbcom-admin .mbcom-overlay .mbwa-dialog-form p{margin:0;color:var(--ink-2)}
+.mbcom-admin .mbcom-overlay .mbwa-dialog-foot .mbcom-text-btn{margin-right:auto;padding-left:0}
+.mbcom-admin .mbcom-close{width:36px;height:36px;display:grid;place-items:center;border:0;background:none;border-radius:var(--radius-control);color:var(--ink-2);cursor:pointer}
+.mbcom-admin .mbcom-close:hover{background:var(--line-soft)}
+.mbcom-admin .mbwa-btn.mbcom-danger{background:var(--alert-ink);border-color:var(--alert-ink);color:#fff}
+.mbcom-admin .mbwa-btn.mbcom-danger:hover{filter:brightness(.92);color:#fff}
+@container mbwa (max-width:599px){
+.mbcom-admin .mbcom-toolbar{padding:var(--space-16);flex-direction:column;align-items:stretch}
+.mbcom-admin .mbcom-toolbar .mbwa-filters{grid-template-columns:repeat(2,minmax(0,1fr))}
+.mbcom-admin .mbcom-search{width:100%;margin-left:0}
+.mbcom-admin .mbcom-toolbar .mbwa-select,.mbcom-admin .mbcom-toolbar .mbwa-select select{width:100%}
+.mbcom-admin .mbcom-list .mbwa-trow{grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:var(--space-12);padding:var(--space-14) var(--space-16)}
+.mbcom-admin .mbcom-list .mbwa-trow > *{grid-row:auto;grid-column:auto;justify-self:stretch}
+.mbcom-admin .mbcom-list .mbwa-trow > :not(.mbcom-keep){display:none}
+.mbcom-admin .mbcom-list .mbcom-c-progress{width:150px}
+.mbcom-admin .mbcom-pager{padding:var(--space-14) var(--space-16)}
+.mbcom-admin .mbcom-overlay .mbwa-dialog-foot .mbcom-text-btn{flex:0 0 100%;order:9;margin:0}
+}
+/* Export */
+.mbcom-admin .mbcom-export-row{display:flex;align-items:center;justify-content:space-between;gap:var(--space-16);padding:var(--space-14) var(--space-24);border-top:1px solid var(--line-soft)}
+.mbcom-admin .mbcom-export-row .mbwa-btn{min-height:40px;flex:none}
+@container mbwa (max-width:599px){.mbcom-admin .mbcom-export-row{padding:var(--space-12) var(--space-16)}}
+/* Problems */
+.mbcom-admin .mbcom-lnk-plain{font-weight:400}
+.mbcom-admin .mbcom-problems-none{display:flex;align-items:center;justify-content:space-between;gap:var(--space-12)}
+.mbcom-admin .mbcom-problems .mbwa-card-bar form{margin:0}
+/* Help */
+.mbcom-admin .mbcom-help{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:var(--space-24);align-items:start}
+.mbcom-admin .mbcom-help-side{display:grid;gap:var(--space-24)}
+.mbcom-admin .mbcom-help-body{display:grid;gap:var(--space-20);padding:0 var(--space-24) var(--space-24)}
+.mbcom-admin .mbcom-field{display:grid;gap:var(--space-8);margin:0;padding:0;border:0;min-width:0}
+.mbcom-admin .mbcom-field > label,.mbcom-admin .mbcom-field > legend,.mbcom-admin .mbcom-label{font-weight:600;color:var(--ink);padding:0;margin-bottom:var(--space-8)}
+.mbcom-admin .mbcom-field > label .mbwa-muted,.mbcom-admin .mbcom-label .mbwa-muted{font-weight:400}
+.mbcom-admin .mbcom-field > label{margin-bottom:0}
+.mbcom-admin .mbcom-help textarea{font:inherit;width:100%;box-sizing:border-box;padding:var(--space-12);border:1px solid var(--line-control);border-radius:var(--radius-control);background:var(--surface);color:var(--ink);resize:vertical;min-height:120px}
+.mbcom-admin .mbcom-help textarea:focus,.mbcom-admin .mbcom-help .mbwa-input:focus{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);outline:0}
+.mbcom-admin .mbcom-help [aria-invalid="true"]{border-color:var(--alert-ink)}
+.mbcom-admin label.mbcom-kind{position:relative}
+.mbcom-admin label.mbcom-kind input{position:absolute;opacity:0;width:1px;height:1px;margin:0}
+.mbcom-admin label.mbcom-kind:hover{border-color:var(--accent);color:var(--accent)}
+.mbcom-admin label.mbcom-kind.is-on,.mbcom-admin label.mbcom-kind:has(input:checked){border-color:var(--accent);background:var(--accent-tint);color:var(--accent);font-weight:600}
+.mbcom-admin label.mbcom-kind:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+.mbcom-admin .mbcom-show{display:grid;gap:var(--space-20)}
+.mbcom-admin .mbcom-show[hidden]{display:none}
+.mbcom-admin .mbcom-prompt{display:flex;gap:var(--space-12);align-items:flex-start;padding:var(--space-14) var(--space-16);border-radius:var(--radius-control);background:var(--accent-tint);color:var(--accent)}
+.mbcom-admin .mbcom-prompt svg{flex:none;margin-top:2px}
+.mbcom-admin .mbcom-prompt .mbwa-strong{color:var(--ink)}
+.mbcom-admin .mbcom-drop{display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-12)}
+.mbcom-admin .mbcom-shots{display:contents}
+.mbcom-admin .mbcom-shot{position:relative;width:88px;height:64px;border-radius:var(--radius-control);border:1px solid var(--line);overflow:hidden;background:var(--page)}
+.mbcom-admin .mbcom-shot img{width:100%;height:100%;object-fit:cover;display:block}
+.mbcom-admin .mbcom-shot-x{position:absolute;top:4px;right:4px;width:24px;height:24px;border-radius:50%;border:0;background:var(--surface);color:var(--ink);display:grid;place-items:center;cursor:pointer;box-shadow:0 0 0 1px var(--line)}
+.mbcom-admin .mbcom-add-shot{position:relative;display:inline-flex;align-items:center;overflow:hidden}
+.mbcom-admin .mbcom-add-shot[hidden]{display:none}
+.mbcom-admin .mbcom-add-shot input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.mbcom-admin .mbcom-add-shot:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.mbcom-admin .mbcom-err{color:var(--alert-ink)}
+.mbcom-admin .mbcom-err[hidden]{display:none}
+.mbcom-admin .mbcom-check{display:flex;gap:var(--space-8);align-items:flex-start;color:var(--ink-2)}
+.mbcom-admin .mbcom-check input[type=checkbox]{appearance:auto;-webkit-appearance:checkbox;width:16px;height:16px;flex:none;margin:3px 0 0;accent-color:var(--accent)}
+.mbcom-admin .mbcom-help-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-12);padding-top:var(--space-16);border-top:1px solid var(--line-soft)}
+.mbcom-admin .mbcom-help-foot > .mbwa-muted{flex:1 1 260px;font-size:13px}
+.mbcom-admin .mbcom-sent{display:flex;flex-wrap:wrap;gap:var(--space-12);align-items:center;justify-content:space-between}
+.mbcom-admin .mbcom-mine .mbcom-ticket-row{--mbwa-cols:minmax(0,1fr) auto;--mbwa-cols-medium:minmax(0,1fr) auto;align-items:center}
+.mbcom-admin .mbcom-one{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mbcom-admin .mbcom-quiet-link{color:var(--ink);text-decoration:none}
+.mbcom-admin .mbcom-quiet-link:hover{color:var(--accent);text-decoration:underline}
+.mbcom-admin .mbcom-donate-text{margin:var(--space-8) 0 var(--space-16);color:var(--ink-2)}
+.mbcom-admin .mbcom-donate-text + .mbwa-btn{display:inline-flex;align-items:center;gap:var(--space-8);text-decoration:none}
+.mbcom-admin .mbcom-crumb{margin:0 6px;font-weight:400}
+.mbcom-admin .mbcom-plain{font-weight:400}
+.mbcom-admin .mbcom-grow{flex:1}
+.mbcom-admin .mbcom-thread{max-width:880px}
+.mbcom-admin .mbcom-msg{display:grid;grid-template-columns:32px minmax(0,1fr);gap:var(--space-12);padding:var(--space-20) var(--space-24);border-top:1px solid var(--line-soft)}
+.mbcom-admin .mbcom-msg > img,.mbcom-admin .mbcom-mb-av,.mbcom-admin .mbcom-mb-av svg{width:32px;height:32px;border-radius:50%;display:block}
+.mbcom-admin .mbcom-mb-av{overflow:hidden}
+.mbcom-admin .mbcom-msg-ours{background:var(--accent-tint)}
+.mbcom-admin .mbcom-msg-head{display:flex;flex-wrap:wrap;gap:var(--space-8);align-items:baseline}
+.mbcom-admin .mbcom-msg-text p{margin:var(--space-8) 0 0}
+.mbcom-admin .mbcom-loom{display:flex;gap:var(--space-12);align-items:center;margin-top:var(--space-12);padding:var(--space-12) var(--space-16);border:1px solid var(--line);border-radius:var(--radius-control);background:var(--surface);max-width:360px}
+.mbcom-admin .mbcom-loom-play{width:36px;height:36px;border-radius:50%;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;flex:none}
+.mbcom-admin .mbcom-shots-row{display:flex;flex-wrap:wrap;gap:var(--space-8);margin-top:var(--space-12)}
+.mbcom-admin .mbcom-shots-row img{width:160px;height:100px;object-fit:cover;border:1px solid var(--line);border-radius:var(--radius-control);display:block}
+.mbcom-admin .mbcom-reply{display:grid;gap:var(--space-12);padding:var(--space-20) var(--space-24) var(--space-24);border-top:1px solid var(--line-soft)}
+.mbcom-admin .mbcom-reply textarea{font:inherit;width:100%;box-sizing:border-box;padding:var(--space-12);border:1px solid var(--line-control);border-radius:var(--radius-control);resize:vertical}
+.mbcom-admin .mbcom-reply .mbcom-help-foot{border-top:0;padding-top:0}
+.mbcom-admin .mbcom-solve{padding-left:0}
+@container mbwa (max-width:959px){.mbcom-admin .mbcom-help{grid-template-columns:minmax(0,1fr)}}
+@container mbwa (max-width:599px){
+.mbcom-admin .mbcom-help-body{padding:0 var(--space-16) var(--space-16)}
+.mbcom-admin .mbcom-help .mbwa-filters{grid-template-columns:minmax(0,1fr)}
+.mbcom-admin .mbcom-help-foot .mbwa-btn-primary{width:100%}
+.mbcom-admin .mbcom-msg,.mbcom-admin .mbcom-reply{padding:var(--space-16)}
+.mbcom-admin .mbcom-shots-row img{width:120px;height:80px}
+}

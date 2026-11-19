@@ -411,7 +411,7 @@ ob_start();
 \MemBuild\Community\Admin::page_table( 'members' );
 $html = ob_get_clean();
 unset( $_GET['s'], $_REQUEST['s'] );
-mbcom_check( 'the Members screen lists members with message counts', false !== strpos( $html, 'Ana' ) && (bool) preg_match( '/in \d+ chats?/', $html ) );
+mbcom_check( 'the Members screen lists members, with filters and the blue bar for ticked rows', false !== strpos( $html, 'Ana' ) && false !== strpos( $html, 'mbwa-filter' ) && false !== strpos( $html, 'mbcom-selbar' ) );
 mbcom_check( '…but never message text', false === strpos( $html, $secret ) );
 foreach ( array( 'posts', 'comments', 'files', 'courses' ) as $screen ) {
 	ob_start();
@@ -422,7 +422,7 @@ foreach ( array( 'posts', 'comments', 'files', 'courses' ) as $screen ) {
 ob_start();
 \MemBuild\Community\Admin::page_overview();
 $html = ob_get_clean();
-mbcom_check( 'the overview renders its numbers and chart', false !== strpos( $html, 'mb-stat__n' ) && false !== strpos( $html, 'mbcom-chart' ) );
+mbcom_check( 'the overview renders its numbers and chart', false !== strpos( $html, 'mbwa-stat-number' ) && false !== strpos( $html, 'mbcom-chart' ) );
 
 $export = \MemBuild\Community\Privacy::export( 'mbct_ana@example.test', 1 );
 $groups = array_unique( array_column( $export['data'], 'group_id' ) );
@@ -1471,7 +1471,38 @@ wp_set_current_user( $admin );
 ob_start();
 $P::page();
 $page = ob_get_clean();
-mbcom_check( 'the Problems page lists it, with the stack and a copy box', str_contains( $page, 'Boom at' ) && str_contains( $page, 'includes/class-feed.php:7' ) && str_contains( $page, 'Copy for support' ) && ! str_contains( $page, 'https://example.test' ) );
+mbcom_check( 'the Problems page lists it, where it happened and a Send to MemBuild link', str_contains( $page, 'Boom at' ) && str_contains( $page, 'includes/class-feed.php, line 7' ) && str_contains( $page, 'Send to MemBuild' ) && ! str_contains( $page, 'https://example.test' ) );
+mbcom_check( '…and what it sends carries the stack, never the address', str_contains( $P::as_text( array_key_first( $P::all() ) ), 'class-feed.php(7)' ) && ! str_contains( $P::as_text( array_key_first( $P::all() ) ), 'https://example.test' ) );
+// Help: the form, prefilled from a problem, never calls MemBuild before a first message.
+$help_calls = 0;
+$help_block = function ( $pre, $args, $url ) use ( &$help_calls ) {
+	if ( str_contains( $url, 'action=help_' ) ) {
+		++$help_calls;
+		return new WP_Error( 'test', 'blocked in tests' );
+	}
+	return $pre;
+};
+add_filter( 'pre_http_request', $help_block, 1, 3 );
+$help_secret = get_option( 'mbcom_help_secret' );
+delete_option( 'mbcom_help_secret' );
+delete_transient( 'mbcom_help_tickets' );
+$_GET['problem'] = array_key_first( $P::all() );
+ob_start();
+\MemBuild\Community\Help::page();
+$page = ob_get_clean();
+unset( $_GET['problem'] );
+mbcom_check( 'the Help tab shows the form with its three kinds, Loom and screenshots', str_contains( $page, 'Send a message to MemBuild' ) && 3 === substr_count( $page, 'name="kind"' ) && str_contains( $page, 'name="loom"' ) && str_contains( $page, 'name="shots[]"' ) );
+mbcom_check( '…prefilled from Send to MemBuild on the Problems page', str_contains( $page, 'class-feed.php(7)' ) );
+mbcom_check( '…with Buy me a coffee and no call to MemBuild before a first message', str_contains( $page, 'https://paypal.me/louwewds' ) && 0 === $help_calls );
+$_GET['ticket'] = 1043;
+update_option( 'mbcom_help_secret', str_repeat( 'a', 64 ), false );
+ob_start();
+\MemBuild\Community\Help::page();
+$page = ob_get_clean();
+unset( $_GET['ticket'] );
+mbcom_check( '…and a message says so plainly when MemBuild can’t be reached', str_contains( $page, 'couldn’t be loaded just now' ) && $help_calls <= 1 );
+remove_filter( 'pre_http_request', $help_block, 1 );
+$help_secret ? update_option( 'mbcom_help_secret', $help_secret, false ) : delete_option( 'mbcom_help_secret' );
 wp_set_current_user( $ana );
 ob_start();
 $P::page();
@@ -1598,7 +1629,7 @@ $html = $overview();
 mbcom_check( 'while the card is up, the overview’s numbers stay readable (nothing blurred)', str_contains( $html, 'name="email"' ) && ! str_contains( $html, 'mbcom-gated' ) );
 \MemBuild\Community\Usage::skip();
 $html = $overview();
-mbcom_check( '…and “Not now” clears the way', ! str_contains( $html, 'name="email"' ) && ! str_contains( $html, 'mbcom-gated' ) && str_contains( $html, 'mbcom-stats' ) );
+mbcom_check( '…and “Not now” clears the way', ! str_contains( $html, 'name="email"' ) && ! str_contains( $html, 'mbcom-gated' ) && str_contains( $html, 'mbwa-stats' ) );
 delete_option( \MemBuild\Community\Usage::OPTION );
 
 remove_filter( 'membuild_community/usage_reports', '__return_true' );
@@ -2427,14 +2458,14 @@ $wpdb->insert( $dl_p, array( 'user_id' => $dl_user, 'reason' => 'post', 'object_
 wp_delete_user( $dl_user );
 mbcom_check( 'deleting an account removes its points and level', 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE user_id = %d', $dl_t, $dl_user ) ) + (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE user_id = %d', $dl_p, $dl_user ) ) );
 $wpdb->replace( $dl_t, array( 'user_id' => 987654, 'points' => 5, 'level' => 1, 'last_active' => gmdate( 'Y-m-d' ) ) );
-delete_transient( 'mbcom_admin_totals' );
-$dl_tot = new ReflectionMethod( \MemBuild\Community\Admin::class, 'totals' );
+delete_transient( 'mbcom_admin_numbers_7' );
+$dl_tot = new ReflectionMethod( \MemBuild\Community\Admin::class, 'numbers' );
 $dl_tot->setAccessible( true );
-$dl_active = (int) $dl_tot->invoke( null )['active'];
-mbcom_check( '“Active this week” never counts an account that’s gone', $dl_active === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i s JOIN %i u ON u.ID = s.user_id WHERE s.last_active >= %s', $dl_t, $wpdb->users, gmdate( 'Y-m-d', time() - 7 * DAY_IN_SECONDS ) ) ) );
+$dl_active = (int) $dl_tot->invoke( null, 7 )['active'];
+mbcom_check( '“Active this week” never counts an account that’s gone', $dl_active === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i s JOIN %i u ON u.ID = s.user_id WHERE s.last_active >= %s', $dl_t, $wpdb->users, ( new DateTimeImmutable( 'today', wp_timezone() ) )->modify( '-6 days' )->format( 'Y-m-d' ) ) ) );
 \MemBuild\Community\Install::remove_departed_stats();
 mbcom_check( 'the update clears rows left behind by accounts deleted before', 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE user_id = 987654', $dl_t ) ) );
-delete_transient( 'mbcom_admin_totals' );
+delete_transient( 'mbcom_admin_numbers_7' );
 
 mbcom_section( 'Light unless the member picked dark' );
 $sc_was = $_COOKIE['mbcom_display'] ?? null;
@@ -3801,12 +3832,12 @@ mbcom_section( 'The Community menu icon' );
 $mi_saved = get_option( 'mbcom_settings', array() );
 update_option( 'mbcom_settings', array_merge( is_array( $mi_saved ) ? $mi_saved : array(), array( 'logo' => array( 'id' => 0, 'url' => 'https://example.test/their-logo.png' ) ) ) );
 \MemBuild\Community\Settings::flush();
-wp_styles()->add( 'admin-menu', false );
-wp_styles()->add_data( 'admin-menu', 'after', array() );
-\MemBuild\Community\Admin::menu_icon();
-$mi_css = implode( '', (array) wp_styles()->get_data( 'admin-menu', 'after' ) );
-mbcom_check( 'it stays the MemBuild logo when the community has its own', false !== strpos( $mi_css, 'assets/admin/menu-icon.png' ) && false === strpos( $mi_css, 'their-logo' ), $mi_css );
-mbcom_check( 'the file is in the plugin', file_exists( MEMBUILD_COMMUNITY_DIR . 'assets/admin/menu-icon.png' ) );
+$mi_fn  = new ReflectionMethod( \MemBuild\Community\Admin::class, 'menu_icon_uri' );
+$mi_fn->setAccessible( true );
+$mi_uri = (string) $mi_fn->invoke( null );
+$mi_svg = base64_decode( substr( $mi_uri, strlen( 'data:image/svg+xml;base64,' ) ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode -- reading back the menu icon
+mbcom_check( 'it stays the MemBuild person mark when the community has its own logo', str_starts_with( $mi_uri, 'data:image/svg+xml;base64,' ) && false !== strpos( $mi_svg, '<svg' ) && false === strpos( $mi_svg, 'their-logo' ), $mi_uri );
+mbcom_check( 'the file is in the plugin', file_exists( MEMBUILD_COMMUNITY_DIR . 'assets/admin/menu-icon.svg' ) );
 update_option( 'mbcom_settings', $mi_saved );
 \MemBuild\Community\Settings::flush();
 

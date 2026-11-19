@@ -359,42 +359,25 @@ class Usage {
 		if ( ! Helpers::can_manage() || ! self::card_due() ) {
 			return;
 		}
-		echo '<form class="mb-card mbcom-setup" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		echo '<form class="mbwa-card mbwa-card-pad mbcom-optin" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
 		wp_nonce_field( 'mbcom_usage' );
 		echo '<input type="hidden" name="action" value="mbcom_usage">';
 		printf(
-			'<h2>%s</h2><p class="mbcom-muted">%s</p>',
-			esc_html__( 'While you’re here: get the next features first', 'membuild-community' ),
-			esc_html__( 'An email when something new ships in MemBuild - Community, and the odd question about what to build next. No newsletters, nothing for sale.', 'membuild-community' )
-		);
-		echo '<div class="mbcom-setup-fields">';
-		printf( '<label><span>%s</span><input type="email" name="email" value="%s" required></label>', esc_html__( 'Your email', 'membuild-community' ), esc_attr( wp_get_current_user()->user_email ) );
-		printf( '<label><span>%s</span><select name="niche"><option value="">%s</option>', esc_html__( 'What is it about? (optional)', 'membuild-community' ), esc_html__( 'Choose one', 'membuild-community' ) );
-		foreach ( self::niches() as $key => $label ) {
-			printf( '<option value="%s"%s>%s</option>', esc_attr( $key ), selected( $state['niche'], $key, false ), esc_html( $label ) );
-		}
-		echo '</select></label>';
-		printf( '<label class="mbcom-setup-other"><span>%s</span><input type="text" name="niche_other" maxlength="40" value="%s"></label>', esc_html__( 'In a few words', 'membuild-community' ), esc_attr( $state['niche_other'] ) );
-		printf( '<label><span>%s</span><select name="size"><option value="">%s</option>', esc_html__( 'How many members do you expect? (optional)', 'membuild-community' ), esc_html__( 'Choose one', 'membuild-community' ) );
-		foreach ( self::sizes() as $key => $label ) {
-			printf( '<option value="%s"%s>%s</option>', esc_attr( $key ), selected( $state['size'], $key, false ), esc_html( $label ) );
-		}
-		echo '</select></label></div>';
-		printf(
-			'<label class="mbcom-setup-share"><input type="checkbox" name="share" value="1"%s> <span><strong>%s</strong> %s</span></label>',
-			checked( $state['asked'] ? $state['share'] : true, true, false ),
-			esc_html__( 'Also share how your community is used.', 'membuild-community' ),
-			esc_html__( 'Which features are on and how many members, posts, courses and events there are, refreshed weekly. Never member names, emails, posts or messages.', 'membuild-community' )
-		);
-		printf(
-			'<p class="mbcom-setup-actions"><button class="mb-btn mb-btn--accent" name="do" value="save">%s</button> <button class="mb-btn mb-btn--quiet" name="do" value="skip" formnovalidate>%s</button></p>',
+			'<div class="mbwa-row"><div style="flex:1;min-width:260px"><h2 class="mbwa-card-title">%s</h2><div class="mbwa-muted">%s</div></div><input class="mbwa-input" type="email" name="email" value="%s" required aria-label="%s"><button class="mbwa-btn mbwa-btn-primary" name="do" value="save">%s</button><button class="mbcom-skip" name="do" value="skip" formnovalidate>%s</button></div>',
+			esc_html__( 'Hear when something new ships', 'membuild-community' ),
+			esc_html__( 'One email per release. Nothing for sale', 'membuild-community' ),
+			esc_attr( wp_get_current_user()->user_email ),
+			esc_attr__( 'Your email', 'membuild-community' ),
 			esc_html__( 'Keep me updated', 'membuild-community' ),
 			esc_html__( 'Not now', 'membuild-community' )
 		);
 		printf(
-			'<p class="mbcom-setup-fine">%s</p>',
-			esc_html__( 'We get your email, your site’s address and name, and the plugin, WordPress and PHP versions. Stop any time in the community’s Settings → News from MemBuild, which also shows exactly what’s sent.', 'membuild-community' )
+			'<label class="mbcom-share"><input type="checkbox" name="share" value="1"%s> <span>%s</span></label>',
+			checked( $state['asked'] ? $state['share'] : true, true, false ),
+			esc_html__( 'Also share how the community is used: which features are on and how many members, posts, courses and events, weekly. Never names, emails, posts or messages.', 'membuild-community' )
 		);
+		// Kept so a choice made before stays as it was.
+		printf( '<input type="hidden" name="niche" value="%s"><input type="hidden" name="niche_other" value="%s"><input type="hidden" name="size" value="%s">', esc_attr( $state['niche'] ), esc_attr( $state['niche_other'] ), esc_attr( $state['size'] ) );
 		echo '</form>';
 	}
 

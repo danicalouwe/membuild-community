@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.23.1
+Stable tag: 1.24.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -219,6 +219,7 @@ The plugin works without any outside service. These are only contacted when you 
 * Always, once a week: a random ID made on your site (not its address), the plugin, WordPress and PHP versions, the site's language and whether it's a multisite, sent to `https://tools.membuild.com/api.php`. Our server also notes the country the request comes from (two letters) and keeps no IP address. This is how we count active installs.
 * If "Share usage" is on (ticked by default on the card the Community overview shows once, and changeable in Community settings → News from MemBuild): what the community is about and how big it expects to be, which features are on, how sign-up and video are set up, rough counts in ranges ("51-200 members", "11-50 posts"), and the errors caught in the plugin's own code (file, line, a scrubbed message, how often; see Community → Problems), still under the random ID. Never names, email addresses, the site's address, posts, comments, messages or stack traces.
 * Only if an admin presses "Keep me updated" (on that card, or in Settings → News from MemBuild): the email address they typed, the site's address and name, and the plugin, WordPress and PHP versions, so we can email about new features. While "Share usage" is also on, the community's exact counts (members, members active in the last 30 days, posts, courses, events, which features are on, the last day a member was active) go with it and are refreshed weekly. Never member names, emails, posts, comments or messages. "Stop" removes the email and everything with it from our server.
+* Only when an admin sends a message from Community → Help: the message, its kind (a problem, an idea or kind words), an optional Loom link, up to 3 screenshots, the admin's name and email, the site's name and address, the plugin, WordPress and PHP versions, and a random key made on your site so it can read MemBuild's answers. Screenshots go straight to MemBuild and are never saved on your site. The Help tab then asks our server for this site's messages and answers. If the message was "Problems caught" text, it carries that problem's stack, never the site's addresses in it.
 * Settings → News from MemBuild shows exactly what is sent, and "Delete this site's data at MemBuild" removes all of it from our server. The weekly report is not sent from sites whose environment type is local or development. The `membuild_community/usage_reports` filter turns everything off.
 * Privacy: https://membuild.com/privacy
 
@@ -267,6 +268,17 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.24.0 =
+* New: the Community pages in the WordPress admin have a new, calmer look, in WordPress's own font and blue: tabs across the top, one title row per page, flat cards, and lists that work on a phone. "Version x · by MemBuild" sits at the top right.
+* New: Overview shows what needs you first (reports to review, quiet members, plugin errors), a Courses and events card (lessons finished, quizzes passed, certificates, the next event) and a chart of posts and comments by day.
+* New: Members can be filtered by Quiet (not seen in 30 days), Muted and Banned, and show each member's courses. Tick members to mute, ban, lift or add them to a group in one go; a banned member is never turned into a muted one.
+* New: Posts and Comments have a Reported filter, with "Keep, close the reports". Posts show polls, reels, events and pins at a glance, and Delete offers "Hide instead".
+* New: Courses shows who started and finished each course, certificates given, and for one course each member's progress, last lesson and quiz result, with a Stuck filter (no lesson in 14 days).
+* New: Export has spreadsheets for quiz results, certificates and event sign-ups.
+* New: Problems lists what was caught with where it happened and a "Send to MemBuild" link.
+* New: a Help tab. Send MemBuild a problem, an idea or kind words, with a Loom link and up to 3 screenshots. Each message gets a ticket number; answers show here and come by email, and you can reply or mark it solved. There's also a way to buy Danica a coffee.
+* Changed: WordPress's "a new version of WordPress is available" notice and the Screen Options tab are hidden on the Community pages only.
 
 = 1.23.1 =
 * Fixed: a typed heart "<3", and things like "<-" or "<50", show as typed in posts, comments, chat, bios and everywhere else members write, instead of as code like "&lt;3". The words after them now show in search, email subjects and the WordPress admin lists too. Code that could run in a page is still taken out.

@@ -156,7 +156,7 @@ class Health {
 		return array( 'good', '', '' );
 	}
 
-	private static function key_settings_url() {
+	public static function key_settings_url() {
 		return home_url( '/' . Settings::slug() . '/settings/address#s-key' );
 	}
 

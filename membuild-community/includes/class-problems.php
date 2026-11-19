@@ -278,63 +278,64 @@ class Problems {
 		if ( ! Helpers::can_manage() ) {
 			return;
 		}
-		$all   = self::all();
-		$share = Usage::state()['share'];
-		$state = $share
-			? '<span class="mb-badge mb-badge--ok">' . esc_html__( 'Share usage is on', 'membuild-community' ) . '</span>'
-			: '<a class="mb-badge mb-badge--neutral" href="' . esc_url( Admin::app_url( 'settings/news' ) ) . '">' . esc_html__( 'Share usage is off · Settings', 'membuild-community' ) . '</a>';
-		Admin::shell_open(
-			'problems',
-			__( 'Problems', 'membuild-community' ),
-			__( 'Errors in the Community plugin’s own code, caught on this site: PHP crashes in its files, and errors the community app hit in the browser. Each line is one place in the code, with how often it happened. Lines from the app are sent by members’ browsers, so a strange one may not be a real error. Nothing from this page leaves the site unless “Share usage” is on, which sends the lines below without the stack or the site’s address.', 'membuild-community' ),
-			$state
-		);
+		$all  = self::all();
+		$seen = (int) get_user_meta( get_current_user_id(), 'mbcom_problems_seen', true ); // when this person last opened the page
+		update_user_meta( get_current_user_id(), 'mbcom_problems_seen', time() );
+		$note = '<span class="mbwa-muted">' . esc_html( Usage::state()['share'] ? __( 'Sharing problems with MemBuild is on', 'membuild-community' ) : __( 'Sharing problems with MemBuild is off', 'membuild-community' ) ) . ' · ' . Admin::link( Admin::app_url( 'settings/news' ), __( 'Change', 'membuild-community' ), false, 'mbcom-lnk mbcom-lnk-plain' ) . '</span>';
+		Admin::shell_open( 'problems', '', '', '', '<div class="mbwa-title-row"><h1 class="mbwa-title">' . esc_html__( 'Problems', 'membuild-community' ) . '</h1>' . $note . '</div>' );
 		if ( ! $all ) {
-			printf( '<section class="mb-card mbcom-problems-empty"><span class="mbcom-empty-icon"><svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3 3 7-7"/></svg></span><h2 class="mb-card__title">%s</h2><p class="mb-help">%s</p></section>', esc_html__( 'No problems caught', 'membuild-community' ), esc_html__( 'If something goes wrong in the plugin’s code, it shows up here with the file, the line and a count.', 'membuild-community' ) );
+			echo '<div class="mbwa-card mbwa-card-pad mbcom-problems-none"><span class="mbwa-strong">' . esc_html__( 'No problems caught', 'membuild-community' ) . '</span>' . Admin::pill( 'fine', __( 'Fine', 'membuild-community' ) ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in pill()
 			Admin::shell_close();
 			return;
 		}
-		$dump = '';
-		echo '<section class="mb-card mbcom-problems"><div class="mb-card__head">';
-		printf( '<h2 class="mb-card__title">%s</h2>', esc_html( sprintf( /* translators: %s: a number */ _n( '%s problem', '%s problems', count( $all ), 'membuild-community' ), number_format_i18n( count( $all ) ) ) ) );
+		$grid = ' style="--mbwa-cols:minmax(0,1fr) 140px 70px 130px 110px 150px;--mbwa-cols-medium:minmax(0,1fr) 70px 130px 150px"';
+		echo '<div class="mbwa-card mbcom-list mbcom-problems"><div class="mbwa-card-bar"><h2 class="mbwa-card-title">' . esc_html__( 'Caught on this site', 'membuild-community' ) . '</h2><span class="mbcom-grow"></span>';
 		printf(
-			'<form method="post" action="%s">%s<input type="hidden" name="action" value="mbcom_problems"><button class="mb-btn mb-btn--quiet mb-btn--sm" name="do" value="clear">%s</button></form></div>',
+			'<form method="post" action="%s">%s<input type="hidden" name="action" value="mbcom_problems"><button class="mbcom-text-btn" name="do" value="clear">%s</button></form></div>',
 			esc_url( admin_url( 'admin-post.php' ) ),
 			wp_nonce_field( 'mbcom_problems', '_wpnonce', true, false ),
-			esc_html__( 'Clear the list', 'membuild-community' )
+			esc_html__( 'Clear list', 'membuild-community' )
 		);
-		echo '<div class="mbcom-table-wrap"><table class="mb-table mbcom-problem-table"><thead><tr>';
-		foreach ( array( __( 'Last seen', 'membuild-community' ), __( 'What happened', 'membuild-community' ), __( 'Where', 'membuild-community' ), __( 'Times', 'membuild-community' ), __( 'Versions', 'membuild-community' ) ) as $h ) {
-			echo '<th>' . esc_html( $h ) . '</th>';
+		echo '<div class="mbwa-thead"' . $grid . '>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fixed
+		foreach ( array( array( __( 'Problem', 'membuild-community' ), 'mbcom-keep' ), array( __( 'Where', 'membuild-community' ), 'mbwa-hide-medium' ), array( __( 'Times', 'membuild-community' ), '' ), array( __( 'Last seen', 'membuild-community' ), '' ), array( __( 'Status', 'membuild-community' ), 'mbwa-hide-medium' ), array( '', 'mbcom-keep' ) ) as list( $h, $c ) ) {
+			echo '<span class="' . esc_attr( $c ) . '">' . ( '' !== $h ? esc_html( $h ) : '<span class="screen-reader-text">' . esc_html__( 'Actions', 'membuild-community' ) . '</span>' ) . '</span>';
 		}
-		echo '</tr></thead><tbody>';
+		echo '</div>';
 		foreach ( $all as $sig => $p ) {
-			$place = $p['file'] . ( $p['line'] ? ':' . $p['line'] : '' );
-			/* translators: %s: how long ago, e.g. "3 hours" */
-			$ago = sprintf( __( '%s ago', 'membuild-community' ), human_time_diff( $p['last'] ) );
+			/* translators: 1: a file, 2: a line number */
+			$place = $p['line'] ? sprintf( __( '%1$s, line %2$s', 'membuild-community' ), $p['file'], $p['line'] ) : $p['file'];
+			$day   = wp_date( 'Y-m-d', $p['last'] );
+			$when  = wp_date( 'Y-m-d' ) === $day
+				/* translators: %s: a time of day */
+				? sprintf( __( 'Today, %s', 'membuild-community' ), wp_date( get_option( 'time_format' ), $p['last'] ) )
+				: ( wp_date( 'Y-m-d', time() - DAY_IN_SECONDS ) === $day ? __( 'Yesterday', 'membuild-community' ) : wp_date( 'j M', $p['last'] ) );
+			$new   = ( $p['first'] ?? 0 ) > $seen;
 			printf(
-				'<tr><td class="mbcom-nowrap"><abbr title="%s">%s</abbr></td><td><span class="mb-badge %s">%s</span> <strong>%s</strong>%s</td><td><span class="mb-code">%s</span>%s</td><td class="mb-num">%s</td><td class="mb-sub mbcom-nowrap">%s</td></tr>',
-				esc_attr( wp_date( 'Y-m-d H:i', $p['last'] ) ),
-				esc_html( $ago ),
-				'js' === $p['kind'] ? 'mb-badge--warn' : 'mb-badge--danger',
-				'js' === $p['kind'] ? esc_html__( 'Browser', 'membuild-community' ) : esc_html__( 'Server', 'membuild-community' ),
+				'<div class="mbwa-trow"%s><div class="mbcom-keep"><div class="mbwa-strong mbcom-one" title="%s">%s</div><div class="mbwa-muted mbcom-one">%s</div></div><div class="mbwa-hide-medium">%s</div><div>%s</div><div title="%s">%s</div><div class="mbwa-hide-medium">%s</div><div class="mbcom-keep"><div class="mbcom-acts">%s</div></div></div>',
+				$grid, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- fixed
+				esc_attr( $p['message'] ),
 				esc_html( $p['message'] ),
-				$p['stack'] ? '<details class="mbcom-stack"><summary>' . esc_html__( 'Stack', 'membuild-community' ) . '</summary><pre>' . esc_html( $p['stack'] ) . '</pre></details>' : '',
-				esc_html( $place ),
-				$p['where'] ? '<br><small class="mb-sub">' . esc_html( $p['where'] ) . '</small>' : '',
+				esc_html( $place . ( $p['where'] ? ' · ' . $p['where'] : '' ) ),
+				esc_html( 'js' === $p['kind'] ? __( 'Community app', 'membuild-community' ) : __( 'Website', 'membuild-community' ) ),
 				esc_html( number_format_i18n( $p['count'] ) ),
-				esc_html( 'Community ' . $p['plugin'] . ' · WP ' . $p['wp'] . ' · PHP ' . $p['php'] )
+				esc_attr( wp_date( 'Y-m-d H:i', $p['last'] ) . ' · Community ' . $p['plugin'] . ' · WP ' . $p['wp'] . ' · PHP ' . $p['php'] ),
+				esc_html( $when ),
+				$new ? Admin::pill( 'watch', __( 'New', 'membuild-community' ) ) : Admin::pill( 'note', __( 'Seen before', 'membuild-community' ) ), // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in pill()
+				Admin::link( Admin::url( 'help', array( 'problem' => $sig ) ), __( 'Send to MemBuild', 'membuild-community' ) ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in link()
 			);
-			$dump .= sprintf( "[%s] %s x%d  %s  %s\n  %s\n  Community %s, WP %s, PHP %s%s\n\n", $sig, strtoupper( $p['kind'] ), $p['count'], gmdate( 'Y-m-d', $p['last'] ), $place, $p['message'], $p['plugin'], $p['wp'], $p['php'], $p['stack'] ? "\n  " . str_replace( "\n", "\n  ", $p['stack'] ) : '' );
 		}
-		echo '</tbody></table></div>';
-		printf(
-			'<details class="mbcom-copy"><summary>%s</summary><p class="mb-help">%s</p><textarea readonly rows="10" onclick="this.select()">%s</textarea></details></section>',
-			esc_html__( 'Copy for support', 'membuild-community' ),
-			esc_html__( 'Paste this when you write to MemBuild or your developer. It holds the lines above and nothing about your members.', 'membuild-community' ),
-			esc_textarea( $dump )
-		);
+		echo '</div>';
 		Admin::shell_close();
+	}
+
+	/** One problem as plain text for a message to MemBuild: what, where, how often, versions and the stack. */
+	public static function as_text( $sig ) {
+		$p = self::raw()[ $sig ] ?? null;
+		if ( ! $p ) {
+			return '';
+		}
+		$place = $p['file'] . ( $p['line'] ? ':' . $p['line'] : '' );
+		return sprintf( "%s\n%s (%s), %d times, last %s\nCommunity %s, WP %s, PHP %s%s", $p['message'], $place, 'js' === $p['kind'] ? 'community app' : 'website', $p['count'], gmdate( 'Y-m-d', $p['last'] ), $p['plugin'], $p['wp'], $p['php'], $p['stack'] ? "\n\n" . $p['stack'] : '' );
 	}
 
 	public static function handle_clear() {
