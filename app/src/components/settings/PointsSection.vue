@@ -161,7 +161,7 @@ h3 {
 }
 
 .after .err {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .link {

@@ -164,6 +164,7 @@ h2 {
 .words strong {
   font-size: var(--fs-base);
   line-height: 1.3;
+  overflow-wrap: anywhere; /* a long word in an event's name wraps (#54) */
 }
 
 .words small {

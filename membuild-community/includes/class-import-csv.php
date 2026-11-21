@@ -289,7 +289,7 @@ class Import_Csv extends Import_Source {
 		$user   = get_user_by( 'email', $m['email'] );
 		$is_new = ! $user;
 		if ( $is_new ) {
-			$base  = sanitize_user( strstr( $m['email'], '@', true ), true ) ?: 'member';
+			$base  = substr( sanitize_user( strstr( $m['email'], '@', true ), true ), 0, 50 ) ?: 'member'; // usernames stop at 60
 			$login = $base;
 			for ( $i = 2; username_exists( $login ); $i++ ) {
 				$login = $base . $i;

@@ -556,7 +556,7 @@ async function remove() {
   width: 100%;
   padding: 8px 10px;
   border-radius: var(--radius-xs);
-  color: var(--danger);
+  color: var(--danger-text);
   font-weight: 600;
   text-align: left;
 }

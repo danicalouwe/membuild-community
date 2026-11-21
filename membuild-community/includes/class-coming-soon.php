@@ -80,10 +80,10 @@ class Coming_Soon {
 		return ! empty( self::settings()['on'] ) && self::page_id();
 	}
 
-	/** "Mon, Dec 1", or '' with no opening day. */
+	/** "Mon, Dec 1", or '' with no opening day or one already past (the page then says "Opening soon"). */
 	public static function opens_text() {
 		$day = (string) self::settings()['opens'];
-		if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $day ) ) {
+		if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $day ) || $day < wp_date( 'Y-m-d' ) ) {
 			return '';
 		}
 		$at = date_create_immutable( $day . ' 12:00', wp_timezone() );
@@ -102,6 +102,10 @@ class Coming_Soon {
 			return;
 		}
 		if ( is_robots() || is_favicon() || get_query_var( 'sitemap' ) || get_query_var( 'sitemap-stylesheet' ) ) {
+			return;
+		}
+		// Unsubscribe links always work (a community email's link only with its sig, which its handler checks and stops on), so "We're open" and community emails can be stopped while the doors are shut.
+		if ( isset( $_GET['mbcom_waitlist_off'] ) || isset( $_GET['mbcom_unsubscribe'], $_GET['sig'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification -- only lets the signed or tokened link through; its own handler checks it
 			return;
 		}
 		if ( get_query_var( 'mbcom_portal' ) ) {

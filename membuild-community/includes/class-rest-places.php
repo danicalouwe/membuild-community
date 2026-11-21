@@ -361,7 +361,7 @@ class Rest_Places {
 		// The time zone it's in: owners and moderators set it (or the first event held here does).
 		if ( array_key_exists( 'tz', $in ) && self::can_edit() ) {
 			$tz = (string) $in['tz'];
-			if ( in_array( $tz, timezone_identifiers_list(), true ) ) { // anything else keeps what it had
+			if ( Helpers::is_zone( $tz ) ) { // anything else keeps what it had
 				$out['tz'] = $tz;
 			}
 		}
@@ -519,6 +519,10 @@ class Rest_Places {
 		global $wpdb;
 		if ( ! self::can_edit() ) {
 			return new \WP_Error( 'rest_forbidden', __( 'Sorry, you are not allowed to do that.', 'membuild-community' ), array( 'status' => 403 ) );
+		}
+		$row = $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM %i WHERE id = %d', Install::table( 'place_news' ), (int) $req['id'] ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		if ( ! $row ) { // the member took it back while it waited
+			return new \WP_Error( 'mbcom_news_gone', __( 'This What’s new was taken back.', 'membuild-community' ), array( 'status' => 404 ) );
 		}
 		$wpdb->update( Install::table( 'place_news' ), array( 'status' => 'published', 'resolved_by' => get_current_user_id() ), array( 'id' => (int) $req['id'] ) );
 		return array( 'approved' => true );

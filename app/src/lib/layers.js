@@ -77,9 +77,15 @@ export function pushLayer(layer) {
   return () => {
     const i = stack.indexOf(layer)
     if (i !== -1) stack.splice(i, 1)
+    if (layer.trap) dialogClosedAt = Date.now()
     if (!stack.length) window.removeEventListener('keydown', onKeydown)
   }
 }
+
+// When a full-screen window closes, a quick second tap on its close button lands on whatever
+// was under it, often a tab in the phone tab bar. That tap is ignored for half a second (#87).
+let dialogClosedAt = 0
+export const dialogJustClosed = () => Date.now() - dialogClosedAt < 500
 
 export const isTopLayer = (layer) => stack.at(-1) === layer
 export const hasLayers = () => stack.length > 0

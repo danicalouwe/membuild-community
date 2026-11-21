@@ -361,11 +361,11 @@ const deleteTitle = computed(() => t.sprintf(/* translators: %s: lesson title */
       <h3>{{ t.__('When does this lesson open?', 'membuild-community') }}</h3>
       <p v-if="course.opens === 'all'" class="course-opens">
         {{ t.__('Every lesson is open from the start.', 'membuild-community') }}
-        <button type="button" class="co-link" @click="emit('settings')">{{ t.__('Change it in Course settings', 'membuild-community') }}</button>
+        <button type="button" class="co-link tap-44" @click="emit('settings')">{{ t.__('Change it in Course settings', 'membuild-community') }}</button>
       </p>
       <p v-else-if="byStart" class="course-opens">
         {{ startsLine[0] }}<b>{{ longDate(course.starts_on) }}</b>{{ startsLine[1] }}
-        <button type="button" class="co-link" @click="emit('settings')">{{ t.__('Change it in Course settings', 'membuild-community') }}</button>
+        <button type="button" class="co-link tap-44" @click="emit('settings')">{{ t.__('Change it in Course settings', 'membuild-community') }}</button>
       </p>
       <template v-if="course.opens !== 'all'">
       <label v-if="byStart" class="choice pick-card" :class="{ on: opens === 'now' }">

@@ -803,6 +803,19 @@ mbcom_check( 'with sign-up off, "Create new account" uses the owner’s own link
 mbcom_call( $admin, 'PUT', '/settings', array( 'signup_url' => 'https://shop.example.com/join', 'registration' => false ) );
 \MemBuild\Community\Settings::flush();
 mbcom_check( '…when one is set', 'https://shop.example.com/join' === \MemBuild\Community\Login::signup_link() );
+$za = fn( $z, $d ) => \MemBuild\Community\Helpers::zone_abbr( strtotime( $d ), new DateTimeZone( $z ) );
+mbcom_check( 'Manila shows as GMT+8, not “PST” (#49)', 'GMT+8' === $za( 'Asia/Manila', '2026-01-15 12:00 UTC' ), $za( 'Asia/Manila', '2026-01-15 12:00 UTC' ) );
+mbcom_check( '…New York keeps EST, India GMT+5:30, London GMT', 'EST' === $za( 'America/New_York', '2026-01-15 12:00 UTC' ) && 'GMT+5:30' === $za( 'Asia/Kolkata', '2026-01-15 12:00 UTC' ) && 'GMT' === $za( 'Europe/London', '2026-01-15 12:00 UTC' ) && 'GMT+1' === $za( 'Europe/London', '2026-07-15 12:00 UTC' ) );
+mbcom_check( 'an older zone name like Asia/Calcutta is kept (#64)', \MemBuild\Community\Helpers::is_zone( 'Asia/Calcutta' ) && \MemBuild\Community\Helpers::is_zone( 'Asia/Kolkata' ) && ! \MemBuild\Community\Helpers::is_zone( 'Mars/Olympus' ) && ! \MemBuild\Community\Helpers::is_zone( '' ) );
+$ul_m  = new ReflectionMethod( '\MemBuild\Community\Login', 'unique_login' );
+$ul_m->setAccessible( true );
+$ul_lg = $ul_m->invoke( null, str_repeat( 'longname', 8 ) . '@example.test' );
+$ul_id = wp_insert_user( array( 'user_login' => $ul_lg, 'user_email' => str_repeat( 'longname', 8 ) . '@example.test', 'user_pass' => wp_generate_password() ) );
+mbcom_check( 'an email with 64 letters before the @ can still make an account (#63)', strlen( $ul_lg ) <= 60 && ! is_wp_error( $ul_id ), is_wp_error( $ul_id ) ? $ul_id->get_error_message() : $ul_lg );
+if ( ! is_wp_error( $ul_id ) ) {
+	require_once ABSPATH . 'wp-admin/includes/user.php';
+	wp_delete_user( $ul_id );
+}
 $role = new ReflectionMethod( '\MemBuild\Community\Login', 'signup_role' );
 $role->setAccessible( true );
 update_option( 'default_role', 'editor' );
@@ -1826,6 +1839,10 @@ mbcom_check( 'a member’s What’s new waits for a check (others don’t see it
 mbcom_call( $admin, 'PUT', "/places/news/{$n['id']}" );
 list( , $seen ) = mbcom_call( $ana, 'GET', "/places/{$tp}" );
 mbcom_check( '…and shows once approved', 1 === count( $seen['news'] ?? array() ) );
+list( , $n2 ) = mbcom_call( $member, 'POST', "/places/{$tp}/news", array( 'text' => 'Taken back', 'ends_on' => gmdate( 'Y-m-d', strtotime( '+5 days' ) ) ) );
+mbcom_call( $member, 'DELETE', "/places/news/{$n2['id']}" );
+list( $s, $ap ) = mbcom_call( $admin, 'PUT', "/places/news/{$n2['id']}" );
+mbcom_check( '…approving one the member already took back says so (#144)', 404 === $s && 'mbcom_news_gone' === ( $ap['code'] ?? '' ), wp_json_encode( $ap ) );
 list( $s ) = mbcom_call( $ana, 'GET', '/places/news' );
 mbcom_check( 'members can’t list What’s new waiting for a check', 403 === $s );
 list( , $me ) = mbcom_call( $member, 'PUT', '/places/me', array( 'lat' => 30.267153, 'lng' => -97.743057, 'city' => 'Austin, TX' ) );
@@ -3153,9 +3170,20 @@ mbcom_check( '…a member who isn’t on the team too', '' !== $r2_gate( $sp_mem
 mbcom_check( '…staff see the whole site', '' === $r2_gate( $sp_admin, array( 'page_id' => $sp_ids['about'] ) ) );
 mbcom_check( '…the Coming soon page itself shows', '' === $r2_gate( 0, array( 'page_id' => $r2_cs ) ) );
 mbcom_check( '…and Log in still works', '' === $r2_gate( 0, array( 'page_id' => $r2_cs ), array( 'mbcom_portal' => 1, 'mbcom_path' => 'login' ) ) );
+$_GET['mbcom_waitlist_off'] = str_repeat( 'a', 32 );
+mbcom_check( '…and an unsubscribe link reaches its own page, not Coming soon (#57)', '' === $r2_gate( 0, array( 'page_id' => $sp_ids['about'] ) ) );
+unset( $_GET['mbcom_waitlist_off'] );
+$_GET['mbcom_unsubscribe'] = '1';
+mbcom_check( '…but the word alone in an address doesn’t open the site', '' !== $r2_gate( 0, array( 'page_id' => $sp_ids['about'] ) ) );
+$_GET['sig'] = 'x';
+mbcom_check( '…a community email’s unsubscribe link (with its signature, which its own handler checks) too', '' === $r2_gate( 0, array( 'page_id' => $sp_ids['about'] ) ) );
+unset( $_GET['mbcom_unsubscribe'], $_GET['sig'] );
 $GLOBALS['wp_query'] = $GLOBALS['wp_the_query'] = new WP_Query(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride
 wp_set_current_user( 0 );
 mbcom_check( 'the opening block says the day', false !== strpos( do_blocks( '<!-- wp:membuild-community/opening /-->' ), 'Opening ' . wp_date( 'D, M j', strtotime( '2030-12-01 12:00' ) ) ) );
+mbcom_call( $sp_admin, 'POST', '/coming-soon', array( 'opens' => wp_date( 'Y-m-d', time() - 3 * DAY_IN_SECONDS ) ) );
+mbcom_check( '…and “Opening soon” once that day has passed (#52)', false !== strpos( do_blocks( '<!-- wp:membuild-community/opening /-->' ), 'Opening soon' ) );
+mbcom_call( $sp_admin, 'POST', '/coming-soon', array( 'opens' => '2030-12-01' ) );
 
 // The waiting list: in the community only, once per address.
 global $wpdb;

@@ -503,7 +503,7 @@ $mbcom_kses = array( 'strong' => array(), 'b' => array(), 'a' => array( 'href' =
 				<?php wp_nonce_field( 'mbcom_join', '_mbcom_join', false ); ?>
 				<label class="field">
 					<span class="label"><?php esc_html_e( 'First name', 'membuild-community' ); ?></span>
-					<input name="first_name" type="text" value="<?php echo esc_attr( $data['values']['first'] ); ?>" autocomplete="given-name" required <?php echo $data['error'] ? '' : $mbcom_af; ?>>
+					<input name="first_name" type="text" maxlength="50" value="<?php echo esc_attr( $data['values']['first'] ); ?>" autocomplete="given-name" required <?php echo $data['error'] ? '' : $mbcom_af; ?>>
 				</label>
 				<div class="field<?php echo 'mbcom_email_taken' === $data['code'] ? ' has-error' : ''; ?>">
 					<label class="label" for="mbcom-email"><?php esc_html_e( 'Email', 'membuild-community' ); ?></label>

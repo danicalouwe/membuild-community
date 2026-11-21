@@ -376,10 +376,9 @@ class Starter_Blocks {
 		return self::wrap( 'mbs-events', $rows, $attrs ) . $js;
 	}
 
-	/** The site's time zone, short ("EST", or "UTC+8" where there's no short name). */
+	/** The site's time zone, short ("EST", or "GMT+8" outside North America, as the app writes it). */
 	private static function zone() {
-		$zone = wp_date( 'T' );
-		return preg_match( '/^[+-]/', $zone ) ? ( preg_match( '/^[+-]0+:?0*$/', $zone ) ? 'UTC' : 'UTC' . $zone ) : $zone;
+		return Helpers::zone_abbr( time() );
 	}
 
 	/**

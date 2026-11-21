@@ -875,7 +875,7 @@ const resultsSaid = computed(() => (!query.value.trim() ? '' : results.value.len
 
 .err,
 .styled :deep(.err) {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .styled :deep(.warn) {

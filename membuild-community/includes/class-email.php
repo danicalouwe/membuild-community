@@ -776,7 +776,7 @@ class Email {
 		};
 		$where = 'online' === $e['event_where'] ? __( 'Online, link on the event page', 'membuild-community' ) : ( $e['event_venue'] ?: __( 'In person', 'membuild-community' ) );
 		/* translators: 1: start time, 2: end time */
-		$when  = sprintf( __( '%1$s to %2$s', 'membuild-community' ), wp_date( get_option( 'time_format' ), $start, $tz ), wp_date( get_option( 'time_format' ) . ' T', $end, $tz ) );
+		$when  = sprintf( __( '%1$s to %2$s', 'membuild-community' ), wp_date( get_option( 'time_format' ), $start, $tz ), wp_date( get_option( 'time_format' ), $end, $tz ) . ' ' . Helpers::zone_abbr( $end, $tz ) );
 		$gone  = 'event_cancelled' === $type;
 		$card  = '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e3e6ea;border-radius:14px"><tr>'
 			. '<td valign="middle" style="width:66px;padding:14px 0 14px 14px">'

@@ -207,7 +207,8 @@ async function findMe() {
     meMatches.value = (await api.geocode(meCity.value.trim())).items
     if (!meMatches.value.length) meError.value = t.__('No match. Try the city and its state or country.', 'membuild-community')
   } catch (err) {
-    meError.value = err.message
+    // This window has no pin to drop, so the map search's own hint is left out here.
+    meError.value = err.code === 'mbcom_geocode_failed' ? t.__('The map search isn’t answering right now. Try again in a minute.', 'membuild-community') : err.message
   } finally {
     meBusy.value = false
   }
@@ -268,7 +269,14 @@ async function sendNews() {
   }
 }
 async function approveNews(n) {
-  if (!(await tryIt(`news${n.id}`, () => api.approvePlaceNews(n.id)))) return
+  let gone = false
+  const ok = await tryIt(`news${n.id}`, () =>
+    api.approvePlaceNews(n.id).catch((err) => {
+      gone = err.code === 'mbcom_news_gone' // the member took it back: say so, and its card goes
+      throw err
+    })
+  )
+  if (!ok && !gone) return
   news.value = news.value.filter((x) => x.id !== n.id)
   load()
 }
@@ -669,7 +677,7 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
 
     <!-- The panel under the map: place cards, or the suggestions to review. -->
     <section v-if="!detail && !placeId" ref="panelEl" class="panel card" @scroll.passive="scrolledAway(); panelY = $event.target.scrollTop">
-      <button class="grab" :aria-label="panelOpen ? t.__('Make the map bigger', 'membuild-community') : t.__('Show the list', 'membuild-community')" @click="panelOpen = !panelOpen; fitMap()"><span /></button>
+      <button class="grab tap-44" :aria-label="panelOpen ? t.__('Make the map bigger', 'membuild-community') : t.__('Show the list', 'membuild-community')" @click="panelOpen = !panelOpen; fitMap()"><span /></button>
       <template v-if="view === 'pending'">
         <header class="ph">
           <h2>{{ t.__('Waiting for your review', 'membuild-community') }} · {{ pendingCount }}</h2>
@@ -1096,6 +1104,12 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
   padding: 8px 0 10px;
 }
 
+/* Its 44px tap area sits under the panel's content, so it never takes a tap meant for the
+   button or card just below it (#142). */
+.grab.tap-44::after {
+  z-index: -1;
+}
+
 .grab span {
   display: block;
   width: 44px;
@@ -1154,7 +1168,7 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
 }
 
 .link.danger {
-  color: var(--danger);
+  color: var(--danger-text);
   text-decoration: underline;
 }
 
@@ -1661,6 +1675,7 @@ button.pc:hover {
   flex: 1;
   flex-direction: column;
   min-width: 0;
+  overflow-wrap: anywhere; /* a long word in an event's name wraps (#54) */
 }
 
 .up-txt small {

@@ -199,7 +199,7 @@ class Events {
 		// The time zone the event is held in (the host's, or the place's), for "10:00 AM CT (Austin time)".
 		if ( array_key_exists( 'tz', $p ) ) {
 			$tz              = (string) $p['tz'];
-			$data['event_tz'] = in_array( $tz, timezone_identifiers_list(), true ) ? $tz : null;
+			$data['event_tz'] = Helpers::is_zone( $tz ) ? $tz : null;
 		}
 		if ( array_key_exists( 'group', $p ) && Helpers::can_manage() ) {
 			$group               = (int) $p['group'];
@@ -600,7 +600,8 @@ class Events {
 
 	/** The event's time in the site's time zone, for emails. */
 	public static function when( array $row ) {
-		return wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) . ' (T)', strtotime( $row['event_at'] . ' UTC' ) );
+		$at = strtotime( $row['event_at'] . ' UTC' );
+		return wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $at ) . ' (' . Helpers::zone_abbr( $at ) . ')';
 	}
 
 	public static function url( $post_id ) {

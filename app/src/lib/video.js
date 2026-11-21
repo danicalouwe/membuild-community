@@ -33,7 +33,7 @@ const BITRATE = 2_000_000
 export async function compressVideo(file, { maxSeconds = 60, onProgress, signal } = {}) {
   const input = new Input({ source: new BlobSource(file), formats: FORMATS })
   const track = await input.getPrimaryVideoTrack()
-  if (!track) throw new Error(t.__('This file has no video.', 'membuild-community'))
+  if (!track) throw Object.assign(new Error(t.__('This file has no video.', 'membuild-community')), { ours: true })
 
   const duration = await input.computeDuration()
   const scale = Math.min(1, SHORT_SIDE / Math.min(track.displayWidth, track.displayHeight))
@@ -46,7 +46,7 @@ export async function compressVideo(file, { maxSeconds = 60, onProgress, signal 
     typeof VideoEncoder !== 'undefined' && (await canEncodeVideo('avc', { width, height, bitrate: BITRATE }).catch(() => false))
   if (!canEncode) {
     if (duration > maxSeconds + 0.5) {
-      throw new Error(t.sprintf(/* translators: %d: the longest clip allowed, in seconds */ t._n('This browser can\'t trim video. Please choose a clip under %d second.', 'This browser can\'t trim video. Please choose a clip under %d seconds.', maxSeconds, 'membuild-community'), maxSeconds))
+      throw Object.assign(new Error(t.sprintf(/* translators: %d: the longest clip allowed, in seconds */ t._n('This browser can\'t trim video. Please choose a clip under %d second.', 'This browser can\'t trim video. Please choose a clip under %d seconds.', maxSeconds, 'membuild-community'), maxSeconds)), { ours: true })
     }
     return fallback
   }
@@ -60,7 +60,7 @@ export async function compressVideo(file, { maxSeconds = 60, onProgress, signal 
   })
   if (!conversion.isValid) {
     if (duration > maxSeconds + 0.5) {
-      throw new Error(t.sprintf(/* translators: %d: the longest clip allowed, in seconds */ t._n('Please choose a clip under %d second.', 'Please choose a clip under %d seconds.', maxSeconds, 'membuild-community'), maxSeconds))
+      throw Object.assign(new Error(t.sprintf(/* translators: %d: the longest clip allowed, in seconds */ t._n('Please choose a clip under %d second.', 'Please choose a clip under %d seconds.', maxSeconds, 'membuild-community'), maxSeconds)), { ours: true })
     }
     return fallback
   }

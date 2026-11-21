@@ -957,7 +957,7 @@ const keptLabel = (n) => t.sprintf(/* translators: %d: number of photos already 
 
 .error {
   margin: 10px 0 0;
-  color: var(--danger);
+  color: var(--danger-text);
   font-size: var(--fs-sm);
 }
 

@@ -501,7 +501,7 @@ textarea {
 }
 
 .link {
-  color: var(--danger);
+  color: var(--danger-text);
   font-weight: 700;
   text-decoration: underline;
 }

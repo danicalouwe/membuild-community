@@ -346,7 +346,7 @@ onMounted(() => {
 
 .error {
   margin: 0;
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .actions {

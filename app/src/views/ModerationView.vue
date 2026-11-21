@@ -283,7 +283,7 @@ function personLine(p) {
       <section v-if="!items.length" class="card clear">
         <span class="tick"><Icon name="check" :size="26" /></span>
         <strong>{{ t.__('All clear', 'membuild-community') }}</strong>
-        <p>{{ t.__('Nothing needs you right now. When a member reports something, it shows up here and you get a notification. A post reported by 3 members is hidden until you decide.', 'membuild-community') }}</p>
+        <p>{{ t.__('Nothing needs you right now. When a member reports something, it shows up here and you get an alert. A post reported by 3 members is hidden until you decide.', 'membuild-community') }}</p>
       </section>
 
       <article v-for="it in items" :key="keyOf(it)" class="card report" :class="{ busy: busy === keyOf(it) }">

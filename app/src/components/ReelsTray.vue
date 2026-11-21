@@ -288,7 +288,7 @@ header {
 }
 
 .reel-menu .danger {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .arrow {

@@ -246,6 +246,36 @@ class Helpers {
 		return wp_specialchars_decode( (string) $name, ENT_QUOTES );
 	}
 
+	/**
+	 * A time zone name PHP knows, including older ones some browsers still send
+	 * (Asia/Calcutta, America/Buenos_Aires), so those keep their zone.
+	 */
+	public static function is_zone( $tz ) {
+		static $all = null;
+		$all = $all ?? array_flip( timezone_identifiers_list( \DateTimeZone::ALL_WITH_BC ) );
+		return is_string( $tz ) && '' !== $tz && isset( $all[ $tz ] );
+	}
+
+	/**
+	 * A short, clear name for a time zone at a moment: "EST" or "PT"-style names only in North
+	 * America, where people read them that way; elsewhere "GMT+8", as the app writes it in US
+	 * English. PHP's own short names can mislead: Manila's is "PST", which reads as Pacific.
+	 */
+	public static function zone_abbr( $at, $zone = null ) {
+		$zone = $zone ?: wp_timezone();
+		$name = $zone->getName();
+		$abbr = wp_date( 'T', $at, $zone );
+		if ( preg_match( '#^(America|US|Canada)/|^Pacific/Honolulu$#', $name ) && preg_match( '/^[A-Z]{3,4}$/', (string) $abbr ) ) {
+			return $abbr;
+		}
+		$off = $zone->getOffset( new \DateTime( '@' . (int) $at ) );
+		if ( 0 === $off ) {
+			return 'GMT';
+		}
+		$min = intdiv( abs( $off ), 60 );
+		return 'GMT' . ( $off < 0 ? '-' : '+' ) . intdiv( $min, 60 ) . ( $min % 60 ? ':' . sprintf( '%02d', $min % 60 ) : '' );
+	}
+
 	/** The site's time zone for the browser: its name, or Etc/GMT±N for a whole-hour offset, or '' for an offset like +05:30 (the app then uses siteOffset). */
 	public static function zone_name() {
 		$tz = wp_timezone_string();

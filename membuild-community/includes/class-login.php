@@ -347,8 +347,9 @@ class Login {
 				$error = __( 'The page timed out. Please try again.', 'membuild-community' );
 			} else {
 				$values = array(
-					'first' => isset( $_POST['first_name'] ) ? sanitize_text_field( wp_unslash( $_POST['first_name'] ) ) : '',
-					'last'  => isset( $_POST['last_name'] ) ? sanitize_text_field( wp_unslash( $_POST['last_name'] ) ) : '',
+					// 50 characters, the same as Edit profile, so one long name can't push Home sideways.
+					'first' => isset( $_POST['first_name'] ) ? mb_substr( sanitize_text_field( wp_unslash( $_POST['first_name'] ) ), 0, 50 ) : '',
+					'last'  => isset( $_POST['last_name'] ) ? mb_substr( sanitize_text_field( wp_unslash( $_POST['last_name'] ) ), 0, 50 ) : '',
 					'email' => isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '',
 				);
 				$pass   = isset( $_POST['pass'] ) ? (string) wp_unslash( $_POST['pass'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- passwords are not altered
@@ -473,7 +474,8 @@ class Login {
 
 	/** A username made from the email address, unique on this site. */
 	private static function unique_login( $email ) {
-		$base  = sanitize_user( strstr( $email, '@', true ), true ) ?: 'member';
+		// WordPress keeps usernames to 60 characters, so a long address is cut, with room for a number.
+		$base  = substr( sanitize_user( strstr( $email, '@', true ), true ), 0, 50 ) ?: 'member';
 		$login = $base;
 		for ( $n = 2; username_exists( $login ); $n++ ) {
 			$login = $base . $n;
@@ -735,9 +737,8 @@ class Login {
 		// Visitors may live anywhere: the time is the event's own zone (else the site's), and says which.
 		global $wpdb;
 		$tz   = (string) $wpdb->get_var( $wpdb->prepare( 'SELECT event_tz FROM %i WHERE id = %d', Install::table( 'posts' ), $next['id'] ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
-		$zone = in_array( $tz, timezone_identifiers_list(), true ) ? new \DateTimeZone( $tz ) : wp_timezone();
-		$abbr = wp_date( 'T', $at, $zone );
-		$abbr = preg_match( '/^(?:GMT)?([+-])(\d\d):?(\d\d)?$/', $abbr, $m ) ? 'GMT' . $m[1] . (int) $m[2] . ( ! empty( $m[3] ) && '00' !== $m[3] ? ':' . $m[3] : '' ) : $abbr; // "+08" or "GMT+0000" → "GMT+8" / "GMT+0", as the app writes it
+		$zone = Helpers::is_zone( $tz ) ? new \DateTimeZone( $tz ) : wp_timezone();
+		$abbr = Helpers::zone_abbr( $at, $zone ); // "EST", or "GMT+8" for Manila (PHP's "PST" reads as Pacific)
 		$left = $at - time();
 		$when = $left < HOUR_IN_SECONDS
 			? __( 'Starting soon', 'membuild-community' )

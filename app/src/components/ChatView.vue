@@ -340,8 +340,15 @@ const MAX_MESSAGE = 4000 // the server keeps this many characters
 async function send() {
   const typing = document.activeElement === input.value
   const content = draft.value.trim()
+  // A photo that already failed is taken out and said once; the rest still go (#135).
+  const failed = photos.value.filter((p) => p.status === 'error')
+  if (failed.length) {
+    failed.forEach((p) => p.release())
+    photos.value = photos.value.filter((p) => p.status !== 'error')
+    showToast(t.__('A photo failed to upload.', 'membuild-community'))
+  }
   const pics = photos.value
-  if ((!content && !pics.length) || pics.some((p) => p.status === 'error')) return
+  if (!content && !pics.length) return
   if (content.length > MAX_MESSAGE) return // words returned from a failed send can go past the box's limit; the note says so
   const reply = replyTo.value
   draft.value = ''
@@ -1095,7 +1102,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 }
 
 .menu .danger {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .sep {
@@ -1105,7 +1112,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 }
 
 .danger {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .scroll {
@@ -1517,7 +1524,7 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 }
 
 .failed {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .try-again {

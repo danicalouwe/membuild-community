@@ -468,7 +468,7 @@ onMounted(() => props.file && pick(props.file))
 
 .error {
   margin: 0;
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .actions {

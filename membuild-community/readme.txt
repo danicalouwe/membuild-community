@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.24.2
+Stable tag: 1.24.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -268,6 +268,21 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.24.3 =
+* Fixed: unsubscribe links in community emails now work while Coming soon is on.
+* Fixed: people with a very long email address can join, and first names at Join stop at 50 characters, like Edit profile.
+* Fixed: Coming soon says "Opening soon" once its opening date has passed.
+* Fixed: event times outside North America show as GMT+8 or GMT+5:30 instead of a short name like "PST" that could be read as Pacific time. Older time zone names like Asia/Calcutta now work too.
+* Fixed: each page has its own browser tab title, like "Classroom · Community name".
+* Fixed: a broken photo or video shows "We couldn't open this photo. Try another one." instead of the browser's own words.
+* Fixed: in a chat, a photo that can't upload no longer stops Send. It's taken out, the message says why, and the rest is sent.
+* Fixed: approving a What's new the member already took back now says so.
+* Fixed: a deleted lesson says "This lesson isn't available." instead of "Locked lesson".
+* Fixed: with no shop plugin, Billing shows "Nothing to pay for".
+* Fixed: on phones, a quick second tap after a full-screen window closes no longer opens another tab.
+* Fixed: wording: "No alerts yet.", and the map search message no longer mentions a pin where there is none.
+* Fixed: red text is easier to read in dark mode, two small links are easier to tap on phones, and two more long words wrap.
 
 = 1.24.2 =
 * Fixed: a double tap on Mark Complete marked a lesson done and then not done. A Mark Complete that can't be saved now says so.

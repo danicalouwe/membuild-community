@@ -19,7 +19,8 @@ onMounted(async () => {
     items.value = res.items
     receipts.value = res.receipts || ''
   } catch (e) {
-    error.value = e.message
+    // No shop plugin: there is no billing to ask about, so it's simply nothing to pay for (#116).
+    if (e.code !== 'rest_no_route') error.value = e.message
   }
   loaded.value = true
 })

@@ -86,3 +86,18 @@ router.beforeEach((to) => {
   }
   if (to.name === 'moderation' && !cfg.community.isStaff) return { name: 'feed' }
 })
+
+// The browser tab says which page this is, in the tabs' own words, so a theme's renamed words follow (#67).
+const pageTab = { course: 'classroom', event: 'events', member: 'members', levels: 'leaderboard', saved: 'me', emails: 'me', 'profile-edit': 'me', privacy: 'me', 'two-step': 'me', billing: 'me', 'billing-item': 'me' }
+const otherPages = {
+  messages: () => t.__('Messages', 'membuild-community'),
+  moderation: () => t.__('Moderation', 'membuild-community'),
+  settings: () => t.__('Settings', 'membuild-community'),
+  search: () => t.__('Search', 'membuild-community'),
+}
+router.afterEach((to, from, failure) => {
+  if (failure) return
+  const name = pageTab[to.name] || to.name
+  const page = name === 'feed' ? '' : tabs.find((tab) => tab.name === name)?.label || otherPages[name]?.()
+  document.title = page ? `${page} · ${cfg.siteName}` : cfg.siteName
+})

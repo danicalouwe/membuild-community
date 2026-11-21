@@ -25,6 +25,7 @@ import { t, locale } from './lib/i18n.js'
 import { useLatest } from './lib/useLatest.js'
 import { video } from './lib/videoDock.js'
 import { watchSettle } from './lib/settle.js'
+import { dialogJustClosed } from './lib/layers.js'
 
 const PostDialog = defineAsyncComponent(() => import('./components/PostDialog.vue'))
 // The dock pulls in the whole chat view, so it loads after the first paint.
@@ -203,6 +204,13 @@ const tabLabel = (tab) =>
       t.sprintf(t.__('%1$s (%2$d unread)', 'membuild-community'), tab.label, messages.notifications)
     : tab.label
 
+// A quick second tap after a full-screen window closes over the tab bar does nothing (#87).
+function ignoreStrayTap(e) {
+  if (!dialogJustClosed()) return
+  e.preventDefault()
+  e.stopPropagation()
+}
+
 const homeLabel = t.sprintf(/* translators: %s: the site's name */ t.__('%s home', 'membuild-community'), cfg.siteName)
 
 // A course page belongs to the Classroom tab, and Saved posts to Home.
@@ -293,7 +301,7 @@ const shellData = computed(() => ({
       <PageView />
     </main>
 
-    <nav class="tabbar" :aria-label="t.__('Sections', 'membuild-community')">
+    <nav class="tabbar" :aria-label="t.__('Sections', 'membuild-community')" @click.capture="ignoreStrayTap">
       <ThemeSlot name="app.tab-bar" :data="{ tabs: mobileTabs, isActive, user: cfg.user, notifications: messages.notifications, openMenu: openPhoneMenu, menuOpen: phoneMenuOpen }">
       <!-- A short word under each icon: easier for everyone than icons alone. -->
       <template v-for="tab in mobileTabs" :key="tab.name">

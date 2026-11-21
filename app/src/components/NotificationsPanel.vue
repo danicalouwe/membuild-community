@@ -220,7 +220,7 @@ const unlockedCourses = (courses) => t.sprintf(/* translators: %s: course titles
       <li v-if="loading && !items.length" class="state">{{ t.__('Loading…', 'membuild-community') }}</li>
       <li v-else-if="!items.length" class="state">
         <Icon name="bell" :size="34" />
-        <p>{{ filter === 'unread' ? t.__('You’re all caught up.', 'membuild-community') : t.__('No notifications yet.', 'membuild-community') }}</p>
+        <p>{{ filter === 'unread' ? t.__('You’re all caught up.', 'membuild-community') : t.__('No alerts yet.', 'membuild-community') }}</p>
       </li>
     </ul>
     <button v-if="nextPage" class="more" :disabled="loading" @click="load(false)">{{ t.__('See previous notifications', 'membuild-community') }}</button>

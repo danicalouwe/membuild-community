@@ -328,7 +328,10 @@ async function loadLesson(id) {
   } catch (err) {
     if (!current()) return
     lesson.value = null
-    lessonError.value = { message: err.message, title: outlineLesson?.title }
+    // A lesson that was deleted (or never was) is not locked: say so plainly, no lock (#122).
+    lessonError.value = err.status === 404
+      ? { gone: true, message: '', title: t.__('This lesson isn’t available.', 'membuild-community') }
+      : { message: err.message, title: outlineLesson?.title }
   }
   outlineOpen.value = false
   window.scrollTo({ top: 0 })
@@ -658,9 +661,9 @@ const contentsCount = (done, total) => t.sprintf(/* translators: 1: lessons comp
         </div>
 
         <div v-else-if="lessonError" class="card locked">
-          <span class="lock-badge"><Icon name="lock" :size="28" /></span>
+          <span v-if="!lessonError.gone" class="lock-badge"><Icon name="lock" :size="28" /></span>
           <h2>{{ course.lock ? lockLabel(course.lock) : lessonError.title || t.__('Locked lesson', 'membuild-community') }}</h2>
-          <p>{{ lessonError.message }}</p>
+          <p v-if="lessonError.message">{{ lessonError.message }}</p>
           <p v-if="course.lock && lockHint(course.lock)" class="how">
             {{ lockHint(course.lock) }}
             <RouterLink v-if="course.lock.reason === 'level'" to="/me">{{ t.__('See your progress', 'membuild-community') }}</RouterLink>

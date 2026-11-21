@@ -593,7 +593,7 @@ const viewReplies = (n) => t.sprintf(/* translators: %d: number of replies */ t.
 .photo-err {
   display: block;
   padding: 4px 6px;
-  color: var(--danger);
+  color: var(--danger-text);
   font-size: var(--fs-xs);
 }
 

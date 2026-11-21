@@ -68,6 +68,14 @@ async function uploadVideo(blob, opts, bunny) {
   return uploadBlob(blob, opts)
 }
 
+// The browser's own decode errors ("The source image cannot be decoded.") mean nothing to a member:
+// say it in one plain line. Our own messages (clip too long, no video) are marked `ours` and kept (#134, #62, #94).
+const unreadable = (line) => (err) => {
+  throw err?.ours ? err : new Error(line)
+}
+const photoLine = () => t.__('We couldn’t open this photo. Try another one.', 'membuild-community')
+const videoLine = () => t.__('We couldn’t open this video. Try another one.', 'membuild-community')
+
 async function run(item, file, signal, compress, bunny) {
   if (item.kind === 'file') {
     item.media = await uploadBlob(file, { name: file.name, signal, onProgress: (p) => (item.progress = p) })
@@ -89,7 +97,7 @@ async function run(item, file, signal, compress, bunny) {
       bunny,
     )
   } else if (item.kind === 'image') {
-    const { blob, width, height } = await prepareImage(file)
+    const { blob, width, height } = await prepareImage(file).catch(unreadable(photoLine()))
     Object.assign(item, { width, height })
     item.media = await uploadBlob(blob, {
       name: file.name,
@@ -105,8 +113,8 @@ async function run(item, file, signal, compress, bunny) {
       maxSeconds: cfg.limits.reelSeconds,
       signal,
       onProgress: (p) => (item.progress = p * 0.5),
-    })
-    const poster = await capturePoster(video.blob)
+    }).catch(unreadable(videoLine()))
+    const poster = await capturePoster(video.blob).catch(unreadable(videoLine()))
     Object.assign(item, { width: video.width, height: video.height })
     item.poster = URL.createObjectURL(poster.blob)
 
