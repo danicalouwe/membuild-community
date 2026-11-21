@@ -154,7 +154,8 @@ class Events {
 			if ( '' !== $url && ( ! wp_http_validate_url( $url ) || ! in_array( wp_parse_url( $url, PHP_URL_SCHEME ), array( 'http', 'https' ), true ) ) ) {
 				return new \WP_Error( 'mbcom_invalid_event', __( 'That recording link doesn’t look right.', 'membuild-community' ), array( 'status' => 400 ) );
 			}
-			$data['event_recording'] = '' === $url ? null : mb_substr( $url, 0, 500 );
+			// Emptied on purpose: '' is kept, so a YouTube or Vimeo stream doesn't come back as the replay (#58).
+			$data['event_recording'] = '' === $url ? '' : mb_substr( $url, 0, 500 );
 		}
 		if ( isset( $p['description'] ) || ! $row ) {
 			$data['content'] = Helpers::clean_text( $p['description'] ?? '', 5000 );
@@ -224,6 +225,12 @@ class Events {
 		return $wpdb->get_row( $wpdb->prepare( "SELECT * FROM %i WHERE id = %d AND status = 'published'", Install::table( 'places' ), $id ), ARRAY_A );
 	}
 
+	/** True when this media row is an event's cover photo, the only kind Duplicate may copy. */
+	private static function cover_of_event( $media_id ) {
+		global $wpdb;
+		return (bool) $wpdb->get_var( $wpdb->prepare( "SELECT m.id FROM %i m JOIN %i p ON p.id = m.post_id WHERE m.id = %d AND m.kind = 'image' AND p.event_at IS NOT NULL", Install::table( 'media' ), Install::table( 'posts' ), $media_id ) );
+	}
+
 	/** A repeat gets the same cover: another media row pointing at the same file. */
 	private static function copy_cover( $media_id, $post_id ) {
 		global $wpdb;
@@ -243,6 +250,16 @@ class Events {
 		'month'  => array( '+1 month', 3 ),
 	);
 
+	/**
+	 * The same day $n months on, or that month's last day when it's shorter (#60): from Jan 31,
+	 * Feb 28 (29), Mar 31, Apr 30. Plain "+1 month" ran past short months into the next one.
+	 */
+	public static function months_after( \DateTimeImmutable $first, $n ) {
+		$day   = (int) $first->format( 'j' );
+		$month = $first->setDate( (int) $first->format( 'Y' ), (int) $first->format( 'n' ) + $n, 1 );
+		return $month->setDate( (int) $month->format( 'Y' ), (int) $month->format( 'n' ), min( $day, (int) $month->format( 't' ) ) );
+	}
+
 	public static function create( \WP_REST_Request $req ) {
 		global $wpdb;
 		$blocked = Moderation::guard() ?? Helpers::throttle( 'event', 20, HOUR_IN_SECONDS );
@@ -259,8 +276,12 @@ class Events {
 		$post_id = (int) $wpdb->insert_id;
 		self::remember_zone( $data );
 		$cover   = (int) ( $req['cover_media_id'] ?? 0 );
-		if ( $cover ) {
-			Media::attach( $me, $post_id, array( $cover ) );
+		if ( $cover && ! Media::attach( $me, $post_id, array( $cover ) ) ) {
+			// Duplicate (#59): the cover is the old event's, already in use, so the new one gets its own row for the same file.
+			$cover = self::cover_of_event( $cover ) ? $cover : 0;
+			if ( $cover ) {
+				self::copy_cover( $cover, $post_id );
+			}
 		}
 		/** This action is documented in includes/class-rest-feed.php */
 		do_action( 'membuild_community/post_created', $post_id, $me );
@@ -271,9 +292,10 @@ class Events {
 		if ( $repeat ) {
 			$wpdb->update( Install::table( 'posts' ), array( 'event_series' => $post_id ), array( 'id' => $post_id ) );
 			$tz   = new \DateTimeZone( $data['event_tz'] ?? wp_timezone_string() );
-			$when = ( new \DateTimeImmutable( $data['event_at'], new \DateTimeZone( 'UTC' ) ) )->setTimezone( $tz );
+			$first = ( new \DateTimeImmutable( $data['event_at'], new \DateTimeZone( 'UTC' ) ) )->setTimezone( $tz );
+			$when  = $first;
 			for ( $i = 1; $i <= $repeat[1]; $i++ ) {
-				$when = $when->modify( $repeat[0] );
+				$when = 'month' === (string) $req['repeat'] ? self::months_after( $first, $i ) : $when->modify( $repeat[0] );
 				$copy = array( 'event_at' => $when->setTimezone( new \DateTimeZone( 'UTC' ) )->format( 'Y-m-d H:i:s' ), 'event_series' => $post_id );
 				$wpdb->insert( Install::table( 'posts' ), $copy + $data + array( 'user_id' => $me, 'type' => 'post', 'status' => 'published', 'created_at' => $now, 'updated_at' => $now ) );
 				if ( $cover ) {
@@ -448,7 +470,7 @@ class Events {
 					'minutes'   => (int) $row['event_minutes'],
 					'url'       => $row['event_url'] ?: null,
 					'kind'      => self::kind( $row['event_url'] ),
-					'recording' => $row['event_recording'] ?: null,
+					'recording' => self::replay( $row ),
 					'status'    => $row['event_status'] ?: 'scheduled',
 					'group'     => $group ? array( 'id' => $group, 'name' => $groups[ $group ]['name'] ?? '' ) : null,
 					'can_edit'  => Settings::is_staff( get_current_user_id() ),
@@ -466,6 +488,18 @@ class Events {
 			}
 		}
 		return $out;
+	}
+
+	/**
+	 * The replay: the host's link, or else a YouTube or Vimeo stream itself, as the form promises
+	 * (#58). A host who emptied the replay link ('') gets none. Twitch streams aren't kept, so no.
+	 */
+	public static function replay( array $row ) {
+		$rec = $row['event_recording'] ?? null;
+		if ( null === $rec ) {
+			return in_array( self::kind( $row['event_url'] ?? '' ), array( 'youtube', 'vimeo' ), true ) ? $row['event_url'] : null;
+		}
+		return '' === $rec ? null : $rec;
 	}
 
 	/** What the link plays: a stream that shows inside the community, or a link that opens elsewhere. */

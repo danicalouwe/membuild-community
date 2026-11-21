@@ -82,7 +82,7 @@ async function pinInCourse(scope) {
     const res = scope ? await api.pinPost(props.post.id, scope) : await api.unpinPost(props.post.id)
     setCoursePin(props.post, scope ? res.pin : null)
   } catch (err) {
-    alert(err.message)
+    showToast(err.message)
   }
 }
 
@@ -93,7 +93,7 @@ async function togglePin() {
     await (pin ? api.pinPost(props.post.id) : api.unpinPost(props.post.id))
     setPinned(props.post, pin)
   } catch (err) {
-    alert(err.message)
+    showToast(err.message)
   }
 }
 
@@ -185,7 +185,7 @@ async function remove() {
     await api.deletePost(props.post.id)
   } catch (err) {
     restore() // the server kept it, so it comes back where it was
-    alert(err.message)
+    showToast(err.message)
   }
 }
 </script>

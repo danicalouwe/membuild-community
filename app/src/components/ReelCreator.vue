@@ -41,14 +41,27 @@ function pick(file) {
   }
   error.value = ''
   item.value?.cancel()
-  item.value = startAttachment(file)
+  const mine = startAttachment(file)
+  item.value = mine
   seconds.value = 0
   mode.value = 'upload'
   // Its length, for "0:42 long".
   const probe = document.createElement('video')
   probe.preload = 'metadata'
-  probe.onloadedmetadata = () => (seconds.value = probe.duration || 0)
-  probe.src = item.value.previewUrl
+  probe.onloadedmetadata = () => {
+    if (item.value !== mine) return // another video was picked meanwhile: only the latest one's length counts
+    seconds.value = probe.duration || 0
+    // New reel says "Up to 60 seconds" (#93): a longer video is refused here, with its length.
+    if (seconds.value > cfg.limits.reelSeconds + 0.5) {
+      const long = length.value
+      item.value?.cancel()
+      item.value = null
+      seconds.value = 0
+      mode.value = 'choose'
+      error.value = t.sprintf(/* translators: %s: video length, e.g. 1:10 */ t.__('This video is %s long. Reels can be up to 60 seconds.', 'membuild-community'), long)
+    }
+  }
+  probe.src = mine.previewUrl
 }
 function picked(e) {
   pick(e.target.files[0])

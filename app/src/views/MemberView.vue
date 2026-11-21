@@ -22,6 +22,7 @@ const MemberGroupsDialog = defineAsyncComponent(() => import('../components/Memb
 import { around, t, locale } from '../lib/i18n.js'
 import { useLatest } from '../lib/useLatest.js'
 import { useMenu } from '../lib/useMenu.js'
+import { showToast } from '../lib/toast.js'
 
 
 // A member's profile: who they are, their level, and their posts.
@@ -120,7 +121,7 @@ async function restrict(status, days = 0) {
     member.value.restriction = res.restriction
     moderating.value = false
   } catch (err) {
-    alert(err.message)
+    showToast(err.message)
   } finally {
     modBusy.value = false
   }
@@ -143,7 +144,7 @@ async function setBlocked(on) {
     member.value.can_message = !on && member.value.can_message
     if (!on) load()
   } catch (err) {
-    alert(err.message)
+    showToast(err.message)
   }
 }
 const showGroups = ref(false) // admins: the member's access groups
@@ -178,9 +179,9 @@ function pickPicture(e, key, slot) {
           member.value = { ...member.value, ...saved }
           if (key === 'avatar') Object.assign(cfg.user, { avatar: saved.avatar })
         } catch (err) {
-          alert(err.message)
+          showToast(err.message)
         }
-      } else alert(up.error || t.__('The picture didn’t upload. Try again.', 'membuild-community'))
+      } else showToast(up.error || t.__('The picture didn’t upload. Try again.', 'membuild-community'))
       up.release()
       if (slot.value === up) slot.value = null
     },
@@ -195,7 +196,7 @@ async function message() {
     if (canDock()) openChat(chat)
     else router.push({ name: 'messages', params: { threadId: chat.id } })
   } catch (err) {
-    alert(err.message)
+    showToast(err.message)
   } finally {
     messaging.value = false
   }

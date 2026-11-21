@@ -18,6 +18,7 @@ import BaseDialog from '../components/BaseDialog.vue'
 import { locale } from '../lib/i18n.js'
 import { t } from '../lib/i18n.js'
 import { useMenu } from '../lib/useMenu.js'
+import { showToast } from '../lib/toast.js'
 const EventForm = defineAsyncComponent(() => import('../components/EventForm.vue'))
 
 /**
@@ -75,7 +76,7 @@ async function cancelAll() {
     post.value = saved
     updatePost(props.id, saved)
   } catch (err) {
-    alert(err.message)
+    showToast(err.message)
   }
 }
 const joinAt = computed(() => (e.value ? new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }).format(new Date(startOf(e.value).getTime() - 15 * 60000)) : ''))
@@ -168,7 +169,7 @@ const { open: calOpen, root: calRoot, trigger: calTrigger, list: calList, toggle
 watch([() => props.id, state], () => closeCal({ focus: false }))
 
 function rsvp(status) {
-  setRsvp(post.value, e.value.my_rsvp === status ? null : status).catch((err) => alert(err.message))
+  setRsvp(post.value, e.value.my_rsvp === status ? null : status).catch((err) => showToast(err.message))
 }
 async function cancel() {
   closeMenu()
@@ -178,7 +179,7 @@ async function cancel() {
     post.value = saved
     updatePost(props.id, saved)
   } catch (err) {
-    alert(err.message)
+    showToast(err.message)
   }
 }
 async function remove() {
@@ -189,7 +190,7 @@ async function remove() {
     removePost(props.id)
     router.push({ name: 'events' })
   } catch (err) {
-    alert(err.message)
+    showToast(err.message)
   }
 }
 function saved(p) {

@@ -81,7 +81,7 @@ async function copyLink() {
       ta.remove()
       if (!ok) throw new Error('copy failed')
     } catch {
-      alert(url) // last resort: at least the link is on screen to copy by hand
+      prompt(t.__('Copy this link', 'membuild-community'), url) // last resort, as a post's Share and Reels do: the link stays on screen, selected, to copy by hand
       return
     }
   }

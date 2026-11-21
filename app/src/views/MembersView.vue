@@ -9,6 +9,7 @@ import Icon from '../components/Icon.vue'
 import { t, locale } from '../lib/i18n.js'
 import { useLatest } from '../lib/useLatest.js'
 import { activeLabel, isOnline } from '../lib/online.js'
+import { showToast } from '../lib/toast.js'
 
 // The member directory: most active, newest, or who's online now. Ranking by level
 // lives on the Leaderboard.
@@ -101,7 +102,7 @@ async function message(m) {
     if (canDock()) openChat(chat)
     else router.push({ name: 'messages', params: { threadId: chat.id } })
   } catch (err) {
-    alert(err.message)
+    showToast(err.message)
   } finally {
     messaging.value = 0
   }

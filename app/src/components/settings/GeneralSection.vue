@@ -73,7 +73,7 @@ onBeforeUnmount(restoreDisplay)
         <button type="button" class="btn" :disabled="logoUpload?.status === 'working'" @click="logoInput.click()">
           {{ logoUpload?.status === 'working' ? t.__('Uploading…', 'membuild-community') : form.logo ? t.__('Change logo', 'membuild-community') : t.__('Upload a logo', 'membuild-community') }}
         </button>
-        <button v-if="form.logo" type="button" class="link danger" @click="removeLogo">{{ t.__('Remove', 'membuild-community') }}</button>
+        <button v-if="form.logo" type="button" class="link danger tap-44" @click="removeLogo">{{ t.__('Remove', 'membuild-community') }}</button>
         <input ref="logoInput" class="sr-only" type="file" tabindex="-1" aria-hidden="true" accept="image/*" @change="pickLogo" />
       </div>
       <small v-if="logoUpload?.status === 'error'" class="err">{{ logoUpload.error }}</small>

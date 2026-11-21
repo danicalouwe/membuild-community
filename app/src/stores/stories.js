@@ -1,6 +1,7 @@
 import { reactive } from 'vue'
 import { api } from '../api.js'
 import { t } from '../lib/i18n.js'
+import { showToast } from '../lib/toast.js'
 
 // Active stories grouped by person, as ordered by the server:
 // you first, then people with unseen stories, then the rest.
@@ -38,6 +39,6 @@ export async function removeStory(group, story) {
   } catch (err) {
     group.stories = before.stories
     if (!stories.groups.includes(group)) stories.groups = before.groups
-    alert(err.message || t.__('The story could not be deleted.', 'membuild-community'))
+    showToast(err.message || t.__('The story could not be deleted.', 'membuild-community'))
   }
 }

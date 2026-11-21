@@ -58,7 +58,8 @@ const form = ref({
 const who = ref(form.value.group ? 'members' : 'everyone')
 
 const cover = ref(props.event?.media?.find((m) => m.kind === 'image')?.url || null)
-const coverId = ref(undefined) // undefined: unchanged · null: removed · number: new
+// undefined: unchanged · null: removed · number: new. Duplicate starts with the old event's cover (#59).
+const coverId = ref(props.copy ? props.event?.media?.find((m) => m.kind === 'image')?.id : undefined)
 const coverBusy = ref(false)
 const saving = ref(false)
 const error = ref('')
@@ -204,7 +205,8 @@ async function save() {
     lng: inPerson.value ? f.lng : null,
     tz: editing.value && !inPerson.value ? undefined : tz,
     group: cfg.community.canManage ? (who.value === 'members' ? Number(f.group) : 0) : undefined,
-    recording: editing.value ? f.recording.trim() : undefined,
+    // Only a changed replay link is sent, so an untouched one keeps following the stream (#58).
+    recording: editing.value && f.recording.trim() !== (e?.recording || '') ? f.recording.trim() : undefined,
     repeat: editing.value ? undefined : f.repeat || undefined,
     cover_media_id: coverId.value,
   }
@@ -327,7 +329,7 @@ const heading = computed(() => (editing.value ? t.__('Edit event', 'membuild-com
         <label v-if="online" class="field">
           <span class="lbl">{{ t.__('Link', 'membuild-community') }}</span>
           <input v-model="form.url" type="url" inputmode="url" maxlength="500" placeholder="https://meet.google.com/…" />
-          <small>{{ t.__('Members get a Join button on the event page 15 minutes before it starts. A YouTube, Vimeo or Twitch live stream plays right on the page and becomes the replay.', 'membuild-community') }}</small>
+          <small>{{ t.__('Members get a Join button on the event page 15 minutes before it starts. A YouTube, Vimeo or Twitch live stream plays right on the page. YouTube and Vimeo streams become the replay; for Twitch, add a replay link afterwards.', 'membuild-community') }}</small>
         </label>
       </section>
 

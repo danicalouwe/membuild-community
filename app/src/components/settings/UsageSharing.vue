@@ -91,7 +91,7 @@ async function forgetAsk() {
     </p>
 
     <div class="links">
-      <button type="button" class="ulink" :aria-expanded="showSent" @click="showSent = !showSent">{{ t.__('See exactly what’s sent', 'membuild-community') }}</button>
+      <button type="button" class="ulink tap-44" :aria-expanded="showSent" @click="showSent = !showSent">{{ t.__('See exactly what’s sent', 'membuild-community') }}</button>
       <button type="button" class="ulink" :disabled="busy" @click="forgetAsk">{{ t.__('Delete this site’s data at MemBuild', 'membuild-community') }}</button>
     </div>
     <div v-if="showSent" class="preview">
@@ -175,6 +175,16 @@ async function forgetAsk() {
   flex-wrap: wrap;
   gap: 8px 22px;
   margin: 4px 0 10px;
+}
+
+/* Phones: "See exactly what's sent" keeps its 44px tap area (tap-44) but grows upward, so it
+   stops at the gap and doesn't cover "Delete this site's data", which stays small on purpose. */
+@media (max-width: 767px) {
+  .links .tap-44::after {
+    top: auto;
+    bottom: -4px;
+    transform: translateX(-50%);
+  }
 }
 
 .ulink {

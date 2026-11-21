@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.24.3
+Stable tag: 1.24.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -268,6 +268,16 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.24.4 =
+* Fixed: a YouTube or Vimeo stream now becomes the event's replay once it's over, as the event form says. To have no replay, empty the Replay link and it stays empty. Note: on YouTube and Vimeo events where the replay was removed before this update, the stream shows as the replay again; empty the link once more to remove it.
+* Fixed: Duplicate keeps the event's cover photo, and deleting one of the two events leaves the other its photo.
+* Fixed: an event that repeats monthly on the 29th, 30th or 31st now lands on the last day of shorter months instead of drifting.
+* Fixed: reels longer than 60 seconds are refused when picked, with a message saying how long the video is.
+* Fixed: error messages show in the app's own note instead of the browser's grey alert box.
+* Fixed: the story Preview breaks long text the same way as the posted story.
+* Fixed: closing New message puts the keyboard back where it was, and on Import the "Download our sample" link no longer sits inside a button.
+* Fixed: on phones, more small links are easier to tap (Course map, quiz editor, Settings, reel comments' Close and the wp-admin pages). The look doesn't change.
 
 = 1.24.3 =
 * Fixed: unsubscribe links in community emails now work while Coming soon is on.

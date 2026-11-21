@@ -127,7 +127,7 @@ const preview = computed(() => ({
           <button type="button" class="btn" :disabled="sigUpload?.status === 'working'" @click="sigInput.click()">
             {{ sigUpload?.status === 'working' ? t.__('Uploading…', 'membuild-community') : c.signature ? t.__('Change signature', 'membuild-community') : t.__('Upload a signature', 'membuild-community') }}
           </button>
-          <button v-if="c.signature" type="button" class="link danger" @click="removeSignature">{{ t.__('Remove', 'membuild-community') }}</button>
+          <button v-if="c.signature" type="button" class="link danger tap-44" @click="removeSignature">{{ t.__('Remove', 'membuild-community') }}</button>
           <input ref="sigInput" class="sr-only" type="file" tabindex="-1" aria-hidden="true" accept="image/png,image/jpeg,image/webp" @change="pickSignature" />
           </div>
           <small v-if="sigUpload?.status === 'error'" class="err">{{ sigUpload.error }}</small>

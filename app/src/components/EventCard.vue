@@ -6,6 +6,7 @@ import Avatar from './Avatar.vue'
 import Icon from './Icon.vue'
 import { dateBadge, stateOf, untilLabel, whenShort } from '../lib/events.js'
 import { t } from '../lib/i18n.js'
+import { showToast } from '../lib/toast.js'
 
 /**
  * An event, as a card: in the Events tab and inside its post in the feed.
@@ -25,7 +26,7 @@ const open = () => router.push({ name: 'event', params: { id: props.post.id } })
 
 function toggleGoing(ev) {
   ev.stopPropagation()
-  setRsvp(props.post, e.value.my_rsvp === 'going' ? null : 'going').catch((err) => alert(err.message))
+  setRsvp(props.post, e.value.my_rsvp === 'going' ? null : 'going').catch((err) => showToast(err.message))
 }
 const goingLabel = (n) => t.sprintf(/* translators: %d: number of members going */ t._n('%d going', '%d going', n, 'membuild-community'), n)
 </script>

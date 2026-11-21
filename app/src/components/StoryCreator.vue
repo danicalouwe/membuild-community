@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { askConfirm } from '../lib/confirm.js'
 import { api } from '../api.js'
 import { loadStories } from '../stores/stories.js'
@@ -82,6 +82,35 @@ useDialog(panel, { onClose: close })
 onMounted(() => {
   if (props.file) useFile(props.file)
 })
+
+// The Preview is a small copy of the real story. Its words are laid out at the real
+// story's width and size, then shrunk to the Preview, so long text breaks into the same
+// lines and fits (or not) the same way. The real story is the full phone screen, or on
+// a computer up to 920px tall at 9:16, as in StoryViewer.
+const fit = ref(1)
+const realWidth = ref(0)
+let storyBox = null
+let sizeWatch = null
+function realStoryWidth() {
+  const w = window.innerWidth
+  if (w < 768) return w
+  return Math.min((Math.min(window.innerHeight - 32, 920) * 9) / 16, w)
+}
+function measure() {
+  if (!storyBox?.clientWidth) return
+  realWidth.value = realStoryWidth()
+  fit.value = storyBox.clientWidth / realWidth.value
+}
+function storyRef(el) {
+  if (el === storyBox) return
+  sizeWatch?.disconnect()
+  storyBox = el
+  sizeWatch = null
+  if (!el) return
+  sizeWatch = new ResizeObserver(measure)
+  sizeWatch.observe(el)
+}
+onBeforeUnmount(() => sizeWatch?.disconnect())
 </script>
 
 <template>
@@ -154,13 +183,13 @@ onMounted(() => {
         <section v-else class="preview-card">
           <h2>{{ t.__('Preview', 'membuild-community') }}</h2>
           <div class="stage">
-            <div class="story" :style="mode === 'text' ? storyBg(background) : null">
+            <div :ref="storyRef" class="story" :style="[mode === 'text' ? storyBg(background) : null, { '--fit': fit }]">
               <template v-if="mode === 'media' && item">
                 <img v-if="item.kind === 'image'" :src="item.previewUrl" alt="" />
                 <video v-else :src="item.previewUrl" muted playsinline autoplay loop />
                 <p v-if="text.trim()" class="caption">{{ text }}</p>
               </template>
-              <p v-else-if="mode === 'text'" class="words-preview" :class="{ empty: !text.trim() }">{{ text.trim() || t.__('Start typing', 'membuild-community') }}</p>
+              <p v-else-if="mode === 'text'" class="words-preview" :class="{ empty: !text.trim() }" :style="realWidth ? { width: `${realWidth}px`, transform: `translate(-50%, -50%) scale(${fit})` } : null">{{ text.trim() || t.__('Start typing', 'membuild-community') }}</p>
             </div>
           </div>
         </section>
@@ -478,25 +507,32 @@ onMounted(() => {
   object-fit: contain;
 }
 
+/* Sizes times --fit: the story's own caption sizes, shrunk to the Preview (see storyRef). */
 .caption {
   position: absolute;
-  left: 16px;
-  right: 16px;
+  left: calc(16px * var(--fit, 1));
+  right: calc(16px * var(--fit, 1));
   bottom: 24px;
   margin: 0;
   overflow-wrap: anywhere; /* a long word or link wraps instead of running off the preview */
-  padding: 8px 12px;
+  padding: calc(8px * var(--fit, 1)) calc(12px * var(--fit, 1));
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--scrim) 45%, transparent);
-  font-size: var(--fs-xl);
+  font-size: calc(var(--fs-xl) * var(--fit, 1));
   font-weight: 650;
   text-align: center;
 }
 
+/* Laid out at the real story's width (set in the template), shrunk with transform. */
 .words-preview {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
   margin: 0;
+  transform: translate(-50%, -50%);
   padding: 0 28px;
-  font-size: var(--fs-7xl);
+  font-size: var(--fs-8xl);
   font-weight: 750;
   line-height: 1.3;
   text-align: center;

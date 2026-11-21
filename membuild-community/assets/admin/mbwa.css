@@ -201,6 +201,8 @@ a.mbwa-link-quiet, a.mbwa-link-quiet:hover { color: var(--ink-3); }
 .mbcom-admin .mbcom-lnk{color:var(--accent);font-weight:600;text-decoration:none}
 .mbcom-admin .mbcom-lnk:hover{color:var(--accent-hover);text-decoration:underline}
 .mbcom-admin .mbcom-lnk-quiet{color:var(--ink-3);font-weight:400}
+/* Phones: each text link gets an invisible 44px tap area (a ring around it); the look stays. */
+@media (max-width:782px){.mbcom-admin .mbcom-lnk{position:relative}.mbcom-admin .mbcom-lnk::after{content:"";position:absolute;top:50%;left:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%)}}
 .mbcom-admin .mbcom-one{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mbcom-admin .mbcom-pad{padding:0 var(--space-24) var(--space-24)}
 .mbcom-admin .mbcom-two{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:var(--space-24);align-items:start}

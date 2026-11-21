@@ -19,6 +19,9 @@ class Media {
 	const CHUNK_BYTES = 1048576; // 1 MB: the smallest piece, safely under PHP's default 2 MB limit.
 	const MAX_CHUNK   = 8388608; // 8 MB: fewer, larger pieces where the host allows them.
 
+	/** The longest reel, in seconds: New reel says it, refuses longer videos, and so does the server (#93). */
+	const REEL_SECONDS = 60;
+
 	// The app sends photos at 2048 px at most; these limits only stop "pixel bombs",
 	// small files that claim huge dimensions and freeze the phones that show them.
 	const MAX_IMAGE_SIDE   = 8000;

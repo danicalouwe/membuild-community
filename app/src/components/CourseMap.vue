@@ -285,7 +285,7 @@ const isFirstWait = (l) => {
             <span class="title">{{ l.title }}</span>
             <span class="chip soft"><Icon name="clock" :size="14" /> {{ opensLabel(l) }}</span>
             <span class="chip dark">{{ dateFor(l) }}</span>
-            <button class="chip people" :class="{ zero: !stepOf(l.id).on }" :disabled="!stepOf(l.id).on" :title="t.__('Who’s on this lesson', 'membuild-community')" @click="showPeople(l)"><Icon name="users" :size="15" /> {{ live ? stepOf(l.id).on : '…' }}</button>
+            <button class="chip people tap-44" :class="{ zero: !stepOf(l.id).on }" :disabled="!stepOf(l.id).on" :title="t.__('Who’s on this lesson', 'membuild-community')" @click="showPeople(l)"><Icon name="users" :size="15" /> {{ live ? stepOf(l.id).on : '…' }}</button>
             <button class="go" :aria-label="t.__('Edit this lesson', 'membuild-community')" @click="emit('edit', l.id)"><Icon name="chevronRight" :size="20" /></button>
           </div>
         </template>
@@ -301,7 +301,7 @@ const isFirstWait = (l) => {
         <small>{{ t.__('Finish', 'membuild-community') }}</small>
         <strong>{{ t.__('They finish the course', 'membuild-community') }}</strong>
       </span>
-      <button class="chip dark" :disabled="!live?.finished" @click="showFinished"><Icon name="users" :size="15" /> {{ live ? live.finished : '…' }}</button>
+      <button class="chip dark tap-44" :disabled="!live?.finished" @click="showFinished"><Icon name="users" :size="15" /> {{ live ? live.finished : '…' }}</button>
       <p class="finish-note">{{ finishNote }}</p>
     </div>
 

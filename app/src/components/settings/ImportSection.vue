@@ -637,7 +637,7 @@ const stepNo = computed(() => ({ choose: 1, check: 2, progress: 3, done: 4 })[sc
           <strong>{{ t.__('Is this your live site?', 'membuild-community') }}</strong>
           <p>
             {{ t.__('Try it on a copy of your site first (staging), then run it here.', 'membuild-community') }}
-            <button type="button" class="im-link" @click="screen = 'copy'">{{ t.__('How to make a copy', 'membuild-community') }}</button>.
+            <button type="button" class="im-link tap-44" @click="screen = 'copy'">{{ t.__('How to make a copy', 'membuild-community') }}</button>.
             {{ t.__('BuddyBoss, BuddyPress, PeepSo, FluentCommunity, LearnDash and Tutor LMS show up here the same way when they’re on this site, even switched off.', 'membuild-community') }}
           </p>
         </div>
@@ -657,11 +657,12 @@ const stepNo = computed(() => ({ choose: 1, check: 2, progress: 3, done: 4 })[sc
           <span class="im-words"><strong>{{ t.__('Another platform', 'membuild-community') }}</strong><small>{{ t.__('Your members, from the file the platform lets you download. Their posts can’t come along: these platforms don’t export them.', 'membuild-community') }}</small><small class="im-names">Kajabi · Mighty Networks · Circle · Skool</small></span>
           <Icon name="arrowRight" :size="18" />
         </button>
-        <button type="button" class="im-box im-choice" :disabled="busy" @click="pick">
+        <!-- The whole card picks a file; the sample link is its own button beside it, not inside it. -->
+        <div class="im-box im-choice im-stretch">
           <span class="im-ic"><Icon name="file" :size="20" /></span>
-          <span class="im-words"><strong>{{ t.__('Just a list of people', 'membuild-community') }}</strong><small>{{ t.__('A spreadsheet with names and emails.', 'membuild-community') }} <span class="im-link" role="link" tabindex="0" @click.stop="downloadSample" @keydown.enter.stop="downloadSample">{{ t.__('Download our sample', 'membuild-community') }}</span> {{ t.__('if you’re starting from scratch.', 'membuild-community') }}</small><small class="im-names">{{ t.__('Any spreadsheet saved as CSV', 'membuild-community') }}</small></span>
+          <span class="im-words"><strong><button type="button" class="im-cover" :disabled="busy" aria-describedby="im-list-words" @click="pick">{{ t.__('Just a list of people', 'membuild-community') }}</button></strong><small id="im-list-words">{{ t.__('A spreadsheet with names and emails.', 'membuild-community') }} <button type="button" class="im-link im-over" @click="downloadSample">{{ t.__('Download our sample', 'membuild-community') }}</button> {{ t.__('if you’re starting from scratch.', 'membuild-community') }}</small><small class="im-names">{{ t.__('Any spreadsheet saved as CSV', 'membuild-community') }}</small></span>
           <Icon name="arrowRight" :size="18" />
-        </button>
+        </div>
         <p v-if="error" class="error-text" role="alert">{{ error }}</p>
       </template>
 
@@ -1161,6 +1162,47 @@ const stepNo = computed(() => ({ choose: 1, check: 2, progress: 3, done: 4 })[sc
 .im-choice:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* A card that holds two buttons: the cover button's ::after stretches over the
+   whole card, and the sample link sits above it. Same look as the other cards. */
+.im-stretch {
+  position: relative;
+}
+
+.im-cover {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.im-cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.im-cover:focus-visible {
+  outline: none;
+}
+
+.im-stretch:has(.im-cover:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.im-cover:disabled {
+  cursor: default;
+}
+
+.im-over {
+  position: relative;
+  z-index: 1;
 }
 
 .im-guide {

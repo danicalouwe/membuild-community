@@ -5,6 +5,7 @@ import { cfg } from '../config.js'
 import { setHelpful, setReaction, updatePost } from '../stores/feed.js'
 import { compactNumber } from '../lib/time.js'
 import { t } from '../lib/i18n.js'
+import { showToast } from '../lib/toast.js'
 import Icon from './Icon.vue'
 import ReactionButton from './ReactionButton.vue'
 import ReactionStack from './ReactionStack.vue'
@@ -21,7 +22,7 @@ const copied = ref(false)
 const inCourse = computed(() => !!props.post.course)
 const isMine = computed(() => props.post.author?.id === cfg.user.id)
 function toggleHelpful() {
-  if (!isMine.value) setHelpful(props.post, !props.post.my_helpful).catch((err) => alert(err.message))
+  if (!isMine.value) setHelpful(props.post, !props.post.my_helpful).catch((err) => showToast(err.message))
 }
 const helpfulCount = (n) => t.sprintf(/* translators: %s: number of members who found a post helpful */ t._n('%s found this helpful', '%s found this helpful', n, 'membuild-community'), fmt(n))
 const showReactions = ref(false)

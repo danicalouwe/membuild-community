@@ -15,6 +15,7 @@ import { giphyOn } from '../lib/giphy.js'
 import { around, t } from '../lib/i18n.js'
 import { useLatest } from '../lib/useLatest.js'
 import { useMenu } from '../lib/useMenu.js'
+import { showToast } from '../lib/toast.js'
 
 const props = defineProps({
   post: { type: Object, required: true },
@@ -152,7 +153,7 @@ async function toggleReplies(c) {
       c.repliesLoaded = true
     } catch (err) {
       c.showReplies = false // collapsed again, so "View replies" can be tried once more
-      alert(err.message)
+      showToast(err.message)
     }
   }
 }
@@ -254,7 +255,7 @@ async function remove(c) {
     } else if (!items.value.includes(c)) {
       items.value.splice(Math.max(0, Math.min(before.at, items.value.length)), 0, c)
     }
-    alert(err.message)
+    showToast(err.message)
   }
 }
 
@@ -277,7 +278,7 @@ async function toggleBest(c) {
     if (on) items.value = [c, ...items.value.filter((x) => x.id !== c.id)]
     updatePost(props.post.id, { best_comment_id: on ? c.id : null })
   } catch (err) {
-    alert(err.message)
+    showToast(err.message)
   }
 }
 

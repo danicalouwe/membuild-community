@@ -237,7 +237,7 @@ class Portal {
 				'icon'      => App::icons()[180] ?? '',
 			),
 			'limits'   => array(
-				'reelSeconds' => 60,
+				'reelSeconds' => Media::REEL_SECONDS,
 				'chunkBytes'  => Media::chunk_bytes(),
 			),
 		);

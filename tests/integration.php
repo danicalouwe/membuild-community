@@ -1386,6 +1386,15 @@ mbcom_check( '…and the reminder arrives by email, through the regular email jo
 
 list( $s, $moved ) = mbcom_call( $mod, 'PUT', "/events/{$eid}", array( 'at' => gmdate( 'c', time() + 3 * DAY_IN_SECONDS ) ) );
 mbcom_check( 'a new time resets the reminders and tells everyone going', 200 === $s && 0 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT event_reminded FROM %i WHERE id = %d', "{$wpdb->prefix}mbcom_posts", $eid ) ) && 1 === (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE type = %s AND post_id = %d AND user_id = %d', $notes, 'event_changed', $eid, $guest ) ), (string) $s );
+list( , $yt_ev ) = mbcom_call( $mod, 'POST', '/events', array( 'title' => 'Live on YouTube', 'at' => gmdate( 'c', strtotime( '+5 days' ) ), 'where' => 'online', 'url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' ) );
+mbcom_check( 'a YouTube stream becomes the replay by itself, as the form says (#58)', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' === ( $yt_ev['event']['recording'] ?? null ) );
+list( , $yt_ev ) = mbcom_call( $mod, 'PUT', "/events/{$yt_ev['id']}", array( 'recording' => '' ) );
+mbcom_check( '…and a host who empties the replay link gets none, and it stays that way', isset( $yt_ev['event'] ) && array_key_exists( 'recording', $yt_ev['event'] ) && null === $yt_ev['event']['recording'] );
+list( , $yt_ev ) = mbcom_call( $mod, 'PUT', "/events/{$yt_ev['id']}", array( 'title' => 'Live on YouTube, renamed' ) );
+mbcom_check( '…even after another edit', isset( $yt_ev['event'] ) && array_key_exists( 'recording', $yt_ev['event'] ) && null === $yt_ev['event']['recording'] );
+list( , $tw_ev ) = mbcom_call( $mod, 'POST', '/events', array( 'title' => 'Live on Twitch', 'at' => gmdate( 'c', strtotime( '+5 days' ) ), 'where' => 'online', 'url' => 'https://www.twitch.tv/somechannel' ) );
+mbcom_check( '…a Twitch stream isn’t kept, so it needs a replay link', isset( $tw_ev['event'] ) && array_key_exists( 'recording', $tw_ev['event'] ) && null === $tw_ev['event']['recording'] );
+$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE id IN (%d, %d)', $wpdb->prefix . 'mbcom_posts', $yt_ev['id'], $tw_ev['id'] ) );
 list( $s, $moved ) = mbcom_call( $mod, 'PUT', "/events/{$eid}", array( 'recording' => 'https://vimeo.com/123456' ) );
 mbcom_check( 'a recording link can be added later', 200 === $s && 'https://vimeo.com/123456' === $moved['event']['recording'] );
 
@@ -1813,6 +1822,25 @@ mbcom_call( $admin, 'DELETE', "/courses/{$dcid}" );
 mbcom_check( 'deleting a course removes its start dates', ! $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE course_id = %d', $starts, $dcid ) ) );
 
 mbcom_section( 'Events and Places, step 2' );
+$mo_first = new DateTimeImmutable( '2026-12-31 13:00', new DateTimeZone( 'Asia/Manila' ) );
+$mo_days  = array_map( fn( $n ) => \MemBuild\Community\Events::months_after( $mo_first, $n )->format( 'Y-m-d H:i' ), array( 1, 2, 3 ) );
+mbcom_check( 'a monthly repeat from the 31st uses the last day of shorter months (#60)', array( '2027-01-31 13:00', '2027-02-28 13:00', '2027-03-31 13:00' ) === $mo_days, implode( ', ', $mo_days ) );
+global $wpdb;
+$dup_img = imagecreatetruecolor( 20, 20 );
+ob_start();
+imagepng( $dup_img );
+$dup_cov = mbcom_upload( $admin, 'image/png', ob_get_clean(), 'cover.png' );
+list( , $dup_a ) = mbcom_call( $admin, 'POST', '/events', array( 'title' => 'Dup source', 'at' => gmdate( 'c', strtotime( '+12 days' ) ), 'where' => 'online', 'url' => 'https://zoom.us/j/123456789', 'cover_media_id' => $dup_cov['id'] ) );
+list( $s, $dup_b ) = mbcom_call( $admin, 'POST', '/events', array( 'title' => 'Dup copy', 'at' => gmdate( 'c', strtotime( '+13 days' ) ), 'where' => 'online', 'url' => 'https://zoom.us/j/123456789', 'cover_media_id' => $dup_cov['id'] ) );
+$dup_has = fn( $e ) => (bool) array_filter( $e['media'] ?? array(), fn( $m ) => 'image' === $m['kind'] );
+mbcom_check( 'Duplicate keeps the cover photo the form shows (#59)', 201 === $s && $dup_has( $dup_b ) && $dup_has( $dup_a ), wp_json_encode( $dup_b['media'] ?? $dup_b ) );
+$dup_file = get_attached_file( (int) $wpdb->get_var( $wpdb->prepare( 'SELECT attachment_id FROM %i WHERE id = %d', $wpdb->prefix . 'mbcom_media', $dup_cov['id'] ) ) );
+do_action( 'membuild_community/post_deleted', (int) $dup_a['id'], $admin );
+list( , $dup_b2 ) = mbcom_call( $admin, 'GET', "/posts/{$dup_b['id']}" );
+mbcom_check( '…and deleting the first event leaves the copy its photo', $dup_file && file_exists( $dup_file ) && $dup_has( $dup_b2 ) );
+do_action( 'membuild_community/post_deleted', (int) $dup_b['id'], $admin );
+mbcom_check( '…which goes once the copy is deleted too', ! file_exists( $dup_file ) );
+$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE id IN (%d, %d)', $wpdb->prefix . 'mbcom_posts', $dup_a['id'], $dup_b['id'] ) );
 list( $s, $ev ) = mbcom_call( $admin, 'POST', '/events', array( 'title' => 'T in person', 'at' => gmdate( 'c', strtotime( '+10 days' ) ), 'where' => 'person', 'venue' => 'Hall', 'address' => 'Main St, Austin, TX', 'tz' => 'America/Chicago', 'repeat' => 'week' ) );
 global $wpdb;
 $series = (int) ( $ev['event']['series'] ?? 0 );
@@ -2245,6 +2273,14 @@ $embed_row = function ( $user, $provider ) use ( $wpdb, $mt ) {
 	$wpdb->insert( $mt, array( 'user_id' => $user, 'kind' => 'embed', 'url' => 'https://www.youtube-nocookie.com/embed/abcdefghijk', 'mime' => 'embed/' . $provider, 'width' => 9, 'height' => 16, 'meta' => wp_json_encode( array( 'provider' => $provider, 'id' => 'abcdefghijk', 'title' => 'A short', 'author' => 'Someone', 'vertical' => true ) ), 'created_at' => current_time( 'mysql', true ) ) );
 	return (int) $wpdb->insert_id;
 };
+$long_vid = function ( $secs ) use ( $wpdb, $mt, $ana ) {
+	$wpdb->insert( $mt, array( 'user_id' => $ana, 'kind' => 'video', 'url' => 'https://example.test/v.mp4', 'mime' => 'video/mp4', 'width' => 9, 'height' => 16, 'duration' => $secs, 'created_at' => current_time( 'mysql', true ) ) );
+	return (int) $wpdb->insert_id;
+};
+$lv = $long_vid( 70 );
+list( $s, $lr ) = mbcom_call( $ana, 'POST', '/posts', array( 'type' => 'reel', 'content' => 'Too long', 'media_ids' => array( $lv ) ) );
+mbcom_check( 'a reel longer than 60 seconds is refused, as New reel says (#93)', 400 === $s && 'mbcom_reel_too_long' === ( $lr['code'] ?? '' ), (string) $s );
+$wpdb->delete( $mt, array( 'id' => $lv ) );
 list( $s, $yt_reel ) = mbcom_call( $ana, 'POST', '/posts', array( 'type' => 'reel', 'content' => 'Worth a watch', 'media_ids' => array( $embed_row( $ana, 'youtube' ) ) ) );
 mbcom_check( 'a YouTube Short can be shared as a reel', 201 === $s && 'reel' === $yt_reel['type'] && 'embed' === $yt_reel['media'][0]['kind'], (string) $s );
 list( $s ) = mbcom_call( $ana, 'POST', '/posts', array( 'type' => 'reel', 'content' => 'Vimeo', 'media_ids' => array( $embed_row( $ana, 'vimeo' ) ) ) );

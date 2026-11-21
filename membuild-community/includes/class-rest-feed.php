@@ -344,6 +344,12 @@ class Rest_Feed {
 		if ( 'reel' === $type && 1 !== count( $media_ids ) ) {
 			return new \WP_Error( 'mbcom_reel_media', __( 'A reel needs exactly one video.', 'membuild-community' ), array( 'status' => 400 ) );
 		}
+		// New reel says "Up to 60 seconds" (#93). A soft guard: the length is what the browser read when
+		// it was uploaded (0 when it couldn't tell), and a second over is allowed for rounding.
+		$reel_video = 'reel' === $type ? Media::get( (int) $media_ids[0] ) : null;
+		if ( $reel_video && (float) ( $reel_video['duration'] ?? 0 ) > Media::REEL_SECONDS + 1 ) {
+			return new \WP_Error( 'mbcom_reel_too_long', __( 'Reels can be up to 60 seconds.', 'membuild-community' ), array( 'status' => 400 ) );
+		}
 
 		$now = Helpers::now();
 		$wpdb->insert(

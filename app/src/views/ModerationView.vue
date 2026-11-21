@@ -330,7 +330,7 @@ function personLine(p) {
           <img v-if="it.preview.thumb" :src="it.preview.thumb" alt="" loading="lazy" />
         </div>
         <RouterLink v-if="it.object_type === 'member'" :to="{ name: 'member', params: { id: it.object_id } }" class="open">{{ t.__('Open the profile', 'membuild-community') }} <Icon name="chevronRight" :size="16" /></RouterLink>
-        <RouterLink v-else-if="!it.preview.gone" :to="{ query: { post: it.post_id } }" class="open">{{ t.__('Open the post', 'membuild-community') }} <Icon name="chevronRight" :size="16" /></RouterLink>
+        <RouterLink v-else-if="!it.preview.gone" :to="{ query: { post: it.post_id } }" class="open tap-44">{{ t.__('Open the post', 'membuild-community') }} <Icon name="chevronRight" :size="16" /></RouterLink>
 
         <div v-if="it.notes.length" class="said-list">
           <span class="label">{{ t.__('What members said', 'membuild-community') }}</span>

@@ -251,6 +251,7 @@ const accountLabel = () => {
     <div v-if="feature('messages')" class="slot">
       <button
         class="circle tap-44"
+        data-messenger
         :class="{ on: open === 'messenger' || route.name === 'messages' }"
         :aria-label="withCount(t.__('Messenger', 'membuild-community'), messages.unread)"
         :title="t.__('Messenger', 'membuild-community')"

@@ -1,5 +1,5 @@
 <script setup>
-import { computed, defineAsyncComponent } from 'vue'
+import { computed, defineAsyncComponent, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { cfg } from '../config.js'
 import { messages } from '../stores/messages.js'
@@ -30,6 +30,33 @@ function expand(id) {
   router.push({ name: 'messages', params: { threadId: id } })
 }
 
+// The keyboard goes back where it was when the window closes (#110): the button that opened it,
+// or, when that's gone (it was in the Messenger panel), the Messenger button at the top.
+let opener = null
+watch(
+  () => dock.composing,
+  (on) => {
+    if (on) opener = document.activeElement
+  },
+)
+function closeCompose() {
+  dock.composing = false
+  const back = opener
+  opener = null
+  nextTick(() => {
+    // Shown: on the page and laid out. offsetParent is null for a hidden button, and for one inside a
+    // fixed panel that's closing (the Messenger panel), but also for a position: fixed button itself,
+    // which counts as shown when it has a box.
+    const shown = (el) => {
+      if (!el?.isConnected) return false
+      if (getComputedStyle(el).position === 'fixed') return el.getClientRects().length > 0
+      return el.offsetParent !== null
+    }
+    const el = shown(back) ? back : [...document.querySelectorAll('[data-messenger]')].find(shown)
+    el?.focus()
+  })
+}
+
 function started(chat) {
   dock.composing = false
   openChat(chat)
@@ -43,7 +70,7 @@ const closeLabel = (c) => t.sprintf(/* translators: %s: the chat's name or the p
   <div class="dock" data-chat-dock>
     <div class="windows">
       <!-- New message opens as a chat window, rightmost, like Facebook. -->
-      <div v-if="dock.composing" class="window card"><NewChatDialog docked @close="dock.composing = false" @started="started" /></div>
+      <div v-if="dock.composing" class="window card"><NewChatDialog docked @close="closeCompose" @started="started" /></div>
       <div v-for="c in windows" :key="c.id" class="window card">
         <ChatView
           :thread-id="c.id"

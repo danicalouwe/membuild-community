@@ -6,6 +6,7 @@ import { cfg } from '../config.js'
 import { lists, loadMore, takePost } from '../stores/feed.js'
 import Icon from './Icon.vue'
 import { t } from '../lib/i18n.js'
+import { showToast } from '../lib/toast.js'
 
 const ReportDialog = defineAsyncComponent(() => import('./ReportDialog.vue'))
 
@@ -87,7 +88,7 @@ async function remove(reel) {
     await api.deletePost(reel.id)
   } catch (err) {
     restore() // the server kept it, so it comes back where it was
-    alert(err.message)
+    showToast(err.message)
   }
 }
 

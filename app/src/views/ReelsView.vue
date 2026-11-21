@@ -711,7 +711,7 @@ const commentCount = (n) => t.sprintf(/* translators: %d: number of comments */ 
         <div ref="commentsSheet" class="sheet" role="dialog" aria-modal="true" :aria-label="t.__('Comments', 'membuild-community')">
           <header>
             <strong>{{ commentCount(commentsFor.comments_count) }}</strong>
-            <button :aria-label="t.__('Close', 'membuild-community')" @click="commentsFor = null"><Icon name="close" /></button>
+            <button class="tap-44" :aria-label="t.__('Close', 'membuild-community')" @click="commentsFor = null"><Icon name="close" /></button>
           </header>
           <div class="sheet-body"><CommentThread :key="commentsFor.id" :post="commentsFor" dark autofocus /></div>
         </div>

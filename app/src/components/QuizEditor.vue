@@ -235,7 +235,7 @@ const countLabel = computed(() => t.sprintf(/* translators: %d: number of questi
           <ol v-else class="qe-list">
             <li v-for="(q, i) in questions" :key="q.id" class="qe-row" @dragover.prevent @drop.prevent="dropOn(i)">
               <span :ref="(el) => moveFor === q.id && moveRoot(el)" class="qe-handle-wrap">
-                <button :ref="(el) => moveFor === q.id && moveTrigger(el)" class="qe-handle" draggable="true" :aria-label="t.sprintf(/* translators: %d: question number */ t.__('Move question %d', 'membuild-community'), i + 1)" :aria-expanded="moveMenu && moveFor === q.id" @dragstart="dragStart($event, i)" @click="moveToggle($event, q)"><Icon name="grip" :size="20" /></button>
+                <button :ref="(el) => moveFor === q.id && moveTrigger(el)" class="qe-handle tap-44" draggable="true" :aria-label="t.sprintf(/* translators: %d: question number */ t.__('Move question %d', 'membuild-community'), i + 1)" :aria-expanded="moveMenu && moveFor === q.id" @dragstart="dragStart($event, i)" @click="moveToggle($event, q)"><Icon name="grip" :size="20" /></button>
                 <span v-if="moveMenu && moveFor === q.id" :ref="moveList" class="qe-menu" @keydown="onMoveKey">
                   <button type="button" :disabled="i === 0" @click="move(i, i - 1)">{{ t.__('Move up', 'membuild-community') }}</button>
                   <button type="button" :disabled="i === questions.length - 1" @click="move(i, i + 1)">{{ t.__('Move down', 'membuild-community') }}</button>
