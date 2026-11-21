@@ -1152,8 +1152,10 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 }
 
 .intro strong {
+  max-width: 100%;
   margin-top: 8px;
   font-size: var(--fs-2xl);
+  overflow-wrap: anywhere; /* a long group name with no spaces wraps instead of running off both sides */
 }
 
 .intro span {

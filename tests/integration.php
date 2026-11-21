@@ -2266,6 +2266,9 @@ mbcom_check( 'chat search finds a chat by a member’s name', in_array( $tid, ar
 list( , $none ) = mbcom_call( $ana, 'GET', '/messages/threads', array( 'search' => "%' OR 1=1 --" ) );
 mbcom_check( '…and SQL-looking text finds nothing', array() === $none['items'] );
 
+// The test members are made once and kept, so one of them is marked as joined just now.
+$wpdb->update( $wpdb->users, array( 'user_registered' => gmdate( 'Y-m-d H:i:s', time() - 60 ) ), array( 'ID' => $ben ) );
+clean_user_cache( $ben );
 list( $s, $fy ) = mbcom_call( $ana, 'GET', '/home/for-you' );
 mbcom_check( 'For you answers with an event, a course and new members (each may be empty)', 200 === $s && array_key_exists( 'event', $fy ) && array_key_exists( 'course', $fy ) && array_key_exists( 'members', $fy ) );
 mbcom_check( '…new members this week counts people who just joined, not you', $fy['members'] && $fy['members']['count'] >= 1 && ! in_array( $ana, array_column( $fy['members']['faces'], 'id' ), true ) && count( $fy['members']['faces'] ) <= 3 );

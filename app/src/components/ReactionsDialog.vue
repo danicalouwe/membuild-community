@@ -56,20 +56,23 @@ onMounted(() => load(true))
 <template>
   <BaseDialog :label="t.__('Reactions', 'membuild-community')" :width="560" max-height="640px" phone="sheet" @close="emit('close')" @scroll="onScroll">
     <template #header>
-      <header class="tabs" role="tablist">
-        <button role="tab" class="tab filter-pill" :class="{ on: tab === '' }" :aria-selected="tab === ''" @click="select('')">{{ t.__('All', 'membuild-community') }}</button>
-        <button
-          v-for="[type, n] in tabs"
-          :key="type"
-          role="tab"
-          class="tab filter-pill"
-          :class="{ on: tab === type }"
-          :aria-selected="tab === type"
-          @click="select(type)"
-        >
-          <ReactionBadge :type="type" :size="24" />
-          <span>{{ compactNumber(n) }}</span>
-        </button>
+      <header class="tabs" role="none">
+        <!-- Only the tabs sit in the tab list; Close is beside it. -->
+        <div class="tab-row" role="tablist">
+          <button role="tab" class="tab filter-pill" :class="{ on: tab === '' }" :aria-selected="tab === ''" @click="select('')">{{ t.__('All', 'membuild-community') }}</button>
+          <button
+            v-for="[type, n] in tabs"
+            :key="type"
+            role="tab"
+            class="tab filter-pill"
+            :class="{ on: tab === type }"
+            :aria-selected="tab === type"
+            @click="select(type)"
+          >
+            <ReactionBadge :type="type" :size="24" />
+            <span>{{ compactNumber(n) }}</span>
+          </button>
+        </div>
         <button class="close round-btn" :aria-label="t.__('Close', 'membuild-community')" @click="emit('close')"><Icon name="close" :size="22" /></button>
       </header>
     </template>
@@ -100,6 +103,13 @@ onMounted(() => load(true))
   border-bottom: 1px solid var(--border);
   overflow-x: auto;
   scrollbar-width: none;
+  flex: none;
+}
+
+.tab-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
   flex: none;
 }
 

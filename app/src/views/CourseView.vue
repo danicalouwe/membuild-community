@@ -386,8 +386,11 @@ function applyProgress(res) {
  * `advance` false keeps them on the lesson (a video that just ended counts
  * itself done, then offers the next lesson with a countdown).
  */
+const completing = new Set() // lessons whose tick is still saving
 async function toggleComplete(advance = true) {
   const l = lesson.value
+  if (completing.has(l.id)) return // a double tap: the first one is still saving, and a second would undo it
+  completing.add(l.id)
   const done = !l.completed
   const before = course.value.progress
   l.completed = done
@@ -419,9 +422,13 @@ async function toggleComplete(advance = true) {
     } else if (advance) {
       showToast(t.__('Lesson done. Nice work!', 'membuild-community'), '✅')
     }
-  } catch {
+  } catch (err) {
+    // Not saved (no connection): the button goes back, and we say so.
     l.completed = !done
     if (current.value) current.value.completed = !done
+    showToast(err.message)
+  } finally {
+    completing.delete(l.id)
   }
 }
 

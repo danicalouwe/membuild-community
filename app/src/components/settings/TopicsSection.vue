@@ -286,7 +286,17 @@ const colorLabel = (i) => t.sprintf(/* translators: %d: colour number */ t.__('C
 }
 
 .tp-name strong {
+  min-width: 0;
   font-size: var(--fs-lg);
+  overflow-wrap: anywhere; /* a 40-letter name with no spaces wraps instead of widening the page */
+}
+
+/* The membership tag wraps too: a membership name can be 80 letters with no spaces. */
+.tp-name .status-tag {
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .tp-words small {

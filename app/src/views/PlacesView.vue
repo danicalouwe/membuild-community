@@ -226,7 +226,13 @@ async function pickMe(m) {
   }
 }
 async function hideMe() {
-  await api.hideMeOnMap()
+  meError.value = ''
+  try {
+    await api.hideMeOnMap()
+  } catch (err) {
+    meError.value = err.message // not taken off: say so, and the window stays open
+    return
+  }
   myMap.value = null
   meOpen.value = false
   await loadPeople()
@@ -262,23 +268,45 @@ async function sendNews() {
   }
 }
 async function approveNews(n) {
-  await api.approvePlaceNews(n.id)
+  if (!(await tryIt(`news${n.id}`, () => api.approvePlaceNews(n.id)))) return
   news.value = news.value.filter((x) => x.id !== n.id)
   load()
 }
 async function notNowNews(n) {
   if (!(await askConfirm({ title: t.__('Turn down this What’s new?', 'membuild-community'), text: t.__('It goes away. The member isn’t told.', 'membuild-community'), confirm: t.__('Turn it down', 'membuild-community'), cancel: t.__('Keep it', 'membuild-community') }))) return
-  await api.deletePlaceNews(n.id)
+  if (!(await tryIt(`news${n.id}`, () => api.deletePlaceNews(n.id)))) return
   news.value = news.value.filter((x) => x.id !== n.id)
 }
 async function removeNews(n) {
   if (!(await askConfirm({ title: t.__('Remove this What’s new?', 'membuild-community'), text: t.__('It comes off the place now, before its end date.', 'membuild-community'), confirm: t.__('Remove', 'membuild-community'), danger: true }))) return
-  await takeBackNews(n)
+  if (!(await takeBackNews(n))) return
   load() // its tag comes off the card and the map too
 }
 async function takeBackNews(n) {
-  await api.deletePlaceNews(n.id)
-  detail.value = await api.place(detail.value.id)
+  const id = detail.value?.id // read now: the place may be closed while the request runs
+  if (!(await tryIt(`news${n.id}`, () => api.deletePlaceNews(n.id)))) return false
+  if (!id || detail.value?.id !== id) return true
+  // Gone: off the screen now (so it can't be tapped again), then the place read again.
+  detail.value = { ...detail.value, news: (detail.value.news || []).filter((x) => x.id !== n.id) }
+  const fresh = await api.place(id).catch(() => null)
+  if (fresh && detail.value?.id === id) detail.value = fresh
+  return true
+}
+// A staff or member action on Places that can fail: when it does, say why (a toast) and leave things as they were.
+// One at a time per thing: a double tap doesn't send it twice (the second would answer "not found").
+const acting = new Set()
+async function tryIt(key, fn) {
+  if (acting.has(key)) return false
+  acting.add(key)
+  try {
+    await fn()
+    return true
+  } catch (err) {
+    showToast(err.message)
+    return false
+  } finally {
+    acting.delete(key)
+  }
 }
 const endsLabel = (d) => new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(new Date(`${d}T12:00`))
 const pendingCount = computed(() => pending.value.length + news.value.length)
@@ -438,7 +466,7 @@ const ago = (iso) => {
 }
 async function notNow(place) {
   if (!(await askConfirm({ title: t.sprintf(/* translators: %s: place name */ t.__('Turn down “%s”?', 'membuild-community'), place.name), text: t.__('The suggestion goes away. The member isn’t told.', 'membuild-community'), confirm: t.__('Turn it down', 'membuild-community'), cancel: t.__('Keep it', 'membuild-community') }))) return
-  await api.deletePlace(place.id)
+  if (!(await tryIt(`place${place.id}`, () => api.deletePlace(place.id)))) return
   places.value = places.value.filter((p) => p.id !== place.id)
 }
 // The list under the map follows the search: the places in the picked city, or, while a search is
@@ -515,19 +543,28 @@ async function toggleGoing(place) {
   if (busy.value) return
   busy.value = true
   try {
-    const res = place.going ? await api.notGoing(place.id) : await api.going(place.id)
+    let res
+    try {
+      res = place.going ? await api.notGoing(place.id) : await api.going(place.id)
+    } catch (err) {
+      showToast(err.message) // not saved: say so, and the button stays as it was
+      return
+    }
     replace(res)
-    if (detail.value?.id === place.id) detail.value = await api.place(place.id)
+    // Saved. If reading the place again fails, what's on screen is already right.
+    const fresh = detail.value?.id === place.id ? await api.place(place.id).catch(() => null) : null
+    if (fresh && detail.value?.id === place.id) detail.value = fresh
   } finally {
     busy.value = false
   }
 }
 async function approve(place) {
-  replace(await api.updatePlace(place.id, { status: 'published' }))
+  let res
+  if (await tryIt(`place${place.id}`, async () => (res = await api.updatePlace(place.id, { status: 'published' })))) replace(res)
 }
 async function remove(place) {
   if (!(await askConfirm({ title: t.sprintf(/* translators: %s: place name */ t.__('Remove “%s” from Places?', 'membuild-community'), place.name), confirm: t.__('Remove', 'membuild-community'), danger: true }))) return
-  await api.deletePlace(place.id)
+  if (!(await tryIt(`place${place.id}`, () => api.deletePlace(place.id)))) return
   places.value = places.value.filter((p) => p.id !== place.id)
   if (detail.value?.id === place.id) back()
 }
@@ -813,10 +850,10 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
       <div v-if="canEdit" class="staff">
         <button v-if="detail.status === 'pending'" class="btn btn-primary" @click="approve(detail)">{{ t.__('Approve', 'membuild-community') }}</button>
         <button class="btn btn-ghost" @click="form = { place: detail }"><Icon name="pencil" :size="18" /> {{ t.__('Edit', 'membuild-community') }}</button>
-        <button class="link danger" @click="remove(detail)">{{ t.__('Remove…', 'membuild-community') }}</button>
+        <button class="link danger tap-44" @click="remove(detail)">{{ t.__('Remove…', 'membuild-community') }}</button>
       </div>
       <div v-else-if="detail.mine && detail.status === 'pending'" class="staff">
-        <button class="link danger" @click="remove(detail)">{{ t.__('Withdraw suggestion', 'membuild-community') }}</button>
+        <button class="link danger tap-44" @click="remove(detail)">{{ t.__('Withdraw suggestion', 'membuild-community') }}</button>
       </div>
     </aside>
 

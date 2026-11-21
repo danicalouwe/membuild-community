@@ -484,6 +484,7 @@ onMounted(() => {
   right: 16px;
   bottom: 24px;
   margin: 0;
+  overflow-wrap: anywhere; /* a long word or link wraps instead of running off the preview */
   padding: 8px 12px;
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--scrim) 45%, transparent);

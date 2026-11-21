@@ -382,9 +382,10 @@ async function saveEdit() {
   }
 }
 
-// Escape steps back first: emoji picker, then the feeling list, then the dialog.
+// Escape steps back first: the topic list, the emoji picker, then the feeling list, then the dialog.
 function onEscape() {
-  if (showEmoji.value) showEmoji.value = false
+  if (topicPicker.value && view.value === 'main') topicPicker.value = false // (it only shows on the main view)
+  else if (showEmoji.value) showEmoji.value = false
   else if (view.value === 'feeling') view.value = 'main'
   else close()
 }

@@ -73,7 +73,7 @@ const doneLine = computed(() =>
       <button v-if="member" type="button" class="hide tap-44" @click="hide">{{ t.__('Hide', 'membuild-community') }}</button>
     </header>
     <p class="sub">{{ doneLine }}</p>
-    <div class="bar" role="progressbar" :aria-valuenow="count" aria-valuemin="0" :aria-valuemax="steps.length"><i :style="{ width: `${(count / steps.length) * 100}%` }" /></div>
+    <div class="bar" role="progressbar" :aria-label="owner ? t.__('Finish setting up', 'membuild-community') : t.__('Welcome', 'membuild-community')" :aria-valuenow="count" aria-valuemin="0" :aria-valuemax="steps.length"><i :style="{ width: `${(count / steps.length) * 100}%` }" /></div>
     <ul>
       <li v-for="s in steps" :key="s.key">
         <button type="button" class="row" :class="{ done: s.done, next: !s.done && s === nextStep, still: !s.to && !s.invite }" :disabled="!s.to && !s.invite" @click="go(s)">

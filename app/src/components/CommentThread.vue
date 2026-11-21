@@ -3,7 +3,7 @@ import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, r
 import { askConfirm } from '../lib/confirm.js'
 import { api } from '../api.js'
 import { cfg } from '../config.js'
-import { updatePost } from '../stores/feed.js'
+import { commentRemoved, updatePost } from '../stores/feed.js'
 import { pointsMayHaveChanged } from '../stores/me.js'
 import Avatar from './Avatar.vue'
 import Icon from './Icon.vue'
@@ -193,12 +193,14 @@ async function send() {
     pending: true,
   })
 
+  // What the list shows: a reply is the temporary comment itself, a new comment is its copy with a thread.
+  const row = top ? temp : withThread(temp)
   if (top) {
     top.replies.push(temp)
     top.showReplies = true
     top.replies_count++
   } else {
-    items.value.unshift(withThread(temp))
+    items.value.unshift(row)
   }
   updatePost(props.post.id, (p) => ({ comments_count: p.comments_count + 1 }))
 
@@ -221,8 +223,8 @@ async function send() {
     pic?.release()
     pointsMayHaveChanged()
   } catch (err) {
-    temp.pending = false
-    temp.failed = err.message
+    row.pending = false
+    row.failed = err.message
     updatePost(props.post.id, (p) => ({ comments_count: Math.max(0, p.comments_count - 1) }))
   }
 }
@@ -240,17 +242,18 @@ async function remove(c) {
   } else {
     items.value = items.value.filter((x) => x !== c)
   }
-  updatePost(props.post.id, (p) => ({ comments_count: Math.max(0, p.comments_count - removed) }))
+  // The post's count, and its card's preview (Home, behind the opened post) when it shows this comment.
+  const putBack = commentRemoved(props.post.id, c, removed)
   try {
     await api.deleteComment(c.id)
   } catch (err) {
+    putBack()
     if (isReply) {
       top.replies = before.replies
       top.replies_count = before.count
     } else if (!items.value.includes(c)) {
       items.value.splice(Math.max(0, Math.min(before.at, items.value.length)), 0, c)
     }
-    updatePost(props.post.id, (p) => ({ comments_count: p.comments_count + removed }))
     alert(err.message)
   }
 }

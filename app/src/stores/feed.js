@@ -166,12 +166,39 @@ export function updatePost(id, patch) {
   const seen = new Set()
   for (const list of Object.values(lists)) {
     for (const post of [...list.items, ...list.pinned].filter((p) => p.id === id)) {
+      if (seen.has(post)) continue // one post in two lists (a post just written: Home, its topic, the writer's profile) changes once
       seen.add(post)
       Object.assign(post, typeof patch === 'function' ? patch(post) : patch)
     }
   }
   for (const post of standalone) {
     if (post.id === id && !seen.has(post)) Object.assign(post, typeof patch === 'function' ? patch(post) : patch)
+  }
+}
+
+/**
+ * A comment (or a reply) is being deleted: the post's count drops by `removed`, and the preview
+ * under the post (Home, also behind the opened post) loses it. Returns a function that puts it
+ * all back, for when the server refuses.
+ */
+export function commentRemoved(postId, comment, removed) {
+  const undo = []
+  updatePost(postId, (p) => {
+    const pc = p.preview_comment
+    const patch = { comments_count: Math.max(0, p.comments_count - removed) }
+    if (pc?.id === comment.id) {
+      patch.preview_comment = null
+    } else if (pc && (comment.parent_id === pc.id || pc.replies?.some((r) => r.id === comment.id))) {
+      // A reply to the comment in the preview, shown there or not. A new preview rather than a changed one:
+      // two copies of a post can share one preview, and the old one goes back whole.
+      patch.preview_comment = { ...pc, replies: (pc.replies || []).filter((r) => r.id !== comment.id), replies_count: Math.max(0, (pc.replies_count || 0) - 1) }
+    }
+    if ('preview_comment' in patch) undo.push(() => (p.preview_comment = pc))
+    return patch
+  })
+  return () => {
+    undo.forEach((put) => put())
+    updatePost(postId, (p) => ({ comments_count: p.comments_count + removed }))
   }
 }
 

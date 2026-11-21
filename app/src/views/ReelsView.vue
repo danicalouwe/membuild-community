@@ -18,6 +18,7 @@ import CommentThread from '../components/CommentThread.vue'
 import YouTubeReel from '../components/YouTubeReel.vue'
 import { t } from '../lib/i18n.js'
 import { useDialog } from '../lib/useDialog.js'
+import { onTabbedButton } from '../lib/tabbed.js'
 
 const ReportDialog = defineAsyncComponent(() => import('../components/ReportDialog.vue'))
 
@@ -342,8 +343,17 @@ function go(delta) {
 
 // Escape for the sheets comes from useDialog; these keys only drive the reels themselves.
 function onKey(e) {
-  const typing = e.target instanceof Element && e.target.closest('input, textarea, [contenteditable]')
+  if (e.defaultPrevented) return // a menu or a button on the page has already used this key (a comment's options, its Like)
+  const el = e.target instanceof Element ? e.target : null
+  const typing = el?.closest('input, textarea, [contenteditable]')
   if ((commentsFor.value && !wide.value) || composer.value || typing) return
+  // A window on top (Report reel, Delete this reel?) keeps its own keys. The comments panel beside the reel is not one.
+  const dialog = el?.closest('[role="dialog"]')
+  if (reporting.value || (dialog && dialog !== commentsSheet.value)) return
+  // Space presses the button someone walked to with Tab (Like, Comments, Close) instead of pausing the reel.
+  // After a click on a button, Space still pauses, and so it does when that button is on a reel that has scrolled away.
+  const reel = el?.closest('.reel')
+  if (e.key === ' ' && onTabbedButton(el) && !(reel && Number(reel.dataset.index) !== active.value)) return
   if (e.key === 'ArrowDown' || e.key === 'j') (e.preventDefault(), go(1))
   else if (e.key === 'ArrowUp' || e.key === 'k') (e.preventDefault(), go(-1))
   // Left and right skip 5 seconds on an uploaded reel, unless a menu or the comments panel has the keys.

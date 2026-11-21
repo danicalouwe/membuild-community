@@ -362,7 +362,9 @@ const searched = computed(() => {
 }
 
 .none strong {
+  max-width: 100%;
   font-size: var(--fs-4xl);
+  overflow-wrap: anywhere; /* a pasted link or one very long word */
 }
 
 .none p {

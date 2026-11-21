@@ -81,11 +81,12 @@ h2 {
   gap: 14px;
   min-width: 0;
   min-height: 56px;
-  padding: 0 16px;
+  padding: 8px 16px; /* room above and below when a long search wraps */
   border-radius: var(--radius-md);
   color: var(--text);
   font-size: var(--fs-xl);
   text-align: left;
+  overflow-wrap: anywhere; /* a pasted link or one very long word */
 }
 
 .pick:hover,

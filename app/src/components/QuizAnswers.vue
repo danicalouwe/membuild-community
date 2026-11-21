@@ -108,6 +108,7 @@ const numbered = (i) => t.sprintf(/* translators: %d: question number */ t.__('Q
   display: flex;
   flex-direction: column;
   gap: 8px;
+  overflow-wrap: anywhere; /* a long word with no spaces wraps instead of running off the screen */
   padding: 18px 20px 20px;
   border-radius: var(--radius-lg);
 }

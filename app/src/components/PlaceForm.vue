@@ -1,5 +1,5 @@
 <script setup>
-import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, onMounted, ref, useId, watch } from 'vue'
 import { api } from '../api.js'
 import Icon from './Icon.vue'
 import { CATEGORY } from '../lib/places.js'
@@ -8,6 +8,9 @@ import { t } from '../lib/i18n.js'
 import { cityOfAddress, zoneLabel } from '../lib/events.js'
 import { COUNTRIES, DIAL, countryName, countryOfNumber, guessCountry } from '../lib/phone.js'
 
+// These two boxes sit beside a button or a date, so their label is tied to them by id.
+const addressLabel = useId()
+const newsLabel = useId()
 const PlacesMap = defineAsyncComponent(() => import('./PlacesMap.vue'))
 
 /**
@@ -202,9 +205,9 @@ const title = p ? t.__('Edit place', 'membuild-community') : props.canEdit ? t._
         </label>
 
         <div class="field">
-          <span class="label">{{ t.__('Address', 'membuild-community') }}</span>
+          <span :id="addressLabel" class="label">{{ t.__('Address', 'membuild-community') }}</span>
           <div class="find">
-            <input v-model="form.address" type="text" maxlength="255" autocomplete="street-address" :placeholder="t.__('Street, city', 'membuild-community')" @keydown.enter.prevent="find" />
+            <input v-model="form.address" type="text" maxlength="255" autocomplete="street-address" :aria-labelledby="addressLabel" :placeholder="t.__('Street, city', 'membuild-community')" @keydown.enter.prevent="find" />
             <button type="button" class="btn btn-lg btn-ghost" :disabled="looking" @click="find"><Icon name="search" :size="18" /> {{ looking ? t.__('Finding…', 'membuild-community') : t.__('Find', 'membuild-community') }}</button>
           </div>
           <ul v-if="matches.length > 1" class="matches">
@@ -297,8 +300,8 @@ const title = p ? t.__('Edit place', 'membuild-community') : props.canEdit ? t._
           </div>
         </template>
         <div v-if="!p" class="field">
-          <span class="label">{{ t.__('Anything new there?', 'membuild-community') }} <em>{{ t.__('(optional)', 'membuild-community') }}</em></span>
-          <input v-model="news" type="text" maxlength="200" :placeholder="t.__('For example, “Grand opening Saturday, free class”', 'membuild-community')" />
+          <span :id="newsLabel" class="label">{{ t.__('Anything new there?', 'membuild-community') }} <em>{{ t.__('(optional)', 'membuild-community') }}</em></span>
+          <input v-model="news" type="text" maxlength="200" :aria-labelledby="newsLabel" :placeholder="t.__('For example, “Grand opening Saturday, free class”', 'membuild-community')" />
           <label v-if="news.trim()" class="ends">{{ t.__('Until', 'membuild-community') }} <input v-model="newsEnds" type="date" :min="today" /></label>
           <small>{{ t.__('Shows as a What’s new tag until the date you pick, then disappears.', 'membuild-community') }}</small>
         </div>

@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.24.1
+Stable tag: 1.24.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -268,6 +268,21 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.24.2 =
+* Fixed: a double tap on Mark Complete marked a lesson done and then not done. A Mark Complete that can't be saved now says so.
+* Fixed: the browser's Back dropped an unsaved quiz question without asking. Two small quiz editor menus now close with Escape or a click outside, and long words no longer run off the quiz page on phones.
+* Fixed: a comment that can't be sent no longer stays on "Posting…". A deleted comment leaves Home at once, Delete comment works on the comment shown under a post on Home, and one new comment no longer shows as "2 comments".
+* Fixed: a private reply to a story that can't be sent no longer says "Sent" and the words go back in the box. A second reply typed right after the first keeps its spaces.
+* Fixed: on sites without https, Share under a post now works.
+* Fixed: on Places, nine buttons that did nothing when the request failed now say why. With no connection, I go here says so too. Who's going no longer says "Nobody yet." when the list can't load.
+* Fixed: keyboard use on Reels and stories: Space presses the button the keyboard is on, and the arrow keys no longer change the reel behind Report reel or a comment's menu.
+* Fixed: the Sort posts and Add to calendar menus close with Escape, and Escape with the topic list open no longer closes the whole post window.
+* Fixed: long words with no spaces no longer push the Log in page, Settings › Topics, Settings › Memberships, the search page, group chat names or photo story captions off the screen on phones.
+* Fixed: a failed "Mark all as read" now says so.
+* Fixed: Open in Maps, Remove… and Withdraw suggestion are easier to tap on phones.
+* Fixed: screen readers: the Reactions window's Close button, the Finish setting up progress bar and the Address box on place and event forms.
+* Fixed: in wp-admin, the greyed-out Previous or Next under a list has its word in the middle and no longer darkens under the mouse.
 
 = 1.24.1 =
 * Fixed: Help said "This site is set not to contact MemBuild" on sites that turned off the weekly usage report. Sending a message is something you ask for, so it now works there too. The `membuild_community/help` filter turns it off.

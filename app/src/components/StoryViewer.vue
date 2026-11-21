@@ -12,6 +12,7 @@ import Icon from './Icon.vue'
 import ReactionBadge from './ReactionBadge.vue'
 import { t } from '../lib/i18n.js'
 import { isTopLayer, pushLayer } from '../lib/layers.js'
+import { onTabbedButton } from '../lib/tabbed.js'
 
 /**
  * Full-screen story viewer. Tap right = next, tap left = previous, hold = pause.
@@ -31,6 +32,7 @@ const burst = ref(null)
 const menu = ref(false)
 const bars = [] // progress bar elements, written directly each frame (not reactive)
 const replyText = ref('')
+const replyBox = ref(null)
 const replying = ref(false) // the reply box has focus: pause until it's sent or left
 const sent = ref(false)
 const video = ref(null)
@@ -172,10 +174,15 @@ let opener = null
 
 function onKey(e) {
   if (!isTopLayer(layer)) return // a dialog or menu on top handles its own keys
-  if (replying.value) return // typing a reply: arrows and space belong to the text box
+  // Typing a reply: arrows and space belong to the text box. The box can keep the keyboard after a reply
+  // is sent, when "replying" is already off, so the box itself is checked too.
+  if (replying.value || (e.target instanceof Element && e.target.closest('input, textarea'))) return
   if (e.key === 'ArrowRight') next()
   else if (e.key === 'ArrowLeft') prev()
   else if (e.key === ' ') {
+    // Space presses the button someone walked to with Tab (Close stories, a reaction, Next person)
+    // instead of pausing. After a click on a button, Space still pauses.
+    if (onTabbedButton(e.target)) return
     e.preventDefault()
     paused.value = !paused.value
   }
@@ -196,11 +203,22 @@ async function react(type) {
 async function sendReply() {
   const text = replyText.value.trim()
   if (!text) return
+  const s = story.value
   replyText.value = ''
   replying.value = false
   sent.value = true
-  setTimeout(() => (sent.value = false), 1800)
-  api.storyReply(story.value.id, text).catch(() => showToast(t.__('Your reply could not be sent.', 'membuild-community')))
+  const hide = setTimeout(() => (sent.value = false), 1800)
+  api.storyReply(s.id, text).catch(() => {
+    // Not sent: "Sent ✓" goes, and the words are back in the box, unless the member has moved on or typed again.
+    clearTimeout(hide)
+    sent.value = false
+    if (story.value?.id === s.id && !replyText.value) {
+      replyText.value = text
+      replying.value = true // the story waits, as it does while a reply is being typed
+      nextTick(() => replyBox.value?.focus()) // back in the box, so leaving it lets the story play on
+    }
+    showToast(t.__('Your reply could not be sent.', 'membuild-community'))
+  })
 }
 
 async function openViewers() {
@@ -339,11 +357,13 @@ function unmute() {
           <div v-else class="others">
             <form class="reply" @submit.prevent="sendReply">
               <input
+                ref="replyBox"
                 v-model="replyText"
                 maxlength="1000"
                 :placeholder="t.sprintf(t.__('Reply to %s…', 'membuild-community'), group.author.name.split(' ')[0])"
                 :aria-label="t.__('Reply privately', 'membuild-community')"
                 @focus="replying = true"
+                @input="replying = true"
                 @blur="replying = !!replyText.trim()"
               />
               <button v-if="replyText.trim()" type="submit" :aria-label="t.__('Send reply', 'membuild-community')"><Icon name="send" :size="20" /></button>
@@ -455,6 +475,7 @@ function unmute() {
   text-align: center;
   font-size: var(--fs-xl);
   font-weight: 650;
+  overflow-wrap: anywhere; /* a long word or link wraps instead of running off the story */
   background: color-mix(in srgb, var(--scrim) 45%, transparent);
   border-radius: var(--radius-sm);
 }

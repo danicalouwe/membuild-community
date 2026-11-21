@@ -113,6 +113,14 @@ async function removeQuestion(q) {
 /* ---------- Changing the order: drag a handle, or press it for Move up / Move down ---------- */
 let dragging = null
 const moveFor = ref(null)
+// Move up / Move down is a menu like the ⋯ one: Escape or a click outside closes it.
+const { open: moveMenu, root: moveRoot, trigger: moveTrigger, list: moveList, toggle: toggleMove, close: closeMove, onKeydown: onMoveKey } = useMenu()
+watch(moveMenu, (open) => !open && (moveFor.value = null))
+function moveToggle(e, q) {
+  if (moveMenu.value && moveFor.value !== q.id) closeMove({ focus: false })
+  moveFor.value = q.id
+  nextTick(() => toggleMove(e))
+}
 function dragStart(e, i) {
   dragging = i
   e.dataTransfer.effectAllowed = 'move'
@@ -124,7 +132,7 @@ function dropOn(i) {
   move(from, i)
 }
 async function move(from, to) {
-  moveFor.value = null
+  closeMove({ focus: false })
   if (to < 0 || to >= questions.value.length) return
   const list = [...questions.value]
   const [q] = list.splice(from, 1)
@@ -226,9 +234,9 @@ const countLabel = computed(() => t.sprintf(/* translators: %d: number of questi
 
           <ol v-else class="qe-list">
             <li v-for="(q, i) in questions" :key="q.id" class="qe-row" @dragover.prevent @drop.prevent="dropOn(i)">
-              <span class="qe-handle-wrap">
-                <button class="qe-handle" draggable="true" :aria-label="t.sprintf(/* translators: %d: question number */ t.__('Move question %d', 'membuild-community'), i + 1)" :aria-expanded="moveFor === q.id" @dragstart="dragStart($event, i)" @click="moveFor = moveFor === q.id ? null : q.id"><Icon name="grip" :size="20" /></button>
-                <span v-if="moveFor === q.id" class="qe-menu">
+              <span :ref="(el) => moveFor === q.id && moveRoot(el)" class="qe-handle-wrap">
+                <button :ref="(el) => moveFor === q.id && moveTrigger(el)" class="qe-handle" draggable="true" :aria-label="t.sprintf(/* translators: %d: question number */ t.__('Move question %d', 'membuild-community'), i + 1)" :aria-expanded="moveMenu && moveFor === q.id" @dragstart="dragStart($event, i)" @click="moveToggle($event, q)"><Icon name="grip" :size="20" /></button>
+                <span v-if="moveMenu && moveFor === q.id" :ref="moveList" class="qe-menu" @keydown="onMoveKey">
                   <button type="button" :disabled="i === 0" @click="move(i, i - 1)">{{ t.__('Move up', 'membuild-community') }}</button>
                   <button type="button" :disabled="i === questions.length - 1" @click="move(i, i + 1)">{{ t.__('Move down', 'membuild-community') }}</button>
                 </span>

@@ -19,6 +19,7 @@ import { showToast } from '../lib/toast.js'
 import { useRouter } from 'vue-router'
 import { t } from '../lib/i18n.js'
 import { PULL_MARK, usePullToRefresh } from '../lib/pullRefresh.js'
+import { useMenu } from '../lib/useMenu.js'
 
 const sort = ref(sessionStorage.getItem('mbcom-sort') || 'latest')
 // Home filtered to a topic (?topic=3): from the pills, or a post's topic label.
@@ -26,23 +27,21 @@ const route = useRoute()
 const topic = computed(() => (topicsShown.value && route.name === 'feed' && topicById(route.query.topic) ? Number(route.query.topic) : 0))
 const current = computed(() => (topic.value ? topicById(topic.value) : null))
 const list = computed(() => (topic.value ? topicList(topic.value, sort.value) : lists[sort.value]))
-const sortOpen = ref(false)
+// The shared menu: Escape or a click outside closes it, and the arrow keys move through it.
+const { open: sortOpen, root: sortRoot, trigger: sortTrigger, list: sortList, toggle: toggleSort, close: closeSort, onKeydown: onSortKey } = useMenu()
 const setTopic = (id) => {
   router.replace({ query: { ...route.query, topic: id || undefined } })
   window.scrollTo({ top: 0 })
 }
 const setSort = (s) => {
   sort.value = s
-  sortOpen.value = false
+  closeSort()
 }
 watch(list, (l) => {
   if (!l.loaded) loadMore(l)
 })
-const closeSort = (e) => {
-  if (sortOpen.value && !e.target.closest?.('.sort-wrap')) sortOpen.value = false
-}
-onMounted(() => document.addEventListener('click', closeSort))
-onBeforeUnmount(() => document.removeEventListener('click', closeSort))
+// Home is kept in memory, so leaving it with the menu open closes it.
+onDeactivated(() => closeSort({ focus: false }))
 
 // The topic pills scroll sideways. On computers, ‹ › at the ends show while there is more that way
 // (like the stories and reels rows); phones just swipe.
@@ -220,14 +219,14 @@ const newPosts = (n) => t.sprintf(/* translators: %d: number of new posts waitin
       <button v-if="pillsLeft" type="button" class="topic-arrow left" tabindex="-1" :aria-label="t.__('Previous topics', 'membuild-community')" @click="pillsPage(-1)"><Icon name="chevronLeft" :size="20" /></button>
       <button v-if="pillsRight" type="button" class="topic-arrow right" tabindex="-1" :aria-label="t.__('More topics', 'membuild-community')" @click="pillsPage(1)"><Icon name="chevronRight" :size="20" /></button>
       </div>
-      <span class="sort-wrap">
-        <button class="filter-pill sort-btn" aria-haspopup="menu" :aria-expanded="sortOpen" :aria-label="t.__('Sort posts', 'membuild-community')" @click="sortOpen = !sortOpen"><Icon name="sort" :size="16" /><span class="sort-word">{{ sort === 'hot' ? t.__('Popular', 'membuild-community') : t.__('Latest', 'membuild-community') }}</span></button>
-        <span v-if="sortOpen" class="sort-menu card" role="menu">
+      <span :ref="sortRoot" class="sort-wrap">
+        <button :ref="sortTrigger" class="filter-pill sort-btn" aria-haspopup="menu" :aria-expanded="sortOpen" :aria-label="t.__('Sort posts', 'membuild-community')" @click="toggleSort"><Icon name="sort" :size="16" /><span class="sort-word">{{ sort === 'hot' ? t.__('Popular', 'membuild-community') : t.__('Latest', 'membuild-community') }}</span></button>
+        <span v-if="sortOpen" :ref="sortList" class="sort-menu card" role="menu" @keydown="onSortKey">
           <span class="sort-title">{{ t.__('Sort posts', 'membuild-community') }}</span>
           <button role="menuitemradio" :aria-checked="sort === 'latest'" :class="{ on: sort === 'latest' }" @click="setSort('latest')">{{ t.__('Latest', 'membuild-community') }}<Icon v-if="sort === 'latest'" name="check" :size="18" /></button>
           <button role="menuitemradio" :aria-checked="sort === 'hot'" :class="{ on: sort === 'hot' }" @click="setSort('hot')">{{ t.__('Popular', 'membuild-community') }}<Icon v-if="sort === 'hot'" name="check" :size="18" /></button>
           <span class="sort-line" role="separator" />
-          <RouterLink class="sort-link" role="menuitem" :to="{ name: 'saved' }" @click="sortOpen = false"><Icon name="bookmark" :size="18" />{{ t.__('Saved posts', 'membuild-community') }}</RouterLink>
+          <RouterLink class="sort-link" role="menuitem" :to="{ name: 'saved' }" @click="closeSort()"><Icon name="bookmark" :size="18" />{{ t.__('Saved posts', 'membuild-community') }}</RouterLink>
         </span>
       </span>
     </div>

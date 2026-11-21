@@ -32,7 +32,29 @@ async function share() {
   try {
     if (navigator.share) await navigator.share({ url })
     else {
-      await navigator.clipboard.writeText(url)
+      try {
+        await navigator.clipboard.writeText(url)
+      } catch {
+        // No clipboard API (plain http) or no permission: the old way, as a comment's Copy link does.
+        const ta = Object.assign(document.createElement('textarea'), { value: url, readOnly: true })
+        ta.style.cssText = 'position:fixed;top:-100px;opacity:0'
+        const from = document.activeElement // select() takes the focus: it goes back to the Share button after
+        let ok = false
+        try {
+          document.body.append(ta)
+          ta.select()
+          ok = document.execCommand('copy')
+        } catch {
+          ok = false
+        } finally {
+          ta.remove()
+          from?.focus?.({ preventScroll: true })
+        }
+        if (!ok) {
+          prompt(t.__('Copy this link', 'membuild-community'), url) // last resort, as Reels does: the link on screen to copy by hand
+          return
+        }
+      }
       copied.value = true
       setTimeout(() => (copied.value = false), 1600)
     }

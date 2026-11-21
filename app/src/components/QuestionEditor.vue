@@ -1,10 +1,11 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
-import { onBeforeRouteLeave } from 'vue-router'
+import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
 import { api } from '../api.js'
 import { startAttachment } from '../lib/attachments.js'
 import { askConfirm } from '../lib/confirm.js'
 import { t } from '../lib/i18n.js'
+import { useMenu } from '../lib/useMenu.js'
 import Icon from './Icon.vue'
 
 /**
@@ -40,7 +41,8 @@ const errors = ref({})
 const topError = ref('')
 const topErrorEl = ref(null)
 const saving = ref(false)
-const changing = ref(false) // the type picker
+// The type picker: Escape or a click outside closes it, like the other menus.
+const { open: changing, root: changeRoot, trigger: changeTrigger, list: changeList, toggle: toggleChange, close: closeChange, onKeydown: onChangeKey } = useMenu()
 const fileInput = ref(null)
 
 const start = JSON.stringify([kind.value, text.value, why.value, answers.value, image.value?.id || 0])
@@ -58,7 +60,7 @@ const instruction = computed(() =>
 const heading = computed(() => t.sprintf(/* translators: %d: question number */ t.__('Question %d', 'membuild-community'), props.number))
 
 function changeType(to) {
-  changing.value = false
+  closeChange()
   if (to === kind.value) return
   const was = kind.value
   kind.value = to
@@ -156,6 +158,9 @@ async function mayLeave() {
 }
 // The browser's back, a menu link, or Cancel: the same question first.
 onBeforeRouteLeave(mayLeave)
+// The question sits in the address (?question=), so the browser's back only changes the address, not the page.
+// Anything else that changes the address (a post opened over the page) leaves the question open, so it doesn't ask.
+onBeforeRouteUpdate((to, from) => (to.query.question === from.query.question ? true : mayLeave()))
 async function cancel() {
   if (await mayLeave()) emit('cancel')
 }
@@ -167,9 +172,9 @@ async function cancel() {
     <h1 class="page-title">{{ heading }}</h1>
     <div class="qn-type">
       <span class="status-tag">{{ typeName }}</span>
-      <span class="qn-change-wrap">
-        <button type="button" class="qn-change" :aria-expanded="changing" @click="changing = !changing">{{ t.__('Change', 'membuild-community') }}</button>
-        <span v-if="changing" class="qn-types" role="group" :aria-label="t.__('What kind of question?', 'membuild-community')">
+      <span :ref="changeRoot" class="qn-change-wrap">
+        <button :ref="changeTrigger" type="button" class="qn-change" :aria-expanded="changing" @click="toggleChange">{{ t.__('Change', 'membuild-community') }}</button>
+        <span v-if="changing" :ref="changeList" class="qn-types" role="group" :aria-label="t.__('What kind of question?', 'membuild-community')" @keydown="onChangeKey">
           <button v-for="ty in types" :key="ty.id" type="button" :aria-pressed="ty.id === kind" @click="changeType(ty.id)">
             <Icon :name="ty.icon" :size="20" />
             <span><strong>{{ ty.name() }}</strong><small>{{ ty.line() }}</small></span>

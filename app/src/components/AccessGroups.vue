@@ -549,8 +549,10 @@ h2 {
 }
 
 .one-head h3 {
+  min-width: 0;
   margin: 0;
   font-size: var(--fs-3xl);
+  overflow-wrap: anywhere; /* an 80-letter name with no spaces wraps instead of running under Rename */
 }
 
 .one-head h3 span {

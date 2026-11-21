@@ -8,6 +8,7 @@ import Avatar from './Avatar.vue'
 import Icon from './Icon.vue'
 import ReactionBadge from './ReactionBadge.vue'
 import { around, listNames, t } from '../lib/i18n.js'
+import { showToast } from '../lib/toast.js'
 
 // The notification list, used by the bell dropdown and the phone page.
 defineProps({ page: { type: Boolean, default: false } })
@@ -137,10 +138,19 @@ async function open(n) {
 }
 
 async function readAll() {
+  const were = items.value.filter((n) => !n.read)
+  const count = unread.value
   items.value.forEach((n) => (n.read = true))
   unread.value = 0
-  await api.readAllNotifications().catch(() => {})
-  messages.notifications = 0
+  try {
+    await api.readAllNotifications()
+    messages.notifications = 0
+  } catch (err) {
+    // Not saved (no connection): the alerts go back to unread, and we say so.
+    were.forEach((n) => (n.read = false))
+    unread.value = count
+    showToast(err.message)
+  }
 }
 const reachedLevel = (level) => t.sprintf(/* translators: %d: level number */ t.__('You reached Level %d!', 'membuild-community'), level)
 const reachedLevelPlain = (level) => t.sprintf(/* translators: %d: level number */ t.__('You reached Level %d', 'membuild-community'), level)

@@ -111,13 +111,15 @@ const whereNote = computed(() => {
 const route = useRoute()
 const goingOpen = ref(false)
 const goingList = ref(null)
+const goingError = ref('')
 async function openGoing() {
   goingOpen.value = true
   goingList.value = null
+  goingError.value = ''
   try {
-    goingList.value = (await api.eventGoing(props.id)).items.filter((r) => r.status === 'going')
-  } catch {
-    goingList.value = []
+    goingList.value = ((await api.eventGoing(props.id))?.items || []).filter((r) => r.status === 'going')
+  } catch (err) {
+    goingError.value = err.message // not "Nobody yet.": the list couldn't be read
   }
 }
 const replayUrl = ref('')
@@ -160,7 +162,10 @@ const service = computed(() => serviceName(e.value?.kind))
 
 const { open: menu, root: menuRoot, trigger: menuTrigger, list: menuList, toggle: toggleMenu, close: closeMenu, onKeydown: onMenuKey } = useMenu()
 const dialog = ref(null) // null | { copy }
-const calOpen = ref(false)
+// Add to calendar: a click outside or Escape closes it, like the app's other small menus.
+const { open: calOpen, root: calRoot, trigger: calTrigger, list: calList, toggle: toggleCal, close: closeCal, onKeydown: onCalKey } = useMenu()
+// It never outlives its event: another event opening, or this one ending, closes it.
+watch([() => props.id, state], () => closeCal({ focus: false }))
 
 function rsvp(status) {
   setRsvp(post.value, e.value.my_rsvp === status ? null : status).catch((err) => alert(err.message))
@@ -266,7 +271,7 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
             <RouterLink v-if="e.place.id && feature('places')" :to="{ name: 'places', params: { placeId: e.place.id } }" class="place-link">{{ e.place.name }} <Icon name="chevronRight" :size="16" /></RouterLink>
             <strong v-else>{{ e.place.name }}</strong>
             <small v-if="e.place.address">{{ e.place.address }}</small>
-            <a :href="mapsUrl" target="_blank" rel="noopener" class="maps">{{ t.__('Open in Maps', 'membuild-community') }} <Icon name="external" :size="14" /></a>
+            <a :href="mapsUrl" target="_blank" rel="noopener" class="maps tap-44">{{ t.__('Open in Maps', 'membuild-community') }} <Icon name="external" :size="14" /></a>
           </span>
         </div>
 
@@ -291,9 +296,9 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
             <template v-else>{{ t.__('I’m going', 'membuild-community') }}</template>
           </button>
           <p v-if="host && e.url && !isStream" class="note">{{ t.sprintf(/* translators: %s: a time, e.g. "12:45 PM ET" */ t.__('You can open it any time. Members’ button turns on at %s.', 'membuild-community'), joinAt) }}</p>
-          <div class="cal-wrap">
-            <button class="cal tap-44" aria-haspopup="menu" :aria-expanded="calOpen" @click="calOpen = !calOpen"><Icon name="calendar" :size="18" /> {{ t.__('Add to calendar', 'membuild-community') }}</button>
-            <div v-if="calOpen" class="menu cal-menu" role="menu" @click="calOpen = false">
+          <div :ref="calRoot" class="cal-wrap">
+            <button :ref="calTrigger" class="cal tap-44" aria-haspopup="menu" :aria-expanded="calOpen" @click="toggleCal"><Icon name="calendar" :size="18" /> {{ t.__('Add to calendar', 'membuild-community') }}</button>
+            <div v-if="calOpen" :ref="calList" class="menu cal-menu" role="menu" @click="closeCal()" @keydown="onCalKey">
               <a :href="links.google" target="_blank" rel="noopener" role="menuitem">Google Calendar</a>
               <button role="menuitem" @click="downloadIcs(calEvent, pageUrl, cfg.siteName)">Apple Calendar</button>
               <a :href="links.outlook" target="_blank" rel="noopener" role="menuitem">Outlook</a>
@@ -334,7 +339,8 @@ const joinLabel = computed(() => (service.value ? t.sprintf(/* translators: %s: 
     </div>
 
     <BaseDialog v-if="goingOpen" :title="state === 'past' ? t.__('Who came', 'membuild-community') : t.__('Who’s going', 'membuild-community')" :width="440" max-height="560px" @close="goingOpen = false">
-      <p v-if="!goingList" class="going-empty">{{ t.__('Loading…', 'membuild-community') }}</p>
+      <p v-if="goingError" class="going-empty error-text">{{ goingError }}</p>
+      <p v-else-if="!goingList" class="going-empty">{{ t.__('Loading…', 'membuild-community') }}</p>
       <ul v-else class="going-list">
         <li v-for="r in goingList" :key="r.user.id"><Avatar :user="r.user" :size="40" link /><strong>{{ r.user.name }}</strong></li>
         <li v-if="!goingList.length" class="going-empty">{{ t.__('Nobody yet.', 'membuild-community') }}</li>
@@ -788,10 +794,15 @@ h1 {
   }
 }
 
-/* Phones: the two Cancel links' 44px tap areas don't overlap. */
+/* Phones: the two Cancel links' 44px tap areas don't overlap. Open in Maps keeps clear of the
+   place's name the same way, when a place has no address line between them. */
 @media (max-width: 767px) {
   .link.danger + .link.danger {
     margin-top: 8px;
+  }
+
+  .place-link + .maps {
+    margin-top: 14px;
   }
 }
 </style>

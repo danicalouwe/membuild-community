@@ -280,6 +280,7 @@ const resultLine = computed(() => {
 }
 .qt-question {
   margin: 0;
+  overflow-wrap: anywhere; /* a long word with no spaces wraps instead of running off the screen */
   font-size: var(--fs-3xl);
   line-height: 1.3;
 }
@@ -352,6 +353,7 @@ const resultLine = computed(() => {
 .qt-text {
   flex: 1;
   min-width: 0;
+  overflow-wrap: anywhere;
   font-size: var(--fs-lg);
 }
 .qt-why {
@@ -368,6 +370,7 @@ const resultLine = computed(() => {
 }
 .qt-why p {
   margin: 0;
+  overflow-wrap: anywhere;
   line-height: 1.5;
 }
 .qt-nav {

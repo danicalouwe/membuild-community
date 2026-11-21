@@ -1,5 +1,5 @@
 <script setup>
-import { computed, defineAsyncComponent, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, onMounted, ref, useId, watch } from 'vue'
 import { api } from '../api.js'
 import { cfg, feature } from '../config.js'
 import Icon from './Icon.vue'
@@ -7,6 +7,8 @@ import { startAttachment } from '../lib/attachments.js'
 import { cityOfAddress, dateInZone, plainCover, zoneLabel, zonedToDate } from '../lib/events.js'
 import { t } from '../lib/i18n.js'
 
+// The Address box sits beside the Find button, so its label is tied to it by id.
+const addressLabel = useId()
 const PlacesMap = defineAsyncComponent(() => import('./PlacesMap.vue'))
 
 /**
@@ -303,9 +305,9 @@ const heading = computed(() => (editing.value ? t.__('Edit event', 'membuild-com
               <input v-model="form.venue" type="text" maxlength="200" :placeholder="t.__('Riverside Community Hall', 'membuild-community')" />
             </label>
             <div class="field">
-              <span class="lbl">{{ t.__('Address', 'membuild-community') }}</span>
+              <span :id="addressLabel" class="lbl">{{ t.__('Address', 'membuild-community') }}</span>
               <div class="find">
-                <input v-model="form.address" type="text" maxlength="255" autocomplete="street-address" :placeholder="t.__('Street, city', 'membuild-community')" @keydown.enter.prevent="find" />
+                <input v-model="form.address" type="text" maxlength="255" autocomplete="street-address" :aria-labelledby="addressLabel" :placeholder="t.__('Street, city', 'membuild-community')" @keydown.enter.prevent="find" />
                 <button type="button" class="btn btn-lg btn-ghost" :disabled="looking" @click="find"><Icon name="search" :size="18" /> {{ looking ? t.__('Finding…', 'membuild-community') : t.__('Find', 'membuild-community') }}</button>
               </div>
               <ul v-if="matches.length > 1" class="matches">

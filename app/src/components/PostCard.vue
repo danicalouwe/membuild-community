@@ -2,7 +2,7 @@
 import { computed, defineAsyncComponent, ref } from 'vue'
 import { askConfirm } from '../lib/confirm.js'
 import { api } from '../api.js'
-import { closePoll, forgetTopicLists, justPosted, removePost, setCoursePin, setPinned, setSaved, takePost, updatePost } from '../stores/feed.js'
+import { closePoll, commentRemoved, forgetTopicLists, justPosted, removePost, setCoursePin, setPinned, setSaved, takePost, updatePost } from '../stores/feed.js'
 import { topics, topicsShown } from '../lib/topics.js'
 import { showToast } from '../lib/toast.js'
 import BaseDialog from './BaseDialog.vue'
@@ -149,6 +149,26 @@ const dialog = ref(null) // null | { focusComment: boolean }
 const preview = computed(() => props.post.preview_comment)
 const previewCount = computed(() => (preview.value ? 1 + preview.value.replies.length : 0))
 const moreComments = computed(() => props.post.comments_count > previewCount.value)
+let freshRead = 0
+// Delete (or, for staff, Remove) in the menu of a comment shown under the post: the same ask as in the opened post.
+async function removePreview(c) {
+  if (!(await askConfirm({ title: t.__('Delete this comment?', 'membuild-community'), text: t.__('Its replies go with it. This can’t be undone.', 'membuild-community'), confirm: t.__('Delete comment', 'membuild-community'), danger: true }))) return
+  const isReply = c.id !== preview.value?.id
+  const putBack = commentRemoved(props.post.id, c, isReply ? 1 : 1 + (c.replies_count || 0))
+  try {
+    await api.deleteComment(c.id)
+  } catch (err) {
+    putBack()
+    return showToast(err.message)
+  }
+  // The card's numbers can be older than the opened post's (a reply added there since), so the
+  // server's own count and next preview replace the estimate. If this fails, the estimate stays.
+  // Only the newest read counts, so a late answer can't bring back a comment deleted after it.
+  const mine = ++freshRead
+  api.post(props.post.id).then((fresh) => {
+    if (mine === freshRead) updatePost(props.post.id, { comments_count: fresh.comments_count, preview_comment: fresh.preview_comment })
+  }).catch(() => {})
+}
 
 const open = (focusComment = false) => {
   if (!props.post.pending) dialog.value = { focusComment }
@@ -272,9 +292,9 @@ async function remove() {
 
     <div v-if="preview" class="preview">
       <button v-if="moreComments" class="more" @click="open(false)">{{ t.__('View more comments', 'membuild-community') }}</button>
-      <CommentItem :comment="preview" :in-course="inCourse" @reply="open(true)" />
+      <CommentItem :comment="preview" :in-course="inCourse" @reply="open(true)" @delete="removePreview" />
       <div v-if="preview.replies.length" class="preview-replies">
-        <CommentItem v-for="r in preview.replies" :key="r.id" :comment="r" reply :in-course="inCourse" @reply="open(true)" />
+        <CommentItem v-for="r in preview.replies" :key="r.id" :comment="r" reply :in-course="inCourse" @reply="open(true)" @delete="removePreview" />
       </div>
     </div>
 
