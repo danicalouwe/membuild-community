@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.24.4
+Stable tag: 1.24.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -268,6 +268,13 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.24.5 =
+* Fixed: on phones, the small links and buttons under a post (See more, the reactions count, comments, View more comments) and in the comment box are easier to tap.
+* Fixed: on phones, the chat buttons, the story reaction faces, a place's website and phone links, Leaderboard names and the x on a course in Settings › Memberships are easier to tap.
+* Fixed: in a chat, a photo that fails to upload shows a red outline right away, with "A photo failed to upload." under it, so it's clear before you press Send.
+* Fixed: when the app can't copy a link by itself, it opens its own "Copy this link" box with the link selected, instead of the browser's box. Settings › Video's webhook link uses the same box, also on sites without https.
+* Fixed: on phones, "We couldn't open this photo" when making a story or reel is no longer hidden behind the buttons.
 
 = 1.24.4 =
 * Fixed: a YouTube or Vimeo stream now becomes the event's replay once it's over, as the event form says. To have no replay, empty the Replay link and it stays empty. Note: on YouTube and Vimeo events where the replay was removed before this update, the stream shows as the replay again; empty the link once more to remove it.

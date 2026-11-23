@@ -745,6 +745,33 @@ function unmute() {
   transform: scale(1.18);
 }
 
+/* Room to tap on phones (#98): each face stays 30px inside a 44px button, with no gap
+   between them. The pill grows to 320px; on the narrowest phones (320px) the pill and the bar
+   lose a little side padding so the buttons keep their full 44px. */
+@media (max-width: 767px) {
+  .quick {
+    gap: 0;
+    padding: 0 6px;
+  }
+
+  .quick button {
+    flex: none;
+    width: 44px;
+    height: 44px;
+  }
+}
+
+@media (max-width: 343px) {
+  .bottom {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+
+  .quick {
+    padding: 0;
+  }
+}
+
 /* Your own story: Seen by, with the last few faces. */
 .seen-bar {
   display: flex;

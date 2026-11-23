@@ -628,6 +628,22 @@ async function remove() {
   text-decoration: underline;
 }
 
+/* Room to tap on phones (#68): See more and View more comments are 44px rows. */
+@media (max-width: 767px) {
+  .text :deep(.more) {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    margin-left: 0;
+  }
+
+  .more {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}
+
 .preview-replies {
   display: flex;
   flex-direction: column;

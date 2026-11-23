@@ -5,6 +5,7 @@ import { askConfirm } from '../../lib/confirm.js'
 import { around, t } from '../../lib/i18n.js'
 import { useSettings } from './context.js'
 import Icon from '../Icon.vue'
+import { showCopyBox } from '../../lib/copyBox.js'
 
 // Where videos are stored: this site, or Bunny Stream.
 const { form, savedForm, dirty } = useSettings()
@@ -46,7 +47,13 @@ async function turnOffProtection() {
 }
 
 async function copyHook() {
-  await navigator.clipboard.writeText(form.value.video.webhook_url).catch(() => prompt(t.__('Copy this webhook URL', 'membuild-community'), form.value.video.webhook_url))
+  const url = form.value.video.webhook_url
+  let ok = false
+  try {
+    await navigator.clipboard.writeText(url) // missing on plain http sites, so it throws
+    ok = true
+  } catch {}
+  if (!ok) return showCopyBox(url, t.__('Copy this webhook URL', 'membuild-community')) // our own box, the link selected (#147)
   copiedHook.value = true
   setTimeout(() => (copiedHook.value = false), 1500)
 }

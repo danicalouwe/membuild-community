@@ -336,16 +336,17 @@ function addGif(gif) {
 }
 
 const MAX_MESSAGE = 4000 // the server keeps this many characters
+const photoFailed = computed(() => photos.value.some((p) => p.status === 'error'))
 
 async function send() {
   const typing = document.activeElement === input.value
   const content = draft.value.trim()
-  // A photo that already failed is taken out and said once; the rest still go (#135).
+  // A photo that already failed is taken out; the rest still go (#135). It was marked in the box
+  // as soon as it failed (#146), so no toast is needed now.
   const failed = photos.value.filter((p) => p.status === 'error')
   if (failed.length) {
     failed.forEach((p) => p.release())
     photos.value = photos.value.filter((p) => p.status !== 'error')
-    showToast(t.__('A photo failed to upload.', 'membuild-community'))
   }
   const pics = photos.value
   if (!content && !pics.length) return
@@ -827,12 +828,14 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
         <button type="button" :aria-label="t.__('Cancel reply', 'membuild-community')" @click="replyTo = null"><Icon name="close" :size="16" /></button>
       </div>
       <div v-if="photos.length" class="pending-photos">
-        <span v-for="(p, i) in photos" :key="p.key" class="pp">
+        <span v-for="(p, i) in photos" :key="p.key" class="pp" :class="{ failed: p.status === 'error' }">
           <img :src="p.previewUrl" alt="" />
           <i v-if="p.status === 'working'" :style="{ transform: `scaleX(${p.progress})` }" />
-          <button type="button" :aria-label="t.__('Remove photo', 'membuild-community')" @click="p.cancel(); photos.splice(i, 1)"><Icon name="close" :size="12" /></button>
+          <button type="button" :class="{ 'tap-44': p.status === 'error' }" :aria-label="t.__('Remove photo', 'membuild-community')" @click="p.cancel(); photos.splice(i, 1)"><Icon name="close" :size="p.status === 'error' ? 14 : 12" /></button>
         </span>
       </div>
+      <!-- A photo that failed is marked as soon as it fails, not after Send (#146). One line, however many failed. -->
+      <p v-if="photoFailed" class="error-text photo-failed" role="status">{{ t.__('A photo failed to upload.', 'membuild-community') }}</p>
       <p v-if="draft.length >= MAX_MESSAGE" class="limit-note" role="status">{{ t.sprintf(/* translators: %s: the number of characters, e.g. 4,000 */ t.__('You’ve reached the limit of %s characters.', 'membuild-community'), MAX_MESSAGE.toLocaleString()) }}</p>
       <div class="bar">
         <button type="button" class="icon tool" :aria-label="t.__('Add photo', 'membuild-community')" @click="photoInput.click()"><Icon name="image" :size="22" /></button>
@@ -1621,7 +1624,10 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 .pending-photos {
   display: flex;
   gap: 6px;
-  padding: 0 4px 8px;
+  /* 8px more room above and right, taken back with the margin, so a failed photo's 44px
+     tap area on its x isn't cut off by the scrolling row (#146). */
+  margin-top: -8px;
+  padding: 8px 8px 8px 4px;
   overflow-x: auto;
 }
 
@@ -1646,6 +1652,30 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
   height: 3px;
   background: var(--accent);
   transform-origin: left;
+}
+
+/* A photo that failed to upload (#146): red outline, dimmed, a bigger red x. Not clipped,
+   so the x keeps its 44px tap area. */
+.pp.failed {
+  overflow: visible;
+  outline: 2px solid var(--danger-text);
+  outline-offset: -2px;
+}
+
+.pp.failed img {
+  border-radius: inherit;
+  opacity: 0.55;
+}
+
+.pp.failed button {
+  width: 24px;
+  height: 24px;
+  background: var(--danger-strong);
+}
+
+.photo-failed {
+  padding: 0 4px 8px;
+  font-size: var(--fs-md);
 }
 
 .pp button {
@@ -1732,6 +1762,23 @@ const replyingTo = (name) => t.sprintf(/* translators: %s: the name of the perso
 
   .actions {
     opacity: 1;
+  }
+
+  /* Room to tap (#98): Chat options, Add photo, Add a GIF, Emoji, Send and Send a like are
+     44px buttons, edge to edge in the message bar so a tap never falls into a gap. Icons keep
+     their size. Back already has a 44px tap area. */
+  .icon:not(.back, .small) {
+    width: 44px;
+    height: 44px;
+  }
+
+  .bar {
+    gap: 0;
+  }
+
+  .field textarea {
+    min-height: 44px;
+    padding: 10px 0;
   }
 }
 </style>

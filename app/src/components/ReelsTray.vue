@@ -7,6 +7,7 @@ import { lists, loadMore, takePost } from '../stores/feed.js'
 import Icon from './Icon.vue'
 import { t } from '../lib/i18n.js'
 import { showToast } from '../lib/toast.js'
+import { showCopyBox } from '../lib/copyBox.js'
 
 const ReportDialog = defineAsyncComponent(() => import('./ReportDialog.vue'))
 
@@ -58,7 +59,7 @@ function openMenu(e, reel) {
   if (menu.value?.reel === reel) return (menu.value = null)
   const b = e.currentTarget.getBoundingClientRect()
   const w = wrap.value.getBoundingClientRect()
-  menu.value = { reel, top: b.bottom - w.top + 6, left: Math.min(b.right - w.left - 200, w.width - 212) }
+  menu.value = { reel, opener: e.currentTarget, top: b.bottom - w.top + 6, left: Math.min(b.right - w.left - 200, w.width - 212) }
   copied.value = false
 }
 
@@ -69,7 +70,8 @@ async function copyLink(reel) {
     copied.value = true
     setTimeout(() => (menu.value = null), 900)
   } catch {
-    prompt(t.__('Copy this link', 'membuild-community'), url)
+    menu.value?.opener?.focus() // so Done or Escape brings the keyboard back to ⋯
+    showCopyBox(url, t.__('Copy this link', 'membuild-community')) // our own box, the link selected (#147)
     menu.value = null
   }
 }

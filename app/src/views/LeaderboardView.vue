@@ -772,4 +772,27 @@ h1 {
   }
 }
 
+/* Room to tap on phones (#108). Names in the list are 45px tall (the rows are already 68px, so
+   nothing moves). On the podium an invisible 44px tap area reaches over the name and the Level
+   line under it; it belongs to .who, so the name's two-line clip doesn't cut it off. */
+@media (max-width: 767px) {
+  .name {
+    padding: 11px 0;
+  }
+
+  .who {
+    position: relative;
+  }
+
+  .pname::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+}
+
 </style>

@@ -620,6 +620,22 @@ const viewReplies = (n) => t.sprintf(/* translators: %d: number of replies */ t.
   color: var(--text-3);
 }
 
+/* Room to tap on phones (#53): Emoji, Photo, GIF and Send are 44px buttons, edge to edge, so a
+   tap between two still hits one of them. Icons keep their size and their place in the box. */
+@media (max-width: 767px) {
+  .tools {
+    gap: 0;
+    margin-left: -14px;
+    margin-right: -4px;
+  }
+
+  .tool,
+  .send {
+    width: 44px;
+    height: 44px;
+  }
+}
+
 /* Reels comment sheet */
 .dark {
   --surface: var(--player-surface);

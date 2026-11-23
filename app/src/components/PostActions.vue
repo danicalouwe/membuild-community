@@ -9,6 +9,7 @@ import { showToast } from '../lib/toast.js'
 import Icon from './Icon.vue'
 import ReactionButton from './ReactionButton.vue'
 import ReactionStack from './ReactionStack.vue'
+import { showCopyBox } from '../lib/copyBox.js'
 const ReactionsDialog = defineAsyncComponent(() => import('./ReactionsDialog.vue'))
 
 // Facebook's layout: a summary line (reactions on the left, comments and shares
@@ -52,7 +53,7 @@ async function share() {
           from?.focus?.({ preventScroll: true })
         }
         if (!ok) {
-          prompt(t.__('Copy this link', 'membuild-community'), url) // last resort, as Reels does: the link on screen to copy by hand
+          showCopyBox(url, t.__('Copy this link', 'membuild-community')) // last resort: our own box with the link selected, to copy by hand (#147)
           return
         }
       }
@@ -146,6 +147,26 @@ const shareCount = (n) => t.sprintf(/* translators: %s: number of shares, e.g. "
 
 .link {
   color: inherit;
+}
+
+/* Room to tap on phones (#68): the reactions count and "9 comments" fill a 44px row, which
+   sits fully above Like, Comment and Share, never on top of them. */
+@media (max-width: 767px) {
+  .summary {
+    min-height: 44px;
+    padding: 0 14px;
+  }
+
+  .who,
+  .link,
+  .counts {
+    align-self: stretch;
+    align-items: center;
+  }
+
+  .link {
+    display: inline-flex;
+  }
 }
 
 .bar {

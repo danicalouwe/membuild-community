@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { showToast } from '../lib/toast.js'
 import { askConfirm } from '../lib/confirm.js'
 import { api } from '../api.js'
 import { startAttachment } from '../lib/attachments.js'
@@ -25,6 +26,13 @@ const caption = ref('')
 const seconds = ref(0) // the picked video's length
 const dragging = ref(false)
 const error = ref('')
+// On a phone the line saying a photo or video couldn't be opened sits under the Discard and Share
+// bar, out of sight: it shows in the small message at the bottom of the screen too (#145).
+const phone = window.matchMedia('(max-width: 767px)')
+watch(
+  () => item.value?.status === 'error' && item.value.error,
+  (why) => why && phone.matches && showToast(why),
+)
 const sharing = ref(false)
 
 // A YouTube Short: the link, what YouTube says about it, and the media row it makes.

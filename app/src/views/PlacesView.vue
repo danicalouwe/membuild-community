@@ -835,8 +835,9 @@ const tapped = computed(() => (showMap.value && props.placeId ? places.value.fin
           </span>
         </li>
         <li v-else-if="detail.hours"><Icon name="clock" :size="18" /> {{ detail.hours }}</li>
-        <li v-if="detail.website"><Icon name="external" :size="18" /> <a :href="detail.website" target="_blank" rel="noopener">{{ host(detail.website) }}</a></li>
-        <li v-if="detail.phone"><Icon name="chat" :size="18" /> <a :href="telHref(detail.phone, detail.phone_country)">{{ detail.phone }}</a></li>
+        <!-- The whole row is the link, icon included, so on phones it can be a 44px row (#108). -->
+        <li v-if="detail.website" class="link-row"><a :href="detail.website" target="_blank" rel="noopener"><Icon name="external" :size="18" /> {{ host(detail.website) }}</a></li>
+        <li v-if="detail.phone" class="link-row"><a :href="telHref(detail.phone, detail.phone_country)"><Icon name="chat" :size="18" /> {{ detail.phone }}</a></li>
       </ul>
       <p v-if="detail.description" class="about">{{ detail.description }}</p>
 
@@ -1867,6 +1868,30 @@ button.pc:hover {
 .facts a {
   color: var(--accent-text);
   font-weight: 700;
+}
+
+.link-row a {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* Room to tap on phones (#108): the website and phone links are 44px rows, from the icon to the
+   right edge. Two of them touch (the -6px margins meet the list's 12px gap), so they never overlap. */
+@media (max-width: 767px) {
+  .facts {
+    align-self: stretch; /* the rows reach the right edge */
+  }
+
+  .link-row {
+    margin: -6px 0;
+  }
+
+  .link-row a {
+    min-height: 44px;
+  }
 }
 
 .about {

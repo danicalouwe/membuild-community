@@ -14,6 +14,7 @@ import ThemeSlot from './components/ThemeSlot.vue'
 import PageView from './components/PageView.vue'
 import Toast from './components/Toast.vue'
 import ConfirmHost from './components/ConfirmHost.vue'
+import CopyLinkHost from './components/CopyLinkHost.vue'
 import MemberViewToggle from './components/MemberViewToggle.vue'
 import { asMember, canSeeAsMember } from './lib/preview.js'
 import { replacement } from './lib/slots.js'
@@ -329,6 +330,7 @@ const shellData = computed(() => ({
     <ThemeSlot name="app.level-up" :data="{ levelUp: levelShown ? me.levelUp : null, dismiss: () => (me.levelUp = null) }"><LevelUpToast /></ThemeSlot>
     <Toast />
     <ConfirmHost />
+    <CopyLinkHost />
   </div>
 </template>
 

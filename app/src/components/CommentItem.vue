@@ -25,6 +25,7 @@ import { useRouter } from 'vue-router'
 import { setShareDraft } from '../stores/messages.js'
 import { feature } from '../config.js'
 import { askConfirm } from '../lib/confirm.js'
+import { showCopyBox } from '../lib/copyBox.js'
 const ReportDialog = defineAsyncComponent(() => import('./ReportDialog.vue'))
 
 const props = defineProps({
@@ -81,7 +82,7 @@ async function copyLink() {
       ta.remove()
       if (!ok) throw new Error('copy failed')
     } catch {
-      prompt(t.__('Copy this link', 'membuild-community'), url) // last resort, as a post's Share and Reels do: the link stays on screen, selected, to copy by hand
+      showCopyBox(url, t.__('Copy this link', 'membuild-community')) // last resort: our own box with the link selected, to copy by hand (#147)
       return
     }
   }

@@ -625,6 +625,19 @@ h2 {
   cursor: pointer;
 }
 
+/* Room to tap on phones (#103): the x that takes a course (or a role) out is a 44px button.
+   The chip drops its right padding, so it is only about 10px wider. */
+@media (max-width: 767px) {
+  .chip {
+    padding-right: 0;
+  }
+
+  .chip button {
+    width: 44px;
+    height: 44px;
+  }
+}
+
 .chip.add {
   padding: 0 14px;
   border: 1px dashed var(--border-strong);

@@ -19,6 +19,7 @@ import YouTubeReel from '../components/YouTubeReel.vue'
 import { t } from '../lib/i18n.js'
 import { useDialog } from '../lib/useDialog.js'
 import { onTabbedButton } from '../lib/tabbed.js'
+import { showCopyBox } from '../lib/copyBox.js'
 
 const ReportDialog = defineAsyncComponent(() => import('../components/ReportDialog.vue'))
 
@@ -377,7 +378,7 @@ async function share(post) {
     await navigator.clipboard.writeText(url)
     showToast(t.__('Link copied.', 'membuild-community'))
   } catch {
-    prompt(t.__('Copy this link', 'membuild-community'), url) // no clipboard here, as on a plain http site
+    showCopyBox(url, t.__('Copy this link', 'membuild-community')) // no clipboard here, as on a plain http site: our own box (#147)
   }
 }
 

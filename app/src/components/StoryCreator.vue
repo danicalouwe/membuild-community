@@ -1,5 +1,6 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { showToast } from '../lib/toast.js'
 import { askConfirm } from '../lib/confirm.js'
 import { api } from '../api.js'
 import { loadStories } from '../stores/stories.js'
@@ -24,6 +25,13 @@ const text = ref('')
 const background = ref('community')
 const sharing = ref(false)
 const error = ref('')
+// On a phone the line saying a photo or video couldn't be opened sits under the Discard and Share
+// bar, out of sight: it shows in the small message at the bottom of the screen too (#145).
+const phone = window.matchMedia('(max-width: 767px)')
+watch(
+  () => item.value?.status === 'error' && item.value.error,
+  (why) => why && phone.matches && showToast(why),
+)
 const fileInput = ref(null)
 const textInput = ref(null)
 
