@@ -4,7 +4,7 @@ Tags: community, social network, courses, membership, gamification
 Requires at least: 6.4
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.24.5
+Stable tag: 1.24.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -268,6 +268,9 @@ The community app is written in Vue and compiled into `assets/build/`. Its full,
 5. Community settings.
 
 == Changelog ==
+
+= 1.24.6 =
+* Fixed: on sites behind Cloudflare, when something outside the site doesn't answer (the map search, sending an email, a Bunny video upload, adding the two-step log-in plugin from WordPress.org, or MemBuild itself), you now see what went wrong instead of "Something went wrong (error 502)".
 
 = 1.24.5 =
 * Fixed: on phones, the small links and buttons under a post (See more, the reactions count, comments, View more comments) and in the comment box are easier to tap.

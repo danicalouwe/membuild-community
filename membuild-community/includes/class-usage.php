@@ -463,7 +463,7 @@ class Usage {
 
 	public static function rest_unsubscribe() {
 		if ( ! self::unsubscribe() ) {
-			return new \WP_Error( 'mbcom_unsubscribe_failed', __( 'MemBuild couldn’t be reached. Please try again in a few minutes.', 'membuild-community' ), array( 'status' => 502 ) );
+			return new \WP_Error( 'mbcom_unsubscribe_failed', __( 'MemBuild couldn’t be reached. Please try again in a few minutes.', 'membuild-community' ), array( 'status' => 503 ) );
 		}
 		return self::rest_get();
 	}
@@ -472,7 +472,7 @@ class Usage {
 	public static function rest_forget() {
 		$state = self::state();
 		if ( ! self::post( 'community_forget', array( 'install_id' => $state['id'] ), 10 ) ) {
-			return new \WP_Error( 'mbcom_forget_failed', __( 'MemBuild couldn’t be reached. Please try again in a few minutes.', 'membuild-community' ), array( 'status' => 502 ) );
+			return new \WP_Error( 'mbcom_forget_failed', __( 'MemBuild couldn’t be reached. Please try again in a few minutes.', 'membuild-community' ), array( 'status' => 503 ) );
 		}
 		$state['id']            = wp_generate_uuid4();
 		$state['share']         = false;

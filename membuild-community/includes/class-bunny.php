@@ -151,7 +151,7 @@ class Bunny {
 				: ( 404 === $code ? __( 'Bunny couldn’t find that video library. Check the library ID.', 'membuild-community' )
 				/* translators: %d: HTTP status code */
 				: sprintf( __( 'Bunny returned an error (%d).', 'membuild-community' ), $code ) );
-			return new \WP_Error( 'mbcom_bunny', $msg, array( 'status' => 502 ) );
+			return new \WP_Error( 'mbcom_bunny', $msg, array( 'status' => 503 ) );
 		}
 		return is_array( $data ) ? $data : array();
 	}
@@ -280,7 +280,7 @@ class Bunny {
 		}
 		$guid = (string) ( $video['guid'] ?? '' );
 		if ( ! $guid ) {
-			return new \WP_Error( 'mbcom_bunny', __( 'Bunny didn’t create the video.', 'membuild-community' ), array( 'status' => 502 ) );
+			return new \WP_Error( 'mbcom_bunny', __( 'Bunny didn’t create the video.', 'membuild-community' ), array( 'status' => 503 ) );
 		}
 
 		$poster = ! empty( $req['poster_media_id'] ) ? Media::claim_poster( $me, (int) $req['poster_media_id'] ) : null;

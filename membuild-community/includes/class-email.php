@@ -256,7 +256,7 @@ class Email {
 		}
 		if ( is_wp_error( $result ) ) {
 			$raw = $result->get_error_message();
-			return new \WP_Error( 'mbcom_mail_failed', self::plain_failure( $raw ), array( 'status' => 502, 'details' => $raw ) );
+			return new \WP_Error( 'mbcom_mail_failed', self::plain_failure( $raw ), array( 'status' => 503, 'details' => $raw ) );
 		}
 		return array( 'sent' => true, 'to' => $user->user_email );
 	}
@@ -459,7 +459,7 @@ class Email {
 		}
 		$user = wp_get_current_user();
 		if ( ! self::send_welcome( $me ) ) {
-			return new \WP_Error( 'mbcom_mail_failed', __( 'The email could not be sent. Try again in a few minutes.', 'membuild-community' ), array( 'status' => 502 ) );
+			return new \WP_Error( 'mbcom_mail_failed', __( 'The email could not be sent. Try again in a few minutes.', 'membuild-community' ), array( 'status' => 503 ) );
 		}
 		return array( 'sent' => true, 'to' => $user->user_email );
 	}

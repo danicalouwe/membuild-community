@@ -804,7 +804,7 @@ class Two_Step {
 			)
 		);
 		if ( is_wp_error( $api ) || empty( $api->download_link ) ) {
-			return self::error( 'mbcom_two_step_add_failed', __( 'WordPress.org didn’t answer. Try again in a minute, or add it by hand.', 'membuild-community' ), 502 );
+			return self::error( 'mbcom_two_step_add_failed', __( 'WordPress.org didn’t answer. Try again in a minute, or add it by hand.', 'membuild-community' ), 503 );
 		}
 		$skin     = new \WP_Ajax_Upgrader_Skin();
 		$upgrader = new \Plugin_Upgrader( $skin );

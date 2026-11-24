@@ -615,7 +615,7 @@ class Rest_Places {
 			)
 		);
 		if ( 200 !== wp_remote_retrieve_response_code( $response ) ) {
-			return new \WP_Error( 'mbcom_geocode_failed', __( 'The map search isn’t answering right now. Try again in a minute, or drop the pin yourself.', 'membuild-community' ), array( 'status' => 502 ) );
+			return new \WP_Error( 'mbcom_geocode_failed', __( 'The map search isn’t answering right now. Try again in a minute, or drop the pin yourself.', 'membuild-community' ), array( 'status' => 503 ) );
 		}
 		$items = array_values(
 			array_map(

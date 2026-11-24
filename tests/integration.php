@@ -1607,7 +1607,7 @@ mbcom_check( '…while the anonymous report still never carries the site address
 mbcom_call( $admin, 'PUT', '/settings/usage', array( 'share' => true ) );
 $forget_code = 500;
 list( $code ) = mbcom_call( $admin, 'DELETE', '/settings/updates' );
-mbcom_check( 'if MemBuild can’t be reached, Stop says so and keeps the subscription', 502 === $code && \MemBuild\Community\Usage::state()['subscribed'] );
+mbcom_check( 'if MemBuild can’t be reached, Stop says so and keeps the subscription', 503 === $code && \MemBuild\Community\Usage::state()['subscribed'] );
 $forget_code = 200;
 $sent        = array();
 list( $code, $got ) = mbcom_call( $admin, 'DELETE', '/settings/updates' );
@@ -1620,7 +1620,7 @@ mbcom_check( '…and the overview won’t ask again', ! \MemBuild\Community\Usag
 
 $forget_code = 500;
 list( $code ) = mbcom_call( $admin, 'POST', '/settings/usage/forget' );
-mbcom_check( 'if MemBuild can’t be reached, “delete my data” says so and changes nothing', 502 === $code && \MemBuild\Community\Usage::state()['id'] === $id && \MemBuild\Community\Usage::state()['share'] );
+mbcom_check( 'if MemBuild can’t be reached, “delete my data” says so and changes nothing', 503 === $code && \MemBuild\Community\Usage::state()['id'] === $id && \MemBuild\Community\Usage::state()['share'] );
 $forget_code = 200;
 list( $code, $got ) = mbcom_call( $admin, 'POST', '/settings/usage/forget' );
 mbcom_check( '…otherwise sharing stops and the site gets a new ID', 200 === $code && false === $got['share'] && $got['id'] !== $id && str_contains( end( $sent )['body'], $id ) );
